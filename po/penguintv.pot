@@ -1,0 +1,496 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2006-03-22 08:56+EST\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: ENCODING\n"
+"Generated-By: pygettext.py 1.5\n"
+
+
+#: BTDownloader.py:68 BTDownloader.py:69
+msgid "There was an error downloading the torrent"
+msgstr ""
+
+#: BTDownloader.py:107
+msgid "Downloaded %(progress)s%% of %(size)s, %(time)s remaining."
+msgstr ""
+
+#: BTDownloader.py:109
+msgid "Downloaded %(progress)s%% of %(size)s"
+msgstr ""
+
+#: EntryList.py:182
+msgid "_Download"
+msgstr ""
+
+#: EntryList.py:192 utils.py:185
+msgid "Delete"
+msgstr ""
+
+#: EntryList.py:197 penguintv.py:1023
+msgid "Mark as _Viewed"
+msgstr ""
+
+#: EntryList.py:201
+msgid "Mark as _Unviewed"
+msgstr ""
+
+#: EntryView.py:225
+msgid "Loading..."
+msgstr ""
+
+#: EntryView.py:339 EntryView.py:345
+msgid "Downloading %(progress)d%% of %(size)s..."
+msgstr ""
+
+#: EntryView.py:349
+msgid "Downloading %s..."
+msgstr ""
+
+#: EntryView.py:376
+msgid "There was an error downloading the file."
+msgstr ""
+
+#: EntryView.py:387
+msgid "Full Entry..."
+msgstr ""
+
+#: FeedList.py:20
+msgid "Downloaded Media"
+msgstr ""
+
+#: FeedList.py:20
+msgid "No Feeds (Calm Mode)"
+msgstr ""
+
+#: FeedList.py:20 FeedList.py:36
+msgid "All Feeds"
+msgstr ""
+
+#: FeedList.py:200
+msgid "Please wait..."
+msgstr ""
+
+#: FeedList.py:299
+msgid "There was an error trying to poll this feed."
+msgstr ""
+
+#: HTTPDownloader.py:66 HTTPDownloader.py:67
+msgid "finished downloading %s"
+msgstr ""
+
+#: penguintv.py:174
+msgid "Polling feeds for the first time..."
+msgstr ""
+
+#: penguintv.py:445
+msgid "Feeds Updated"
+msgstr ""
+
+#: penguintv.py:678
+msgid "Trying to poll feed..."
+msgstr ""
+
+#: penguintv.py:692
+msgid "Error adding feed"
+msgstr ""
+
+#: penguintv.py:698
+msgid "Feed Added"
+msgstr ""
+
+#: penguintv.py:751
+msgid "expected at least half of reported size %(reported_size)s but the file is %(actual_size)s bytes."
+msgstr ""
+
+#: penguintv.py:871
+msgid "No Unviewed Media"
+msgstr ""
+
+#: penguintv.py:872
+msgid "There is no unviewed media to download."
+msgstr ""
+
+#: penguintv.py:882
+msgid "Large Download"
+msgstr ""
+
+#: penguintv.py:883
+msgid ""
+"If PenguinTV downloads all of the unviewed media, \n"
+"it will take %(space)s. Do you wish to continue?"
+msgstr ""
+
+#: penguintv.py:926 penguintv.py:1055
+msgid "Select OPML..."
+msgstr ""
+
+#: penguintv.py:946
+msgid "Exporting Feeds..."
+msgstr ""
+
+#: penguintv.py:961
+msgid "Really Delete Feed?"
+msgstr ""
+
+#: penguintv.py:962
+msgid "Are you sure you want to delete this feed?"
+msgstr ""
+
+#: penguintv.py:1011
+msgid "Re_name"
+msgstr ""
+
+#: penguintv.py:1015
+msgid "Edit _Tags"
+msgstr ""
+
+#: penguintv.py:1073
+msgid "Importing Feeds, please wait..."
+msgstr ""
+
+#: utils.py:36
+msgid "complete!"
+msgstr ""
+
+#: utils.py:179
+msgid "Play"
+msgstr ""
+
+#: utils.py:180
+msgid "Download"
+msgstr ""
+
+#: utils.py:181
+msgid "Download And Play"
+msgstr ""
+
+#: utils.py:182
+msgid "Pause"
+msgstr ""
+
+#: utils.py:183 utils.py:187
+msgid "Cancel"
+msgstr ""
+
+#: utils.py:184
+msgid "Open File"
+msgstr ""
+
+#: utils.py:186
+msgid "Resume"
+msgstr ""
+
+#: utils.py:188
+msgid "Stop"
+msgstr ""
+
+#: utils.py:197
+msgid "Re-Download"
+msgstr ""
+
+#: utils.py:200
+msgid "Retry"
+msgstr ""
+
+#: ../share/penguintv.glade.h:1
+msgid " "
+msgstr ""
+
+#: ../share/penguintv.glade.h:2
+msgid " megabytes"
+msgstr ""
+
+#: ../share/penguintv.glade.h:3
+msgid " minutes"
+msgstr ""
+
+#: ../share/penguintv.glade.h:4
+msgid "(c)2005 Owen Williams"
+msgstr ""
+
+#: ../share/penguintv.glade.h:5
+msgid "0 bytes"
+msgstr ""
+
+#: ../share/penguintv.glade.h:6
+msgid "<b>Add Feed</b>"
+msgstr ""
+
+#: ../share/penguintv.glade.h:7
+msgid "<b>BitTorrent Options</b>"
+msgstr ""
+
+#: ../share/penguintv.glade.h:8
+msgid "<b>Edit Tags</b>"
+msgstr ""
+
+#: ../share/penguintv.glade.h:9
+msgid "<b>General Options</b>"
+msgstr ""
+
+#: ../share/penguintv.glade.h:10
+msgid "<b>Refresh Mode</b>"
+msgstr ""
+
+#: ../share/penguintv.glade.h:11
+msgid "<b>Rename Feed</b>"
+msgstr ""
+
+#: ../share/penguintv.glade.h:12
+msgid "Add Feed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:13
+msgid ""
+"All Feeds\n"
+"Downloaded Media\n"
+"No Feeds (Calm Mode)"
+msgstr ""
+
+#: ../share/penguintv.glade.h:16
+msgid "Automatically download new media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:17
+msgid "Automatically resume downloads on startup"
+msgstr ""
+
+#: ../share/penguintv.glade.h:18
+msgid "Autotune refresh period"
+msgstr ""
+
+#: ../share/penguintv.glade.h:19
+msgid "Changing Layouts..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:20
+msgid "Download Unviewed Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:21
+msgid "Download _Unviewed Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:22
+msgid "E_ntry"
+msgstr ""
+
+#: ../share/penguintv.glade.h:23
+msgid "Edit Tags"
+msgstr ""
+
+#: ../share/penguintv.glade.h:24
+msgid "Edit _Tags..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:25
+msgid "Fee_d"
+msgstr ""
+
+#: ../share/penguintv.glade.h:26
+msgid "Hide Viewed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:27
+msgid "Limit total disk usage to "
+msgstr ""
+
+#: ../share/penguintv.glade.h:28
+msgid "Mark As _Unviewed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:29
+msgid "Mark As _Viewed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:30
+msgid "Maximum port"
+msgstr ""
+
+#: ../share/penguintv.glade.h:31
+msgid "Minimum port"
+msgstr ""
+
+#: ../share/penguintv.glade.h:33
+msgid "None yet"
+msgstr ""
+
+#: ../share/penguintv.glade.h:34
+msgid "PenguinTV"
+msgstr ""
+
+#: ../share/penguintv.glade.h:35
+msgid "PenguinTV Sourceforge Site"
+msgstr ""
+
+#: ../share/penguintv.glade.h:36
+msgid "Play Unviewed Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:37
+msgid "Please enter a new name for this feed:"
+msgstr ""
+
+#: ../share/penguintv.glade.h:38
+msgid ""
+"Please enter tags you would like to apply to this feed, separated by commas. "
+msgstr ""
+
+#: ../share/penguintv.glade.h:39
+msgid ""
+"Please enter the URL of the feed you would like to add; and any tags you "
+"would like to apply to this feed, separated by commas:"
+msgstr ""
+
+#: ../share/penguintv.glade.h:40
+msgid "Please wait while PenguinTV changes layouts..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:41
+msgid "Podcast and Video Blog aggregator for GTK+ and GNOME"
+msgstr ""
+
+#: ../share/penguintv.glade.h:42
+msgid "Preferences"
+msgstr ""
+
+#: ../share/penguintv.glade.h:43
+msgid "Re_fresh"
+msgstr ""
+
+#: ../share/penguintv.glade.h:44
+msgid "Re_name..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:45
+msgid "Refresh Feeds"
+msgstr ""
+
+#: ../share/penguintv.glade.h:46
+msgid "Refresh every "
+msgstr ""
+
+#: ../share/penguintv.glade.h:47
+msgid "Remove Feed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:48
+msgid "Rename Feed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:49
+msgid "Resume _All"
+msgstr ""
+
+#: ../share/penguintv.glade.h:50
+msgid "Stop All Active Downloads"
+msgstr ""
+
+#: ../share/penguintv.glade.h:51
+msgid "Tag Editor"
+msgstr ""
+
+#: ../share/penguintv.glade.h:52
+msgid "Tag Highlighter:"
+msgstr ""
+
+#: ../share/penguintv.glade.h:53
+msgid "Tags:"
+msgstr ""
+
+#: ../share/penguintv.glade.h:54
+msgid "Tags: "
+msgstr ""
+
+#: ../share/penguintv.glade.h:55
+msgid "URL: "
+msgstr ""
+
+#: ../share/penguintv.glade.h:56
+msgid "Upload rate limit"
+msgstr ""
+
+#: ../share/penguintv.glade.h:57
+msgid "Using: "
+msgstr ""
+
+#: ../share/penguintv.glade.h:58
+msgid "_Add Feed..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:59
+msgid "_Delete All Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:60
+msgid "_Delete Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:61
+msgid "_Download Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:62
+msgid "_Export OPML..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:63
+msgid "_Go"
+msgstr ""
+
+#: ../share/penguintv.glade.h:64
+msgid "_Horizontal Layout"
+msgstr ""
+
+#: ../share/penguintv.glade.h:65
+msgid "_Import OPML..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:66
+msgid "_Mark As Viewed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:67
+msgid "_Play Media"
+msgstr ""
+
+#: ../share/penguintv.glade.h:68
+msgid "_Play Unviewed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:69
+msgid "_Refresh Feeds"
+msgstr ""
+
+#: ../share/penguintv.glade.h:70
+msgid "_Remove Feed"
+msgstr ""
+
+#: ../share/penguintv.glade.h:71
+msgid "_Show Today's Downloads..."
+msgstr ""
+
+#: ../share/penguintv.glade.h:72
+msgid "_Standard Layout"
+msgstr ""
+
+#: ../share/penguintv.glade.h:73
+msgid "_Vertical Layout"
+msgstr ""
+
+#: ../share/penguintv.glade.h:74
+msgid "_View"
+msgstr ""
+
+#: ../share/penguintv.glade.h:75
+msgid "a"
+msgstr ""

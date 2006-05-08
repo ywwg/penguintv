@@ -1,0 +1,38 @@
+PenguinTV
+
+Thank you for downloading Penguin TV.  This application is an RSS feed reader with support for enclosed media.  You can watch video blogs and listen to podcasts with this application.  See the Changelog for new features and fixes in this version.
+
+== Requirements ==
+
+PenguinTV is a python program, and requires python version 2.3 or higher.  It also requires several libraries and their python versions:
+
+* gnome 2.x 
+* pysqlite version 2 or greater (http://pysqlite.org/)
+* pycurl version 7.11 or greater (http://pycurl.sourceforge.net/)
+
+== Installing ==
+
+Installation should be as simple as running
+
+python setup.py install
+
+as root.  Please email me if you have trouble installing the program.
+
+== Running PenguinTV ==
+
+Simply type PenguinTV from the command line.  At this point, PenguinTV does not have a proper .desktop file so it does not show up in GNOME or KDE menus.
+
+You must manually select the media player you wish to use.  Go to the preferences, and either select one from the list or type your own.
+
+If you want to use PenguinTV to transfer files to a portable media player, select Go / Show Today's Downloads.  This will pop up a file manager
+window containing all files downloaded on the current day.  The playlist.m3u includes all files in this directory, including movie files.  
+
+There is a recovery_playlist.m3u file in the ~/.penguintv/media folder which corresponds to the files played in the current session of PenguinTV.  If your
+media program crashes you can use this file to start playing media again right away.  This is considered a hidden debug feature, so it doesn't behave very well at this point.
+
+== Development ==
+
+PenguinTV has been developed by myself over a short period of time.  Please email me at ywwg@usa.net with questions, comments, or suggestions.  I would welcome help on packaging, translation, and advice on coding a proper GNOME application.  It is my goal to become a fully-compliant GNOME application, but the documentation on how to do this is slim.
+
+Thanks for watching,
+Owen Williams

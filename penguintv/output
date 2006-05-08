@@ -1,0 +1,583 @@
+# installing zipimport hook
+import zipimport # builtin
+# installed zipimport hook
+# /usr/lib/python2.4/site.pyc matches /usr/lib/python2.4/site.py
+import site # precompiled from /usr/lib/python2.4/site.pyc
+# /usr/lib/python2.4/os.pyc matches /usr/lib/python2.4/os.py
+import os # precompiled from /usr/lib/python2.4/os.pyc
+import posix # builtin
+# /usr/lib/python2.4/posixpath.pyc matches /usr/lib/python2.4/posixpath.py
+import posixpath # precompiled from /usr/lib/python2.4/posixpath.pyc
+# /usr/lib/python2.4/stat.pyc matches /usr/lib/python2.4/stat.py
+import stat # precompiled from /usr/lib/python2.4/stat.pyc
+# /usr/lib/python2.4/UserDict.pyc matches /usr/lib/python2.4/UserDict.py
+import UserDict # precompiled from /usr/lib/python2.4/UserDict.pyc
+# /usr/lib/python2.4/copy_reg.pyc matches /usr/lib/python2.4/copy_reg.py
+import copy_reg # precompiled from /usr/lib/python2.4/copy_reg.pyc
+# /usr/lib/python2.4/types.pyc matches /usr/lib/python2.4/types.py
+import types # precompiled from /usr/lib/python2.4/types.pyc
+# /usr/lib/python2.4/warnings.pyc matches /usr/lib/python2.4/warnings.py
+import warnings # precompiled from /usr/lib/python2.4/warnings.pyc
+# /usr/lib/python2.4/linecache.pyc matches /usr/lib/python2.4/linecache.py
+import linecache # precompiled from /usr/lib/python2.4/linecache.pyc
+import encodings # directory /usr/lib/python2.4/encodings
+# /usr/lib/python2.4/encodings/__init__.pyc matches /usr/lib/python2.4/encodings/__init__.py
+import encodings # precompiled from /usr/lib/python2.4/encodings/__init__.pyc
+# /usr/lib/python2.4/codecs.pyc matches /usr/lib/python2.4/codecs.py
+import codecs # precompiled from /usr/lib/python2.4/codecs.pyc
+import _codecs # builtin
+# /usr/lib/python2.4/encodings/aliases.pyc matches /usr/lib/python2.4/encodings/aliases.py
+import encodings.aliases # precompiled from /usr/lib/python2.4/encodings/aliases.pyc
+# /usr/lib/python2.4/encodings/utf_8.pyc matches /usr/lib/python2.4/encodings/utf_8.py
+import encodings.utf_8 # precompiled from /usr/lib/python2.4/encodings/utf_8.pyc
+Python 2.4.2 (#2, Sep 30 2005, 21:19:01) 
+[GCC 4.0.2 20050808 (prerelease) (Ubuntu 4.0.1-4ubuntu8)] on linux2
+Type "help", "copyright", "credits" or "license" for more information.
+./penguintv.py: inconsistent use of tabs and spaces in indentation
+# /usr/lib/python2.4/urlparse.pyc matches /usr/lib/python2.4/urlparse.py
+import urlparse # precompiled from /usr/lib/python2.4/urlparse.pyc
+# /usr/lib/python2.4/threading.pyc matches /usr/lib/python2.4/threading.py
+import threading # precompiled from /usr/lib/python2.4/threading.pyc
+import thread # builtin
+dlopen("/usr/lib/python2.4/lib-dynload/time.so", 2);
+import time # dynamically loaded from /usr/lib/python2.4/lib-dynload/time.so
+# /usr/lib/python2.4/traceback.pyc matches /usr/lib/python2.4/traceback.py
+import traceback # precompiled from /usr/lib/python2.4/traceback.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/collections.so", 2);
+import collections # dynamically loaded from /usr/lib/python2.4/lib-dynload/collections.so
+# /usr/lib/python2.4/atexit.pyc matches /usr/lib/python2.4/atexit.py
+import atexit # precompiled from /usr/lib/python2.4/atexit.pyc
+# /usr/lib/python2.4/urllib.pyc matches /usr/lib/python2.4/urllib.py
+import urllib # precompiled from /usr/lib/python2.4/urllib.pyc
+# /usr/lib/python2.4/string.pyc matches /usr/lib/python2.4/string.py
+import string # precompiled from /usr/lib/python2.4/string.pyc
+# /usr/lib/python2.4/re.pyc matches /usr/lib/python2.4/re.py
+import re # precompiled from /usr/lib/python2.4/re.pyc
+# /usr/lib/python2.4/sre.pyc matches /usr/lib/python2.4/sre.py
+import sre # precompiled from /usr/lib/python2.4/sre.pyc
+# /usr/lib/python2.4/sre_compile.pyc matches /usr/lib/python2.4/sre_compile.py
+import sre_compile # precompiled from /usr/lib/python2.4/sre_compile.pyc
+import _sre # builtin
+# /usr/lib/python2.4/sre_constants.pyc matches /usr/lib/python2.4/sre_constants.py
+import sre_constants # precompiled from /usr/lib/python2.4/sre_constants.pyc
+# /usr/lib/python2.4/sre_parse.pyc matches /usr/lib/python2.4/sre_parse.py
+import sre_parse # precompiled from /usr/lib/python2.4/sre_parse.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/strop.so", 2);
+import strop # dynamically loaded from /usr/lib/python2.4/lib-dynload/strop.so
+# /usr/lib/python2.4/socket.pyc matches /usr/lib/python2.4/socket.py
+import socket # precompiled from /usr/lib/python2.4/socket.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/_socket.so", 2);
+import _socket # dynamically loaded from /usr/lib/python2.4/lib-dynload/_socket.so
+dlopen("/usr/lib/python2.4/lib-dynload/_ssl.so", 2);
+import _ssl # dynamically loaded from /usr/lib/python2.4/lib-dynload/_ssl.so
+import errno # builtin
+# /usr/lib/python2.4/random.pyc matches /usr/lib/python2.4/random.py
+import random # precompiled from /usr/lib/python2.4/random.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/math.so", 2);
+import math # dynamically loaded from /usr/lib/python2.4/lib-dynload/math.so
+dlopen("/usr/lib/python2.4/lib-dynload/binascii.so", 2);
+import binascii # dynamically loaded from /usr/lib/python2.4/lib-dynload/binascii.so
+dlopen("/usr/lib/python2.4/lib-dynload/_random.so", 2);
+import _random # dynamically loaded from /usr/lib/python2.4/lib-dynload/_random.so
+# /usr/lib/python2.4/sets.pyc matches /usr/lib/python2.4/sets.py
+import sets # precompiled from /usr/lib/python2.4/sets.pyc
+# /usr/lib/python2.4/__future__.pyc matches /usr/lib/python2.4/__future__.py
+import __future__ # precompiled from /usr/lib/python2.4/__future__.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/itertools.so", 2);
+import itertools # dynamically loaded from /usr/lib/python2.4/lib-dynload/itertools.so
+import gtk # directory /usr/lib/python2.4/site-packages/gtk-2.0/gtk
+# /usr/lib/python2.4/site-packages/gtk-2.0/gtk/__init__.pyc matches /usr/lib/python2.4/site-packages/gtk-2.0/gtk/__init__.py
+import gtk # precompiled from /usr/lib/python2.4/site-packages/gtk-2.0/gtk/__init__.pyc
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gobject.so", 2);
+import gobject # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gobject.so
+# /usr/lib/python2.4/site-packages/gtk-2.0/gtk/keysyms.pyc matches /usr/lib/python2.4/site-packages/gtk-2.0/gtk/keysyms.py
+import gtk.keysyms # precompiled from /usr/lib/python2.4/site-packages/gtk-2.0/gtk/keysyms.pyc
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gtk/_gtk.so", 2);
+import cairo # directory /usr/lib/python2.4/site-packages/cairo
+# /usr/lib/python2.4/site-packages/cairo/__init__.pyc matches /usr/lib/python2.4/site-packages/cairo/__init__.py
+import cairo # precompiled from /usr/lib/python2.4/site-packages/cairo/__init__.pyc
+dlopen("/usr/lib/python2.4/site-packages/cairo/_cairo.so", 2);
+import cairo._cairo # dynamically loaded from /usr/lib/python2.4/site-packages/cairo/_cairo.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/pango.so", 2);
+import pango # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/pango.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/atk.so", 2);
+import atk # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/atk.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/pangocairo.so", 2);
+import pangocairo # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/pangocairo.so
+import gtk._gtk # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gtk/_gtk.so
+import gnome # directory /usr/lib/python2.4/site-packages/gtk-2.0/gnome
+# /usr/lib/python2.4/site-packages/gtk-2.0/gnome/__init__.pyc matches /usr/lib/python2.4/site-packages/gtk-2.0/gnome/__init__.py
+import gnome # precompiled from /usr/lib/python2.4/site-packages/gtk-2.0/gnome/__init__.pyc
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gnome/_gnome.so", 2);
+import gnome._gnome # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gnome/_gnome.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gnome/ui.so", 2);
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gnomevfs.so", 2);
+dlopen("/usr/lib/python2.4/site-packages/ORBit.so", 2);
+# /usr/lib/python2.4/keyword.pyc matches /usr/lib/python2.4/keyword.py
+import keyword # precompiled from /usr/lib/python2.4/keyword.pyc
+import ORBit # dynamically loaded from /usr/lib/python2.4/site-packages/ORBit.so
+import gnomevfs # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gnomevfs.so
+import bonobo # directory /usr/lib/python2.4/site-packages/gtk-2.0/bonobo
+# /usr/lib/python2.4/site-packages/gtk-2.0/bonobo/__init__.pyc matches /usr/lib/python2.4/site-packages/gtk-2.0/bonobo/__init__.py
+import bonobo # precompiled from /usr/lib/python2.4/site-packages/gtk-2.0/bonobo/__init__.pyc
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/bonobo/activation.so", 2);
+import bonobo.activation # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/bonobo/activation.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/bonobo/_bonobo.so", 2);
+import bonobo._bonobo # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/bonobo/_bonobo.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/bonobo/ui.so", 2);
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gnomecanvas.so", 2);
+import gnomecanvas # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gnomecanvas.so
+import bonobo.ui # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/bonobo/ui.so
+import gnome.ui # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gnome/ui.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gtk/glade.so", 2);
+import gtk.glade # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gtk/glade.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gtkmozembed.so", 2);
+import gtkmozembed # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gtkmozembed.so
+dlopen("/usr/lib/python2.4/site-packages/pycurl.so", 2);
+import pycurl # dynamically loaded from /usr/lib/python2.4/site-packages/pycurl.so
+# /usr/lib/python2.4/locale.pyc matches /usr/lib/python2.4/locale.py
+import locale # precompiled from /usr/lib/python2.4/locale.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/_locale.so", 2);
+import _locale # dynamically loaded from /usr/lib/python2.4/lib-dynload/_locale.so
+# /usr/lib/python2.4/gettext.pyc matches /usr/lib/python2.4/gettext.py
+import gettext # precompiled from /usr/lib/python2.4/gettext.pyc
+# /usr/lib/python2.4/copy.pyc matches /usr/lib/python2.4/copy.py
+import copy # precompiled from /usr/lib/python2.4/copy.pyc
+# /usr/lib/python2.4/inspect.pyc matches /usr/lib/python2.4/inspect.py
+import inspect # precompiled from /usr/lib/python2.4/inspect.pyc
+# /usr/lib/python2.4/dis.pyc matches /usr/lib/python2.4/dis.py
+import dis # precompiled from /usr/lib/python2.4/dis.pyc
+# /usr/lib/python2.4/opcode.pyc matches /usr/lib/python2.4/opcode.py
+import opcode # precompiled from /usr/lib/python2.4/opcode.pyc
+import imp # builtin
+# /usr/lib/python2.4/tokenize.pyc matches /usr/lib/python2.4/tokenize.py
+import tokenize # precompiled from /usr/lib/python2.4/tokenize.pyc
+# /usr/lib/python2.4/token.pyc matches /usr/lib/python2.4/token.py
+import token # precompiled from /usr/lib/python2.4/token.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/struct.so", 2);
+import struct # dynamically loaded from /usr/lib/python2.4/lib-dynload/struct.so
+dlopen("/usr/lib/python2.4/site-packages/gtk-2.0/gconf.so", 2);
+import gconf # dynamically loaded from /usr/lib/python2.4/site-packages/gtk-2.0/gconf.so
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvDB.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvDB.py
+import ptvDB # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvDB.pyc
+import pysqlite2 # directory /usr/lib/python2.4/site-packages/pysqlite2
+# /usr/lib/python2.4/site-packages/pysqlite2/__init__.pyc matches /usr/lib/python2.4/site-packages/pysqlite2/__init__.py
+import pysqlite2 # precompiled from /usr/lib/python2.4/site-packages/pysqlite2/__init__.pyc
+# /usr/lib/python2.4/site-packages/pysqlite2/dbapi2.pyc matches /usr/lib/python2.4/site-packages/pysqlite2/dbapi2.py
+import pysqlite2.dbapi2 # precompiled from /usr/lib/python2.4/site-packages/pysqlite2/dbapi2.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/datetime.so", 2);
+import datetime # dynamically loaded from /usr/lib/python2.4/lib-dynload/datetime.so
+dlopen("/usr/lib/python2.4/site-packages/pysqlite2/_sqlite.so", 2);
+import pysqlite2._sqlite # dynamically loaded from /usr/lib/python2.4/site-packages/pysqlite2/_sqlite.so
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/feedparser.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/feedparser.py
+import feedparser # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/feedparser.pyc
+# /usr/lib/python2.4/sgmllib.pyc matches /usr/lib/python2.4/sgmllib.py
+import sgmllib # precompiled from /usr/lib/python2.4/sgmllib.pyc
+# /usr/lib/python2.4/markupbase.pyc matches /usr/lib/python2.4/markupbase.py
+import markupbase # precompiled from /usr/lib/python2.4/markupbase.pyc
+# /usr/lib/python2.4/rfc822.pyc matches /usr/lib/python2.4/rfc822.py
+import rfc822 # precompiled from /usr/lib/python2.4/rfc822.pyc
+# /usr/lib/python2.4/cgi.pyc matches /usr/lib/python2.4/cgi.py
+import cgi # precompiled from /usr/lib/python2.4/cgi.pyc
+# /usr/lib/python2.4/mimetools.pyc matches /usr/lib/python2.4/mimetools.py
+import mimetools # precompiled from /usr/lib/python2.4/mimetools.pyc
+# /usr/lib/python2.4/tempfile.pyc matches /usr/lib/python2.4/tempfile.py
+import tempfile # precompiled from /usr/lib/python2.4/tempfile.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/fcntl.so", 2);
+import fcntl # dynamically loaded from /usr/lib/python2.4/lib-dynload/fcntl.so
+# /usr/lib/python2.4/StringIO.pyc matches /usr/lib/python2.4/StringIO.py
+import StringIO # precompiled from /usr/lib/python2.4/StringIO.pyc
+# /usr/lib/python2.4/urllib2.pyc matches /usr/lib/python2.4/urllib2.py
+import urllib2 # precompiled from /usr/lib/python2.4/urllib2.pyc
+# /usr/lib/python2.4/base64.pyc matches /usr/lib/python2.4/base64.py
+import base64 # precompiled from /usr/lib/python2.4/base64.pyc
+# /usr/lib/python2.4/ftplib.pyc matches /usr/lib/python2.4/ftplib.py
+import ftplib # precompiled from /usr/lib/python2.4/ftplib.pyc
+# /usr/lib/python2.4/gopherlib.pyc matches /usr/lib/python2.4/gopherlib.py
+import gopherlib # precompiled from /usr/lib/python2.4/gopherlib.pyc
+# /usr/lib/python2.4/httplib.pyc matches /usr/lib/python2.4/httplib.py
+import httplib # precompiled from /usr/lib/python2.4/httplib.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/cStringIO.so", 2);
+import cStringIO # dynamically loaded from /usr/lib/python2.4/lib-dynload/cStringIO.so
+dlopen("/usr/lib/python2.4/lib-dynload/md5.so", 2);
+import md5 # dynamically loaded from /usr/lib/python2.4/lib-dynload/md5.so
+# /usr/lib/python2.4/mimetypes.pyc matches /usr/lib/python2.4/mimetypes.py
+import mimetypes # precompiled from /usr/lib/python2.4/mimetypes.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/sha.so", 2);
+import sha # dynamically loaded from /usr/lib/python2.4/lib-dynload/sha.so
+# /usr/lib/python2.4/bisect.pyc matches /usr/lib/python2.4/bisect.py
+import bisect # precompiled from /usr/lib/python2.4/bisect.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/_bisect.so", 2);
+import _bisect # dynamically loaded from /usr/lib/python2.4/lib-dynload/_bisect.so
+# /usr/lib/python2.4/cookielib.pyc matches /usr/lib/python2.4/cookielib.py
+import cookielib # precompiled from /usr/lib/python2.4/cookielib.pyc
+import logging # directory /usr/lib/python2.4/logging
+# /usr/lib/python2.4/logging/__init__.pyc matches /usr/lib/python2.4/logging/__init__.py
+import logging # precompiled from /usr/lib/python2.4/logging/__init__.pyc
+# /usr/lib/python2.4/calendar.pyc matches /usr/lib/python2.4/calendar.py
+import calendar # precompiled from /usr/lib/python2.4/calendar.pyc
+# /usr/lib/python2.4/_LWPCookieJar.pyc matches /usr/lib/python2.4/_LWPCookieJar.py
+import _LWPCookieJar # precompiled from /usr/lib/python2.4/_LWPCookieJar.pyc
+# /usr/lib/python2.4/_MozillaCookieJar.pyc matches /usr/lib/python2.4/_MozillaCookieJar.py
+import _MozillaCookieJar # precompiled from /usr/lib/python2.4/_MozillaCookieJar.pyc
+# /usr/lib/python2.4/gzip.pyc matches /usr/lib/python2.4/gzip.py
+import gzip # precompiled from /usr/lib/python2.4/gzip.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/zlib.so", 2);
+import zlib # dynamically loaded from /usr/lib/python2.4/lib-dynload/zlib.so
+import xml # directory /usr/lib/python2.4/xml
+# /usr/lib/python2.4/xml/__init__.pyc matches /usr/lib/python2.4/xml/__init__.py
+import xml # precompiled from /usr/lib/python2.4/xml/__init__.pyc
+import _xmlplus # directory /usr/lib/python2.4/site-packages/_xmlplus
+# /usr/lib/python2.4/site-packages/_xmlplus/__init__.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/__init__.py
+import _xmlplus # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/__init__.pyc
+import xml.sax # directory /usr/lib/python2.4/site-packages/_xmlplus/sax
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/__init__.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/__init__.py
+import xml.sax # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/__init__.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/xmlreader.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/xmlreader.py
+import xml.sax.xmlreader # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/xmlreader.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/handler.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/handler.py
+import xml.sax.handler # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/handler.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/_exceptions.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/_exceptions.py
+import xml.sax._exceptions # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/_exceptions.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/sax2exts.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/sax2exts.py
+import xml.sax.sax2exts # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/sax2exts.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/saxexts.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/saxexts.py
+import xml.sax.saxexts # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/saxexts.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/saxlib.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/saxlib.py
+import xml.sax.saxlib # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/saxlib.pyc
+# /usr/lib/python2.4/site-packages/drv_libxml2.pyc matches /usr/lib/python2.4/site-packages/drv_libxml2.py
+import drv_libxml2 # precompiled from /usr/lib/python2.4/site-packages/drv_libxml2.pyc
+# /usr/lib/python2.4/site-packages/_xmlplus/sax/saxutils.pyc matches /usr/lib/python2.4/site-packages/_xmlplus/sax/saxutils.py
+import xml.sax.saxutils # precompiled from /usr/lib/python2.4/site-packages/_xmlplus/sax/saxutils.pyc
+# /usr/lib/python2.4/site-packages/libxml2.pyc matches /usr/lib/python2.4/site-packages/libxml2.py
+import libxml2 # precompiled from /usr/lib/python2.4/site-packages/libxml2.pyc
+dlopen("/usr/lib/python2.4/site-packages/libxml2mod.so", 2);
+import libxml2mod # dynamically loaded from /usr/lib/python2.4/site-packages/libxml2mod.so
+dlopen("/usr/lib/python2.4/lib-dynload/array.so", 2);
+import array # dynamically loaded from /usr/lib/python2.4/lib-dynload/array.so
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/OPML.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/OPML.py
+import OPML # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/OPML.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ThreadPool.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ThreadPool.py
+import ThreadPool # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ThreadPool.pyc
+# /usr/lib/python2.4/shutil.pyc matches /usr/lib/python2.4/shutil.py
+import shutil # precompiled from /usr/lib/python2.4/shutil.pyc
+# /usr/lib/python2.4/glob.pyc matches /usr/lib/python2.4/glob.py
+import glob # precompiled from /usr/lib/python2.4/glob.pyc
+# /usr/lib/python2.4/fnmatch.pyc matches /usr/lib/python2.4/fnmatch.py
+import fnmatch # precompiled from /usr/lib/python2.4/fnmatch.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/utils.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/utils.py
+import utils # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/utils.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/timeoutsocket.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/timeoutsocket.py
+import timeoutsocket # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/timeoutsocket.pyc
+dlopen("/usr/lib/python2.4/lib-dynload/select.so", 2);
+import select # dynamically loaded from /usr/lib/python2.4/lib-dynload/select.so
+# /usr/lib/python2.4/smtplib.pyc matches /usr/lib/python2.4/smtplib.py
+import smtplib # precompiled from /usr/lib/python2.4/smtplib.pyc
+# /usr/lib/python2.4/hmac.pyc matches /usr/lib/python2.4/hmac.py
+import hmac # precompiled from /usr/lib/python2.4/hmac.pyc
+import email # directory /usr/lib/python2.4/email
+# /usr/lib/python2.4/email/__init__.pyc matches /usr/lib/python2.4/email/__init__.py
+import email # precompiled from /usr/lib/python2.4/email/__init__.pyc
+# /usr/lib/python2.4/email/base64MIME.pyc matches /usr/lib/python2.4/email/base64MIME.py
+import email.base64MIME # precompiled from /usr/lib/python2.4/email/base64MIME.pyc
+# /usr/lib/python2.4/email/Utils.pyc matches /usr/lib/python2.4/email/Utils.py
+import email.Utils # precompiled from /usr/lib/python2.4/email/Utils.pyc
+# /usr/lib/python2.4/email/_parseaddr.pyc matches /usr/lib/python2.4/email/_parseaddr.py
+import email._parseaddr # precompiled from /usr/lib/python2.4/email/_parseaddr.pyc
+# /usr/lib/python2.4/quopri.pyc matches /usr/lib/python2.4/quopri.py
+import quopri # precompiled from /usr/lib/python2.4/quopri.pyc
+# /usr/lib/python2.4/email/Encoders.pyc matches /usr/lib/python2.4/email/Encoders.py
+import email.Encoders # precompiled from /usr/lib/python2.4/email/Encoders.pyc
+# /usr/lib/python2.4/HTMLParser.pyc matches /usr/lib/python2.4/HTMLParser.py
+import HTMLParser # precompiled from /usr/lib/python2.4/HTMLParser.pyc
+# /usr/lib/python2.4/formatter.pyc matches /usr/lib/python2.4/formatter.py
+import formatter # precompiled from /usr/lib/python2.4/formatter.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/MediaManager.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/MediaManager.py
+import MediaManager # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/MediaManager.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/BTDownloader.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/BTDownloader.py
+import BTDownloader # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/BTDownloader.pyc
+import ptvbittorrent # directory /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/__init__.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/__init__.py
+import ptvbittorrent # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/__init__.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/download.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/download.py
+import ptvbittorrent.download # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/download.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/zurllib.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/zurllib.py
+import ptvbittorrent.zurllib # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/zurllib.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/__init__.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/__init__.py
+import ptvbittorrent.__init__ # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/__init__.pyc
+# /usr/lib/python2.4/pprint.pyc matches /usr/lib/python2.4/pprint.py
+import pprint # precompiled from /usr/lib/python2.4/pprint.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/btformats.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/btformats.py
+import ptvbittorrent.btformats # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/btformats.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Choker.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Choker.py
+import ptvbittorrent.Choker # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Choker.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Storage.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Storage.py
+import ptvbittorrent.Storage # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Storage.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/fakeopen.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/fakeopen.py
+import ptvbittorrent.fakeopen # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/fakeopen.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/StorageWrapper.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/StorageWrapper.py
+import ptvbittorrent.StorageWrapper # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/StorageWrapper.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/bitfield.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/bitfield.py
+import ptvbittorrent.bitfield # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/bitfield.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Uploader.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Uploader.py
+import ptvbittorrent.Uploader # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Uploader.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/CurrentRateMeasure.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/CurrentRateMeasure.py
+import ptvbittorrent.CurrentRateMeasure # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/CurrentRateMeasure.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Downloader.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Downloader.py
+import ptvbittorrent.Downloader # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Downloader.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Connecter.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Connecter.py
+import ptvbittorrent.Connecter # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Connecter.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Encrypter.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Encrypter.py
+import ptvbittorrent.Encrypter # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Encrypter.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/RawServer.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/RawServer.py
+import ptvbittorrent.RawServer # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/RawServer.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Rerequester.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Rerequester.py
+import ptvbittorrent.Rerequester # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/Rerequester.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/bencode.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/bencode.py
+import ptvbittorrent.bencode # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/bencode.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/DownloaderFeedback.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/DownloaderFeedback.py
+import ptvbittorrent.DownloaderFeedback # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/DownloaderFeedback.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/RateMeasure.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/RateMeasure.py
+import ptvbittorrent.RateMeasure # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/RateMeasure.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/PiecePicker.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/PiecePicker.py
+import ptvbittorrent.PiecePicker # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/PiecePicker.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/parseargs.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/parseargs.py
+import ptvbittorrent.parseargs # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/ptvbittorrent/parseargs.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/Player.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/Player.py
+import Player # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/Player.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/subProcess.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/subProcess.py
+import subProcess # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/subProcess.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/SimpleImageCache.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/SimpleImageCache.py
+import SimpleImageCache # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/SimpleImageCache.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/UpdateTasksManager.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/UpdateTasksManager.py
+import UpdateTasksManager # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/UpdateTasksManager.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/AddFeedDialog.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/AddFeedDialog.py
+import AddFeedDialog # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/AddFeedDialog.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/penguintv.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/penguintv.py
+import penguintv # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/penguintv.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/PreferencesDialog.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/PreferencesDialog.py
+import PreferencesDialog # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/PreferencesDialog.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/RenameFeedDialog.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/RenameFeedDialog.py
+import RenameFeedDialog # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/RenameFeedDialog.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/EditTextTagsDialog.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/EditTextTagsDialog.py
+import EditTextTagsDialog # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/EditTextTagsDialog.pyc
+# /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/EditTagsMultiDialog.pyc matches /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/EditTagsMultiDialog.py
+import EditTagsMultiDialog # precompiled from /home/owen/src/penguintv/cvs/trunk/penguintv/penguintv/EditTagsMultiDialog.pyc
+LoadPlugin: failed to initialize shared library /usr/lib/mozilla-firefox/plugins/rpnp.so [/usr/lib/mozilla-firefox/plugins/rpnp.so: undefined symbol: __pure_virtual]
+# clear __builtin__._
+# clear sys.path
+# clear sys.argv
+# clear sys.ps1
+# clear sys.ps2
+# clear sys.exitfunc
+# clear sys.exc_type
+# clear sys.exc_value
+# clear sys.exc_traceback
+# clear sys.last_type
+# clear sys.last_value
+# clear sys.last_traceback
+# clear sys.path_hooks
+# clear sys.path_importer_cache
+# clear sys.meta_path
+# restore sys.stdin
+# restore sys.stdout
+# restore sys.stderr
+# cleanup __main__
+# cleanup[1] StringIO
+# cleanup[1] _bisect
+# cleanup[1] collections
+# cleanup[1] zipimport
+# cleanup[1] drv_libxml2
+# cleanup[1] formatter
+# cleanup[1] token
+# cleanup[1] quopri
+# cleanup[1] bonobo
+# cleanup[1] cairo
+# cleanup[1] HTMLParser
+# cleanup[1] encodings
+# cleanup[1] Bonobo__POA
+# cleanup[1] _MozillaCookieJar
+# cleanup[1] email
+# cleanup[1] math
+# cleanup[1] _locale
+# cleanup[1] sre
+# cleanup[1] itertools
+# cleanup[1] opcode
+# cleanup[1] libxml2
+# cleanup[1] __future__
+# cleanup[1] cairo._cairo
+# cleanup[1] array
+# cleanup[1] _LWPCookieJar
+# cleanup[1] email.base64MIME
+# cleanup[1] email.Utils
+# cleanup[1] sre_constants
+# cleanup[1] email._parseaddr
+# cleanup[1] _codecs
+# cleanup[1] keyword
+# cleanup[1] posix
+# cleanup[1] encodings.aliases
+# cleanup[1] sre_parse
+# cleanup[1] sre_compile
+# cleanup[1] site
+# cleanup[1] calendar
+# cleanup[1] ptvbittorrent
+# cleanup[1] strop
+# cleanup[1] ptvbittorrent.btformats
+# cleanup[1] ptvbittorrent.fakeopen
+# cleanup[1] ptvbittorrent.parseargs
+# cleanup[1] Bonobo__POA.Canvas
+# cleanup[1] ptvbittorrent.bencode
+# cleanup[1] warnings
+# cleanup[1] ptvbittorrent.PiecePicker
+# cleanup[1] email.Encoders
+# cleanup[1] ptvbittorrent.RawServer
+# cleanup[1] Bonobo
+# cleanup[1] ptvbittorrent.__init__
+# cleanup[1] libxml2mod
+# cleanup[1] ptvbittorrent.Storage
+# cleanup[1] encodings.utf_8
+# cleanup[1] ptvbittorrent.DownloaderFeedback
+# cleanup[1] ptvbittorrent.CurrentRateMeasure
+# cleanup[1] bonobo.activation
+# cleanup[1] ptvbittorrent.StorageWrapper
+# cleanup[1] ptvbittorrent.Choker
+# cleanup[1] ptvbittorrent.RateMeasure
+# cleanup[1] ptvbittorrent.Rerequester
+# cleanup[1] ptvbittorrent.Connecter
+# cleanup[1] ptvbittorrent.Encrypter
+# cleanup[1] ptvbittorrent.zurllib
+# cleanup[1] _sre
+# cleanup[1] ptvbittorrent.bitfield
+# cleanup[1] ptvbittorrent.Uploader
+# cleanup[1] ptvbittorrent.Downloader
+# cleanup[1] Bonobo.Activation
+# cleanup[1] Bonobo.Gdk
+# cleanup[1] Bonobo.Canvas
+# cleanup[1] Bonobo.Gtk
+# cleanup[1] pprint
+# cleanup[2] CORBA
+# cleanup[2] ORBit.CORBA
+# cleanup[2] random
+# cleanup[2] gnomecanvas
+# cleanup[2] xml
+# cleanup[2] sgmllib
+# cleanup[2] struct
+# cleanup[2] datetime
+# cleanup[2] gtk
+# cleanup[2] penguintv
+# cleanup[2] imp
+# cleanup[2] feedparser
+# cleanup[2] gtk.glade
+# cleanup[2] smtplib
+# cleanup[2] gopherlib
+# cleanup[2] string
+# cleanup[2] fnmatch
+# cleanup[2] UpdateTasksManager
+# cleanup[2] gnomevfs
+# cleanup[2] ptvDB
+# cleanup[2] pango
+# cleanup[2] cookielib
+# cleanup[2] httplib
+# cleanup[2] bisect
+# cleanup[2] signal
+# cleanup[2] ThreadPool
+# cleanup[2] threading
+# cleanup[2] PreferencesDialog
+# cleanup[2] xml.sax.saxexts
+# cleanup[2] fcntl
+# cleanup[2] zlib
+# cleanup[2] rfc822
+# cleanup[2] tempfile
+# cleanup[2] locale
+# cleanup[2] timeoutsocket
+# cleanup[2] mimetypes
+# cleanup[2] atexit
+# cleanup[2] xml.sax.saxlib
+# cleanup[2] pysqlite2
+# cleanup[2] ORBit.PortableServer
+# cleanup[2] ptvbittorrent.download
+# cleanup[2] sha
+# cleanup[2] bonobo._bonobo
+# cleanup[2] urllib
+# cleanup[2] BTDownloader
+# cleanup[2] re
+# cleanup[2] RenameFeedDialog
+# cleanup[2] cgi
+# cleanup[2] ftplib
+# cleanup[2] UserDict
+# cleanup[2] inspect
+# cleanup[2] _xmlplus
+# cleanup[2] base64
+# cleanup[2] codecs
+# cleanup[2] gconf
+# cleanup[2] md5
+# cleanup[2] logging
+# cleanup[2] gnome
+# cleanup[2] thread
+# cleanup[2] traceback
+# cleanup[2] atk
+# cleanup[2] xml.sax.sax2exts
+# cleanup[2] gtkmozembed
+# cleanup[2] os
+# cleanup[2] gtk.gdk
+# cleanup[2] SimpleImageCache
+# cleanup[2] xml.sax.xmlreader
+# cleanup[2] subProcess
+# cleanup[2] select
+# cleanup[2] gtk.keysyms
+# cleanup[2] posixpath
+# cleanup[2] OPML
+# cleanup[2] errno
+# cleanup[2] _socket
+# cleanup[2] binascii
+# cleanup[2] xml.sax.handler
+# cleanup[2] types
+# cleanup[2] tokenize
+# cleanup[2] pysqlite2._sqlite
+# cleanup[2] dis
+# cleanup[2] ORBit
+# cleanup[2] copy
+# cleanup[2] socket
+# cleanup[2] pycurl
+# cleanup[2] gnome._gnome
+# cleanup[2] pangocairo
+# cleanup[2] xml.sax.saxutils
+# cleanup[2] gnomevfs.async
+# cleanup[2] markupbase
+# cleanup[2] exceptions
+# cleanup[2] mimetools
+# cleanup[2] copy_reg
+# cleanup[2] xml.sax
+# cleanup[2] _random
+# cleanup[2] utils
+# cleanup[2] pysqlite2.dbapi2
+# cleanup[2] AddFeedDialog
+# cleanup[2] EditTagsMultiDialog
+# cleanup[2] shutil
+# cleanup[2] EditTextTagsDialog
+# cleanup[2] Player
+# cleanup[2] gettext
+# cleanup[2] gnome.ui
+# cleanup[2] xml.sax._exceptions
+# cleanup[2] stat
+# cleanup[2] _ssl
+# cleanup[2] glob
+# cleanup[2] time
+# cleanup[2] urllib2
+# cleanup[2] bonobo.ui
+# cleanup[2] gzip
+# cleanup[2] gtk._gtk
+# cleanup[2] os.path
+# cleanup[2] PortableServer
+# cleanup[2] MediaManager
+# cleanup[2] urlparse
+# cleanup[2] linecache
+# cleanup[2] sets
+# cleanup[2] cStringIO
+# cleanup[2] gobject
+# cleanup[2] hmac
+# cleanup sys
+# cleanup __builtin__
+# cleanup ints: 440 unfreed ints in 19 out of 41 blocks
+# cleanup floats: 37 unfreed floats in 3 out of 4 blocks
+<gpointer at 0xbfb5f658>
