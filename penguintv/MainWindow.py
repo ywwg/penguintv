@@ -259,7 +259,7 @@ class MainWindow:
 			self.app.delete_entry_media(selected)
 			
 	def on_delete_feed_media_activate(self,event):
-		selected,index = self.feed_list_view.get_selected()
+		selected = self.feed_list_view.get_selected()
 		if selected:
 			self.app.delete_feed_media(selected)
 			
@@ -276,7 +276,7 @@ class MainWindow:
 		self.app.export_opml()
 		
 	def on_feed_remove_clicked(self,event): 
-		selected = self.feed_list_view.get_selected()[0]
+		selected = self.feed_list_view.get_selected()
 		if selected:
 			self.app.remove_feed(selected)
 			
@@ -381,7 +381,7 @@ class MainWindow:
 			self.app.mark_entry_as_unviewed(entry)
 
 	def on_mark_feed_as_viewed_activate(self,event):
-		feed = self.feed_list_view.get_selected()[0]
+		feed = self.feed_list_view.get_selected()
 		if feed:
 			self.app.mark_feed_as_viewed(feed)
  
@@ -403,7 +403,7 @@ class MainWindow:
 		self.app.do_quit() #make the program quit, dumbass
 		
 	def on_refresh_activate(self, event):
-		feed = self.feed_list_view.get_selected()[0]
+		feed = self.feed_list_view.get_selected()
 		self.app.refresh_feed(feed)
 		
 	def on_refresh_feeds_activate(self, event):
@@ -415,7 +415,7 @@ class MainWindow:
 		self.app.remove_feed()
 		
 	def on_rename_feed_activate(self, event):
-		feed = self.feed_list_view.get_selected()[0]
+		feed = self.feed_list_view.get_selected()
 		self.window_rename_feed.set_feed_id(feed)
 		self.window_rename_feed.set_feed_name(self.db.get_feed_title(feed))
 		self.window_rename_feed.show()	
@@ -546,7 +546,7 @@ class MainWindow:
 		self.feed_list_view.resize_columns()
 
 	def get_selected_items(self):
-		selected_feed = self.feed_list_view.get_selected()[0]
+		selected_feed = self.feed_list_view.get_selected()
 		filter_setting = self.feed_list_view.filter_setting
 		selected_entry = self.entry_list_view.get_selected()['entry_id']
 		return {'feed':selected_feed,

@@ -33,7 +33,6 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 #DEBUG (see also utils.py for some debugs)
-_SKIP_FIRST_POLL=True
 _FORCE_DEMOCRACY_MOZ=False
 
 import ptvDB
@@ -150,7 +149,6 @@ class PenguinTVApp:
 		if self.autoresume:
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
-		
 		if self.firstrun:
 			try:
 				glade_prefix = utils.GetPrefix()+"/share/penguintv"
@@ -315,7 +313,7 @@ class PenguinTVApp:
 		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
 		task_id = self.updater.queue_task(DB, self.updater_thread_db.poll_multiple, arguments)
 		if arguments & ptvDB.A_ALL_FEEDS==0:
-			self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feeds Updated", task_id, False))
+			self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
 			#insane: queueing a timeout
 			self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id, False)
 		self.updater.queue_task(GUI, self.update_disk_usage, None, task_id) #because this is also waiting
@@ -340,9 +338,10 @@ class PenguinTVApp:
 				continue
 			total_size=total_size+int(d[1])
 			self.mediamanager.download(d[0])
-			at_least_one=True #let's see if len(download_list) still > 0 after checking space limits 
-		if at_least_one: # No sense populating feeds if we didn't do anything!
-			self.feed_list_view.populate_feeds()
+			self.feed_list_view.update_feed_list(d[3])
+	#		at_least_one=True #let's see if len(download_list) still > 0 after checking space limits 
+	#	if at_least_one: # No sense populating feeds if we didn't do anything!
+	#		self.feed_list_view.populate_feeds()
 			
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
@@ -506,7 +505,8 @@ class PenguinTVApp:
 				return
 		for d in download_list:
 			self.mediamanager.download(d[0])
-		self.feed_list_view.populate_feeds()
+			self.feed_list_view.update_feed_list(d[3])
+		#self.feed_list_view.populate_feeds()
 	
 	def export_opml(self):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_SAVE,
@@ -531,8 +531,8 @@ class PenguinTVApp:
 				f = open(dialog.get_filename(), "w")
 				self.main_window.display_status_message(_("Exporting Feeds..."))
 				task_id = self.updater.queue_task(DB, self.updater_thread_db.export_OPML, f)
-				task_id2 = self.updater.queue_task(GUI, self.feed_list_view.populate_feeds, None, task_id)
-				self.updater.queue_task(GUI,self.main_window.display_status_message, " ", task_id2)
+			#	task_id2 = self.updater.queue_task(GUI, self.feed_list_view.populate_feeds, None, task_id)
+				self.updater.queue_task(GUI,self.main_window.display_status_message, " ", task_id)
 			except:
 				pass
 		elif response == gtk.RESPONSE_CANCEL:
@@ -549,7 +549,7 @@ class PenguinTVApp:
 		dialog.hide()
 		del dialog
 		if response == gtk.RESPONSE_ACCEPT:
-			#selected,index = self.feed_list_view.get_selected()
+			#selected = self.feed_list_view.get_selected()
 			#select entries and get all the media ids, and tell them all to cancel
 			#in case they are downloading
 			try:
@@ -563,6 +563,7 @@ class PenguinTVApp:
 				pass
 			self.db.delete_feed(feed)
 			self.feed_list_view.populate_feeds()
+			#eventually, self.feed_list_view.remove_feed(feed)
 			self.update_disk_usage()
 			self.feed_list_view.resize_columns()
 			self.entry_list_view.clear_entries()
@@ -617,14 +618,16 @@ class PenguinTVApp:
 		playlist = self.db.get_unplayed_media_set_viewed()
 		playlist.reverse()
 		self.player.play(playlist)
-		self.feed_list_view.populate_feeds()
+		for item in playlist:
+			self.feed_list_view.update_feed_list(item[3])
+		#self.feed_list_view.populate_feeds()
 
 	def refresh_feed(self,feed):
 		#if event.state & gtk.gdk.SHIFT_MASK:
 		#	print "shift-- shift delete it"
 		self.main_window.display_status_message(_("Polling Feed..."))
 		task_id = self.updater.queue_task(DB,self.updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG))
-		self.updater.queue_task(GUI,self.feed_list_view.populate_feeds,None, task_id, False)
+		self.updater.queue_task(GUI,self.feed_list_view.update_feed_list,feed, task_id, False)
 		task_id2 = self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feed Updated"), task_id)
 		self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
@@ -749,6 +752,7 @@ class PenguinTVApp:
 		self.main_window.display_status_message(_("Trying to poll feed..."))
 		feed_id = self.db.insertURL(url)
 		self.window_add_feed.hide()
+		#change to add_and_select
 		taskid = self.updater.queue_task(GUI, self.main_window.populate_and_select, feed_id)
 		self.updater.queue_task(DB, self.updater_thread_db.poll_feed_trap_errors, (feed_id,self._add_feed_callback), taskid)
 		return feed_id
@@ -776,11 +780,14 @@ class PenguinTVApp:
 		
 	def add_feed_error(self,feed_id):
 		self.main_window.display_status_message(_("Error adding feed"))
+		#update_feed_list with new name,
+		#feed_list.set_selected
 		self.main_window.populate_and_select(feed_id)
 		return
 		
 	def add_feed_success(self, feed_id):
-		print "feed added"
+		#update_feed_list with new name,
+		#feed_list.set_selected
 		self.main_window.populate_and_select(feed_id)
 		self.main_window.display_status_message(_("Feed Added"))
 		gobject.timeout_add(2000, self.main_window.display_status_message, "")
@@ -879,6 +886,7 @@ class PenguinTVApp:
 		else:
 			self.db.set_feed_name(feed_id, name)
 		self.feed_list_view.populate_feeds()
+		#eventually, self.feed_list_view.update_feed... etc
 		self.feed_list_view.resize_columns()	
 		#self.filter_combo_widget.set_active(FeedList.ALL)
 		#self.filter_unread_checkbox.set_active(False)

@@ -1101,7 +1101,7 @@ class ptvDB:
 	       return True
 		
 	def get_unplayed_media_set_viewed(self):
-		self.c.execute(u'SELECT media.id, media.entry_id, media.file FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
+		self.c.execute(u'SELECT media.id, media.entry_id, media.file, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
 		list=self.c.fetchall()
 		playlist=[]
 		for item in list:
