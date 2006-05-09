@@ -17,8 +17,9 @@ DEMOCRACY_MOZ=2
 superglobal=utils.SuperGlobal()
 
 class EntryView:
-	def __init__(self, widget_tree, app, renderrer=GTKHTML):
+	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
 		self._app = app
+		self.main_window = main_window
 		self.RENDERRER = renderrer
 		scrolled_window = widget_tree.get_widget('html_scrolled_window')
 		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
@@ -68,6 +69,7 @@ class EntryView:
 		elif self.RENDERRER==MOZILLA:
 			self.moz = gtkmozembed.MozEmbed()
 			self.moz.connect("open-uri", self.moz_link_clicked)
+			self.moz.connect("link-messsage", self.moz_link_message)
 			self.moz.load_url("about:blank")
 			self.moz.get_location()
 			scrolled_window.add_with_viewport(self.moz)
@@ -78,7 +80,7 @@ class EntryView:
 		elif self.RENDERRER==DEMOCRACY_MOZ:
 			self.mb = MozillaBrowser.MozillaBrowser()
 			self.moz = self.mb.getWidget()
-			#self.moz.connect("open-uri", self.moz_link_clicked)
+			self.moz.connect("link-message", self.moz_link_message)
 			self.mb.setURICallBack(self.dmoz_link_clicked)
 			self.moz.load_url("about:blank")
 			self.moz.get_location()
@@ -89,12 +91,17 @@ class EntryView:
 			self.reset_moz_font()
 			
 		scrolled_window.show_all()
+		#self.display_custom_entry("<html></html>")
 		
 	def on_url(self, view, url):
 		if url == None:
 			url = ""
-		self._app.display_status_message(url)
+		self.main_window.display_status_message(url)
 		return
+		
+	def moz_link_message(self, data):
+		print "boink"
+		print self.moz.get_link_message()
 
 	def link_clicked(self, document, link):
 		link = link.strip()
@@ -238,30 +245,53 @@ class EntryView:
 		
 		style_adjustments=""
 		if self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
-			style_adjustments="body{ font-family: "+self.moz_font+"; font-size:"+str(self.moz_size)+";}"
-			
-		if item is not None:
-			html = (
-            """<html><head>
-            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-            <style type="text/css">
-            body { background-color: %s;}
-            %s
-            dd { padding-left: 20pt; }  <!-- for eschaton -->
-            q { font-style: italic;}
-            .heading { background-color: #f0f0ff; border-width:1px; border-style: solid; padding:12pt; margin:12pt; }
-            blockquote { display: block; color: #444444; background-color:#EEEEFF; border-color:#DDDDDD; border-width:2px; border-style: solid; padding:12pt; margin:12pt;}
-            .stitle {font-size:14pt; font-weight:bold; font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; padding-bottom:20pt;}
-            .sdate {font-size:8pt; color: #777777}
-            .content {padding-left:20pt;margin-top:12pt;}
-            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
-            </style>
-            <title>title</title></head><body>%s</body></html>""") % (self.background_color,style_adjustments,self.htmlify_item(item))
+			if item is not None:
+				html = (
+	            """<html><head>
+	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	            <style type="text/css">
+	            body { background-color: %s;
+	                   font-family: %s;
+	                   font-size: %s;
+	                   <!--  Why doesn't background-image work?
+	                   background-image:  url('file:///home/owen/src/penguintv/cvs/trunk/penguintv/share/penguintvicon.png');
+					   background-repeat: no-repeat;
+					   background-attachment: fixed-->
+			    }
+	            dd { padding-left: 20pt; }  <!-- for eschaton -->
+	            q { font-style: italic;}
+	            .heading { background-color: #f0f0ff; border-width:1px; border-style: solid; padding:12pt; margin:12pt; }
+	            blockquote { display: block; color: #444444; background-color:#EEEEFF; border-color:#DDDDDD; border-width:2px; border-style: solid; padding:12pt; margin:12pt;}
+	            .stitle {font-size:14pt; font-weight:bold; font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; padding-bottom:20pt;}
+	            .sdate {font-size:8pt; color: #777777}
+	            .content {padding-left:20pt;margin-top:12pt;}
+	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
+	            </style>
+	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.moz_font, self.moz_size, self.htmlify_item(item))
+			else:
+				html="""<html><style type="text/css">
+	            body { background-color: %s;}</style><body></body></html>""" % (self.background_color,)
 		else:
-			#html="""<html><body background="file:////home/owen/Documents/images/wallpaper/clover_gnome2.jpg"></body></html>"""
-			html="""<html><style type="text/css">
-            body { background-color: %s; }</style><body></body></html>""" % (self.background_color,)
-		
+			if item is not None:
+				html = (
+	            """<html><head>
+	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	            <style type="text/css">
+	            body { background-color: %s;}
+	            dd { padding-left: 20pt; }  <!-- for eschaton -->
+	            q { font-style: italic;}
+	            .heading { background-color: #f0f0ff; border-width:1px; border-style: solid; padding:12pt; margin:12pt; }
+	            blockquote { display: block; color: #444444; background-color:#EEEEFF; border-color:#DDDDDD; border-width:2px; border-style: solid; padding:12pt; margin:12pt;}
+	            .stitle {font-size:14pt; font-weight:bold; font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; padding-bottom:20pt;}
+	            .sdate {font-size:8pt; color: #777777}
+	            .content {padding-left:20pt;margin-top:12pt;}
+	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
+	            </style>
+	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.htmlify_item(item))
+			else:
+				html="""<html><style type="text/css">
+	            body { background-color: %s; }</style><body></body></html>""" % (self.background_color,)
+		#print html
 		html = html.encode('utf-8')
 		if self.RENDERRER == GTKHTML:
 			p = HTMLimgParser()
@@ -274,7 +304,7 @@ class EntryView:
 				self._document.clear()
 				self._document.open_stream("text/html")
 				d = { 	"background_color": self.background_color,
-						"loading": _("Loading...")}
+						"loading": _("Loading images...")}
 				self._document.write_stream("""<html><style type="text/css">
             body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
 				self._document.close_stream()
@@ -287,7 +317,7 @@ class EntryView:
 				self._document.write_stream(html)
 				self._document.close_stream()
 		elif self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
-			self.moz.open_stream("http://ywwg.com","text/html") #doesn't actually load this page
+			self.moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 			self.moz.append_data(html, long(len(html)))
 			self.moz.close_stream()
 		
@@ -313,7 +343,7 @@ class EntryView:
 	def _images_loaded(self, entry_id, html):
 		#if we're changing, nevermind.
 		#also make sure entry is the same and that we shouldn't be blanks
-		if self._app.is_changing_layout() == False and entry_id == self.current_entry['entry_id'] and self.currently_blank == False:
+		if self.main_window.is_changing_layout() == False and entry_id == self.current_entry['entry_id'] and self.currently_blank == False:
 			###print "displaying loaded images"
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()

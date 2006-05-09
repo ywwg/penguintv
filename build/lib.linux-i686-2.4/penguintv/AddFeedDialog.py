@@ -4,7 +4,6 @@
 import penguintv
 import gtk
 
-
 class AddFeedDialog:
 	def __init__(self,xml,app):
 		self.xml = xml
@@ -45,7 +44,18 @@ class AddFeedDialog:
 		tags=[]
 		for tag in self.edit_tags_widget.get_text().split(','):
 			tags.append(tag.strip())
-		feed_id = self._app.add_feed(self.feed_url_widget.get_text())
+		url = self.feed_url_widget.get_text()
+		self._window.set_sensitive(False)
+		while gtk.events_pending(): #make sure the sensitivity change goes through
+			gtk.main_iteration()
+		try:
+			feed_id = self._app.add_feed(url)
+		except:
+			self._window.set_sensitive(True)
+			return 
+		self._window.set_sensitive(True)
+		if feed_id == -1:
+			return #don't hide, give them a chance to try again.
 		self._app.apply_tags_to_feed(feed_id, None, tags)
 		self.hide()
 				

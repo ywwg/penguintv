@@ -8,7 +8,8 @@ import urllib
 import HTMLParser
 import string
 
-VERSION="1.60"
+
+VERSION="1.70"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 
@@ -305,6 +306,30 @@ class StrippingParser(HTMLParser.HTMLParser):
 #    parser.close()
 #    parser.cleanup()
 #    return parser.result
+
+class AltParser(HTMLParser.HTMLParser):
+	def __init__(self):
+		HTMLParser.HTMLParser.__init__(self)
+		self.alt_tags=[]
+		self.head_end=False
+		
+	def handle_starttag(self, tag, attrs):
+		"""Signal when we get to a tag."""
+		if tag=='link':
+			attr_dic = {}
+			for attr in attrs:
+				attr_dic[attr[0]] = attr[1]
+			try:
+				if attr_dic['rel'] == 'alternate':
+					if attr_dic['type'] in ['application/atom+xml','application/rss+xml','text/xml']:
+						self.alt_tags.append({attr_dic['type']:attr_dic['href']})
+			except:
+				pass
+
+	def handle_endtag(self, tag):
+		if tag == 'head':
+			self.head_end=True
+
 		
 #http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/457667
 #I know this is very bad, but damn if it doesn't work

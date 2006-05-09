@@ -29,6 +29,7 @@ class PreferencesDialog:
 		self.ul_limit_widget = self.xml.get_widget("upload_limit_entry")
 		
 		self.autoresume = self.xml.get_widget("auto_resume")
+		self.poll_on_startup = self.xml.get_widget("poll_on_startup")
 		
 		self.auto_download_widget = self.xml.get_widget("auto_download")
 		self.auto_download_limiter_widget = self.xml.get_widget("auto_download_limiter")
@@ -66,6 +67,9 @@ class PreferencesDialog:
 	def set_auto_resume(self, autoresume):
 		self.autoresume.set_active(autoresume)
 		
+	def set_poll_on_startup(self, poll_on_startup):
+		self.poll_on_startup.set_active(poll_on_startup)
+		
 	def set_auto_download(self, auto_download):
 		self.auto_download_widget.set_active(auto_download)
 		self.limiter_hbox_widget.set_sensitive(auto_download)
@@ -100,6 +104,9 @@ class PreferencesDialog:
 		
 	def on_auto_resume_toggled(self,event):
 		self.conf.set_bool('/apps/penguintv/auto_resume',self.autoresume.get_active())
+		
+	def on_poll_on_startup_toggled(self,event):
+		self.conf.set_bool('/apps/penguintv/poll_on_startup',self.poll_on_startup.get_active())
 		
 	def on_auto_download_toggled(self, event):
 		self.conf.set_bool('/apps/penguintv/auto_download',self.auto_download_widget.get_active())

@@ -7,9 +7,10 @@ import utils
 
 ALL=0
 DOWNLOADED=1
-NONE=2
-UNKNOWN=3
-BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("No Feeds (Calm Mode)")]
+ACTIVE=2
+NONE=3
+UNKNOWN=4
+BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"),_("No Feeds (Calm Mode)")]
 
 class FeedList:
 	def __init__(self, widget_tree, app, db):
@@ -52,6 +53,9 @@ class FeedList:
 		
 		#signals
 		self._widget.get_selection().connect("changed", self.item_selection_changed)
+		
+		#placeholder
+		self.feedlist.append([_("Loading feeds..."), "<i>"+_("Loading feeds...")+"</i>", 0, 0, "", "", 0, True, 0]) #assume visible
 			
 		
 	def resize_columns(self):
@@ -82,7 +86,10 @@ class FeedList:
 			passed_filter = False
 			
 			if self.filter_setting == DOWNLOADED:
-				if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_DOWNLOADING or flag & ptvDB.F_PAUSED:
+				if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
+					passed_filter = True
+			elif self.filter_setting == ACTIVE:
+				if flag & ptvDB.F_DOWNLOADING:
 					passed_filter = True
 			elif self.filter_setting == ALL:
 				passed_filter = True
@@ -101,7 +108,7 @@ class FeedList:
 						self.selecting_misfiltered=True
 					else:
 						passed_filter = False  #otherwise lose it
-				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_DOWNLOADING == 0 and flag & ptvDB.F_PAUSED:
+				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED:
 					if keep_misfiltered==True:
 						passed_filter = True
 						self.selecting_misfiltered = True
@@ -127,7 +134,10 @@ class FeedList:
 		flag = self.feedlist[self.find_index_of_item(feed_id)][6]
 		
 		if self.filter_setting == DOWNLOADED:
-			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_DOWNLOADING or flag & ptvDB.F_PAUSED:
+			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
+				passed_filter = True
+		elif self.filter_setting == ACTIVE:
+			if flag & ptvDB.F_DOWNLOADING:
 				passed_filter = True
 		elif self.filter_setting == ALL:
 			passed_filter = True
@@ -141,6 +151,7 @@ class FeedList:
 		return passed_filter
 		
 	def populate_feeds(self):
+		"""With 100 feeds, this is starting to get slow (2-3 seconds)"""
 		db_feedlist = self.db.get_feedlist()
 		selection = self._widget.get_selection()
 		selected,index = self.get_selected()
@@ -201,7 +212,9 @@ class FeedList:
 		"""updates the feed list.  Right now uses db to get flags, entrylist (for unread count), pollfail
 	
 		We should just get the flag, unread count, and poll fail, and then figure out:
-		   icon, markup, and numbers"""
+		   icon, markup, and numbers
+		   
+		update_data would be a dic with unreadcount, flag list, and pollfail"""
 		   
 		if feed_id is None:
 			if self.last_feed is None:
@@ -225,6 +238,7 @@ class FeedList:
 		updated=0
 		unviewed=0
 		downloaded=0
+		active=0
 	 	try:
 	 	 	feed = self.feedlist[self.find_index_of_item(feed_id)]
  		except:
@@ -234,8 +248,10 @@ class FeedList:
 		for flag in flag_list:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 				unviewed=unviewed+1
-			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_DOWNLOADING or flag & ptvDB.F_PAUSED:
+			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
 				downloaded=1
+			if flag & ptvDB.F_DOWNLOADING:
+				active=1
 
 		flag = self.pick_important_flag(feed_id, flag_list)
 		feed[1] = self.get_markedup_title(feed[0],flag)
@@ -259,6 +275,9 @@ class FeedList:
 				self.do_filter()
 	 	if self.filter_setting == DOWNLOADED:
 	 		if updated==1 and downloaded==0:
+		 		self.do_filter()
+		if self.filter_setting == ACTIVE:
+	 		if updated==1 and active==0:
 		 		self.do_filter()
 # we know always repopulate since it's faster
 		if feed_id == self.last_feed:

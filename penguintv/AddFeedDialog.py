@@ -48,7 +48,11 @@ class AddFeedDialog:
 		self._window.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
-		feed_id = self._app.add_feed(url)
+		try:
+			feed_id = self._app.add_feed(url)
+		except:
+			self._window.set_sensitive(True)
+			return 
 		self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.

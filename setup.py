@@ -201,8 +201,8 @@ if "install" in sys.argv:
 			print sp.outdata
 	if  BUILD_MOZ:
 		print """By default, penguintv will use the gtkhtml renderrer.  If you want to use mozilla instead, run the command:
-		     gconftool-2 -s -t string /apps/penguintv/renderrer DEMOCRACY_MOZ
-		Please note that the mozilla renderrer is experimental"""
+gconftool-2 -s -t string /apps/penguintv/renderrer DEMOCRACY_MOZ
+Please note that the mozilla renderrer is experimental"""
 
 
 

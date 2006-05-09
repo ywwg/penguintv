@@ -5,9 +5,10 @@ import penguintv
 import string
 
 class EntryList:
-	def __init__(self, widget_tree, app, db):
+	def __init__(self, widget_tree, app, main_window, db):
 		self._widget = widget_tree.get_widget("entrylistview")
 		self._app = app
+		self.main_window = main_window
 		self.entrylist = gtk.ListStore(str, str, int, int, str, int) #title, markeduptitle, entry_id, index, icon, flag
 		self.db = db
 		self.feed_id=None
@@ -76,7 +77,7 @@ class EntryList:
 			else:	
 				selection.unselect_all()
 		self._widget.columns_autosize()
-		if self._app.app_window_layout == "widescreen" and dont_autopane != True:
+		if self.main_window.layout == "widescreen" and dont_autopane != True:
 			gobject.idle_add(self.auto_pane)
 		
 	def auto_pane(self):
@@ -85,11 +86,11 @@ class EntryList:
 		#and then we can set the pane to the same size
 		column = self._widget.get_column(0)
 		new_width = column.get_width()+10
-		listnview_width = self._app.app_window.get_size()[0] - self._app.feed_pane.get_position()
+		listnview_width = self.main_window.app_window.get_size()[0] - self.main_window.feed_pane.get_position()
 		if listnview_width - new_width < 300: #ie, entry view will be tiny
-			self._app.entry_pane.set_position(listnview_width-300) #MAGIC NUMBER
+			self.main_window.entry_pane.set_position(listnview_width-300) #MAGIC NUMBER
 		elif new_width > 20: #MAGIC NUMBER
-			self._app.entry_pane.set_position(new_width)
+			self.main_window.entry_pane.set_position(new_width)
 		return False
 		
 	def get_icon(self, flag):
@@ -211,24 +212,24 @@ class EntryList:
 			item = gtk.ImageMenuItem(_("_Download"))
 			img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
 			item.set_image(img)
-			item.connect('activate',self._app.on_download_entry_activate)
+			item.connect('activate',self.main_window.on_download_entry_activate)
 			menu.append(item)
 			
 			item = gtk.ImageMenuItem('gtk-media-play')
-			item.connect('activate',self._app.on_play_entry_activate)
+			item.connect('activate',self.main_window.on_play_entry_activate)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Delete"))
-			item.connect('activate',self._app.on_delete_entry_media_activate)
+			item.connect('activate',self.main_window.on_delete_entry_media_activate)
 			menu.append(item)
 			
 		if selected['flag'] & ptvDB.F_UNVIEWED:
 			item = gtk.MenuItem(_("Mark as _Viewed"))
-			item.connect('activate',self._app.on_mark_entry_as_viewed_activate)
+			item.connect('activate',self.main_window.on_mark_entry_as_viewed_activate)
 			menu.append(item)
 		else:
 			item = gtk.MenuItem(_("Mark as _Unviewed"))
-			item.connect('activate',self._app.on_mark_entry_as_unviewed_activate)
+			item.connect('activate',self.main_window.on_mark_entry_as_unviewed_activate)
 			menu.append(item)
 			
 		menu.show_all()

@@ -380,10 +380,10 @@ class ptvDB:
 		else:
 			###print "nothing to poll"
 			return
-		pool = ThreadPool.ThreadPool(4)
+		pool = ThreadPool.ThreadPool(10)
 		for feed in feeds:
 			pool.queueTask(self.pool_poll_feed,(index,feed[0],arguments),self.polling_callback)
-			time.sleep(.5) #maybe this will help stagger things a bit?
+			time.sleep(.1) #maybe this will help stagger things a bit?
 			index = index + 1
 		###print "poll join"
 		pool.joinAll(True,True)
@@ -398,25 +398,26 @@ class ptvDB:
 			raise DBError,"error connecting to database"
 		index=args[0]
 		feed_id=args[1]
-		arguments = 0
+		poll_arguments = 0
 		result = 0
 		pollfail = False
 		try:
-			arguments = args[2]
-			result = self.poll_feed(feed_id,arguments,db)
+			poll_arguments = args[2]
+			result = self.poll_feed(feed_id,poll_arguments,db)
 		except sqlite.OperationalError:
 			print "Database lock warning..."
-			#db.close()
 			del db #delete it to release the lock
 			if recurse < 2:
 				time.sleep(5)
 				print "trying again..."
 				return self.pool_poll_feed(args, recurse+1) #and reconnect
-			return (feed_id,None)
+			print "can't get lock, giving up"
+			return (feed_id,{'pollfail':True})
 		except FeedPollError,e:
 			print e
 			pollfail = True
-			pass
+			del db
+			return (feed_id,{'pollfail':True})
 		except:
 			print "other error polling feed:"
 			exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -425,26 +426,21 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			pollfail = True
+			del db
+			return (feed_id,{'pollfail':True})
 			
 		#assemble our handy dictionary while we're in a thread
 		update_data={}
 		c = db.cursor()
 		c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
 		list = c.fetchall()
-		unread=0
-		for item in list:
-			if item[0]==0:
-				unread=unread+1
-		update_data['unread_count'] = unread
+		update_data['unread_count'] = len([item for item in list if item[0]==0])
 		
 		flag_list = []
 		c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
 		entrylist = c.fetchall()
 		if entrylist:
-			flag_list = []
-			for entry in entrylist:
-				flag = self.get_entry_flags(entry[0],c)
-				flag_list.append(flag)
+			flag_list = [self.get_entry_flags(entry[0],c) for entry in entrylist]
 		
 		update_data['flag_list']=flag_list
 		update_data['pollfail']=pollfail
@@ -1391,8 +1387,15 @@ class ptvDB:
 				if outline.has_key('xmlUrl'):
 					yield outline
 			
-		#print "importing opml"
-		p = OPML.parse(stream)
+		try:
+			p = OPML.parse(stream)
+		except:
+			exc_type, exc_value, exc_traceback = sys.exc_info()
+			error_msg = ""
+			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
+				error_msg += s
+			print error_msg
+			stream.close()
 		for o in outline_generator(p.outlines):
 			try:
 				self.insertURL(o['xmlUrl'],o['text'])
@@ -1403,8 +1406,6 @@ class ptvDB:
 					error_msg += s
 				print error_msg
 		stream.close()
-		
-		#print "ok done"
 	
 		
 						

@@ -24,6 +24,11 @@ import MainWindow, FeedList, EntryList, EntryView
 superglobal=utils.SuperGlobal()
 superglobal.download_status={}
 
+#status of the main window progress bar
+U_STANDARD=0
+U_DOWNLOAD=1
+U_POLL=2
+
 class MainWindow:
 	COLUMN_TITLE = 0
 	COLUMN_ITEM = 1
@@ -38,7 +43,8 @@ class MainWindow:
 		self.window_maximized = False
 		self.changing_layout=False
 		self.layout='standard'
-		self.showing_download_progress=False
+		self.bar_owner = U_STANDARD
+		self.status_owner = U_STANDARD
 		
 		#other WINDOWS we open
 		self.window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_rename_feed",'penguintv'),self.app) #MAGIC
@@ -337,7 +343,6 @@ class MainWindow:
 		self.change_filter(current_filter)
 			
 	def on_import_opml_activate(self, event):
-		
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
 		dialog.set_default_response(gtk.RESPONSE_OK)
@@ -355,7 +360,6 @@ class MainWindow:
 		response = dialog.run()
 		if response == gtk.RESPONSE_OK:
 			try:
-				self.app.import_opml()
 				f = open(dialog.get_filename(), "r")
 				self.display_status_message(_("Importing Feeds, please wait..."))
 				self.app.import_opml(f)
@@ -452,8 +456,43 @@ class MainWindow:
 	def on_unread_filter_toggled(self, event):
 		self.feed_list_view.set_unread_toggle(self.filter_unread_checkbox.get_active())
 
-	def display_status_message(self, m):
-		self._status_view.set_status(m)
+	def display_status_message(self, m, update_category=U_STANDARD):
+		"""displays a status message on the main status bar.  If this is a polling update or download
+		   update, we don't overwrite what's there."""	
+		current_text = self._status_view.get_status().get_text()
+		
+		if current_text == "":
+			self.status_owner = update_category
+			self._status_view.set_status(m)
+		else:
+			if update_category==U_STANDARD:  #only overwrite if this is not a poll or download
+				self.status_owner = update_category
+				self._status_view.set_status(m)
+			elif update_category == U_POLL and self.status_owner != U_STANDARD:
+				self.status_owner = update_category
+				self._status_view.set_status(m)				
+			elif update_category == U_DOWNLOAD and self.status_owner == U_DOWNLOAD:
+				self._status_view.set_status(m)
+			
+		return False #in case of timeouts
+		
+	def update_progress_bar(self, p, update_category=U_STANDARD):
+		"""Update the progress bar.  if both downloading and polling, polling wins"""
+		if p==-1:
+			self.bar_owner = U_STANDARD
+			self._status_view.set_progress_percentage(0)
+			return 
+		if update_category == U_STANDARD:
+			raise ShouldntHappenError, "only polls and downloads should update the bar"
+		elif update_category == U_DOWNLOAD:
+			if self.bar_owner != U_POLL:
+				self.bar_owner = U_DOWNLOAD
+				self._status_view.set_progress_percentage(p)
+			#else tough luck
+		elif update_category == U_POLL:
+			self.bar_owner = U_POLL
+			self._status_view.set_progress_percentage(p)
+		
 		
 	def edit_tags(self):
 		"""Edit Tags clicked, bring up tag editing dialog"""
@@ -461,7 +500,6 @@ class MainWindow:
 		self.window_edit_tags_single.set_feed_id(selected)
 		self.window_edit_tags_single.set_tags(self.db.get_tags_for_feed(selected))
 		self.window_edit_tags_single.show()
-
 
 	def update_filters(self):
 		"""update the filter combo box with the current list of filters"""
@@ -523,25 +561,31 @@ class MainWindow:
 	def update_disk_usage(self, size):
 		self.disk_usage_widget.set_text(utils.format_size(size))
 
-	def update_progress(self):
+	def update_download_progress(self):
 		progresses = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_PROGRESS]
 		if len(progresses)==0:
-			self.showing_download_progress=False
 			self.display_status_message("")
-			self._status_view.set_progress_percentage(0)
+			self.update_progress_bar(-1,U_DOWNLOAD)
 			return
 		total_size = 0
 		downloaded = 0
 		for progress in progresses:
-			total_size += progress[2]
+			if progress[2]<=0:
+				total_size += 1
+			else:
+				total_size += progress[2]
 			downloaded += (progress[1]/100.0)*progress[2]
+		if total_size == 0:
+			total_size=1
 		dict = { 'percent': downloaded*100.0/total_size,
 				 'files': len(progresses),
-				 'total': utils.format_size(total_size) }
-		if self.showing_download_progress==False:
-			if self._status_view.get_status().get_text() == "":
-				self.showing_download_progress=True
-				self.display_status_message(_("Downloaded %(percent)d%% of %(files)d files (%(total)s)") % dict) 
-		else:
-			self.display_status_message(_("Downloaded %(percent)d%% of %(files)d files (%(total)s)") % dict)
-		self._status_view.set_progress_percentage(dict['percent']/100.0)
+				 'total': total_size>1 and "("+utils.format_size(total_size)+")" or '',
+				 's': len(progresses)>1 and 's' or ''} #ternary operator simulation
+		self.display_status_message(_("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict, U_DOWNLOAD) 
+		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
+	
+class ShouldntHappenError(Exception):
+	def __init__(self,error):
+		self.error = error
+	def __str__(self):
+		return self.error

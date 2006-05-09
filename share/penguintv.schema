@@ -183,6 +183,19 @@
    </schema>
    
    <schema>
+     <key>/schemas/apps/penguintv/poll_on_startup</key>
+     <applyto>/apps/penguintv/poll_on_startup</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>True</default>
+     <locale name="C">
+	<short>Poll on Startup toggle</short>
+	<long>If true, penguintv will poll all feeds 30 seconds after startup. Default true.
+	</long>
+     </locale>
+   </schema>
+   
+   <schema>
      <key>/schemas/apps/penguintv/auto_download</key>
      <applyto>/apps/penguintv/auto_download</applyto>
      <owner>penguintv</owner>
@@ -239,7 +252,7 @@
      <applyto>/apps/penguintv/renderrer</applyto>
      <owner>penguintv</owner>
      <type>string</type>
-     <default>DEMOCRACY_MOZ</default>
+     <default>GTKHTML</default>
      <locale name="C">
 	<short>HTML renderrer</short>
 	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or DEMOCRACY_MOZ</long>

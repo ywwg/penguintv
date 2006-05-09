@@ -24,6 +24,7 @@ import locale
 import gettext
 import gconf
 import HTMLParser
+import feedparser
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -88,7 +89,8 @@ class PenguinTVApp:
 		self.player = Player.Player()
 		self._updater_db = None
 		self.download_task_ops=[]
-		self.poll_tasks=0
+		self.poll_tasks=0 #Used for updating the polling progress bar
+		self.polled=0     # ditto
 		self.polling_frequency=12*60*60*1000
 		self.bt_settings = {}
 		self.exiting=0
@@ -189,10 +191,7 @@ class PenguinTVApp:
 			gobject.timeout_add(AUTO_REFRESH_FREQUENCY,self.do_poll_multiple, AUTO_REFRESH_FREQUENCY)
 		else:
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
-		#also poll in 30 seconds (ie, "poll on startup")
-		if _SKIP_FIRST_POLL==False:
-			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
-			
+				
 		val = self.conf.get_int('/apps/penguintv/bt_min_port')
 		if val is None:
 			val=6881
@@ -214,6 +213,12 @@ class PenguinTVApp:
 		self.autoresume = val
 		self.window_preferences.set_auto_resume(val)
 		
+		val = self.conf.get_bool('/apps/penguintv/poll_on_startup')
+		if val is None:
+			val=True
+		self.poll_on_startup = val
+		self.window_preferences.set_poll_on_startup(val)
+		
 		val = self.conf.get_bool('/apps/penguintv/auto_download')
 		if val is None:
 			val=False
@@ -231,6 +236,10 @@ class PenguinTVApp:
 			val=1024*1024
 		self.auto_download_limit = val
 		self.window_preferences.set_auto_download_limit(val)
+		
+		#also poll in 30 seconds (ie, "poll on startup")
+		if self.poll_on_startup:
+			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
 	def save_settings(self):
 		self.conf.set_int('/apps/penguintv/feed_pane_position',self.main_window.feed_pane.get_position())
@@ -256,6 +265,7 @@ class PenguinTVApp:
 		self.conf.set_int('/apps/penguintv/bt_min_port',self.bt_settings['min_port'])
 		self.conf.set_int('/apps/penguintv/bt_ul_limit',self.bt_settings['ul_limit'])
 		self.conf.set_bool('/apps/penguintv/auto_resume',self.autoresume)
+		self.conf.set_bool('/apps/penguintv/poll_on_startup',self.poll_on_startup)
 		self.conf.set_bool('/apps/penguintv/auto_download',self.auto_download)
 		self.conf.set_bool('/apps/penguintv/auto_download_limiter',self.auto_download_limiter)
 		self.conf.set_int('/apps/penguintv/auto_download_limit',self.auto_download_limit)
@@ -297,12 +307,18 @@ class PenguinTVApp:
 			else:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
-				
-		self.poll_tasks = len(self.db.get_feedlist())
-		self.main_window.display_status_message("Polling Feeds...")
+		if arguments & ptvDB.A_ALL_FEEDS:
+			#only do the progress bar for all feeds, because if we are on auto we don't know 
+			#how many polls there are
+			self.poll_tasks = len(self.db.get_feedlist())
+			self.main_window.update_progress_bar(0,MainWindow.U_POLL)
+		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
 		task_id = self.updater.queue_task(DB, self.updater_thread_db.poll_multiple, arguments)
-		self.updater.queue_task(GUI, self.main_window.display_status_message, _("Feeds Updated"), task_id, False) #waitfor, and don't clear the flag
-		self.updater.queue_task(GUI, self.update_disk_usage, None, task_id, False) #because this is also waiting
+		if arguments & ptvDB.A_ALL_FEEDS==0:
+			self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feeds Updated", task_id, False))
+			#insane: queueing a timeout
+			self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id, False)
+		self.updater.queue_task(GUI, self.update_disk_usage, None, task_id) #because this is also waiting
 		if self.auto_download == True:
 			self.updater.queue_task(GUI, self.auto_download_unviewed, None, task_id)
 		if was_setup!=0:
@@ -606,8 +622,11 @@ class PenguinTVApp:
 	def refresh_feed(self,feed):
 		#if event.state & gtk.gdk.SHIFT_MASK:
 		#	print "shift-- shift delete it"
+		self.main_window.display_status_message(_("Polling Feed..."))
 		task_id = self.updater.queue_task(DB,self.updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG))
-		self.updater.queue_task(GUI,self.feed_list_view.populate_feeds,None, task_id)
+		self.updater.queue_task(GUI,self.feed_list_view.populate_feeds,None, task_id, False)
+		task_id2 = self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feed Updated"), task_id)
+		self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
 				
 	def show_downloads(self):
@@ -676,9 +695,23 @@ class PenguinTVApp:
 			self.set_polling_frequency(client,None,None)
 			
 	def add_feed(self, url):
-		page = urllib.urlopen(url)
+		"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Then it inserts the 
+		   proper url and starts the polling process"""
+		def display_add_error(): #no gotos for error handling?  how about an embedded function then!
+			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry."))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+			return -1
+		try:
+			page = urllib.urlopen(url)
+		except:
+			return display_add_error()
 		mimetype = page.info()['Content-Type'].split(';')[0]
-		if mimetype in ['application/atom+xml','application/rss+xml','text/xml']:
+		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
 			pass
 		elif mimetype == 'text/html':
 			p = utils.AltParser()
@@ -688,41 +721,30 @@ class PenguinTVApp:
 					if p.head_end:
 						break
 			except HTMLParser.HTMLParseError:
-				dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-				label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry."))
-				dialog.vbox.pack_start(label, True, True, 0)
-				label.show()
-				response = dialog.run()
-				dialog.hide()
-				del dialog
-				return -1
+				return display_add_error()
 			available_versions = [dic.keys()[0] for dic in p.alt_tags]
-			if 'application/atom+xml' in available_versions:
-				url = dic['application/atom+xml']
-			elif 'application/rss+xml' in available_versions:
-				url = dic['application/rss+xml']
-			elif 'text/xml' in available_versions:
-				url = dic['text/xml']
+			if len(available_versions)==0: #this might actually be a feed
+				data = feedparser.parse(url)
+				if len(data['channel']) == 0 or len(data['items']) == 0: #nope
+					print "warning: no alt mimetypes:"+str(p.alt_tags)
+					return display_add_error()
+				else:
+					pass #we're good
 			else:
-				print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
-				dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-				label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry."))
-				dialog.vbox.pack_start(label, True, True, 0)
-				label.show()
-				response = dialog.run()
-				dialog.hide()
-				del dialog
-				return -1
+				if 'application/atom+xml' in available_versions:
+					url = dic['application/atom+xml']
+				elif 'application/rss+xml' in available_versions:
+					url = dic['application/rss+xml']
+				elif 'application/xml' in available_versions:
+					url = dic['application/xml']
+				elif 'text/xml' in available_versions:
+					url = dic['text/xml']
+				else:
+					print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
+					return display_add_error()
 		else:
 			print "warning: unhandled page mimetypes: "+str(mimetype)
-			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided"))
-			dialog.vbox.pack_start(label, True, True, 0)
-			label.show()
-			response = dialog.run()
-			dialog.hide()
-			del dialog
-			return -1
+			return display_add_error()
 
 		self.main_window.display_status_message(_("Trying to poll feed..."))
 		feed_id = self.db.insertURL(url)
@@ -758,8 +780,10 @@ class PenguinTVApp:
 		return
 		
 	def add_feed_success(self, feed_id):
-		self.main_window.display_status_message(_("Feed Added"))
+		print "feed added"
 		self.main_window.populate_and_select(feed_id)
+		self.main_window.display_status_message(_("Feed Added"))
+		gobject.timeout_add(2000, self.main_window.display_status_message, "")
 			
 	def delete_entry_media(self, entry_id):
 		"""Delete all media for an entry"""
@@ -811,8 +835,10 @@ class PenguinTVApp:
 		elif status==MediaManager.STOPPED:
 			try:
 				del superglobal.download_status[media['media_id']] #clear progress information
-				self.main_window.update_progress() #should clear things out
+				self.main_window.update_download_progress() #should clear things out
 			except:
+				print superglobal.download_status
+				print "tried to delete: "+str(media['media_id'])
 				print "error deleting progress info 2"
 		elif status==MediaManager.FINISHED or status==MediaManager.FINISHED_AND_PLAY:
 			if os.stat(media['file'])[6] < int(media['size']/2) and os.path.isfile(media['file']): #don't check dirs
@@ -826,7 +852,7 @@ class PenguinTVApp:
 			else:
 				try:
 					del superglobal.download_status[media['media_id']] #clear progress information
-					self.main_window.update_progress() #should clear things out
+					self.main_window.update_download_progress() #should clear things out
 				except:
 					print "error deleting progress info"
 					pass #no big whoop if it fails
@@ -837,7 +863,8 @@ class PenguinTVApp:
 				else:
 					self.db.set_entry_read(media['entry_id'],False)
 					self.db.set_media_viewed(media['media_id'],False)
-				self.db.set_media_download_status(media['media_id'],ptvDB.D_DOWNLOADED)		
+				self.db.set_media_download_status(media['media_id'],ptvDB.D_DOWNLOADED)	
+		self.feed_list_view.do_filter() #to remove active downloads from the list	
 		try:
 			feed_id = self.db.get_entry(media['entry_id'])['feed_id']
 			self.update_entry_list(media['entry_id'])
@@ -860,6 +887,11 @@ class PenguinTVApp:
 		autoresume = client.get_bool('/apps/penguintv/auto_resume')
 		self.window_preferences.set_auto_resume(autoresume)	
 		self.autoresume = autoresume
+		
+	def set_poll_on_startup(self, client, *args, **kwargs):
+		poll_on_startup = client.get_bool('/apps/penguintv/poll_on_startup')
+		self.window_preferences.set_poll_on_startup(poll_on_startup)	
+		self.poll_on_startup = poll_on_startup
 		
 	def set_auto_download(self, client, *args, **kwargs):
 		auto_download = client.get_bool('/apps/penguintv/auto_download')
@@ -919,7 +951,7 @@ class PenguinTVApp:
 		superglobal.download_status[data[0]['media_id']]=(DOWNLOAD_PROGRESS,data[1],data[0]['size'])
 		if self.main_window.changing_layout == False:
 			self.updater.queue_task(GUI,self.entry_view.update_progress,data)
-			self.updater.queue_task(GUI,self.main_window.update_progress)
+			self.updater.queue_task(GUI,self.main_window.update_download_progress)
 
 	def _finished_callback(self,data):
 		#print "finished callback"
@@ -930,11 +962,27 @@ class PenguinTVApp:
 		self.updater.queue_task(GUI,self.download_finished, data)
 		
 	def _polling_callback(self, args):
-		###print "polling callback",
 		feed_id,update_data = args
-		self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,update_data))
-		self.updater.queue_task(GUI, self.entry_list_view.populate_if_selected, feed_id)
-		###print ", and out"
+		self.updater.queue_task(GUI, self.poll_update_progress)
+		if update_data['pollfail']==False:
+			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,update_data))
+			self.updater.queue_task(GUI, self.entry_list_view.populate_if_selected, feed_id)
+		
+	def poll_update_progress(self):
+		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
+		if self.poll_tasks > 0:
+			self.polled += 1
+			if self.polled == self.poll_tasks:
+				self.poll_tasks=0 #this is where we reset the poll tasks
+				self.polled=0
+				self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
+				self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
+				gobject.timeout_add(2000, self.main_window.display_status_message,"")
+			else:
+				d = { 'polled':self.polled,
+					  'total':self.poll_tasks}
+				self.main_window.update_progress_bar(float(self.polled)/float(self.poll_tasks),MainWindow.U_POLL)
+				self.main_window.display_status_message(_("Polling Feeds... (%(polled)d/%(total)d)" % d),MainWindow.U_POLL)
 				
 	def _entry_image_download_callback(self, entry_id, html):
 		self.updater.queue_task(GUI, self.entry_view._images_loaded,(entry_id, html))
@@ -1036,7 +1084,7 @@ class PenguinTVApp:
 		current_task_count = self.updater.task_count(GUI)
 		while current_task_count > 0 and performed<3 and skipped != current_task_count:
 			var = self.updater.peek_task(GUI, skipped)
-			#print var
+			#print var[0]
 			func, args, task_id, waitfor, clear_completed =  var
 			if waitfor:
 				if self.updater.is_completed(waitfor): #don't pop if false

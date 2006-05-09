@@ -14,7 +14,6 @@ char *s = N_("All Feeds\n"
              "Downloaded Media\n"
              "No Feeds (Calm Mode)");
 char *s = N_("Automatically download new media");
-char *s = N_("Automatically resume downloads on startup");
 char *s = N_("Autotune refresh period");
 char *s = N_("Changing Layouts...");
 char *s = N_("Download Unviewed Media");
@@ -39,6 +38,7 @@ char *s = N_("Please enter tags you would like to apply to this feed, separated 
 char *s = N_("Please enter the URL of the feed you would like to add; and any tags you would like to apply to this feed, separated by commas:");
 char *s = N_("Please wait while PenguinTV changes layouts...");
 char *s = N_("Podcast and Video Blog aggregator for GTK+ and GNOME");
+char *s = N_("Poll all feeds on startup");
 char *s = N_("Preferences");
 char *s = N_("Re_fresh");
 char *s = N_("Re_name...");
@@ -47,6 +47,7 @@ char *s = N_("Refresh every ");
 char *s = N_("Remove Feed");
 char *s = N_("Rename Feed");
 char *s = N_("Resume _All");
+char *s = N_("Resume downloads on startup");
 char *s = N_("Stop All Active Downloads");
 char *s = N_("Tag Editor");
 char *s = N_("Tag Highlighter:");

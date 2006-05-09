@@ -42,7 +42,7 @@ class Outline(dict):
         self._children = []
 
     def add_child(self, outline):
-        self._children.append(outline)
+    	self._children.append(outline)
 
     def get_children_iter(self):
         return self.OIterator(self)
@@ -79,6 +79,9 @@ class OutlineList:
         if len(self._stack):
             self._stack[-1].add_child(outline)
         else:
+        	##Add normalization here
+            outline.setdefault('title',"Untitled")
+            outline.setdefault('text',outline['title'])
             self._roots.append(outline)
         self._stack.append(outline)
 
@@ -131,7 +134,6 @@ def parse(stream):
     parser.setFeature(feature_namespaces, 0)
     handler = OPMLHandler()
     parser.setContentHandler(handler)
-
     parser.parse(stream)
     return handler.get_opml()
 
