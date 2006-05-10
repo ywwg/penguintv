@@ -64,7 +64,7 @@ class EntryList:
 		i=-1
 		for entry_id,title,date,new in db_entrylist:
 			i=i+1	
-			flag = self.db.get_entry_flags(entry_id)
+			flag = self.db.get_entry_flag(entry_id)
 			icon = self.get_icon(flag)
 			markeduptitle = self.get_markedup_title(title, flag)
 			self.entrylist.append([title, markeduptitle, entry_id, i, icon, flag])
@@ -121,7 +121,7 @@ class EntryList:
 			entry_id = self.last_entry
 		for entry in self.entrylist:
 			if entry[2] == entry_id:
-				entry[5] = self.db.get_entry_flags(entry_id)
+				entry[5] = self.db.get_entry_flag(entry_id)
 	 			entry[1] = self.get_markedup_title(entry[0],entry[5])
 	 			entry[4] = self.get_icon(entry[5]) 
 	 	#always update the selected entry, just in case.

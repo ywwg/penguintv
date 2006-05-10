@@ -85,7 +85,17 @@ class ptvDB:
 			self.db.isolation_level="DEFERRED"
 		except:
 			raise DBError,"error connecting to database"
+		
 		self.c = self.db.cursor()
+		self.cache_dirty = True
+		try:
+			self.c.execute(u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
+			if self.c.fetchone()[0] == 0:
+				print "cache clean"
+				self.cache_dirty = False
+		except:
+			pass
+			
 		if polling_callback==None:
 			self.polling_callback=self._polling_callback
 		else:
@@ -98,25 +108,29 @@ class ptvDB:
 			self.init_database()
 			return True	
 			
-		try:
-			self.c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
-			db_ver = self.c.fetchone()
-			db_ver = db_ver[0]
-			if db_ver is None:
-				self.migrate_database()
-				self.clean_database_media()
-			elif db_ver < 2:
-				self.migrate_database()
-				self.clean_database_media()
-			elif db_ver > 2:
-				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
-				raise DBError, "db_ver is "+str(db_ver)+" instead of 2"
-			else:
-				return False
-		except:
-			self.migrate_database()
+		#try:
+		self.c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
+		db_ver = self.c.fetchone()
+		db_ver = db_ver[0]
+		if db_ver is None:
+			self.migrate_database_one_two()
+			self.clean_database_media()
+		elif db_ver < 2:
+			self.migrate_database_one_two()
+			self.clean_database_media()
+		elif db_ver < 3:
+			self.migrate_database_two_three()
+			self.clean_database_media()
+		elif db_ver > 3:
+			print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
+			raise DBError, "db_ver is "+str(db_ver)+" instead of 2"
+		else:
+			return False
+	#	except:
+	#		self.migrate_database_one_two()
+	#		self.migrate_database_two_three()
         
-	def migrate_database(self):
+	def migrate_database_one_two(self):
 		#add table settings
 		try:
 			self.c.execute(u'SELECT * FROM settings')  #if it doesn't exist, 
@@ -151,9 +165,24 @@ class ptvDB:
 		self.c.execute(u'UPDATE feeds SET newatlast=0')
    
 		try:
-			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",2)')
-		except:
 			self.c.execute(u'UPDATE settings SET value=2 WHERE data="db_ver"')
+		except:
+			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",2)')
+			
+	def migrate_database_two_three(self):
+		print "upgrading to database schema 3"
+		self.c.execute(u'ALTER TABLE feeds ADD COLUMN flag_cache INT')
+		self.c.execute(u'ALTER TABLE feeds ADD COLUMN entry_count_cache INT')
+		self.c.execute(u'ALTER TABLE feeds ADD COLUMN unread_count_cache INT')
+		
+		try:
+			self.c.execute(u'UPDATE settings SET value=3 WHERE data="db_ver"')
+		except:
+			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",3)')
+		self.c.execute(u'INSERT INTO settings (data, value) VALUES ("feed_cache_dirty",1)')
+		self.db.commit()
+		print "done"
+		
 			
 	def clean_database_media(self):
 		self.c.execute("SELECT id,file,entry_id FROM media")
@@ -229,6 +258,9 @@ class ptvDB:
     pollfreq INT NOT NULL,
     lastpoll DATE,
     newatlast INT,
+    flag_cache INT,
+    entry_count_cache INT,
+    unread_count_cache INT,
     UNIQUE(url)
 );""")
 		self.c.execute(u"""CREATE TABLE entries
@@ -268,8 +300,31 @@ class ptvDB:
 		feed_id INT UNSIGNED NOT NULL);""")
 		self.db.commit()
 		
-		self.c.execute(u"""INSERT INTO settings (data, value) VALUES ("db_ver",2)""")
+		self.c.execute(u"""INSERT INTO settings (data, value) VALUES ("db_ver",3)""")
 		self.db.commit()
+		
+	def set_feed_cache(self, cachelist):
+		"""Cachelist format:
+		   id, flag, unread, total"""
+		for cache in cachelist:
+			###print cache
+			self.c.execute(u'UPDATE feeds SET flag_cache=? WHERE id=?',(cache[1],cache[0]))
+			self.c.execute(u'UPDATE feeds SET unread_count_cache=? WHERE id=?',(cache[2],cache[0]))
+			self.c.execute(u'UPDATE feeds SET entry_count_cache=? WHERE id=?',(cache[3],cache[0]))
+		self.db.commit()
+		#and only then...
+		self.c.execute(u'UPDATE settings SET value=0 WHERE data="feed_cache_dirty"')
+		self.db.commit()
+		
+	def get_feed_cache(self):
+		if self.cache_dirty:
+			print "cache is dirty, returning none"
+			return None
+		self.c.execute(u'SELECT id, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(title)')
+		cache = self.c.fetchall()
+		self.c.execute(u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
+		self.db.commit()
+		return cache
 		
 	def insertURL(self, url,title=None):
 		#if a feed with that url doesn't already exists, add it
@@ -297,6 +352,9 @@ class ptvDB:
 			self.c.execute("""SELECT id FROM feeds WHERE url=?""",(url,))
 			feed_id = self.c.fetchone()
 			feed_id = feed_id[0]
+			print "db: feed already exists"
+			raise FeedAlreadyExists(feed_id)
+			
 					
 		return feed_id
 		
@@ -396,6 +454,7 @@ class ptvDB:
 			db=sqlite.connect(self.home+"/.penguintv/penguintv2.db", timeout=20)
 		except:
 			raise DBError,"error connecting to database"
+			
 		index=args[0]
 		feed_id=args[1]
 		poll_arguments = 0
@@ -406,6 +465,7 @@ class ptvDB:
 			result = self.poll_feed(feed_id,poll_arguments,db)
 		except sqlite.OperationalError:
 			print "Database lock warning..."
+			db.close()
 			del db #delete it to release the lock
 			if recurse < 2:
 				time.sleep(5)
@@ -416,6 +476,7 @@ class ptvDB:
 		except FeedPollError,e:
 			print e
 			pollfail = True
+			db.close()
 			del db
 			return (feed_id,{'pollfail':True})
 		except:
@@ -426,6 +487,7 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			pollfail = True
+			db.close()
 			del db
 			return (feed_id,{'pollfail':True})
 			
@@ -436,11 +498,11 @@ class ptvDB:
 		list = c.fetchall()
 		update_data['unread_count'] = len([item for item in list if item[0]==0])
 		
-		flag_list = []
-		c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
-		entrylist = c.fetchall()
-		if entrylist:
-			flag_list = [self.get_entry_flags(entry[0],c) for entry in entrylist]
+		flag_list = self.get_entry_flags(feed_id,c)
+		#c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
+		#entrylist = c.fetchall()
+		#if entrylist:
+		#	flag_list = [self.get_entry_flags(entry[0],c) for entry in entrylist]
 		
 		update_data['flag_list']=flag_list
 		update_data['pollfail']=pollfail
@@ -766,6 +828,8 @@ class ptvDB:
 					for e in ditchables:
 						c.execute("""DELETE FROM entries WHERE id=?""",(e[0],))
 		c.execute("DELETE FROM entries WHERE fakedate=0 AND feed_id=?",(feed_id,))
+		#self.update_entry_flags(feed_id,db)
+		#self.update_feed_flag(feed_id,db)
 		db.commit()
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
 			self.set_new_update_freq(db,c, feed_id, new_items)
@@ -1011,6 +1075,7 @@ class ptvDB:
 	def set_media_download_status(self, media_id, status):
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
 		self.db.commit()
+		#self.update_entry_flag_mediaid(media_id)
 		
 	def set_media_filename(self, media_id, filename):
 		self.c.execute(u'UPDATE media SET file=? WHERE id=?', (filename,media_id))
@@ -1019,6 +1084,7 @@ class ptvDB:
 	def set_media_viewed(self, media_id, viewed=1):
 		self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(int(viewed),media_id))
 		self.db.commit()
+		#self.update_entry_flag_mediaid(media_id)
 		
 	def get_media_size(self, media_id):
 		self.c.execute(u'SELECT length FROM media WHERE id=?',(media_id,))
@@ -1027,15 +1093,17 @@ class ptvDB:
 	def set_media_size(self, media_id, size):
 		self.c.execute(u'UPDATE media SET length=? WHERE id=?',(int(size),media_id))
 		self.db.commit()
-		
+
 	def set_entry_new(self, entry_id, new):
 		self.c.execute(u'UPDATE entries SET new=? WHERE id=?',(int(new),entry_id))
 		self.db.commit()
+		#self.update_entry_flag(entry_id)
 	
 	def set_entry_read(self, entry_id, read):
 		self.c.execute(u'UPDATE entries SET read=? WHERE id=?',(int(read),entry_id))
 		self.c.execute(u'UPDATE media SET viewed=? WHERE entry_id=?',(int(read),entry_id))
 		self.db.commit()
+		#self.update_entry_flag(entry_id)
 		
 	def get_entry_read(self, entry_id):
 		self.c.execute(u'SELECT read FROM entries WHERE id=?',(entry_id,))
@@ -1061,7 +1129,15 @@ class ptvDB:
 		list=list+self.c.fetchall()
 		newlist=[]
 		for item in list:
-			new_item = (item[0],int(item[1]),item[2], item[3])
+			try:
+				size = int(item[1])
+			except ValueError:
+				#try _this_!
+				try:
+					size = int(''.join([b for b in a if b.isdigit()]))
+				except:
+					size = 0
+			new_item = (item[0],size,item[2], item[3])
 			newlist.append(new_item)
 		return newlist 
 		
@@ -1089,16 +1165,18 @@ class ptvDB:
 			self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(1,item[0]))
 			if item[1] == D_ERROR:
 				self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (D_NOT_DOWNLOADED,item[0]))
+		#self.update_entry_flags(feed_id)
+		#self.update_feed_flag(feed_id)
 		self.db.commit()
 	
 	def media_exists(self, filename):
-	       self.c.execute(u'SELECT media.id FROM media WHERE media.file=?',(filename,))
-	       list=self.c.fetchall()
-	       if len(list)>1:
-	               print "WARNING: multiple entries in db for one filename"
-	       if len(list)==0:
-	               return False
-	       return True
+		self.c.execute(u'SELECT media.id FROM media WHERE media.file=?',(filename,))
+		list=self.c.fetchall()
+		if len(list)>1:
+			print "WARNING: multiple entries in db for one filename"
+		if len(list)==0:
+			return False
+		return True
 		
 	def get_unplayed_media_set_viewed(self):
 		self.c.execute(u'SELECT media.id, media.entry_id, media.file, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
@@ -1110,12 +1188,24 @@ class ptvDB:
 			self.c.execute(u'UPDATE entries SET read=1 WHERE id=?',(item[1],))					
 			playlist.append(item[2])
 		self.db.commit()
+		#entrylist = utils.uniquer([item[1] for item in list])
+		#for item in entrylist:
+		#	self.update_entry_flag(item)
 		return playlist 
 		
 	def pause_all_downloads(self):
+		#self.c.execute(u'SELECT entry_id FROM media WHERE download_status=?', (D_DOWNLOADING,))
+		#list = self.c.fetchall()
+		#list = [e[0] for e in list]
+		#updated_list = utils.uniquer(list)
+		#if updated_list is None:
+		#	print "nothing!"
+		#	return
 		self.c.execute(u'UPDATE media SET viewed = 0 WHERE download_status=?',(D_DOWNLOADING,))
 		self.c.execute(u'UPDATE media SET download_status=? WHERE download_status=?',(D_RESUMABLE,D_DOWNLOADING))
 		self.db.commit()
+		#for e in updated_list:
+		#	self.update_entry_flag(e)
 	
 	#def get_media_download_status(self, media_id):
 	#	
@@ -1163,28 +1253,35 @@ class ptvDB:
 	def get_feed_verbose(self, feed_id):
 		"""This function is slow, but all of the time is in the execute and fetchall calls.  I can't even speed
 		   it up if I do my own sort.  profilers don't lie!"""
-		entry_info = {}
-		self.c.execute("""SELECT id,title,fakedate,new,read FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_id,))
-		entry_list = self.c.fetchall()
-		entry_info['entry_list'] = entry_list
+		feed_info = {}
 		
-		unread=0
-		for item in entry_list:
-			if item[4]==0: #read
-				unread=unread+1
-		entry_info['unread_count'] = unread
-		
-		entry_info['important_flag'] = self.get_important_flag(feed_id)  #not much speeding up this
+		if not self.cache_dirty:
+			self.c.execute(u'SELECT flag_cache, unread_count_cache, entry_count_cache FROM feeds WHERE id=?',(feed_id,))
+			cached_info = self.c.fetchone()
+			feed_info['important_flag'] = cached_info[0]
+			feed_info['unread_count'] = cached_info[1]
+			feed_info['entry_count'] = cached_info[2]
+		else:
+			self.c.execute("""SELECT read FROM entries WHERE feed_id=?""",(feed_id,))
+			entry_list = self.c.fetchall()
+			unread=0
+			for item in entry_list:
+				if item[0]==0: #read
+					unread=unread+1
+			feed_info['unread_count'] = unread
+			feed_info['entry_count'] = len(entry_list)
+			feed_info['important_flag'] = self.get_feed_flag(feed_id)  #not much speeding up this
 		
 		self.c.execute(u'SELECT pollfail FROM feeds WHERE id=?',(feed_id,))
 		result = self.c.fetchone()[0]
 		if result==0:
-			entry_info['poll_fail'] = False
+			feed_info['poll_fail'] = False
 		else:
-			entry_info['poll_fail'] = True
-		return entry_info
+			feed_info['poll_fail'] = True
+		return feed_info
 	
-	def get_entry_flags(self, entry_id,c=None):
+	#def generate_entry_flag(self, entry_id,c=None):
+	def get_entry_flag(self, entry_id, c=None):
 		if c == None:
 			c = self.c
 		importance=0
@@ -1236,65 +1333,149 @@ class ptvDB:
 		entrylist = self.get_entrylist(feed_id)
 		if entrylist:
 			for entry in entrylist:
-				flag = self.get_entry_flags(entry[0])
+				flag = self.get_entry_flag(entry[0])
 				if flag & F_UNVIEWED:
 					self.set_entry_read(entry[0],False)
 				else:
 					self.set_entry_read(entry[0],True)
+					
+	#def generate_all_flags(self):
+	#	"""Go through all feeds, all entries, and generate flags"""
+	#	self.c.execute(u'SELECT id FROM entries')
+	#	entries = self.c.fetchall()
+	#	i=-1
+	#	for entry in entries:
+	#		i+=1
+	#		flag = self.generate_entry_flag(entry[0])#**#
+	#		self.c.execute(u'UPDATE entries SET flag=? WHERE id=?' , (flag,entry[0]))
+	#		if i % 100==0:
+	#			print int(float(i)*100.0/len(entries))
+	#			self.db.commit()
+	#	self.db.commit()
+	#	
+	#	feeds = self.get_feedlist()
+	#	i=-1
+	#	for feed in feeds:
+	#		i+=1
+	#		flag = self.generate_feed_flag(feed[0])
+	#		self.c.execute(u'UPDATE feeds SET flag=? WHERE id=?' , (flag,feed[0]))
+	#		if i % 100==0:
+	#			print int(float(i)*100.0/len(feeds))
+	#			self.db.commit()
+	#	self.db.commit()
+		
+	#def update_entry_flag_mediaid(self, media_id):
+	#	self.c.execute(u'SELECT entry_id FROM media WHERE id=?',(media_id,))
+	#	entry_id = self.c.fetchone()[0]
+	#	self.c.execute(u'SELECT feed_id FROM entries WHERE id=?', (entry_id,))
+	#	feed_id = self.c.fetchone()[0]
+	#	self.update_entry_flag(entry_id)
+	#	self.update_feed_flag(feed_id)
+		
+	#def update_entry_flag(self, entry_id):
+	#	self.c.execute(u'UPDATE entries SET flag=? WHERE id=?',(self.generate_entry_flag(entry_id),entry_id))
+	#	#self.db.commit() gonna get called below
+	#	self.c.execute(u'SELECT feed_id FROM entries WHERE id=?', (entry_id,))
+	#	feed_id = self.c.fetchone()[0]
+	#	self.update_feed_flag(feed_id)
 
-	def get_important_flag(self, feed_id):
+		
+	#def update_entry_flags(self, feed_id, db=None):
+	#	if db is None:
+	#		db = self.db
+	#	c = db.cursor()
+	#	c.execute("""SELECT id FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_id,))
+	#	entrylist = [e[0] for e in c.fetchall()]
+	#	for entry in entrylist:
+	#		c.execute(u'UPDATE entries SET flag=? WHERE id=?',(self.generate_entry_flag(entry,c),entry))
+	#	db.commit()
+		
+	#def update_feed_flag(self, feed_id, db=None):
+	#	if db is None:
+	#		db = self.db
+	#	c = db.cursor()
+	#	c.execute(u'UPDATE feeds SET flag=? WHERE id=?',(self.generate_feed_flag(feed_id,c),feed_id))
+	#	db.commit()
+	#	c.close()
+		
+	#def get_entry_flag(self, entry_id):
+	#	self.c.execute(u'SELECT flag FROM entries WHERE id=?',(entry_id,))
+	#	flag = self.c.fetchone()
+	#	return flag[0]
+		
+	def get_entry_flags(self, feed_id, c=None):
+		if c is None:
+			c = self.c
+		c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
+		entrylist = c.fetchall()
+		flaglist = []
+		for entry in entrylist:
+			flaglist.append(self.get_entry_flag(entry[0],c))
+	#	flaglist = c.fetchall()
+		return flaglist
+	#	return [flag[0] for flag in flaglist]
+		
+	#def get_feed_flag(self, feed_id):
+	#	self.c.execute(u'SELECT flag FROM feeds WHERE id=?',(feed_id,))
+	#	flag = self.c.fetchone()
+	#	return flag[0]
+
+	def get_feed_flag(self, feed_id):#, c=None):
+	#def generate_feed_flag(self, feed_id, c=None):
 		""" Based on a feed, what flag best represents the overall status of the feed at top-level?
 			This is based on the numeric value of the flag, which is why flags are enumed the way they are."""
 			
-		self.c.execute(u'SELECT media.download_status, media.viewed, media.entry_id FROM media INNER JOIN entries ON media.entry_id=entries.id WHERE entries.feed_id=?',(feed_id,))
-		media = self.c.fetchall()
-		self.c.execute(u'SELECT new,read,id FROM entries WHERE feed_id=?',(feed_id,))
-		entries = self.c.fetchall()
+		#self.c.execute(u'SELECT media.download_status, media.viewed, media.entry_id FROM media INNER JOIN entries ON media.entry_id=entries.id WHERE entries.feed_id=?',(feed_id,))
+		#media = self.c.fetchall()
+		#self.c.execute(u'SELECT new,read,id FROM entries WHERE feed_id=?',(feed_id,))
+		#entries = self.c.fetchall()
 		feed_has_media=0
-		flaglist = []
-		
-		for entry in entries:
-			flag = 0
-			download_status = D_NOT_DOWNLOADED
-			entry_has_media = 0
-			for medium in media:
-				if medium[2] == entry[2]: #media.entry_id == entry.id
-					entry_has_media=1
-					if medium[0] == D_DOWNLOADING: #download_status
-						download_status = D_DOWNLOADING
-						break
-					if medium[0] == D_ERROR:
-						download_status = D_ERROR
-						break
-					if medium[0] == D_RESUMABLE:
-						download_status = D_RESUMABLE
-						break
-					if medium[0] == D_DOWNLOADED:
-						feed_has_media=1
-						download_status=D_DOWNLOADED #no break
-			
-			if download_status==-1:
-				flag=flag+F_ERROR
-			elif download_status==D_DOWNLOADING:
-				flag=flag+F_DOWNLOADING
-			if entry[0]==1: #new
-				flag=flag+F_NEW
-			
-			if entry_has_media==1:
-				flag=flag+F_MEDIA
-				if download_status==D_DOWNLOADED:
-					flag=flag+F_DOWNLOADED
-				elif download_status==3:
-					flag=flag+F_PAUSED
-				for medium in media:
-					if medium[1] == 0: #viewed
-						flag=flag+F_UNVIEWED
-						break
-			else:
-				if entry[1]==0: #read
-					flag=flag+F_UNVIEWED
-			
-			flaglist.append(flag)
+		#flaglist = []
+#		if c is None:
+#			c = self.c
+		flaglist = self.get_entry_flags(feed_id)
+		#for entry in entries:
+		#	flag = 0
+		#	download_status = D_NOT_DOWNLOADED
+		#	entry_has_media = 0
+		#	for medium in media:
+		#		if medium[2] == entry[2]: #media.entry_id == entry.id
+		#			entry_has_media=1
+		#			if medium[0] == D_DOWNLOADING: #download_status
+		#				download_status = D_DOWNLOADING
+		#				break
+		#			if medium[0] == D_ERROR:
+		#				download_status = D_ERROR
+		#				break
+		#			if medium[0] == D_RESUMABLE:
+		#				download_status = D_RESUMABLE
+		#				break
+		#			if medium[0] == D_DOWNLOADED:
+		#				feed_has_media=1
+		#				download_status=D_DOWNLOADED #no break
+		#	
+		#	if download_status==-1:
+		#		flag=flag+F_ERROR
+		#	elif download_status==D_DOWNLOADING:
+		#		flag=flag+F_DOWNLOADING
+		#	if entry[0]==1: #new
+		#		flag=flag+F_NEW
+		#	
+		#	if entry_has_media==1:
+		#		flag=flag+F_MEDIA
+		#		if download_status==D_DOWNLOADED:
+		#			flag=flag+F_DOWNLOADED
+		#		elif download_status==3:
+		#			flag=flag+F_PAUSED
+		#		for medium in media:
+		#			if medium[1] == 0: #viewed
+		#				flag=flag+F_UNVIEWED
+		#				break
+		#	else:
+		#		if entry[1]==0: #read
+		#			flag=flag+F_UNVIEWED
+		#	
+		#	flaglist.append(flag)
 		
 		if len(flaglist)==0:
 			return 0
@@ -1517,3 +1698,9 @@ class DBError(Exception):
 		self.error = error
 	def __str__(self):
 		return self.error
+		
+class FeedAlreadyExists(Exception):
+	def __init__(self,feed):
+		self.feed = feed
+	def __str__(self):
+		return self.feed

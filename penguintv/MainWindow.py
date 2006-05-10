@@ -25,9 +25,11 @@ superglobal=utils.SuperGlobal()
 superglobal.download_status={}
 
 #status of the main window progress bar
-U_STANDARD=0
+U_NOBODY=0
 U_DOWNLOAD=1
-U_POLL=2
+U_LOADING=2
+U_POLL=3
+U_STANDARD=4
 
 class MainWindow:
 	COLUMN_TITLE = 0
@@ -43,8 +45,8 @@ class MainWindow:
 		self.window_maximized = False
 		self.changing_layout=False
 		self.layout='standard'
-		self.bar_owner = U_STANDARD
-		self.status_owner = U_STANDARD
+		self.bar_owner = U_NOBODY
+		self.status_owner = U_NOBODY
 		
 		#other WINDOWS we open
 		self.window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_rename_feed",'penguintv'),self.app) #MAGIC
@@ -444,6 +446,7 @@ class MainWindow:
 		self.layout=layout
 		dic = self.get_selected_items()
 		self.app.save_settings()
+		self.app.write_feed_cache()
 		self.Hide()
 		self.Show()
 		self.feed_list_view.populate_feeds()
@@ -465,33 +468,42 @@ class MainWindow:
 			self.status_owner = update_category
 			self._status_view.set_status(m)
 		else:
-			if update_category==U_STANDARD:  #only overwrite if this is not a poll or download
-				self.status_owner = update_category
+			if update_category >= self.status_owner:
 				self._status_view.set_status(m)
-			elif update_category == U_POLL and self.status_owner != U_STANDARD:
-				self.status_owner = update_category
-				self._status_view.set_status(m)				
-			elif update_category == U_DOWNLOAD and self.status_owner == U_DOWNLOAD:
-				self._status_view.set_status(m)
+				if m == "":
+					self.status_owner = U_NOBODY
+				else:
+					self.status_owner = update_category
+			#if update_category==U_STANDARD:  #only overwrite if this is not a poll or download
+			#	self.status_owner = update_category
+			#	self._status_view.set_status(m)
+			#elif update_category == U_POLL and self.status_owner != U_STANDARD:
+			#	self.status_owner = update_category
+			#	self._status_view.set_status(m)				
+			#elif update_category == U_DOWNLOAD and self.status_owner == U_DOWNLOAD:
+			#	self._status_view.set_status(m)
 			
 		return False #in case of timeouts
 		
 	def update_progress_bar(self, p, update_category=U_STANDARD):
 		"""Update the progress bar.  if both downloading and polling, polling wins"""
 		if p==-1:
-			self.bar_owner = U_STANDARD
+			self.bar_owner = U_NOBODY
 			self._status_view.set_progress_percentage(0)
-			return 
-		if update_category == U_STANDARD:
-			raise ShouldntHappenError, "only polls and downloads should update the bar"
-		elif update_category == U_DOWNLOAD:
-			if self.bar_owner != U_POLL:
-				self.bar_owner = U_DOWNLOAD
-				self._status_view.set_progress_percentage(p)
-			#else tough luck
-		elif update_category == U_POLL:
-			self.bar_owner = U_POLL
-			self._status_view.set_progress_percentage(p)
+		else:
+			if update_category >= self.bar_owner:
+				self.bar_owner = update_category
+				self._status_view.set_progress_percentage(p)		
+		#if update_category == U_STANDARD:
+		#	raise ShouldntHappenError, "only polls and downloads should update the bar"
+		#elif update_category == U_DOWNLOAD:
+		#	if self.bar_owner != U_POLL:
+		#		self.bar_owner = U_DOWNLOAD
+		#		self._status_view.set_progress_percentage(p)
+		#	#else tough luck
+		#elif update_category == U_POLL:
+		#	self.bar_owner = U_POLL
+		#	self._status_view.set_progress_percentage(p)
 		
 		
 	def edit_tags(self):
@@ -538,8 +550,9 @@ class MainWindow:
 	def change_filter(self, current_filter):
 		self.feed_list_view.set_filter(self.filter_combo_widget.get_active(), current_filter)
 
-	def populate_and_select(self, feed_id):
-		self.feed_list_view.populate_feeds()
+	#def populate_and_select(self, feed_id):
+	def select_feed(self, feed_id):
+		#self.feed_list_view.populate_feeds()
 		self.filter_combo_widget.set_active(FeedList.ALL)
 		self.filter_unread_checkbox.set_active(False)
 		self.feed_list_view.set_selected(feed_id)
