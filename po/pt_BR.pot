@@ -6,16 +6,16 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "POT-Creation-Date: 2006-02-25 18:31+EST\n"
-"PO-Revision-Date: 2006-02-21 20:14+EST\n"
+"PO-Revision-Date: 2006-05-10 23:13-0500\n"
 "Last-Translator: Og Maciel <ogmaciel@ubuntu.com>\n"
-"Language-Team: Brazilian Portuguese <https://launchpad.net/people/ubuntu-"
-"l10n-pt-br>\n"
+"Language-Team: Brazilian Portuguese <https://launchpad.net/people/ubuntu-l10n-pt-br>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=CHARSET\n"
-"Content-Transfer-Encoding: ENCODING\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: BTDownloader.py:67 BTDownloader.py:68
+#: BTDownloader.py:67
+#: BTDownloader.py:68
 msgid "There was an error downloading the torrent"
 msgstr "Houve um erro ao abaixar o torrent"
 
@@ -28,20 +28,20 @@ msgid "Downloaded %(progress)s%% of %(size)s"
 msgstr "Abaixou %(progress)s%% de %(size)s"
 
 #: EntryList.py:172
-#, fuzzy
 msgid "_Download"
 msgstr "Abaixar"
 
-#: EntryList.py:182 utils.py:166
+#: EntryList.py:182
+#: utils.py:166
 msgid "Delete"
 msgstr "Apagar"
 
 #: EntryList.py:186
-#, fuzzy
 msgid "Mark as _Unviewed"
 msgstr "Marcar Como Inédito"
 
-#: EntryView.py:276 EntryView.py:282
+#: EntryView.py:276
+#: EntryView.py:282
 msgid "Downloading %(progress)d%% of %(size)s..."
 msgstr "Abaixando  %(progress)d%% de %(size)s..."
 
@@ -65,7 +65,8 @@ msgstr "Abaixou Mídia"
 msgid "No Feeds (Calm Mode)"
 msgstr "Nenhum Canal (Modo Calmo)"
 
-#: FeedList.py:20 FeedList.py:36
+#: FeedList.py:20
+#: FeedList.py:36
 msgid "All Feeds"
 msgstr "Todos Canais"
 
@@ -74,11 +75,11 @@ msgid "Please wait..."
 msgstr "Por favor esperar..."
 
 #: FeedList.py:258
-#, fuzzy
 msgid "There was an error trying to poll this feed."
-msgstr "Houve um erro adicionando o canal"
+msgstr "Houve um erro adicionando este canal"
 
-#: HTTPDownloader.py:66 HTTPDownloader.py:67
+#: HTTPDownloader.py:66
+#: HTTPDownloader.py:67
 msgid "finished downloading %s"
 msgstr "terminou de abaixar %s"
 
@@ -91,7 +92,6 @@ msgid "Feeds Updated"
 msgstr "Canais Atualizados"
 
 #: penguintv.py:666
-#, fuzzy
 msgid "Trying to poll feed..."
 msgstr "Tentando puxar canal..."
 
@@ -104,24 +104,18 @@ msgid "Feed Added"
 msgstr "Canal Adicionado"
 
 #: penguintv.py:761
-msgid ""
-"expected at least half of reported size %(reported_size)s but the file is %"
-"(actual_size)s bytes."
-msgstr ""
-"experado pelo menos metade do tamanho %(reported_size)s anunciado mas o arquivo é %"
-"(actual_size)s bytes."
+msgid "expected at least half of reported size %(reported_size)s but the file is %(actual_size)s bytes."
+msgstr "experado pelo menos metade do tamanho %(reported_size)s anunciado mas o arquivo é %(actual_size)s bytes."
 
 #: penguintv.py:875
-#, fuzzy
 msgid "No Unviewed Media"
 msgstr "Nenhuma Mídia Inédita"
 
 #: penguintv.py:876
 msgid "There is no unviewed media to download."
-msgstr "Não há mídia inédita para abaixar."
+msgstr "Não há nenhuma mídia inédita para abaixar."
 
 #: penguintv.py:886
-#, fuzzy
 msgid "Large Download"
 msgstr "Download Grande"
 
@@ -129,10 +123,12 @@ msgstr "Download Grande"
 msgid ""
 "If PenguinTV downloads all of the unviewed media, \n"
 "it will take %(space)s. Do you wish to continue?"
-msgstr "Se PenguinTV abaixar toda mídia inédita, \n"
+msgstr ""
+"Se PenguinTV abaixar toda mídia inédita, \n"
 "ocupará %(space)s. Você deseja continuar?"
 
-#: penguintv.py:930 penguintv.py:1059
+#: penguintv.py:930
+#: penguintv.py:1059
 msgid "Select OPML..."
 msgstr "Selecionar OPML..."
 
@@ -150,7 +146,7 @@ msgstr "Você tem certeza que deseja apagar este canal?"
 
 #: penguintv.py:1015
 msgid "Re_name"
-msgstr "Renomear"
+msgstr "Re_nomear"
 
 #: penguintv.py:1019
 msgid "Edit _Tags"
@@ -184,7 +180,8 @@ msgstr "Abaixar e Reproduzir"
 msgid "Pause"
 msgstr "Pausar"
 
-#: utils.py:164 utils.py:169
+#: utils.py:164
+#: utils.py:169
 msgid "Stop"
 msgstr "Parar"
 
@@ -347,11 +344,8 @@ msgid "Please enter a new name for this feed:"
 msgstr "Por favor entre um novo nome para este canal:"
 
 #: ../share/penguintv.glade.h:38
-msgid ""
-"Please enter tags you would like to apply to this feed, separated by commas. "
-msgstr ""
-"Por favor entre as etiquetas que você gostaria de aplicar à este canal, "
-"separadas por vírgulas."
+msgid "Please enter tags you would like to apply to this feed, separated by commas. "
+msgstr "Por favor entre as etiquetas que você gostaria de aplicar à este canal, separadas por vírgulas."
 
 #: ../share/penguintv.glade.h:39
 msgid "Please enter the URL of the feed you would like to add:"
@@ -491,3 +485,4 @@ msgstr "_Visualização"
 
 #~ msgid "_Refresh"
 #~ msgstr "_Recarregar"
+
