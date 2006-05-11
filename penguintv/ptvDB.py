@@ -215,11 +215,7 @@ class ptvDB:
 		self.finish()
 		
 	def finish(self):
-		#if self.pool is not None:
 		self.exiting=True
-			#while self.pool is not None:
-			#	print "waiting for pool to die"
-			#	time.sleep(.5)
 		#self.c.close() finish gets called out of thread so this is bad
 		#self.db.close()
 		
@@ -327,8 +323,6 @@ class ptvDB:
 	def get_feed_cache(self):
 		if self.cache_dirty:
 			return None
-		#[m_title, feed_id, icon, m_readinfo, unviewed, feed_info['entry_count'], flag, visible, pollfail]
-		#              *               gen         *         *                       *      gen        *
 		self.c.execute(u'SELECT id, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(title)')
 		cache = self.c.fetchall()
 		self.c.execute(u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
@@ -340,9 +334,6 @@ class ptvDB:
 		#if a feed with that url doesn't already exists, add it
 
 		self.c.execute("""SELECT url FROM feeds WHERE url=?""",(url,))
-		#a = self.c.fetchone()
-		#print a
-		#if a != (url,):
 		#on success, fetch will return the url itself
 		if self.c.fetchone() != (url,):
 			if title is not None:
@@ -521,10 +512,6 @@ class ptvDB:
 		update_data['unread_count'] = len([item for item in list if item[0]==0])
 		
 		flag_list = self.get_entry_flags(feed_id,c)
-		#c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
-		#entrylist = c.fetchall()
-		#if entrylist:
-		#	flag_list = [self.get_entry_flags(entry[0],c) for entry in entrylist]
 		
 		update_data['flag_list']=flag_list
 		update_data['pollfail']=pollfail
@@ -1097,7 +1084,6 @@ class ptvDB:
 	def set_media_download_status(self, media_id, status):
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
 		self.db.commit()
-		#self.update_entry_flag_mediaid(media_id)
 		
 	def set_media_filename(self, media_id, filename):
 		self.c.execute(u'UPDATE media SET file=? WHERE id=?', (filename,media_id))
@@ -1106,7 +1092,6 @@ class ptvDB:
 	def set_media_viewed(self, media_id, viewed=1):
 		self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(int(viewed),media_id))
 		self.db.commit()
-		#self.update_entry_flag_mediaid(media_id)
 		
 	def get_media_size(self, media_id):
 		self.c.execute(u'SELECT length FROM media WHERE id=?',(media_id,))
@@ -1119,13 +1104,11 @@ class ptvDB:
 	def set_entry_new(self, entry_id, new):
 		self.c.execute(u'UPDATE entries SET new=? WHERE id=?',(int(new),entry_id))
 		self.db.commit()
-		#self.update_entry_flag(entry_id)
-	
+		
 	def set_entry_read(self, entry_id, read):
 		self.c.execute(u'UPDATE entries SET read=? WHERE id=?',(int(read),entry_id))
 		self.c.execute(u'UPDATE media SET viewed=? WHERE entry_id=?',(int(read),entry_id))
 		self.db.commit()
-		#self.update_entry_flag(entry_id)
 		
 	def get_entry_read(self, entry_id):
 		self.c.execute(u'SELECT read FROM entries WHERE id=?',(entry_id,))
@@ -1144,7 +1127,6 @@ class ptvDB:
 		return ret[0]
 		
 	def get_media_for_download(self):
-		#self.c.execute(u'SELECT media.id, media.length, media.entry_id FROM media, entries WHERE (download_status==? OR download_status==?) AND viewed=0 AND media.entry_id = entries.id',(D_NOT_DOWNLOADED,D_RESUMABLE))
 		self.c.execute(u'SELECT media.id, media.length, media.entry_id, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE (download_status==? OR download_status==?) AND viewed=0',(D_NOT_DOWNLOADED,D_RESUMABLE))
 		list=self.c.fetchall()
 		self.c.execute(u'SELECT media.id, media.length, media.entry_id, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status==?',(D_ERROR,))
@@ -1187,8 +1169,6 @@ class ptvDB:
 			self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(1,item[0]))
 			if item[1] == D_ERROR:
 				self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (D_NOT_DOWNLOADED,item[0]))
-		#self.update_entry_flags(feed_id)
-		#self.update_feed_flag(feed_id)
 		self.db.commit()
 	
 	def media_exists(self, filename):
@@ -1210,30 +1190,12 @@ class ptvDB:
 			self.c.execute(u'UPDATE entries SET read=1 WHERE id=?',(item[1],))					
 			playlist.append(item[2])
 		self.db.commit()
-		#entrylist = utils.uniquer([item[1] for item in list])
-		#for item in entrylist:
-		#	self.update_entry_flag(item)
 		return playlist 
 		
 	def pause_all_downloads(self):
-		#self.c.execute(u'SELECT entry_id FROM media WHERE download_status=?', (D_DOWNLOADING,))
-		#list = self.c.fetchall()
-		#list = [e[0] for e in list]
-		#updated_list = utils.uniquer(list)
-		#if updated_list is None:
-		#	print "nothing!"
-		#	return
 		self.c.execute(u'UPDATE media SET viewed = 0 WHERE download_status=?',(D_DOWNLOADING,))
 		self.c.execute(u'UPDATE media SET download_status=? WHERE download_status=?',(D_RESUMABLE,D_DOWNLOADING))
 		self.db.commit()
-		#for e in updated_list:
-		#	self.update_entry_flag(e)
-	
-	#def get_media_download_status(self, media_id):
-	#	
-	#	self.c.execute(u'SELECT download_status FROM media WHERE id=?', (media_id,))
-	#	
-	#	return int(self.c.fetchone()[0])
 		
 	def get_entry_download_status(self, entry_id, c=None):
 		if c == None:
@@ -1302,7 +1264,6 @@ class ptvDB:
 			feed_info['poll_fail'] = True
 		return feed_info
 	
-	#def generate_entry_flag(self, entry_id,c=None):
 	def get_entry_flag(self, entry_id, c=None):
 		if c == None:
 			c = self.c
@@ -1361,70 +1322,6 @@ class ptvDB:
 				else:
 					self.set_entry_read(entry[0],True)
 					
-	#def generate_all_flags(self):
-	#	"""Go through all feeds, all entries, and generate flags"""
-	#	self.c.execute(u'SELECT id FROM entries')
-	#	entries = self.c.fetchall()
-	#	i=-1
-	#	for entry in entries:
-	#		i+=1
-	#		flag = self.generate_entry_flag(entry[0])#**#
-	#		self.c.execute(u'UPDATE entries SET flag=? WHERE id=?' , (flag,entry[0]))
-	#		if i % 100==0:
-	#			print int(float(i)*100.0/len(entries))
-	#			self.db.commit()
-	#	self.db.commit()
-	#	
-	#	feeds = self.get_feedlist()
-	#	i=-1
-	#	for feed in feeds:
-	#		i+=1
-	#		flag = self.generate_feed_flag(feed[0])
-	#		self.c.execute(u'UPDATE feeds SET flag=? WHERE id=?' , (flag,feed[0]))
-	#		if i % 100==0:
-	#			print int(float(i)*100.0/len(feeds))
-	#			self.db.commit()
-	#	self.db.commit()
-		
-	#def update_entry_flag_mediaid(self, media_id):
-	#	self.c.execute(u'SELECT entry_id FROM media WHERE id=?',(media_id,))
-	#	entry_id = self.c.fetchone()[0]
-	#	self.c.execute(u'SELECT feed_id FROM entries WHERE id=?', (entry_id,))
-	#	feed_id = self.c.fetchone()[0]
-	#	self.update_entry_flag(entry_id)
-	#	self.update_feed_flag(feed_id)
-		
-	#def update_entry_flag(self, entry_id):
-	#	self.c.execute(u'UPDATE entries SET flag=? WHERE id=?',(self.generate_entry_flag(entry_id),entry_id))
-	#	#self.db.commit() gonna get called below
-	#	self.c.execute(u'SELECT feed_id FROM entries WHERE id=?', (entry_id,))
-	#	feed_id = self.c.fetchone()[0]
-	#	self.update_feed_flag(feed_id)
-
-		
-	#def update_entry_flags(self, feed_id, db=None):
-	#	if db is None:
-	#		db = self.db
-	#	c = db.cursor()
-	#	c.execute("""SELECT id FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_id,))
-	#	entrylist = [e[0] for e in c.fetchall()]
-	#	for entry in entrylist:
-	#		c.execute(u'UPDATE entries SET flag=? WHERE id=?',(self.generate_entry_flag(entry,c),entry))
-	#	db.commit()
-		
-	#def update_feed_flag(self, feed_id, db=None):
-	#	if db is None:
-	#		db = self.db
-	#	c = db.cursor()
-	#	c.execute(u'UPDATE feeds SET flag=? WHERE id=?',(self.generate_feed_flag(feed_id,c),feed_id))
-	#	db.commit()
-	#	c.close()
-		
-	#def get_entry_flag(self, entry_id):
-	#	self.c.execute(u'SELECT flag FROM entries WHERE id=?',(entry_id,))
-	#	flag = self.c.fetchone()
-	#	return flag[0]
-		
 	def get_entry_flags(self, feed_id, c=None):
 		if c is None:
 			c = self.c
@@ -1433,71 +1330,14 @@ class ptvDB:
 		flaglist = []
 		for entry in entrylist:
 			flaglist.append(self.get_entry_flag(entry[0],c))
-	#	flaglist = c.fetchall()
 		return flaglist
-	#	return [flag[0] for flag in flaglist]
-		
-	#def get_feed_flag(self, feed_id):
-	#	self.c.execute(u'SELECT flag FROM feeds WHERE id=?',(feed_id,))
-	#	flag = self.c.fetchone()
-	#	return flag[0]
-
+	
 	def get_feed_flag(self, feed_id):#, c=None):
-	#def generate_feed_flag(self, feed_id, c=None):
 		""" Based on a feed, what flag best represents the overall status of the feed at top-level?
 			This is based on the numeric value of the flag, which is why flags are enumed the way they are."""
 			
-		#self.c.execute(u'SELECT media.download_status, media.viewed, media.entry_id FROM media INNER JOIN entries ON media.entry_id=entries.id WHERE entries.feed_id=?',(feed_id,))
-		#media = self.c.fetchall()
-		#self.c.execute(u'SELECT new,read,id FROM entries WHERE feed_id=?',(feed_id,))
-		#entries = self.c.fetchall()
 		feed_has_media=0
-		#flaglist = []
-#		if c is None:
-#			c = self.c
 		flaglist = self.get_entry_flags(feed_id)
-		#for entry in entries:
-		#	flag = 0
-		#	download_status = D_NOT_DOWNLOADED
-		#	entry_has_media = 0
-		#	for medium in media:
-		#		if medium[2] == entry[2]: #media.entry_id == entry.id
-		#			entry_has_media=1
-		#			if medium[0] == D_DOWNLOADING: #download_status
-		#				download_status = D_DOWNLOADING
-		#				break
-		#			if medium[0] == D_ERROR:
-		#				download_status = D_ERROR
-		#				break
-		#			if medium[0] == D_RESUMABLE:
-		#				download_status = D_RESUMABLE
-		#				break
-		#			if medium[0] == D_DOWNLOADED:
-		#				feed_has_media=1
-		#				download_status=D_DOWNLOADED #no break
-		#	
-		#	if download_status==-1:
-		#		flag=flag+F_ERROR
-		#	elif download_status==D_DOWNLOADING:
-		#		flag=flag+F_DOWNLOADING
-		#	if entry[0]==1: #new
-		#		flag=flag+F_NEW
-		#	
-		#	if entry_has_media==1:
-		#		flag=flag+F_MEDIA
-		#		if download_status==D_DOWNLOADED:
-		#			flag=flag+F_DOWNLOADED
-		#		elif download_status==3:
-		#			flag=flag+F_PAUSED
-		#		for medium in media:
-		#			if medium[1] == 0: #viewed
-		#				flag=flag+F_UNVIEWED
-		#				break
-		#	else:
-		#		if entry[1]==0: #read
-		#			flag=flag+F_UNVIEWED
-		#	
-		#	flaglist.append(flag)
 		
 		if len(flaglist)==0:
 			return 0
@@ -1690,7 +1530,6 @@ class ptvDB:
 		media = self.c.fetchall()
 		for item in media:
 			self.set_entry_read(item[2],item[1])				
-
 	
 class NoFeed(Exception):
 	def __init__(self,feed):

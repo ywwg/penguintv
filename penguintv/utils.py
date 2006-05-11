@@ -7,6 +7,15 @@ import gnomevfs
 import urllib
 import HTMLParser
 import string
+import locale
+import gettext
+
+locale.setlocale(locale.LC_ALL, '')
+gettext.install('penguintv', '/usr/share/locale')
+gettext.bindtextdomain('penguintv', '/usr/share/locale')
+gettext.textdomain('penguintv')
+_=gettext.gettext
+
 
 
 VERSION="1.70"

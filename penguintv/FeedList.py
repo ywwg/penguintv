@@ -167,14 +167,13 @@ class FeedList:
 	def populate_feeds(self,subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds)"""
 		#FIXME:  better way to get to the status display?
-		
 		#DON'T gtk.iteration in this func! Causes problems!
 		if len(self.feedlist)==0:
 			self._app.main_window.display_status_message(_("Loading Feeds..."))
 			#first fill out rough feedlist
 			db_feedlist = self.db.get_feedlist()
 			for feed_id,title in db_feedlist:
-				self.feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", 0, 0, 0, False, False]) #assume visible
+				self.feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", 0, 0, 0, False, False]) #assume invisible
 		else:
 			self._app.main_window.display_status_message(_("Reloading Feeds..."))
 		gobject.idle_add(self._update_feeds_generator(subset).next)
@@ -308,10 +307,6 @@ class FeedList:
 				entrylist = self.db.get_entrylist(feed_id)
 				if entrylist:
 					update_data['flag_list'] = self.db.get_entry_flags(feed_id)
-					#update_data['flag_list'] = []
-					#for entry in entrylist:
-					#	flag = self.db.get_entry_flag(entry[0])
-					#	update_data['flag_list'].append(flag)
 						
 			updated=0
 			unviewed=0
@@ -346,6 +341,8 @@ class FeedList:
 			else:
 				if feed[FLAG] & ptvDB.F_UNVIEWED:
 					feed[FLAG] -= ptvDB.F_UNVIEWED
+			feed[UNREAD]   = update_data['unread_count']
+			feed[TOTAL]    = len(update_data['flag_list'])
 			feed[READINFO] = self.get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
 			feed[MARKUPTITLE] = self.get_markedup_title(feed[TITLE],flag)
 			if unviewed != db_unread_count:

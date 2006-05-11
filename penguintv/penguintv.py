@@ -655,6 +655,7 @@ class PenguinTVApp:
 		self.main_window.display_status_message(_("Polling Feed..."))
 		task_id = self.updater.queue_task(DB,self.updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG))
 		self.updater.queue_task(GUI,self.feed_list_view.update_feed_list,(feed,['readinfo','icon']), task_id, False)
+		self.updater.queue_task(GUI,self.entry_list_view.update_entry_list,task_id, False)
 		task_id2 = self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feed Updated"), task_id)
 		self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
