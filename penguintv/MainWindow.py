@@ -508,7 +508,7 @@ class MainWindow:
 		
 	def edit_tags(self):
 		"""Edit Tags clicked, bring up tag editing dialog"""
-		selected,index = self.feed_list_view.get_selected()
+		selected = self.feed_list_view.get_selected()
 		self.window_edit_tags_single.set_feed_id(selected)
 		self.window_edit_tags_single.set_tags(self.db.get_tags_for_feed(selected))
 		self.window_edit_tags_single.show()
@@ -596,6 +596,11 @@ class MainWindow:
 				 's': len(progresses)>1 and 's' or ''} #ternary operator simulation
 		self.display_status_message(_("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict, U_DOWNLOAD) 
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
+		
+	def desensitize(self):
+		self.app_window.set_sensitive(False)
+		while gtk.events_pending(): #make sure the sensitivity change goes through
+			gtk.main_iteration()
 	
 class ShouldntHappenError(Exception):
 	def __init__(self,error):

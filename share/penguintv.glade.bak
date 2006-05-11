@@ -1256,7 +1256,7 @@ No Feeds (Calm Mode)</property>
 		    <widget class="GtkCheckButton" id="poll_on_startup">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
-		      <property name="label" translatable="yes">Automatically poll feeds on startup</property>
+		      <property name="label" translatable="yes">Poll all feeds on startup</property>
 		      <property name="use_underline">True</property>
 		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
@@ -1276,7 +1276,7 @@ No Feeds (Calm Mode)</property>
 		    <widget class="GtkCheckButton" id="auto_resume">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
-		      <property name="label" translatable="yes">Automatically resume downloads on startup</property>
+		      <property name="label" translatable="yes">Resume downloads on startup</property>
 		      <property name="use_underline">True</property>
 		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>

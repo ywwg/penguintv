@@ -96,6 +96,8 @@ class ptvDB:
 		except:
 			pass
 			
+		self.exiting = False
+			
 		if polling_callback==None:
 			self.polling_callback=self._polling_callback
 		else:
@@ -108,27 +110,27 @@ class ptvDB:
 			self.init_database()
 			return True	
 			
-		#try:
-		self.c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
-		db_ver = self.c.fetchone()
-		db_ver = db_ver[0]
-		if db_ver is None:
+		try:
+			self.c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
+			db_ver = self.c.fetchone()
+			db_ver = db_ver[0]
+			if db_ver is None:
+				self.migrate_database_one_two()
+				self.clean_database_media()
+			elif db_ver < 2:
+				self.migrate_database_one_two()
+				self.clean_database_media()
+			elif db_ver < 3:
+				self.migrate_database_two_three()
+				self.clean_database_media()
+			elif db_ver > 3:
+				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
+				raise DBError, "db_ver is "+str(db_ver)+" instead of 2"
+			else:
+				return False
+		except:
 			self.migrate_database_one_two()
-			self.clean_database_media()
-		elif db_ver < 2:
-			self.migrate_database_one_two()
-			self.clean_database_media()
-		elif db_ver < 3:
 			self.migrate_database_two_three()
-			self.clean_database_media()
-		elif db_ver > 3:
-			print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
-			raise DBError, "db_ver is "+str(db_ver)+" instead of 2"
-		else:
-			return False
-	#	except:
-	#		self.migrate_database_one_two()
-	#		self.migrate_database_two_three()
         
 	def migrate_database_one_two(self):
 		#add table settings
@@ -213,8 +215,13 @@ class ptvDB:
 		self.finish()
 		
 	def finish(self):
-		self.c.close()
-		self.db.close()
+		#if self.pool is not None:
+		self.exiting=True
+			#while self.pool is not None:
+			#	print "waiting for pool to die"
+			#	time.sleep(.5)
+		#self.c.close() finish gets called out of thread so this is bad
+		#self.db.close()
 		
 	def init_database(self):
 		try:
@@ -315,15 +322,18 @@ class ptvDB:
 		#and only then...
 		self.c.execute(u'UPDATE settings SET value=0 WHERE data="feed_cache_dirty"')
 		self.db.commit()
+		self.cache_dirty = False
 		
 	def get_feed_cache(self):
 		if self.cache_dirty:
-			print "cache is dirty, returning none"
 			return None
+		#[m_title, feed_id, icon, m_readinfo, unviewed, feed_info['entry_count'], flag, visible, pollfail]
+		#              *               gen         *         *                       *      gen        *
 		self.c.execute(u'SELECT id, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(title)')
 		cache = self.c.fetchall()
 		self.c.execute(u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
 		self.db.commit()
+		self.cache_dirty=True
 		return cache
 		
 	def insertURL(self, url,title=None):
@@ -438,15 +448,23 @@ class ptvDB:
 		else:
 			###print "nothing to poll"
 			return
-		pool = ThreadPool.ThreadPool(10)
+		pool = ThreadPool.ThreadPool(10,"ptvDB")
 		for feed in feeds:
+			if self.exiting:
+				break
 			pool.queueTask(self.pool_poll_feed,(index,feed[0],arguments),self.polling_callback)
 			time.sleep(.1) #maybe this will help stagger things a bit?
 			index = index + 1
-		###print "poll join"
-		pool.joinAll(True,True)
-		###print "joined"
-	
+			
+		while pool.getTaskCount()>0: #manual joinAll so we can check for exit
+			if self.exiting:
+				pool.joinAll(False,True)
+				self.c.close()
+				self.db.close()
+				return
+			time.sleep(.5)
+		pool.joinAll(False,True) #just to make sure I guess
+				
 	def pool_poll_feed(self,args, recurse=0):
 		"""a wrapper function that returns the index along with the result
 		so we can sort.  Each poller needs its own db connection for locking reasons"""
@@ -462,7 +480,11 @@ class ptvDB:
 		pollfail = False
 		try:
 			poll_arguments = args[2]
+			if self.exiting:
+				return (feed_id,{'pollfail':True})
 			result = self.poll_feed(feed_id,poll_arguments,db)
+			if self.exiting:
+				return (feed_id,{'pollfail':True})
 		except sqlite.OperationalError:
 			print "Database lock warning..."
 			db.close()
@@ -1577,9 +1599,11 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			stream.close()
+		added_feeds=[]
 		for o in outline_generator(p.outlines):
 			try:
-				self.insertURL(o['xmlUrl'],o['text'])
+				feed_id=self.insertURL(o['xmlUrl'],o['text'])
+				added_feeds.append(feed_id)
 			except:
 				exc_type, exc_value, exc_traceback = sys.exc_info()
 				error_msg = ""
@@ -1587,7 +1611,7 @@ class ptvDB:
 					error_msg += s
 				print error_msg
 		stream.close()
-	
+		return added_feeds
 		
 						
 	def encode_text(self,text):

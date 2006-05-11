@@ -16,7 +16,7 @@ class ThreadPool:
     accepts tasks that will be dispatched to the next available
     thread."""
     
-    def __init__(self, numThreads):
+    def __init__(self, numThreads,name="ThreadPoolThread"):
 
         """Initialize the thread pool with numThreads workers."""
         
@@ -25,6 +25,7 @@ class ThreadPool:
         self.__taskLock = threading.Condition(threading.Lock())
         self.__tasks = []
         self.__isJoining = False
+        self.__name = name
         self.occupied_threads = 0
         self.setThreadCount(numThreads)
 
@@ -53,7 +54,7 @@ class ThreadPool:
         
         # If we need to grow the pool, do so
         while newNumThreads > len(self.__threads):
-            newThread = ThreadPoolThread(self)
+            newThread = ThreadPoolThread(self,self.__name)
             self.__threads.append(newThread)
             newThread.start()
         # If we need to shrink the pool, do so
@@ -111,7 +112,7 @@ class ThreadPool:
 
         """ Clear the task queue and terminate all pooled threads,
         optionally allowing the tasks and threads to finish."""
-        
+
         # Mark the pool as joining to prevent any more task queueing
         self.__isJoining = True
 
@@ -133,6 +134,9 @@ class ThreadPool:
                     self.__threads[0].goAway()
                     self.__threads[0].join(6)
                     del self.__threads[0]
+            else:
+                while len(self.__threads)>0:
+                    del self.__threads[0]
 
             # Reset the pool for potential reuse
             self.__isJoining = False
@@ -147,11 +151,11 @@ class ThreadPoolThread(threading.Thread):
     
     threadSleepTime = 0.1
 
-    def __init__(self, pool):
+    def __init__(self, pool, n="ThreadPoolThread"):
 
         """ Initialize the thread and remember the pool. """
         
-        threading.Thread.__init__(self)
+        threading.Thread.__init__(self,name=n)
         self.__pool = pool
         self.__isDying = False
         

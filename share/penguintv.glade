@@ -1263,7 +1263,7 @@ No Feeds (Calm Mode)</property>
 		      <property name="active">False</property>
 		      <property name="inconsistent">False</property>
 		      <property name="draw_indicator">True</property>
-		      <signal name="toggled" handler="on_auto_resume_toggled" last_modification_time="Tue, 22 Nov 2005 14:43:03 GMT"/>
+		      <signal name="toggled" handler="on_poll_on_startup_toggled" last_modification_time="Thu, 11 May 2006 14:34:27 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>

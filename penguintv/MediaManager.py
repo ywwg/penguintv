@@ -39,7 +39,7 @@ FAILURE=-1
 class MediaManager:
 	def __init__(self, progress_callback=None, finished_callback=None):
 		self.index=0
-		self.pool = ThreadPool.ThreadPool(5)
+		self.pool = ThreadPool.ThreadPool(5,"MediaManager")
 		self.db = ptvDB.ptvDB()
 		self.time_appendix=0
 		self.bt_settings = {'min_port':6881, 'max_port':6999, 'ul_limit':0}

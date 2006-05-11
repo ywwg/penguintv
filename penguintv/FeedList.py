@@ -42,6 +42,7 @@ class FeedList:
 		self.filter_name = _("All Feeds")
 		self.selecting_misfiltered=False
 		self.filter_unread = False
+		self.cancel_load = False
 		
 		#build list view
 		self._widget.set_model(self.feed_filter)
@@ -182,46 +183,57 @@ class FeedList:
 	
 	def _update_feeds_generator(self, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
-		db_feedlist = self.db.get_feedlist()
-		feed_cache = self.db.get_feed_cache()
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
+		feed_cache = self.db.get_feed_cache()
+		db_feedlist = self.db.get_feedlist()
 		i=-1
 		downloaded=0
 		for feed_id,title in db_feedlist:
+			if self.cancel_load:
+				self.cancel_load = False
+				yield False
 			i=i+1
-			unviewed=0
+			
 			if subset==DOWNLOADED:
 				flag = self.feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADED==0 and flag & ptvDB.F_PAUSED==0:
 					continue
+			if subset==ACTIVE:
+				flag = self.feedlist[i][FLAG]
+				if flag & ptvDB.F_DOWNLOADING==0:
+					continue
 			if feed_cache is not None:
-				feed_info={}
-				feed_info['important_flag'] = feed_cache[i][1]
-				feed_info['unread_count'] = feed_cache[i][2]
-				feed_info['entry_count'] = feed_cache[i][3]
-				feed_info['poll_fail'] = feed_cache[i][4]
+				cached     = feed_cache[i]
+				unviewed   = cached[2]
+				flag       = cached[1]
+				pollfail   = cached[4]
+				entry_count= cached[3]
 			else:
-				###print "fallback"
-				feed_info = self.db.get_feed_verbose(feed_id)
-			unviewed  = feed_info['unread_count']
-			flag      = feed_info['important_flag']
-			pollfail  = feed_info['poll_fail']
+				feed_info   = self.db.get_feed_verbose(feed_id)
+				unviewed    = feed_info['unread_count']
+				flag        = feed_info['important_flag']
+				pollfail    = feed_info['poll_fail']
+				entry_count = feed_info['entry_count']
 			
 			m_title = self.get_markedup_title(title,flag) 
-			m_readinfo = self.get_markedup_title("("+str(unviewed)+"/"+str(feed_info['entry_count'])+")", flag)
+			m_readinfo = self.get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 			icon = self.get_icon(flag)	
 
  			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':
  					icon='gtk-dialog-error'
 			visible = self.feedlist[i][VISIBLE]
-			self.feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, unviewed, feed_info['entry_count'], flag, visible, pollfail]
-			if i % (len(db_feedlist)/20) == 0:
-				self.do_filter()
-				self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
+			self.feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, unviewed, entry_count, flag, visible, pollfail]
+			try:
+				if i % (len(db_feedlist)/20) == 0:
+					self.do_filter()
+					self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
+			except:
+				pass
+#			if i % 10==0:
 			yield True
-		
+	
 		if selected:
 			index = self.find_index_of_item(selected)
 			selection.select_path((index,))
@@ -237,7 +249,7 @@ class FeedList:
 		newlist = self.db.get_feedlist()
 		index = [f[0] for f in newlist].index(feed_id)
 		feed = newlist[index]
-		self.feedlist.insert(index,[feed[1], feed[1], feed[0], 'gnome-stock-blank', "", 0, True, False])
+		self.feedlist.insert(index,[feed[1], feed[1], feed[0], 'gnome-stock-blank', "", 1, 1, 0, True, False])
 		self.update_feed_list(feed_id)
 		
 	def remove_feed(self, feed_id):
@@ -328,6 +340,12 @@ class FeedList:
 			db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below
 			update_data.setdefault('unread_count', db_unread_count)
 			#print "new info: "+"("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))
+			if update_data['unread_count']:
+				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
+					feed[FLAG] += ptvDB.F_UNVIEWED
+			else:
+				if feed[FLAG] & ptvDB.F_UNVIEWED:
+					feed[FLAG] -= ptvDB.F_UNVIEWED
 			feed[READINFO] = self.get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
 			feed[MARKUPTITLE] = self.get_markedup_title(feed[TITLE],flag)
 			if unviewed != db_unread_count:
@@ -434,4 +452,7 @@ class FeedList:
 			
 	def get_feed_cache(self):
 		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL]] for f in self.feedlist]
+		
+	def interrupt(self):
+		self.cancel_load = True
 		
