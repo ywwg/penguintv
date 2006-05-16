@@ -330,6 +330,8 @@ class FeedList:
 		if 'pollfail' in update_what:
 			update_data.setdefault('pollfail', self.db.get_feed_poll_fail(feed_id))
 			feed[POLLFAIL] = update_data['pollfail']
+			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
+				feed[STOCKID]='gtk-dialog-error'
 		if 'readinfo' in update_what:
 			#print "updating read info"
 			db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below

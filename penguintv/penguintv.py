@@ -146,6 +146,7 @@ class PenguinTVApp:
 
 		#updaters
 		gobject.timeout_add(500, self._gui_updater)
+		gobject.timeout_add(10000, self.progress_checker)
 		self.feed_list_view.populate_feeds()
 		if self.autoresume:
 			gobject.idle_add(self.resume_resumable)
@@ -360,6 +361,7 @@ class PenguinTVApp:
 			total_size=total_size+int(d[1])
 			self.mediamanager.download(d[0])
 			self.feed_list_view.update_feed_list(d[3],['icon'])
+			self.entry_list_view.populate_entries(d[3])
 			
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
@@ -677,7 +679,6 @@ class PenguinTVApp:
 				self.feed_list_view.populate_feeds(FeedList.ACTIVE) #right now this is taking the longest
 				self.feed_list_view.populate_feeds(FeedList.DOWNLOADED) #right now this is taking the longest
 
-
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
 			self.layout_changing_dialog.show_all()
@@ -768,16 +769,20 @@ class PenguinTVApp:
 					pass #we're good
 			else:
 				if 'application/atom+xml' in available_versions:
-					url = dic['application/atom+xml']
+					newurl = dic['application/atom+xml']
 				elif 'application/rss+xml' in available_versions:
-					url = dic['application/rss+xml']
+					newurl = dic['application/rss+xml']
 				elif 'application/xml' in available_versions:
-					url = dic['application/xml']
+					newurl = dic['application/xml']
 				elif 'text/xml' in available_versions:
-					url = dic['text/xml']
+					newurl = dic['text/xml']
 				else:
 					print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
 					return display_add_error()
+				if newurl[:4]!="http": #maybe the url is not fully qualified (fix for metaphilm.com)
+					url=os.path.split(url)[0]+'/'+newurl
+				else:
+					url = newurl
 		else:
 			print "warning: unhandled page mimetypes: "+str(mimetype)
 			return display_add_error()
@@ -804,6 +809,7 @@ class PenguinTVApp:
 			if self.auto_download:
 				self.updater.queue_task(GUI, self.auto_download_unviewed)
 		else:
+			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed['feed_id'],['icon','pollfail']))
 			self.updater.queue_task(GUI, self.add_feed_error, feed['feed_id'])
 	
 	def first_poll_marking(self, feed_id): 
@@ -850,9 +856,18 @@ class PenguinTVApp:
 		entrylist = self.db.get_entrylist(feed_id)
 		if entrylist:
 			for entry in entrylist:
-				self.delete_entry_media(entry[0])
-				self.update_entry_list(entry[0])
+				print "deleting for entry"
+				medialist = self.db.get_entry_media(entry[0])
+				if medialist:
+					for medium in medialist:
+						if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
+							#self.updater.queue_task(DB, self.updater_thread_db.set_media_viewed, medium['media_id'])
+							self.delete_media(medium['media_id'])
+			print "update list"
+			self.update_entry_list(entry[0])
+			print "update playlist"
 			self.mediamanager.generate_playlist()
+			print "disk usage"
 			self.update_disk_usage()
 		self.feed_list_view.update_feed_list(feed_id, ['readinfo','icon'])
 		
@@ -905,8 +920,8 @@ class PenguinTVApp:
 					self.db.set_entry_read(media['entry_id'],False)
 					self.db.set_media_viewed(media['media_id'],False)
 				self.db.set_media_download_status(media['media_id'],ptvDB.D_DOWNLOADED)	
-		self.feed_list_view.do_filter() #to remove active downloads from the list	
 		if self.exiting:
+			self.feed_list_view.do_filter() #to remove active downloads from the list
 			return
 		try:
 			feed_id = self.db.get_entry(media['entry_id'])['feed_id']
@@ -918,6 +933,7 @@ class PenguinTVApp:
 			#taken care of in callbacks?
 			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
+		self.feed_list_view.do_filter() #to remove active downloads from the list
 			
 	def rename_feed(self, feed_id, name):
 		if len(name)==0:
@@ -1008,13 +1024,14 @@ class PenguinTVApp:
 		self.updater.queue_task(GUI,self.download_finished, data)
 		
 	def _polling_callback(self, args):
-		#print "polling callback",
 		if not self.exiting:
 			feed_id,update_data = args
 			self.updater.queue_task(GUI, self.poll_update_progress)
 			if update_data['pollfail']==False:
 				self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','pollfail'],update_data))
 				self.updater.queue_task(GUI, self.entry_list_view.populate_if_selected, feed_id)
+			else:
+				self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
 		
 	def poll_update_progress(self):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
@@ -1031,7 +1048,20 @@ class PenguinTVApp:
 					  'total':self.poll_tasks}
 				self.main_window.update_progress_bar(float(self.polled)/float(self.poll_tasks),MainWindow.U_POLL)
 				self.main_window.display_status_message(_("Polling Feeds... (%(polled)d/%(total)d)" % d),MainWindow.U_POLL)
-				
+	
+	def progress_checker(self):
+		"""Every 10 seconds make sure the download_status matches the mediamanager"""
+		val1 = len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS])
+		val2 = self.mediamanager.get_download_count()
+		if len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS]) != self.mediamanager.get_download_count():
+			print "There are %d files downloading, but download_status records %d.  Resetting download_status", (val1,val2)
+			superglobal.download_status = {}
+			#blow them all away, they will be regenerated
+			#for p in superglobal.download_status.keys():
+			#	if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS:
+			#		del superglobal.download_status[p]
+		return True
+		
 	def _entry_image_download_callback(self, entry_id, html):
 		self.updater.queue_task(GUI, self.entry_view._images_loaded,(entry_id, html))
 			
@@ -1182,7 +1212,7 @@ class PenguinTVApp:
 def main():
 	gnome.init("PenguinTV", utils.VERSION)
 	app = PenguinTVApp()    # Instancing of the GUI
-	app.Show() 
+	app.main_window.Show() 
 	gobject.idle_add(app.post_show_init) #lets window appear first)
 	gtk.threads_init()
 	if utils.is_kde():

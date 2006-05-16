@@ -177,24 +177,12 @@ feedparser/LICENSE
 feedparser/setup.py
 feedparser/feedparser.py
 feedparser/README
-share/pixmaps
-share/pixmaps/PenguinTV icon.png
 share/penguintv.gladep
 share/penguintv.glade.h
-share/penguintvbug.png
 share/penguintv.schema.in
 share/defaultsubs.opml
-share/penguintvbug.tga
 share/penguintv.glade
-share/penguintvbug.xcf.gz
 share/penguintvicon.png
-share/penguintv.schema
-images/PenguinTV logo_web.png
-images/PenguinTV logo_web.gif
-images/PenguinTV icon.xcf.gz
-images/info.xcf.gz
-images/PenguinTV icon.png
-images/PenguinTV logo.xcf.gz
 po/penguintv.pot
 po/pt.pot
 po/pt_BR.pot

@@ -11,7 +11,6 @@ import time
 
 import ptvDB
 import penguintv
-import MediaManager
 import Player
 import UpdateTasksManager
 import utils
@@ -200,7 +199,7 @@ class MainWindow:
 				self.filter_combo_widget.set_active(FeedList.ALL)
 		else:
 			self.filter_combo_widget.set_active(FeedList.ALL)
-		
+			
 	def Hide(self):
 		self.app_window.hide()
 		del self.widgetTree
@@ -596,7 +595,7 @@ class MainWindow:
 				 's': len(progresses)>1 and 's' or ''} #ternary operator simulation
 		self.display_status_message(_("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict, U_DOWNLOAD) 
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
-		
+				
 	def desensitize(self):
 		self.app_window.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
