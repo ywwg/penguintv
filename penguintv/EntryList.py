@@ -116,14 +116,24 @@ class EntryList:
 		
 	def update_entry_list(self, entry_id=None):
 		if entry_id is None:
-			if self.last_entry is None:
-				return
-			entry_id = self.last_entry
-		for entry in self.entrylist:
-			if entry[2] == entry_id:
+			for entry in self.entrylist:
+				entry[5] = self.db.get_entry_flag(entry[2])
+		 		entry[1] = self.get_markedup_title(entry[0],entry[5])
+		 		entry[4] = self.get_icon(entry[5]) 
+		else:
+			try:
+				index = self.find_index_of_item(entry_id)
+				entry = self.entrylist[index]
 				entry[5] = self.db.get_entry_flag(entry_id)
-	 			entry[1] = self.get_markedup_title(entry[0],entry[5])
-	 			entry[4] = self.get_icon(entry[5]) 
+			 	entry[1] = self.get_markedup_title(entry[0],entry[5])
+				entry[4] = self.get_icon(entry[5]) 
+			except:
+				#we aren't even viewing this feed
+				return #don't need to do any of the below
+		#	if self.last_entry is None:
+		#		return
+		#	entry_id = self.last_entry
+		
 	 	#always update the selected entry, just in case.
 	 	#this means the app updates the feeds and entries, but the 
 	 	#entry list knows best when it comes to entries

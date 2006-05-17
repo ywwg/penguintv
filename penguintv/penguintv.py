@@ -301,7 +301,9 @@ class PenguinTVApp:
 		self.main_window.desensitize()
 		self.stop_downloads()
 		self.save_settings()
-		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
+		#if anything is downloading, report it as paused, because we pause all downloads on quit
+		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3]] for c in self.feed_list_view.get_feed_cache()]
+		self.db.set_feed_cache(adjusted_cache)
 		self.db.finish()	
 		self.mediamanager.finish()		
 		while threading.activeCount()>1:
@@ -359,9 +361,13 @@ class PenguinTVApp:
 			if self.auto_download_limiter and disk_usage + total_size+int(d[1]) > self.auto_download_limit*1024: 
 				continue
 			total_size=total_size+int(d[1])
+			print "downloading"
 			self.mediamanager.download(d[0])
+			print "updating feed list"
 			self.feed_list_view.update_feed_list(d[3],['icon'])
-			self.entry_list_view.populate_entries(d[3])
+			#self.entry_list_view.populate_entries(d[3])
+			print "updating" +str(d[2])
+			self.entry_list_view.update_entry_list(d[2])
 			
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
@@ -495,7 +501,7 @@ class PenguinTVApp:
 			
 	def download_entry(self, entry):
 		self.mediamanager.download_entry(entry)
-		self.update_entry_list()
+		self.update_entry_list(entry)
 		self.feed_list_view.update_feed_list(None,['icon'])
 
 	def download_unviewed(self):
@@ -523,12 +529,13 @@ class PenguinTVApp:
 			del dialog
 			if response != gtk.RESPONSE_ACCEPT:
 				return
-			gobject.idle_add(self._downloader_generator(download_list).next)
+		gobject.idle_add(self._downloader_generator(download_list).next)
 
 	def _downloader_generator(self, download_list):
 		for d in download_list:
 			self.mediamanager.download(d[0])
 			self.feed_list_view.update_feed_list(d[3],['icon'])
+			self.entry_list_view.update_entry_list(d[2])
 			yield True
 		yield False
 	
@@ -612,7 +619,7 @@ class PenguinTVApp:
 
 	def mark_entry_as_viewed(self,entry):
 		self.db.set_entry_read(entry,True)
-		self.update_entry_list()
+		self.update_entry_list(entry)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
 			
 	def mark_entry_as_unviewed(self,entry):
@@ -621,10 +628,10 @@ class PenguinTVApp:
 		if media:
 			for medium in media:
 				self.db.set_media_viewed(medium['media_id'],False)
-			self.update_entry_list()
+			self.update_entry_list(entry)
 		else:
 			self.db.set_entry_read(entry, 0)
-			self.update_entry_list()
+			self.update_entry_list(entry)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
 
 	def mark_feed_as_viewed(self,feed):
@@ -642,7 +649,7 @@ class PenguinTVApp:
 				self.db.set_media_viewed(medium['media_id'],True)
 		self.player.play(filelist)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
-		self.update_entry_list()
+		self.update_entry_list(entry)
 		
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media_set_viewed()
@@ -852,29 +859,30 @@ class PenguinTVApp:
 		self.update_disk_usage()
 		
 	def delete_feed_media(self, feed_id):
-		"""Deletes media for an entire feed"""
+		"""Deletes media for an entire feed.  Calls generator _delete_media_generator"""
+		gobject.idle_add(self._delete_media_generator(feed_id).next)
+		
+	def _delete_media_generator(self, feed_id):
 		entrylist = self.db.get_entrylist(feed_id)
 		if entrylist:
 			for entry in entrylist:
-				print "deleting for entry"
 				medialist = self.db.get_entry_media(entry[0])
 				if medialist:
 					for medium in medialist:
 						if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
 							#self.updater.queue_task(DB, self.updater_thread_db.set_media_viewed, medium['media_id'])
 							self.delete_media(medium['media_id'])
-			print "update list"
-			self.update_entry_list(entry[0])
-			print "update playlist"
+				yield True
+			self.update_entry_list()
 			self.mediamanager.generate_playlist()
-			print "disk usage"
 			self.update_disk_usage()
 		self.feed_list_view.update_feed_list(feed_id, ['readinfo','icon'])
+		yield False
 		
 	def do_cancel_download(self, data):
 		print "cancelling download"
 		self.db.set_media_download_status(data['media_id'],ptvDB.D_NOT_DOWNLOADED)
-		self.delete_media(data['media_id'])
+		self.delete_media(data['media_id']) #marks as viewed
 		
 	def do_pause_download(self, data):
 		self.db.set_media_download_status(data['media_id'],ptvDB.D_RESUMABLE)
@@ -883,7 +891,6 @@ class PenguinTVApp:
 		
 	def download_finished(self, media, status, message):
 		"""Process the data from a callback for a downloaded file"""
-		#global download_status
 		self.update_disk_usage()
 		if status==MediaManager.FAILURE: 
 			self.db.set_media_download_status(media['media_id'],ptvDB.D_ERROR) 
@@ -925,7 +932,9 @@ class PenguinTVApp:
 			return
 		try:
 			feed_id = self.db.get_entry(media['entry_id'])['feed_id']
+			print "updating entry list"
 			self.update_entry_list(media['entry_id'])
+			print "updating feed list"
 			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
 			print "noentry error"
@@ -1053,8 +1062,10 @@ class PenguinTVApp:
 		"""Every 10 seconds make sure the download_status matches the mediamanager"""
 		val1 = len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS])
 		val2 = self.mediamanager.get_download_count()
-		if len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS]) != self.mediamanager.get_download_count():
-			print "There are %d files downloading, but download_status records %d.  Resetting download_status", (val1,val2)
+		if len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS]) > self.mediamanager.get_download_count():
+			print "There are "+str(val1)+ " files downloading, but download_status records "+str(val2)+"  Resetting download_status"  (val1,val2)
+			print superglobal.download_status
+			print self.mediamanager.get_download_count()
 			superglobal.download_status = {}
 			#blow them all away, they will be regenerated
 			#for p in superglobal.download_status.keys():

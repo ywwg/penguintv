@@ -946,19 +946,28 @@ class ptvDB:
 			#now check enclosures
 			old_media = self.get_entry_media(entry_id,c)
 			if old_media is not None:
-				old_media = [[medium['url'],medium['mimetype']] for medium in old_media]
+				#old_media = [[medium['url'],medium['mimetype']] for medium in old_media]
+				#new_media = []
+				#for m in item['enclosures']:
+				#	m.setdefault('length', 0)
+				#	m.setdefault('type', 'application/octet-stream')
+				#	new_media.append([m['href'],m['type']])
+				
+				old_media = [medium['url'] for medium in old_media]
 				new_media = []
 				for m in item['enclosures']:
-					m.setdefault('length', 0)
-					m.setdefault('type', 'application/octet-stream')
-					new_media.append([m['href'],m['type']])
+					new_media.append(m['href'])
+					
+				old_media.sort()
+				new_media.sort()
 					
 				#print "old_media: "+str(old_media)
 				#print "new_media: "+str(new_media)
 				
-				old_media_set = sets.Set(str(old_media)) #ugly hack because lists aren't normally hashable
-				new_media_set = sets.Set(str(new_media))
-				if old_media_set != new_media_set:# or len(old_media) != len(new_media):
+				#old_media_set = sets.Set(str(old_media)) #ugly hack because lists aren't normally hashable
+				#new_media_set = sets.Set(str(new_media))
+				#if old_media_set != new_media_set:# or len(old_media) != len(new_media):
+				if old_media != new_media:
 					return (MODIFIED,entry_id)
 			return (EXISTS,entry_id)
 		else:
@@ -1081,7 +1090,7 @@ class ptvDB:
 			self.c.execute(u'UPDATE feeds SET title=? WHERE id=?',(channel['title'],feed_id))
 			self.db.commit()
 				
-	def set_media_download_status(self, media_id, status):
+	def set_media_download_status(self, media_id, status): #**#
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
 		self.db.commit()
 		
@@ -1092,6 +1101,22 @@ class ptvDB:
 	def set_media_viewed(self, media_id, viewed=1):
 		self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(int(viewed),media_id))
 		self.db.commit()
+		self.c.execute(u'SELECT entry_id FROM media WHERE id=?',(media_id,))
+		entry_id = self.c.fetchone()[0]
+		
+		if viewed==1:#check to see if this makes the whole entry viewed
+			self.c.execute(u'SELECT viewed FROM media WHERE entry_id=?',(entry_id,))
+			list = self.c.fetchall()
+			if list:
+				for viewed in list:
+					if viewed==0: #still some unviewed
+						return
+					#else
+					self.set_entry_read(entry_id, 1)
+		else:
+			#mark as unviewed by default
+			self.set_entry_read(entry_id, 0)
+				
 		
 	def get_media_size(self, media_id):
 		self.c.execute(u'SELECT length FROM media WHERE id=?',(media_id,))

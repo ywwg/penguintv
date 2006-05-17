@@ -333,10 +333,10 @@ class FeedList:
 			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 				feed[STOCKID]='gtk-dialog-error'
 		if 'readinfo' in update_what:
-			#print "updating read info"
+			###print "updating read info"
 			db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below
 			update_data.setdefault('unread_count', db_unread_count)
-			#print "new info: "+"("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))
+			###print "new info: "+"("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))
 			if update_data['unread_count']:
 				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
 					feed[FLAG] += ptvDB.F_UNVIEWED
