@@ -218,6 +218,12 @@ class FeedList:
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
+			if entry_count==0: #this is a good indication that the cache is bad
+				feed_info   = self.db.get_feed_verbose(feed_id)
+				unviewed    = feed_info['unread_count']
+				flag        = feed_info['important_flag']
+				pollfail    = feed_info['poll_fail']
+				entry_count = feed_info['entry_count']
 			
 			m_title = self.get_markedup_title(title,flag) 
 			m_readinfo = self.get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
@@ -275,8 +281,11 @@ class FeedList:
 	def get_markedup_title(self, title, flag):
 		if not title:
 			return _("Please wait...")
-		if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
-				title="<b>"+utils.my_quote(title)+"</b>"
+		try:
+			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
+					title="<b>"+utils.my_quote(title)+"</b>"
+		except:
+			return title
 		return title
 		
 	def update_feed_list(self, feed_id=None, update_what=None, update_data=None):  #returns True if this is the already-displayed feed
