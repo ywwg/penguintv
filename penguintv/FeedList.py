@@ -87,6 +87,7 @@ class FeedList:
 		#if index == -1:
 		selected = self.get_selected()
 		index = self.find_index_of_item(selected)
+			
 		#else:
 		#	selected = self.feed_filter[index][FEEDID]
 			
@@ -142,7 +143,10 @@ class FeedList:
 	def filter_test_feed(self, feed_id):
 		"""Tests a feed against the filters (although _not_ unviewed status testing)"""
 		passed_filter = False
-		flag = self.feedlist[self.find_index_of_item(feed_id)][FLAG]
+		try:
+			flag = self.feedlist[self.find_index_of_item(feed_id)][FLAG]
+		except:
+			return False
 		
 		if self.filter_setting == DOWNLOADED:
 			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
@@ -235,10 +239,10 @@ class FeedList:
 	
 		if selected:
 			index = self.find_index_of_item(selected)
-			selection.select_path((index,))
-			if index<0:
+			if index is None:
 				self.va.set_value(self.va.lower)
-			self.do_filter(index)	
+			else:
+				selection.select_path((index,))
 		self.do_filter()
 		self._app.main_window.display_status_message("")	
 		self._app.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
@@ -252,7 +256,10 @@ class FeedList:
 		self.update_feed_list(feed_id)
 		
 	def remove_feed(self, feed_id):
-		self.feedlist.remove(self.feedlist.get_iter((self.find_index_of_item(feed_id),)))
+		try:
+			self.feedlist.remove(self.feedlist.get_iter((self.find_index_of_item(feed_id),)))
+		except:
+			print "Error: feed not in list"
 				
 	def get_icon(self, flag):
 		if flag & ptvDB.F_ERROR == ptvDB.F_ERROR:
@@ -293,11 +300,11 @@ class FeedList:
 		if update_data is None:
 			update_data = {}
 		
-		try:
-	 	 	feed = self.feedlist[self.find_index_of_item(feed_id)]
- 		except:
-			print "error getting feed"
-			return
+		#try:
+		feed = self.feedlist[self.find_index_of_item(feed_id)]
+ 		#except:
+		#	print "error getting feed"
+		#	return
 			
 		need_filter = False #some updates will require refiltering. 
 		
@@ -356,9 +363,12 @@ class FeedList:
 			update_data.setdefault('title',self.db.get_feed_title(feed_id))
 			feed[TITLE] = update_data['title']
 			feed[MARKUPTITLE] = self.get_markedup_title(feed[TITLE],flag)
-			old_iter = self.feedlist.get_iter((self.find_index_of_item(feed_id),))
-			new_iter = self.feedlist.get_iter(([f[0] for f in self.db.get_feedlist()].index(feed_id),))
-			self.feedlist.move_after(old_iter,new_iter)
+			try:
+				old_iter = self.feedlist.get_iter((self.find_index_of_item(feed_id),))
+				new_iter = self.feedlist.get_iter(([f[0] for f in self.db.get_feedlist()].index(feed_id),))
+				self.feedlist.move_after(old_iter,new_iter)
+			except:
+				print "Error finding feed for update"
 			need_filter = True
 		if 'icon' in update_what:
 			feed[STOCKID] = self.get_icon(flag)
@@ -411,9 +421,12 @@ class FeedList:
 				if self.selecting_misfiltered == True and item!=None:
 					self.selecting_misfiltered = False
 					gobject.timeout_add(250, self.populate_feeds) #update in just a bit so people can see the change
-			if self.feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
-				self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
-				return
+			try:
+				if self.feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
+					self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
+					return
+			except:
+				pass
 		self._app.undisplay_custom_entry()
 			
 	def get_selected(self, selection=None):
@@ -436,7 +449,7 @@ class FeedList:
 			
 	def set_selected(self, feed_id):
 		index = self.find_index_of_item(feed_id)
-		if index >= 0:
+		if index is not None:
 			self._widget.get_selection().select_path((index,))
 			self._widget.scroll_to_cell((index,))
 		else:
@@ -447,7 +460,7 @@ class FeedList:
 		try:
 			return list.index(feed_id)
 		except:
-			return -1
+			return None
 			
 	def get_feed_cache(self):
 		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL]] for f in self.feedlist]

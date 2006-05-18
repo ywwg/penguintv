@@ -298,6 +298,7 @@ class PenguinTVApp:
 		self.feed_list_view.interrupt()
 		self._db_updater.goAway()
 		self.updater_thread_db.finish()
+		self.entry_view.finish()
 		self.main_window.desensitize()
 		self.stop_downloads()
 		self.save_settings()
@@ -361,12 +362,9 @@ class PenguinTVApp:
 			if self.auto_download_limiter and disk_usage + total_size+int(d[1]) > self.auto_download_limit*1024: 
 				continue
 			total_size=total_size+int(d[1])
-			print "downloading"
 			self.mediamanager.download(d[0])
-			print "updating feed list"
 			self.feed_list_view.update_feed_list(d[3],['icon'])
 			#self.entry_list_view.populate_entries(d[3])
-			print "updating" +str(d[2])
 			self.entry_list_view.update_entry_list(d[2])
 			
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
@@ -932,9 +930,7 @@ class PenguinTVApp:
 			return
 		try:
 			feed_id = self.db.get_entry(media['entry_id'])['feed_id']
-			print "updating entry list"
 			self.update_entry_list(media['entry_id'])
-			print "updating feed list"
 			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
 			print "noentry error"

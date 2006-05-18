@@ -481,6 +481,31 @@ class EntryView:
 		va.set_value(new_value)
 		return new_value > old_value
 		
+	def finish(self):
+		#just make it gray for quitting
+		style = self._scrolled_window.get_style()
+		GRAY = "#%.2x%.2x%.2x;" % (
+                style.base[gtk.STATE_INSENSITIVE].red / 256,
+                style.base[gtk.STATE_INSENSITIVE].blue / 256,
+                style.base[gtk.STATE_INSENSITIVE].green / 256)
+		if self.RENDERRER==GTKHTML:
+			self.document_lock.acquire()
+			self._document.clear()
+			self._document.open_stream("text/html")
+			self._document.write_stream("""<html><style type="text/css">
+            body { background-color: %s; }</style><body></body></html>""" % (GRAY,))
+			self._document.close_stream()
+			self.document_lock.release()
+		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
+			self.moz.open_stream("http://ywwg.com","text/html")
+			message = """<html><style type="text/css">
+            body { background-color: %s; }</style><body></body></html>""" % (GRAY,)
+			self.moz.append_data(message, long(len(message)))
+			self.moz.close_stream()		
+		#self.scrolled_window.hide()
+		self.custom_entry = True
+		return
+		
 #class EntryDownloaderThread(threading.Thread):
 #	def __init__(self):
 #		threading.Thread.__init__(self)

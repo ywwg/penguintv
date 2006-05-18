@@ -72,7 +72,7 @@ class EntryList:
 		self.hadjustment.set_value(0)
 		if selected>=0:
 			index = self.find_index_of_item(selected)
-			if index >= 0:
+			if index is not None:
 				selection.select_path((index),)
 			else:	
 				selection.unselect_all()
@@ -123,10 +123,13 @@ class EntryList:
 		else:
 			try:
 				index = self.find_index_of_item(entry_id)
-				entry = self.entrylist[index]
-				entry[5] = self.db.get_entry_flag(entry_id)
-			 	entry[1] = self.get_markedup_title(entry[0],entry[5])
-				entry[4] = self.get_icon(entry[5]) 
+				if index is not None:
+					entry = self.entrylist[index]
+					entry[5] = self.db.get_entry_flag(entry_id)
+				 	entry[1] = self.get_markedup_title(entry[0],entry[5])
+					entry[4] = self.get_icon(entry[5]) 
+				else:
+					return
 			except:
 				#we aren't even viewing this feed
 				return #don't need to do any of the below
@@ -183,18 +186,18 @@ class EntryList:
 			
 	def set_selected(self, entry_id):
 		index = self.find_index_of_item(entry_id)
-		self._widget.get_selection().select_path((index,))
+		if index is not None:
+			self._widget.get_selection().select_path((index,))
 		
 	def clear_entries(self):
 		self.entrylist.clear()
 		
 	def find_index_of_item(self, entry_id):
-		i=0
-		for entry in self.entrylist:
-			if entry[2] == entry_id:
-				return i
-			i=i+1
-		return -1
+		list = [entry[2] for entry in self.entrylist]
+		try:
+			return list.index(entry_id)
+		except:
+			return None
 	
 	def on_row_activated(self, treeview, path, view_column):
 		index = path[0]
