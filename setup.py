@@ -121,37 +121,41 @@ if BUILD_MOZ:
 	#### MozillaBrowser Extension ####
 	mozilla_browser_options = parsePkgConfig("pkg-config" , 
 	        "gtk+-2.0 glib-2.0 pygtk-2.0")
-	parsePkgConfig("mozilla-config", "string dom gtkembedmoz necko xpcom",
+	try:
+		parsePkgConfig("mozilla-config", "string dom gtkembedmoz necko xpcom",
 	        mozilla_browser_options)
-	# mozilla-config doesn't get gtkembedmoz one for some reason
-	mozilla_browser_options['libraries'].append('gtkembedmoz') 
-	# Running mozilla-config with no components should get us the path to the
-	# mozilla libraries (nessecary to import gtkmozembed.so)
-	mozilla_lib_path = parsePkgConfig('mozilla-config', '')['library_dirs']
-	mozilla_browser_ext = Extension("penguintv.democracy_moz.MozillaBrowser",
-	        [ os.path.join("penguintv/democracy_moz",'MozillaBrowser.pyx'),
-	          os.path.join("penguintv/democracy_moz",'MozillaBrowserXPCOM.cc'),
-	        ],
-	        runtime_library_dirs=mozilla_lib_path,
-	        **mozilla_browser_options)
+		# mozilla-config doesn't get gtkembedmoz one for some reason
+		mozilla_browser_options['libraries'].append('gtkembedmoz') 
+		# Running mozilla-config with no components should get us the path to the
+		# mozilla libraries (nessecary to import gtkmozembed.so)
+		mozilla_lib_path = parsePkgConfig('mozilla-config', '')['library_dirs']
+		mozilla_browser_ext = Extension("penguintv.democracy_moz.MozillaBrowser",
+		        [ os.path.join("penguintv/democracy_moz",'MozillaBrowser.pyx'),
+		          os.path.join("penguintv/democracy_moz",'MozillaBrowserXPCOM.cc'),
+		        ],
+		        runtime_library_dirs=mozilla_lib_path,
+		        **mozilla_browser_options)
+		
+		setup(name = "PenguinTV", 
+			version = utils.VERSION,
+			description      = 'GNOME-compatible podcast and videoblog reader',
+			author           = 'Owen Williams',
+			author_email     = 'ywwg@usa.net',
+			url              = 'http://penguintv.sourceforge.net',
+			license          = 'GPL',
+			scripts          = ['PenguinTV'],
+			data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png']),
+								('share/pixmaps',		['share/penguintvicon.png']),
+								('share/applications',	['penguintv.desktop'])],
+			packages = ["penguintv", "penguintv/ptvbittorrent", "penguintv/democracy_moz"],
+			ext_modules = [mozilla_browser_ext],
+			cmdclass = {
+		        'build_ext': build_ext}
+			)
+	except:
+		BUILD_MOZ=False
 	
-	setup(name = "PenguinTV", 
-		version = utils.VERSION,
-		description      = 'GNOME-compatible podcast and videoblog reader',
-		author           = 'Owen Williams',
-		author_email     = 'ywwg@usa.net',
-		url              = 'http://penguintv.sourceforge.net',
-		license          = 'GPL',
-		scripts          = ['PenguinTV'],
-		data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png']),
-							('share/pixmaps',		['share/penguintvicon.png']),
-							('share/applications',	['penguintv.desktop'])],
-		packages = ["penguintv", "penguintv/ptvbittorrent", "penguintv/democracy_moz"],
-		ext_modules = [mozilla_browser_ext],
-		cmdclass = {
-	        'build_ext': build_ext}
-		)
-else:
+if BUILD_MOZ==False:
 	in_f = file("share/penguintv.schema.in")
 	out_f = open("share/penguintv.schema","w")
 	line=" "
