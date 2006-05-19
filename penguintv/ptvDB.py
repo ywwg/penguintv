@@ -968,6 +968,7 @@ class ptvDB:
 				#new_media_set = sets.Set(str(new_media))
 				#if old_media_set != new_media_set:# or len(old_media) != len(new_media):
 				if old_media != new_media:
+					print str(old_media)+" != "+str(new_media)
 					return (MODIFIED,entry_id)
 			return (EXISTS,entry_id)
 		else:
