@@ -752,7 +752,7 @@ class PenguinTVApp:
 			page = urllib.urlopen(url)
 		except:
 			return display_add_error()
-		mimetype = page.info()['Content-Type'].split(';')[0]
+		mimetype = page.info()['Content-Type'].split(';')[0].strip()
 		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
 			pass
 		elif mimetype == 'text/html':
@@ -789,7 +789,7 @@ class PenguinTVApp:
 				else:
 					url = newurl
 		else:
-			print "warning: unhandled page mimetypes: "+str(mimetype)
+			print "warning: unhandled page mimetypes: "+str(mimetype)+"<--"
 			return display_add_error()
 
 		self.main_window.display_status_message(_("Trying to poll feed..."))
