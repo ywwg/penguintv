@@ -800,9 +800,11 @@ class ptvDB:
 				if item.has_key('enclosures'):
 					c.execute("DELETE FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)",(status[1],D_NOT_DOWNLOADED,D_ERROR)) #delete any not-downloaded or errored enclosures
 					for media in item['enclosures']: #add the rest
-						media.setdefault('length', 0)
-						media.setdefault('type', 'application/octet-stream')
-						c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
+						c.execute(u'SELECT url FROM media WHERE url=?',(media['href'],))
+						if c.fetchone()[0] != media['href']: #only add if that url doesn't exist
+							media.setdefault('length', 0)
+							media.setdefault('type', 'application/octet-stream')
+							c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				#db.commit()
 			i+=1
 		db.commit()
@@ -958,8 +960,15 @@ class ptvDB:
 				for m in item['enclosures']:
 					new_media.append(m['href'])
 					
+				if len(old_media) != len(new_media):
+					print "different lengths, modified!"
+					return (MODIFIED,entry_id)
+				
+				old_media = utils.uniquer(old_media)
 				old_media.sort()
+				new_media = utils.uniquer(new_media)
 				new_media.sort()
+
 					
 				#print "old_media: "+str(old_media)
 				#print "new_media: "+str(new_media)
