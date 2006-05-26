@@ -73,7 +73,7 @@ class ThreadPool:
             self.__resizeLock.release()
             
     def getTaskCount(self):
-	
+    
         """Return the number of queued items"""
         return len(self.__tasks)+self.occupied_threads
         

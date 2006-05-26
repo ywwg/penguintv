@@ -29,6 +29,7 @@ class SimpleImageCache:
 			c.setopt(c.WRITEFUNCTION, d.body_callback)
 			c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
 			c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
+			c.setopt(pycurl.FOLLOWLOCATION, 1)
 			try:
 				c.perform()
 				c.close()

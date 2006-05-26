@@ -427,8 +427,13 @@ class MainWindow:
 	def on_show_downloads_activate(self, event):
 		self.app.show_downloads()
 		
-	def on_stop_downloads_clicked(self, widget):
-		self.app.stop_downloads()
+	#def on_stop_downloads_clicked(self, widget):
+	#	print "clicked"
+	#	self.app.stop_downloads()
+		
+	def on_stop_downloads_toggled(self, widget):
+		print "toggled"
+		self.app.stop_downloads_toggled(widget.get_active())
 
 	def on_standard_layout_activate(self, event):	
 		self.app.change_layout('standard')
@@ -573,7 +578,7 @@ class MainWindow:
 	def update_disk_usage(self, size):
 		self.disk_usage_widget.set_text(utils.format_size(size))
 
-	def update_download_progress(self):
+	def update_download_progress(self, total):
 		progresses = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_PROGRESS]
 		if len(progresses)==0:
 			self.display_status_message("")
@@ -592,8 +597,13 @@ class MainWindow:
 		dict = { 'percent': downloaded*100.0/total_size,
 				 'files': len(progresses),
 				 'total': total_size>1 and "("+utils.format_size(total_size)+")" or '',
-				 's': len(progresses)>1 and 's' or ''} #ternary operator simulation
-		self.display_status_message(_("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict, U_DOWNLOAD) 
+				 's': len(progresses)>1 and 's' or '',
+				 'queued': total-len(progresses)} #ternary operator simulation
+		if dict['queued']>0:
+			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s, %(queued)d queued") % dict
+		else:
+			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict
+		self.display_status_message(message , U_DOWNLOAD) 
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
 				
 	def desensitize(self):

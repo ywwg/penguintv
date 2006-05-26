@@ -198,6 +198,8 @@ class ptvDB:
 	
 	#right now this code doesn't get called.  Maybe we should?
 	def clean_file_media(self):
+		"""walks the media dir, and deletes anything that doesn't have an entry in the database.
+		Also deletes dirs with only a playlist or with nothing"""
 		media_dir = self.home+"/.penguintv/media"
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
@@ -209,6 +211,16 @@ class ptvDB:
 						if result is None:
 							print "deleting "+root+"/"+file
 							os.remove(root+"/"+file)
+		d = os.walk(media_dir)
+		for root,dirs,files in d:
+			if root!=media_dir:
+				if len(files) == 1:
+					if files[0] == "playlist.m3u":
+						print "deleting "+root
+						utils.deltree(root)
+				elif len(files) == 0:
+					print "deleting "+root
+					utils.deltree(root)
 
 
 	def __del__(self):
@@ -705,6 +717,9 @@ class ptvDB:
 			
 			item['body']=self.encode_text(item['body'])
 			
+			if item['body'].count('&lt') > 5: #probably encoded body
+				item['body'] = utils.html_entity_unfixer(item['body'])
+			
 			if item.has_key('title') == 0:
 				item['title']=item['description'][0:35]	
 				html_begin = string.find(item['title'],'<')
@@ -801,10 +816,12 @@ class ptvDB:
 					c.execute("DELETE FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)",(status[1],D_NOT_DOWNLOADED,D_ERROR)) #delete any not-downloaded or errored enclosures
 					for media in item['enclosures']: #add the rest
 						c.execute(u'SELECT url FROM media WHERE url=?',(media['href'],))
-						if c.fetchone()[0] != media['href']: #only add if that url doesn't exist
-							media.setdefault('length', 0)
-							media.setdefault('type', 'application/octet-stream')
-							c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
+						dburl = c.fetchone()
+						if dburl:
+							if dburl[0] != media['href']: #only add if that url doesn't exist
+								media.setdefault('length', 0)
+								media.setdefault('type', 'application/octet-stream')
+								c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				#db.commit()
 			i+=1
 		db.commit()

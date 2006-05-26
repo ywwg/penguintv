@@ -357,5 +357,26 @@ class SuperGlobal:
             del  __main__.__dict__[name]
             
 superglobal=SuperGlobal()
+
+
+#thanks http://www.peterbe.com/plog/html-entity-fixer
+#from htmlentitydefs import entitydefs
+#import re
+#_unicode = re.compile('^&#(.*);$')
+#_entities_pared = {}
+#for entity in entitydefs:
+#	if len(_unicode.findall(entitydefs[entity]))==0:
+#		try:
+#			_entities_pared[entity]=unicode(entitydefs[entity]) #this weeds out some more naughty characters
+#		except:
+#			pass
+
+_my_entities = {'amp': u'&', 'lt': u'<', 'gt': u'>', 'quot': u'"'}
+def html_entity_unfixer(text):
+	"""replace html-encoded html with regular html.  I don't use htmlentitydefs because it causes utf problems"""
+	for entity in _my_entities.keys():
+		text = text.replace("&"+entity+";", _my_entities[entity])
+	return text
+	
 if is_kde():
 	import kio

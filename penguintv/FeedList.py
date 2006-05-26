@@ -224,6 +224,9 @@ class FeedList:
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
+				
+			if self.feedlist[i][FLAG]!=0:
+				flag = self.feedlist[i][FLAG] #don't overwrite flag (race condition)
 			
 			m_title = self.get_markedup_title(title,flag) 
 			m_readinfo = self.get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)

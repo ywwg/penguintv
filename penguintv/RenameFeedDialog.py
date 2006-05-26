@@ -16,6 +16,7 @@ class RenameFeedDialog:
 		self.feed_id=0
 				
 	def show(self):
+		self.feed_name_widget.grab_focus()
 		self._window.show()
 		
 	def on_window_rename_feed_delete_event(self, widget, event):

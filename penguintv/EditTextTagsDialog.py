@@ -17,6 +17,7 @@ class EditTextTagsDialog:
 		self.old_tags = []
 				
 	def show(self):
+		self.edit_tags_widget.grab_focus()
 		self._window.show()
 		
 	def on_window_edit_tags_single_delete_event(self, widget, event):

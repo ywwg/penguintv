@@ -16,6 +16,7 @@ class AddFeedDialog:
 		self.edit_tags_widget = self.xml.get_widget("edit_tags_widget")
 				
 	def show(self):
+		self.feed_url_widget.grab_focus()
 		self._window.show()
 		self.feed_url_widget.set_text("")
 		self.set_location()
@@ -48,11 +49,11 @@ class AddFeedDialog:
 		self._window.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
-		try:
-			feed_id = self._app.add_feed(url)
-		except:
-			self._window.set_sensitive(True)
-			return 
+		#try:
+		feed_id = self._app.add_feed(url)
+		#except:
+		#	self._window.set_sensitive(True)
+		#	return 
 		self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.

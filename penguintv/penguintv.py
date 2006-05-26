@@ -19,7 +19,6 @@ import gnome.ui
 import gtk.glade
 import gobject
 import pango
-import pycurl
 import locale
 import gettext
 import gconf
@@ -43,6 +42,7 @@ import utils
 
 import AddFeedDialog
 import PreferencesDialog
+import LoginDialog
 import MainWindow, FeedList, EntryList, EntryView
 
 CANCEL=0
@@ -683,7 +683,14 @@ class PenguinTVApp:
 			if not self.exiting:
 				self.feed_list_view.populate_feeds(FeedList.ACTIVE) #right now this is taking the longest
 				self.feed_list_view.populate_feeds(FeedList.DOWNLOADED) #right now this is taking the longest
-
+				
+	def stop_downloads_toggled(self, stopped):
+		if stopped:
+			self.stop_downloads() #sets pausing_all_downloads to True
+		else:
+			self.pausing_all_downloads = False
+			self.resume_resumable()
+			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
 			self.layout_changing_dialog.show_all()
@@ -748,14 +755,73 @@ class PenguinTVApp:
 			dialog.hide()
 			del dialog
 			return -1
-		try:
-			page = urllib.urlopen(url)
-		except:
-			return display_add_error()
+			
+		class my_url_opener(urllib.FancyURLopener):
+			"""Little class to pop up a login window"""
+			NONE = 0		
+			FAILED = 1
+			CANCELED = 2
+
+			def __init__(self, widget):
+				urllib.FancyURLopener.__init__(self)
+				self.widget = widget
+				self.username = None
+				self.password = None
+				self.tries = 0
+				self.failed_auth = 0 
+				
+			def prompt_user_passwd(self, host, realm):
+				if self.tries==3:
+					self.failed_auth = my_url_opener.FAILED
+					return (None,None)
+				d = LoginDialog.LoginDialog(self.widget)
+				response = d.run()
+				d.hide()
+				if response != gtk.RESPONSE_OK:
+					self.failed_auth = my_url_opener.CANCELED
+					return (None,None)
+				self.username = d.username
+				self.password = d.password
+				self.tries+=1
+				return (d.username, d.password)
+		#try:
+		#page = urllib.urlopen(url)
+		urllib._urlopener = my_url_opener(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
+		page = urllib.urlopen(url)	
+		title = url
+		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
+			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("You must specify a valid username and password in order to add this feed."))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+			return -1
+		if urllib._urlopener.failed_auth == my_url_opener.CANCELED:
+			return -1
+		if urllib._urlopener.username is not None:
+			#scheme://netloc/path;parameters?query#fragment
+			#http://www.cwi.nl:80/%7Eguido/Python.html
+			#('http', 'www.cwi.nl:80', '/%7Eguido/Python.html', '', '', '')
+			u_t = urlparse.urlparse(url)
+			url = u_t[0]+"://"+str(urllib._urlopener.username)+":"+str(urllib._urlopener.password)+"@"+u_t[1]+u_t[2]
+			title = u_t[0]+"://"+str(urllib._urlopener.username)+":"+("*"*len(urllib._urlopener.password))+"@"+u_t[1]+u_t[2]
+			if len(u_t[3])>0:
+				url=url+";"+u_t[3]
+				title=title+";"+u_t[3]
+			if len(u_t[4])>0:
+				url=url+"?"+u_t[4]
+				title=title+";"+u_t[4]
+			if len(u_t[5])>0:
+				url=url+"#"+u_t[5]
+				title=title+";"+u_t[5]
+		#except:
+		#	return display_add_error()
 		mimetype = page.info()['Content-Type'].split(';')[0].strip()
 		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
 			pass
-		elif mimetype == 'text/html':
+		elif mimetype in ['text/html', 'application/xhtml+xml']:
 			p = utils.AltParser()
 			try:
 				for line in page.readlines():
@@ -794,7 +860,7 @@ class PenguinTVApp:
 
 		self.main_window.display_status_message(_("Trying to poll feed..."))
 		try:
-			feed_id = self.db.insertURL(url)
+			feed_id = self.db.insertURL(url, title)
 			#change to add_and_select
 			#taskid = self.updater.queue_task(GUI, self.main_window.populate_and_select, feed_id)
 			taskid = self.updater.queue_task(GUI, self.feed_list_view.add_feed, feed_id)
@@ -896,7 +962,7 @@ class PenguinTVApp:
 		elif status==MediaManager.STOPPED:
 			try:
 				del superglobal.download_status[media['media_id']] #clear progress information
-				self.main_window.update_download_progress() #should clear things out
+				self.main_window.update_download_progress(self.mediamanager.get_download_count()) #should clear things out
 			except:
 				print "tried to delete: "+str(media['media_id'])
 				print superglobal.download_status
@@ -913,7 +979,7 @@ class PenguinTVApp:
 			else:
 				try:
 					del superglobal.download_status[media['media_id']] #clear progress information
-					self.main_window.update_download_progress() #should clear things out
+					self.main_window.update_download_progress(self.mediamanager.get_download_count()) #should clear things out
 				except:
 					print "error deleting progress info"
 					pass #no big whoop if it fails
@@ -1018,13 +1084,13 @@ class PenguinTVApp:
 		superglobal.download_status[data[0]['media_id']]=(DOWNLOAD_PROGRESS,data[1],data[0]['size'])
 		if self.main_window.changing_layout == False:
 			self.updater.queue_task(GUI,self.entry_view.update_progress,data)
-			self.updater.queue_task(GUI,self.main_window.update_download_progress)
+			self.updater.queue_task(GUI,self.main_window.update_download_progress,self.mediamanager.get_download_count())
 
 	def _finished_callback(self,data):
 		#print "finished callback"
-		if self.pausing_all_downloads:
-			if self.mediamanager.get_download_count() <= 1: #last one!
-				self.pausing_all_downloads = False #we're done
+		#if self.pausing_all_downloads:
+		#	if self.mediamanager.get_download_count() <= 1: #last one!
+		#		self.pausing_all_downloads = False #we're done
 		self.mediamanager.update_playlist(data[0])
 		self.updater.queue_task(GUI,self.download_finished, data)
 		
@@ -1059,7 +1125,7 @@ class PenguinTVApp:
 		val1 = len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS])
 		val2 = self.mediamanager.get_download_count()
 		if len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS]) > self.mediamanager.get_download_count():
-			print "There are "+str(val1)+ " files downloading, but download_status records "+str(val2)+"  Resetting download_status"  (val1,val2)
+			print "There are "+str(val1)+ " files downloading, but download_status records "+str(val2)+"  Resetting download_status"
 			print superglobal.download_status
 			print self.mediamanager.get_download_count()
 			superglobal.download_status = {}
