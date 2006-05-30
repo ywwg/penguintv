@@ -50,6 +50,7 @@ penguintv/Downloader.py
 penguintv/HTTPDownloader.py
 penguintv/timeoutsocket.py
 penguintv/MediaManager.py
+penguintv/LoginDialog.py
 penguintv/FeedList.py
 penguintv/utils.py
 penguintv/output

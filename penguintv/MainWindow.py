@@ -242,7 +242,10 @@ class MainWindow:
 		
 	def on_feed_add_clicked(self, event):
 		self.app.window_add_feed.show() #not modal / blocking
-
+	
+	#def on_feed_pane_expose_event(self, widget, event):
+	#	self.feed_list_view.resize_columns(self.feed_pane.get_position())
+		
 	def on_download_entry_activate(self, event):
 		entry = self.entry_list_view.get_selected()['entry_id']
 		if entry:
@@ -364,7 +367,6 @@ class MainWindow:
 				f = open(dialog.get_filename(), "r")
 				self.display_status_message(_("Importing Feeds, please wait..."))
 				self.app.import_opml(f)
-				self.display_status_message(" ")
 			except:
 				pass
 		elif response == gtk.RESPONSE_CANCEL:
@@ -413,7 +415,9 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def on_remove_feed_activate(self, event):
-		self.app.remove_feed()
+		selected = self.feed_list_view.get_selected()
+		if selected:
+			self.app.remove_feed(selected)
 		
 	def on_rename_feed_activate(self, event):
 		feed = self.feed_list_view.get_selected()
@@ -427,13 +431,13 @@ class MainWindow:
 	def on_show_downloads_activate(self, event):
 		self.app.show_downloads()
 		
-	#def on_stop_downloads_clicked(self, widget):
-	#	print "clicked"
-	#	self.app.stop_downloads()
+	def on_stop_downloads_clicked(self, widget):
+		print "clicked"
+		self.app.stop_downloads()
 		
-	def on_stop_downloads_toggled(self, widget):
-		print "toggled"
-		self.app.stop_downloads_toggled(widget.get_active())
+	#def on_stop_downloads_toggled(self, widget):
+	#	print "toggled"
+	#	self.app.stop_downloads_toggled(widget.get_active())
 
 	def on_standard_layout_activate(self, event):	
 		self.app.change_layout('standard')
@@ -596,9 +600,9 @@ class MainWindow:
 			total_size=1
 		dict = { 'percent': downloaded*100.0/total_size,
 				 'files': len(progresses),
-				 'total': total_size>1 and "("+utils.format_size(total_size)+")" or '',
+				 'total': total_size>1 and "("+utils.format_size(total_size)+")" or '', #ternary operator simulation
 				 's': len(progresses)>1 and 's' or '',
-				 'queued': total-len(progresses)} #ternary operator simulation
+				 'queued': total-len(progresses)} 
 		if dict['queued']>0:
 			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s, %(queued)d queued") % dict
 		else:

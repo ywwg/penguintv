@@ -90,6 +90,7 @@ class PenguinTVApp:
 		self.download_task_ops=[]
 		self.poll_tasks=0 #Used for updating the polling progress bar
 		self.polled=0     # ditto
+		self.polling_taskid=0 #the taskid we can use to waitfor a polling operation
 		self.polling_frequency=12*60*60*1000
 		self.bt_settings = {}
 		self.exiting=0
@@ -239,7 +240,7 @@ class PenguinTVApp:
 		self.window_preferences.set_auto_download_limit(val)
 		
 		#also poll in 30 seconds (ie, "poll on startup")
-		if self.poll_on_startup:
+		if self.poll_on_startup and not self.firstrun: #don't poll on startup on firstrun, we take care of that
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
 	def save_settings(self):
@@ -341,9 +342,9 @@ class PenguinTVApp:
 			self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
 			#insane: queueing a timeout
 			self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id, False)
-		self.updater.queue_task(GUI, self.update_disk_usage, None, task_id, False) #because this is also waiting
+		self.polling_taskid = self.updater.queue_task(GUI, self.update_disk_usage, None, task_id, False) #because this is also waiting
 		if self.auto_download == True:
-			self.updater.queue_task(GUI, self.auto_download_unviewed, None, task_id)
+			self.polling_taskid = self.updater.queue_task(GUI, self.auto_download_unviewed, None, task_id)
 		if was_setup!=0:
 			return True
 		return False
@@ -451,6 +452,10 @@ class PenguinTVApp:
 			print parsed_url		
 		elif action=="stop":
 			self.download_task_ops.append((CANCEL,item))
+			newitem={}
+			newitem['media_id']=item
+			newitem['entry_id']=self.db.get_entryid_for_media(newitem['media_id'])
+			self.do_cancel_download(newitem)
 		elif action=="pause":
 			self.download_task_ops.append((PAUSE, item))
 		elif action=="clear" or action=="cancel":
@@ -560,7 +565,7 @@ class PenguinTVApp:
 				f = open(dialog.get_filename(), "w")
 				self.main_window.display_status_message(_("Exporting Feeds..."))
 				task_id = self.updater.queue_task(DB, self.updater_thread_db.export_OPML, f)
-				self.updater.queue_task(GUI,self.main_window.display_status_message, " ", task_id)
+				self.updater.queue_task(GUI,self.main_window.display_status_message, "", task_id)
 			except:
 				pass
 		elif response == gtk.RESPONSE_CANCEL:
@@ -603,18 +608,52 @@ class PenguinTVApp:
 		self.do_poll_multiple(None, args)
 			
 	def import_opml(self, f):
-		added_feeds = self.db.import_OPML(f)
-		for feed in added_feeds:
-			self.feed_list_view.add_feed(feed)
-			task_id=self.updater.queue_task(DB, self.updater_thread_db.poll_feed_trap_errors, (feed,self._import_opml_callback))
-		if self.auto_download:
-			self.updater.queue_task(GUI, self.auto_download_unviewed,None,task_id)
+		def import_gen(f):
+			gen = self.db.import_OPML(f)
+			newfeeds = []
+			for feed in gen:
+				if feed==-1: #either EOL or error on insert
+					continue
+				if self.exiting:
+					yield False
+				self.feed_list_view.add_feed(feed)
+				newfeeds.append(feed)
+				yield True
+			saved_auto = False
+			self.main_window.display_status_message("")
+			#shut down auto-downloading
+			if self.auto_download:
+				saved_auto = True
+				self.auto_download = False
+			self.do_poll_multiple(None, ptvDB.A_ALL_FEEDS)
+			task_id = self.updater.queue_task(GUI, self._first_poll_marking_list, newfeeds, self.polling_taskid)
+			if self.auto_download:
+				task_id = self.updater.queue_task(GUI, self.auto_download_unviewed,None,task_id) #auto download
+			if saved_auto:
+				self.updater.queue_task(GUI, self._reset_auto_download, None, task_id) 
+			yield False
 			
-	def _import_opml_callback(self, feed, success):
-		if success:
-			self.updater.queue_task(GUI, self.first_poll_marking, feed['feed_id'])
-			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed['feed_id'],['readinfo','icon','title']))
+		gobject.idle_add(import_gen(f).next)
+					
+	def _first_poll_marking_list(self, list):
+		def marking_gen(list):
+			self.main_window.display_status_message(_("Finishing OPML import"))
+			selected = self.feed_list_view.get_selected()
+			for feed in list:
+				self.first_poll_marking(feed)
+				self.feed_list_view.update_feed_list(feed,['readinfo','icon','title'])
+				if feed == selected:
+					self.entry_list_view.update_entry_list()
+				yield True
+			self.main_window.display_status_message("")
+			yield False
+		
+		gobject.idle_add(marking_gen(list).next)
 
+	def _reset_auto_download(self):
+		print "resetting auto-download"
+		self.auto_download = True
+			
 	def mark_entry_as_viewed(self,entry):
 		self.db.set_entry_read(entry,True)
 		self.update_entry_list(entry)
@@ -684,12 +723,12 @@ class PenguinTVApp:
 				self.feed_list_view.populate_feeds(FeedList.ACTIVE) #right now this is taking the longest
 				self.feed_list_view.populate_feeds(FeedList.DOWNLOADED) #right now this is taking the longest
 				
-	def stop_downloads_toggled(self, stopped):
-		if stopped:
-			self.stop_downloads() #sets pausing_all_downloads to True
-		else:
-			self.pausing_all_downloads = False
-			self.resume_resumable()
+	#def stop_downloads_toggled(self, stopped):
+	#	if stopped:
+	#		self.stop_downloads() #sets pausing_all_downloads to True
+	#	else:
+	#		self.pausing_all_downloads = False
+	#		self.resume_resumable()
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
@@ -859,6 +898,7 @@ class PenguinTVApp:
 			return display_add_error()
 
 		self.main_window.display_status_message(_("Trying to poll feed..."))
+		feed_id = -1
 		try:
 			feed_id = self.db.insertURL(url, title)
 			#change to add_and_select
@@ -944,9 +984,30 @@ class PenguinTVApp:
 		yield False
 		
 	def do_cancel_download(self, data):
-		print "cancelling download"
+		"""cancels a download and cleans up.  Right now there's redundancy because we call this twice
+		   for files that are downloading -- once when we ask it to stop downloading, and again when the
+		   callback tells the thread to stop working.  how to make this better?"""
 		self.db.set_media_download_status(data['media_id'],ptvDB.D_NOT_DOWNLOADED)
 		self.delete_media(data['media_id']) #marks as viewed
+		try:
+			del superglobal.download_status[data['media_id']]
+		except:
+			pass
+		self.main_window.update_download_progress(self.mediamanager.get_download_count())
+		if self.exiting:
+			self.feed_list_view.do_filter() #to remove active downloads from the list
+			return
+		try:
+			feed_id = self.db.get_entry(data['entry_id'])['feed_id']
+			self.update_entry_list(data['entry_id'])
+			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
+		except ptvDB.NoEntry:
+			print "noentry error"
+			#print "downloads finished pop"
+			#taken care of in callbacks?
+			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
+			self.feed_list_view.resize_columns()
+		self.feed_list_view.do_filter() #to remove active downloads from the list
 		
 	def do_pause_download(self, data):
 		self.db.set_media_download_status(data['media_id'],ptvDB.D_RESUMABLE)
@@ -964,9 +1025,10 @@ class PenguinTVApp:
 				del superglobal.download_status[media['media_id']] #clear progress information
 				self.main_window.update_download_progress(self.mediamanager.get_download_count()) #should clear things out
 			except:
-				print "tried to delete: "+str(media['media_id'])
-				print superglobal.download_status
-				print "error deleting progress info 2"
+				pass
+				#print "tried to delete: "+str(media['media_id'])
+				#print superglobal.download_status
+				#print "error deleting progress info 2"
 		elif status==MediaManager.FINISHED or status==MediaManager.FINISHED_AND_PLAY:
 			if os.stat(media['file'])[6] < int(media['size']/2) and os.path.isfile(media['file']): #don't check dirs
 				d = {'reported_size': str(media['size']),
@@ -1088,9 +1150,10 @@ class PenguinTVApp:
 
 	def _finished_callback(self,data):
 		#print "finished callback"
-		#if self.pausing_all_downloads:
-		#	if self.mediamanager.get_download_count() <= 1: #last one!
-		#		self.pausing_all_downloads = False #we're done
+		#reset pausing_all_downloads
+		if self.pausing_all_downloads:
+			if self.mediamanager.get_download_count() <= 1: #last one!
+				self.pausing_all_downloads = False #we're done
 		self.mediamanager.update_playlist(data[0])
 		self.updater.queue_task(GUI,self.download_finished, data)
 		
@@ -1129,6 +1192,8 @@ class PenguinTVApp:
 			print superglobal.download_status
 			print self.mediamanager.get_download_count()
 			superglobal.download_status = {}
+			self.main_window.update_progress_bar(-1) #reset
+			self.main_window.display_status_message("")
 			#blow them all away, they will be regenerated
 			#for p in superglobal.download_status.keys():
 			#	if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS:

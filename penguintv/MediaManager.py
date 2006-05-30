@@ -173,7 +173,10 @@ class MediaManager:
 		print os.path.split(data[0]['file'])[1]+" "+data[2]
 			
 	def get_download_count(self):
-		return self.pool.getTaskCount()
+		try:
+			return self.pool.getTaskCount()
+		except:
+			return 0
 		
 	def pause_all_downloads(self):
 		print "downloads paused"

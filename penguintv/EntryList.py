@@ -23,7 +23,7 @@ class EntryList:
 		renderer = gtk.CellRendererText()
 		self.vadjustment = widget_tree.get_widget("entry_scrolled_window").get_vadjustment()
 		self.hadjustment = widget_tree.get_widget("entry_scrolled_window").get_hadjustment()
-		column = gtk.TreeViewColumn('Entries')
+		column = gtk.TreeViewColumn(_('Articles'))
 		column.pack_start(icon_renderer, False)
 		column.pack_start(renderer, True)
 		column.set_attributes(icon_renderer, stock_id=4)
@@ -32,7 +32,7 @@ class EntryList:
 		self._widget.append_column(column)
 		
 		#If you want to grow _and_ shrink, start uncommenting and switch above to autosize
-		column = gtk.TreeViewColumn('Padding') 
+		column = gtk.TreeViewColumn('') 
 		#column.set_property("resizable", False)
 		#column.set_property("sizing", gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._widget.append_column(column)

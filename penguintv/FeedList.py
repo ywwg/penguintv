@@ -48,29 +48,34 @@ class FeedList:
 		self._widget.set_model(self.feed_filter)
 		renderer = gtk.CellRendererText()
 		icon_renderer = gtk.CellRendererPixbuf()
-		self.feed_column = gtk.TreeViewColumn('Feeds')
+		self.feed_column = gtk.TreeViewColumn(_('Feeds'))
 		self.feed_column.set_resizable(True)
 		self.feed_column.pack_start(icon_renderer, False)
 		self.feed_column.pack_start(renderer, True)
 		self.feed_column.set_attributes(renderer, markup=MARKUPTITLE)
 		self.feed_column.set_attributes(icon_renderer, stock_id=STOCKID)
+		#self.feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._widget.append_column(self.feed_column)
 			
 		renderer = gtk.CellRendererText()
-		column = gtk.TreeViewColumn('Articles')
-		column.set_resizable(True)
-		column.pack_start(renderer, True)
-		column.set_attributes(renderer, markup=READINFO)		
-		self._widget.append_column(column)
+		self.articles_column = gtk.TreeViewColumn(_(''))
+		self.articles_column.set_resizable(True)
+		self.articles_column.pack_start(renderer, True)
+		self.articles_column.set_attributes(renderer, markup=READINFO)		
+		#self.articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._widget.append_column(self.articles_column)
 		
 		self._widget.columns_autosize()
 		
 		#signals
 		self._widget.get_selection().connect("changed", self.item_selection_changed)
 				
-	def resize_columns(self):
+	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
-		
+	#	if pane_size>0:
+	#		print "resize"
+	#		self.feed_column.set_fixed_width(pane_size - (self.articles_column.get_width()))
+			
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
 		self.filter_name = name

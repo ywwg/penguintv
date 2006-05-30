@@ -411,7 +411,7 @@ class ptvDB:
 		try:
 			if os.path.isfile(media['file']):
 				os.remove(media['file'])
-			else: #could be a dir if it was a bittorrent download
+			elif os.path.isdir(media['file']): #could be a dir if it was a bittorrent download
 				utils.deltree(media['file']) 
 		except os.error, detail:
 			print "Error deleting: "+str(detail)
@@ -1495,15 +1495,20 @@ class ptvDB:
 		for o in outline_generator(p.outlines):
 			try:
 				feed_id=self.insertURL(o['xmlUrl'],o['text'])
-				added_feeds.append(feed_id)
+				#added_feeds.append(feed_id)
+				yield feed_id
+			except FeedAlreadyExists:
+				yield -1
 			except:
 				exc_type, exc_value, exc_traceback = sys.exc_info()
 				error_msg = ""
 				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 					error_msg += s
 				print error_msg
+				yield -1
 		stream.close()
-		return added_feeds
+		#return added_feeds
+		yield -1
 		
 						
 	def encode_text(self,text):
