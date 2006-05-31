@@ -3,6 +3,7 @@ import ptvDB
 import penguintv
 
 import string
+import copy
 
 class EntryList:
 	def __init__(self, widget_tree, app, main_window, db):
@@ -53,6 +54,7 @@ class EntryList:
 		else:
 			dont_autopane = False #it's a double negative, but it makes sense to me at the moment.
 		self.feed_id = feed_id
+		
 		db_entrylist = self.db.get_entrylist(feed_id)
 		selection = self._widget.get_selection()
 		if selected==-1:
@@ -68,6 +70,7 @@ class EntryList:
 			icon = self.get_icon(flag)
 			markeduptitle = self.get_markedup_title(title, flag)
 			self.entrylist.append([title, markeduptitle, entry_id, i, icon, flag])
+			
 		self.vadjustment.set_value(0)
 		self.hadjustment.set_value(0)
 		if selected>=0:

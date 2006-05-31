@@ -87,6 +87,7 @@ class ptvDB:
 			raise DBError,"error connecting to database"
 		
 		self.c = self.db.cursor()
+		self.entry_flag_cache = {}
 		self.cache_dirty = True
 		try:
 			self.c.execute(u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
@@ -812,6 +813,7 @@ class ptvDB:
 			elif status[0]==MODIFIED:
 #				new_items = new_items+1
 				c.execute(u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, old=? WHERE id=?', (item['title'],item['creator'],item['body'], time.mktime(item['date_parsed']),item['guid'],item['link'],'0',status[1]))
+				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
 					c.execute("DELETE FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)",(status[1],D_NOT_DOWNLOADED,D_ERROR)) #delete any not-downloaded or errored enclosures
 					for media in item['enclosures']: #add the rest
@@ -1120,6 +1122,7 @@ class ptvDB:
 	def set_media_download_status(self, media_id, status): #**#
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
 		self.db.commit()
+		#if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 		
 	def set_media_filename(self, media_id, filename):
 		self.c.execute(u'UPDATE media SET file=? WHERE id=?', (filename,media_id))
@@ -1131,6 +1134,8 @@ class ptvDB:
 		self.c.execute(u'SELECT entry_id FROM media WHERE id=?',(media_id,))
 		entry_id = self.c.fetchone()[0]
 		
+		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
+	
 		if viewed==1:#check to see if this makes the whole entry viewed
 			self.c.execute(u'SELECT viewed FROM media WHERE entry_id=?',(entry_id,))
 			list = self.c.fetchall()
@@ -1156,11 +1161,13 @@ class ptvDB:
 	def set_entry_new(self, entry_id, new):
 		self.c.execute(u'UPDATE entries SET new=? WHERE id=?',(int(new),entry_id))
 		self.db.commit()
+		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 		
 	def set_entry_read(self, entry_id, read):
 		self.c.execute(u'UPDATE entries SET read=? WHERE id=?',(int(read),entry_id))
 		self.c.execute(u'UPDATE media SET viewed=? WHERE entry_id=?',(int(read),entry_id))
 		self.db.commit()
+		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 		
 	def get_entry_read(self, entry_id):
 		self.c.execute(u'SELECT read FROM entries WHERE id=?',(entry_id,))
@@ -1215,13 +1222,15 @@ class ptvDB:
 		"""marks a feed's entries and media as viewed.  If there's a way to do this all
 		in sql, I'd like to know"""
 		self.c.execute(u'UPDATE entries SET read=1 WHERE feed_id=?',(feed_id,))
-		self.c.execute(u'SELECT media.id, media.download_status FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE entries.feed_id = ?',(feed_id,))
+		self.c.execute(u'SELECT media.id, media.download_status, media.entry_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE entries.feed_id = ?',(feed_id,))
 		list = self.c.fetchall()
 		for item in list:
 			self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(1,item[0]))
 			if item[1] == D_ERROR:
 				self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (D_NOT_DOWNLOADED,item[0]))
+			if self.entry_flag_cache.has_key(item[2]): del self.entry_flag_cache[item[2]]
 		self.db.commit()
+		
 	
 	def media_exists(self, filename):
 		self.c.execute(u'SELECT media.id FROM media WHERE media.file=?',(filename,))
@@ -1239,7 +1248,8 @@ class ptvDB:
 		for item in list:
 			self.c.execute(u'UPDATE media SET viewed=1 WHERE id=?',(item[0],))
 			self.c.execute(u'UPDATE entries SET new=0 WHERE id=?',(item[1],))		
-			self.c.execute(u'UPDATE entries SET read=1 WHERE id=?',(item[1],))					
+			self.c.execute(u'UPDATE entries SET read=1 WHERE id=?',(item[1],))	
+			if self.entry_flag_cache.has_key(item[1]): del self.entry_flag_cache[item[1]]				
 			playlist.append(item[2])
 		self.db.commit()
 		return playlist 
@@ -1317,8 +1327,12 @@ class ptvDB:
 		return feed_info
 	
 	def get_entry_flag(self, entry_id, c=None):
+		if self.entry_flag_cache.has_key(entry_id):
+			return self.entry_flag_cache[entry_id]
+
 		if c == None:
 			c = self.c
+			
 		importance=0
 		status = self.get_entry_download_status(entry_id,c)
 		
@@ -1350,6 +1364,7 @@ class ptvDB:
 			if int(read)==0:
 				importance=importance+F_UNVIEWED
 		
+		self.entry_flag_cache[entry_id] = importance
 		return importance		
 		
 	def get_unread_count(self, feed_id):
