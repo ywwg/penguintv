@@ -425,7 +425,7 @@ class PenguinTVApp:
 		if action == "download":
 			self.mediamanager.download(item)
 			media = self.db.get_media(item)
-			#self.db.set_media_viewed(item,False)
+			self.db.set_media_viewed(item,False)
 			self.feed_list_view.update_feed_list(None,['icon'])
 			self.update_entry_list()
 		elif action=="resume" or action=="tryresume":
@@ -446,6 +446,7 @@ class PenguinTVApp:
 			self.update_entry_list()
 		elif action=="downloadqueue":
 			self.mediamanager.download(item, True)
+			self.db.set_media_viewed(item,False)
 			self.feed_list_view.update_feed_list(None,['icon'])
 			self.update_entry_list()
 		elif action=="queue":
@@ -537,6 +538,7 @@ class PenguinTVApp:
 	def _downloader_generator(self, download_list):
 		for d in download_list:
 			self.mediamanager.download(d[0])
+			self.db.set_media_viewed(d[0],False)
 			self.feed_list_view.update_feed_list(d[3],['icon'])
 			self.entry_list_view.update_entry_list(d[2])
 			yield True

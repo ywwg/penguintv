@@ -34,7 +34,7 @@ class EntryView:
 			from democracy_moz import MozillaBrowser
 				
 		#thanks to straw, again
-		style = scrolled_window.get_style()
+		style = scrolled_window.get_style().copy()
 		self.currently_blank=True
 		self._scrolled_window = scrolled_window
 		self.current_entry={}
@@ -46,6 +46,16 @@ class EntryView:
                 style.base[gtk.STATE_NORMAL].red / 256,
                 style.base[gtk.STATE_NORMAL].blue / 256,
                 style.base[gtk.STATE_NORMAL].green / 256)
+                
+		self.foreground_color = "#%.2x%.2x%.2x;" % (
+                style.text[gtk.STATE_NORMAL].red / 256,
+                style.text[gtk.STATE_NORMAL].blue / 256,
+                style.text[gtk.STATE_NORMAL].green / 256)
+                
+		#for style in [style.fg, style.bg, style.base, style.text, style.mid, style.light, style.dark]:
+		#	for category in [gtk.STATE_NORMAL, gtk.STATE_PRELIGHT, gtk.STATE_SELECTED, gtk.STATE_ACTIVE, gtk.STATE_INSENSITIVE]:
+		#		print "#%.2x%.2x%.2x;" % (style[category].red / 256, style[category].blue / 256,style[category].green / 256)
+		#	print "==========="
         
         #const found in __init__        
 		if self.RENDERRER==GTKHTML:
@@ -251,6 +261,7 @@ class EntryView:
 	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	            <style type="text/css">
 	            body { background-color: %s;
+	            	   color: %s;
 	                   font-family: %s;
 	                   font-size: %s;
 	                   <!--  Why doesn't background-image work?
@@ -267,7 +278,7 @@ class EntryView:
 	            .content {padding-left:20pt;margin-top:12pt;}
 	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
 	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.moz_font, self.moz_size, self.htmlify_item(item))
+	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.foreground_color,self.moz_font, self.moz_size, self.htmlify_item(item))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self.background_color,)
@@ -277,7 +288,7 @@ class EntryView:
 	            """<html><head>
 	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	            <style type="text/css">
-	            body { background-color: %s;}
+	            body { background-color: %s;color: %s;}
 	            dd { padding-left: 20pt; }  <!-- for eschaton -->
 	            q { font-style: italic;}
 	            .heading { background-color: #f0f0ff; border-width:1px; border-style: solid; padding:12pt; margin:12pt; }
@@ -287,7 +298,7 @@ class EntryView:
 	            .content {padding-left:20pt;margin-top:12pt;}
 	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
 	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.htmlify_item(item))
+	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.foreground_color,self.htmlify_item(item))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s; }</style><body></body></html>""" % (self.background_color,)

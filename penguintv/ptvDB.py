@@ -1119,10 +1119,13 @@ class ptvDB:
 			self.c.execute(u'UPDATE feeds SET title=? WHERE id=?',(channel['title'],feed_id))
 			self.db.commit()
 				
-	def set_media_download_status(self, media_id, status): #**#
+	def set_media_download_status(self, media_id, status):
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
 		self.db.commit()
-		#if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
+		self.c.execute(u'SELECT entry_id FROM media WHERE id=?',(media_id,))
+		entry_id = self.c.fetchone()[0]
+		if self.entry_flag_cache.has_key(entry_id):
+			del self.entry_flag_cache[entry_id]
 		
 	def set_media_filename(self, media_id, filename):
 		self.c.execute(u'UPDATE media SET file=? WHERE id=?', (filename,media_id))
@@ -1222,15 +1225,18 @@ class ptvDB:
 		"""marks a feed's entries and media as viewed.  If there's a way to do this all
 		in sql, I'd like to know"""
 		self.c.execute(u'UPDATE entries SET read=1 WHERE feed_id=?',(feed_id,))
-		self.c.execute(u'SELECT media.id, media.download_status, media.entry_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE entries.feed_id = ?',(feed_id,))
+		self.c.execute(u'SELECT media.id, media.download_status FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE entries.feed_id = ?',(feed_id,))
 		list = self.c.fetchall()
 		for item in list:
 			self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(1,item[0]))
 			if item[1] == D_ERROR:
 				self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (D_NOT_DOWNLOADED,item[0]))
-			if self.entry_flag_cache.has_key(item[2]): del self.entry_flag_cache[item[2]]
 		self.db.commit()
-		
+		self.c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
+		list = self.c.fetchall()
+		for item in list:
+			if self.entry_flag_cache.has_key(item[0]): 
+				del self.entry_flag_cache[item[0]]
 	
 	def media_exists(self, filename):
 		self.c.execute(u'SELECT media.id FROM media WHERE media.file=?',(filename,))
@@ -1255,9 +1261,15 @@ class ptvDB:
 		return playlist 
 		
 	def pause_all_downloads(self):
-		self.c.execute(u'UPDATE media SET viewed = 0 WHERE download_status=?',(D_DOWNLOADING,))
-		self.c.execute(u'UPDATE media SET download_status=? WHERE download_status=?',(D_RESUMABLE,D_DOWNLOADING))
-		self.db.commit()
+		self.c.execute(u'SELECT entry_id FROM media WHERE download_status=?',(D_DOWNLOADING,))
+		list = self.c.fetchall()
+		list = utils.uniquer(list)
+		if list:
+			for e in list:
+				if self.entry_flag_cache.has_key(e[0]): del self.entry_flag_cache[e[0]]
+			self.c.execute(u'UPDATE media SET viewed = 0 WHERE download_status=?',(D_DOWNLOADING,))
+			self.c.execute(u'UPDATE media SET download_status=? WHERE download_status=?',(D_RESUMABLE,D_DOWNLOADING))
+			self.db.commit()
 		
 	def get_entry_download_status(self, entry_id, c=None):
 		if c == None:
@@ -1328,7 +1340,9 @@ class ptvDB:
 	
 	def get_entry_flag(self, entry_id, c=None):
 		if self.entry_flag_cache.has_key(entry_id):
+			#print "cache hit "+str(entry_id)
 			return self.entry_flag_cache[entry_id]
+		#print "cache miss "+str(entry_id)
 
 		if c == None:
 			c = self.c
