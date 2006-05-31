@@ -92,8 +92,8 @@ class ptvDB:
 		try:
 			self.c.execute(u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
 			if self.c.fetchone()[0] == 0:
-				print "cache clean"
 				self.cache_dirty = False
+				print "cache clean"
 		except:
 			pass
 			
@@ -336,7 +336,7 @@ class ptvDB:
 	def get_feed_cache(self):
 		if self.cache_dirty:
 			return None
-		self.c.execute(u'SELECT id, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(title)')
+		self.c.execute(u'SELECT id, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(TITLE)')
 		cache = self.c.fetchall()
 		self.c.execute(u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
 		self.db.commit()
