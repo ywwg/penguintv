@@ -1205,6 +1205,7 @@ class ptvDB:
 					size = 0
 			new_item = (item[0],size,item[2], item[3])
 			newlist.append(new_item)
+			if self.entry_flag_cache.has_key(item[2]): del self.entry_flag_cache[item[2]]
 		return newlist 
 		
 	def get_resumable_media(self):
