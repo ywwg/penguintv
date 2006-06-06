@@ -62,6 +62,7 @@ superglobal.download_status={}
 DOWNLOAD_ERROR=0
 DOWNLOAD_PROGRESS=1
 DOWNLOAD_WARNING=2
+DOWNLOAD_QUEUED=3
 
 class PenguinTVApp:
 
@@ -724,6 +725,7 @@ class PenguinTVApp:
 			if not self.exiting:
 				self.feed_list_view.populate_feeds(FeedList.ACTIVE) #right now this is taking the longest
 				self.feed_list_view.populate_feeds(FeedList.DOWNLOADED) #right now this is taking the longest
+				self.entry_list_view.update_entry_list()
 				
 	#def stop_downloads_toggled(self, stopped):
 	#	if stopped:
@@ -785,11 +787,11 @@ class PenguinTVApp:
 			self.set_polling_frequency(client,None,None)
 			
 	def add_feed(self, url):
-		"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Then it inserts the 
-		   proper url and starts the polling process"""
-		def display_add_error(): #no gotos for error handling?  how about an embedded function then!
+		"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Also does http auth.  
+		   Then it inserts the proper url and starts the polling process"""
+		def display_add_error(message=_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry.")): #no gotos for error handling?  how about an embedded function then!
 			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry."))
+			label = gtk.Label(message)
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
 			response = dialog.run()
@@ -801,7 +803,7 @@ class PenguinTVApp:
 			"""Little class to pop up a login window"""
 			NONE = 0		
 			FAILED = 1
-			CANCELED = 2
+			CANCELLED = 2
 
 			def __init__(self, widget):
 				urllib.FancyURLopener.__init__(self)
@@ -819,16 +821,19 @@ class PenguinTVApp:
 				response = d.run()
 				d.hide()
 				if response != gtk.RESPONSE_OK:
-					self.failed_auth = my_url_opener.CANCELED
+					self.failed_auth = my_url_opener.CANCELLED
 					return (None,None)
 				self.username = d.username
 				self.password = d.password
 				self.tries+=1
 				return (d.username, d.password)
-		#try:
-		#page = urllib.urlopen(url)
+				
 		urllib._urlopener = my_url_opener(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
-		page = urllib.urlopen(url)	
+		url_stream = None
+		try:
+			url_stream = urllib.urlopen(url)	
+		except timeoutsocket.Timeout:
+			return display_add_error("The website took too long to respond, and the connection timed out.")
 		title = url
 		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
 			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -839,7 +844,7 @@ class PenguinTVApp:
 			dialog.hide()
 			del dialog
 			return -1
-		if urllib._urlopener.failed_auth == my_url_opener.CANCELED:
+		if urllib._urlopener.failed_auth == my_url_opener.CANCELLED:
 			return -1
 		if urllib._urlopener.username is not None:
 			#scheme://netloc/path;parameters?query#fragment
@@ -857,44 +862,57 @@ class PenguinTVApp:
 			if len(u_t[5])>0:
 				url=url+"#"+u_t[5]
 				title=title+";"+u_t[5]
-		#except:
-		#	return display_add_error()
-		mimetype = page.info()['Content-Type'].split(';')[0].strip()
+			url_stream = urllib.urlopen(url)
+		
+		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
 		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
 			pass
 		elif mimetype in ['text/html', 'application/xhtml+xml']:
 			p = utils.AltParser()
 			try:
-				for line in page.readlines():
+				for line in url_stream.readlines():
 					p.feed(line)
-					if p.head_end:
-						break
+					if p.head_end: #if we've gotten an error, we need the whole page
+						break #otherwise the header is enough
+					
+				available_versions = p.alt_tags.keys()
+				if len(available_versions)==0: #this might actually be a feed
+					data = feedparser.parse(url)
+					if len(data['channel']) == 0 or len(data['items']) == 0: #nope
+						print "warning: no alt mimetypes:"+str(p.alt_tags)
+						return display_add_error()
+					else:
+						pass #we're good
+				else:
+					if 'application/atom+xml' in available_versions:
+						newurl = p.alt_tags['application/atom+xml']
+					elif 'application/rss+xml' in available_versions:
+						newurl = p.alt_tags['application/rss+xml']
+					elif 'application/xml' in available_versions:
+						newurl = p.alt_tags['application/xml']
+					elif 'text/xml' in available_versions:
+						newurl = p.alt_tags['text/xml']
+					else:
+						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
+						return display_add_error()
+					if newurl[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
+						if newurl[0] == '/':
+							url=os.path.split(url)[0]+newurl
+						else:
+							url=os.path.split(url)[0]+'/'+newurl
+					else:
+						url = newurl	
 			except HTMLParser.HTMLParseError:
-				return display_add_error()
-			available_versions = [dic.keys()[0] for dic in p.alt_tags]
-			if len(available_versions)==0: #this might actually be a feed
-				data = feedparser.parse(url)
-				if len(data['channel']) == 0 or len(data['items']) == 0: #nope
-					print "warning: no alt mimetypes:"+str(p.alt_tags)
+				exc_type, exc_value, exc_traceback = sys.exc_info()
+				error_msg = ""
+				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
+					error_msg += s
+				#sometimes this is actually the feed (pogue's posts @ nytimes.com)
+				p = feedparser.parse(url)
+				if len(p['channel']) == 0 or len(p['items']) == 0: #ok there really is a problem here
+					print "htmlparser error:"
+					print error_msg
 					return display_add_error()
-				else:
-					pass #we're good
-			else:
-				if 'application/atom+xml' in available_versions:
-					newurl = dic['application/atom+xml']
-				elif 'application/rss+xml' in available_versions:
-					newurl = dic['application/rss+xml']
-				elif 'application/xml' in available_versions:
-					newurl = dic['application/xml']
-				elif 'text/xml' in available_versions:
-					newurl = dic['text/xml']
-				else:
-					print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
-					return display_add_error()
-				if newurl[:4]!="http": #maybe the url is not fully qualified (fix for metaphilm.com)
-					url=os.path.split(url)[0]+'/'+newurl
-				else:
-					url = newurl
 		else:
 			print "warning: unhandled page mimetypes: "+str(mimetype)+"<--"
 			return display_add_error()
@@ -907,7 +925,8 @@ class PenguinTVApp:
 			#taskid = self.updater.queue_task(GUI, self.main_window.populate_and_select, feed_id)
 			taskid = self.updater.queue_task(GUI, self.feed_list_view.add_feed, feed_id)
 			self.updater.queue_task(GUI, self.main_window.select_feed, feed_id, taskid, False)
-			self.updater.queue_task(DB, self.updater_thread_db.poll_feed_trap_errors, (feed_id,self._add_feed_callback), taskid)
+			taskid2=self.updater.queue_task(DB, self.updater_thread_db.poll_feed_trap_errors, (feed_id,self._add_feed_callback), taskid)
+			
 		except ptvDB.FeedAlreadyExists, e:
 			self.updater.queue_task(GUI, self.main_window.select_feed, e.feed)
 		self.window_add_feed.hide()
@@ -915,7 +934,7 @@ class PenguinTVApp:
 		
 	def _add_feed_callback(self, feed, success):
 		if success:
-			self.updater.queue_task(GUI, self.add_feed_success, feed['feed_id'])
+			self.updater.queue_task(GUI, self._add_feed_success, feed['feed_id'])
 			self.updater.queue_task(GUI, self.first_poll_marking, feed['feed_id'])
 			self.updater.queue_task(GUI, self.entry_list_view.populate_entries, feed['feed_id'])
 			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed['feed_id'],['readinfo','icon','title']))
@@ -923,7 +942,7 @@ class PenguinTVApp:
 				self.updater.queue_task(GUI, self.auto_download_unviewed)
 		else:
 			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed['feed_id'],['icon','pollfail']))
-			self.updater.queue_task(GUI, self.add_feed_error, feed['feed_id'])
+			self.updater.queue_task(GUI, self._add_feed_error, feed['feed_id'])
 	
 	def first_poll_marking(self, feed_id): 
 		"""mark all media read except first one.  called when we first add a feed"""
@@ -935,11 +954,11 @@ class PenguinTVApp:
 		for item in this_feed_list[1:]:
 			self.db.set_entry_read(item[2],1)
 		
-	def add_feed_error(self,feed_id):
+	def _add_feed_error(self,feed_id):
 		self.main_window.display_status_message(_("Error adding feed"))
 		self.main_window.select_feed(feed_id)
 		
-	def add_feed_success(self, feed_id):
+	def _add_feed_success(self, feed_id):
 		self.feed_list_view.update_feed_list(feed_id,['title'])
 		self.main_window.select_feed(feed_id)
 		self.main_window.display_status_message(_("Feed Added"))
@@ -995,7 +1014,8 @@ class PenguinTVApp:
 			del superglobal.download_status[data['media_id']]
 		except:
 			pass
-		self.main_window.update_download_progress(self.mediamanager.get_download_count())
+		#self.main_window.update_download_progress(self.mediamanager.get_download_count())
+		self.main_window.update_download_progress()
 		if self.exiting:
 			self.feed_list_view.do_filter() #to remove active downloads from the list
 			return
@@ -1025,7 +1045,7 @@ class PenguinTVApp:
 		elif status==MediaManager.STOPPED:
 			try:
 				del superglobal.download_status[media['media_id']] #clear progress information
-				self.main_window.update_download_progress(self.mediamanager.get_download_count()) #should clear things out
+				self.main_window.update_download_progress() #should clear things out
 			except:
 				pass
 				#print "tried to delete: "+str(media['media_id'])
@@ -1043,7 +1063,7 @@ class PenguinTVApp:
 			else:
 				try:
 					del superglobal.download_status[media['media_id']] #clear progress information
-					self.main_window.update_download_progress(self.mediamanager.get_download_count()) #should clear things out
+					self.main_window.update_download_progress() #should clear things out
 				except:
 					print "error deleting progress info"
 					pass #no big whoop if it fails
@@ -1148,7 +1168,7 @@ class PenguinTVApp:
 		superglobal.download_status[data[0]['media_id']]=(DOWNLOAD_PROGRESS,data[1],data[0]['size'])
 		if self.main_window.changing_layout == False:
 			self.updater.queue_task(GUI,self.entry_view.update_progress,data)
-			self.updater.queue_task(GUI,self.main_window.update_download_progress,self.mediamanager.get_download_count())
+			self.updater.queue_task(GUI,self.main_window.update_download_progress)
 
 	def _finished_callback(self,data):
 		#print "finished callback"
@@ -1245,7 +1265,8 @@ class PenguinTVApp:
 								else:
 									func()
 							except ptvDB.FeedPollError,e:
-								print e
+								#print e
+								pass
 							except:
 								print "ERROR from db updater"
 								exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -1268,7 +1289,8 @@ class PenguinTVApp:
 							else:
 								func()
 						except ptvDB.FeedPollError,e:
-							print e
+							#print e
+							pass
 						except:
 							print "ERROR from db updater:"
 							exc_type, exc_value, exc_traceback = sys.exc_info()

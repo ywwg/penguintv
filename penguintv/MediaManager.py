@@ -13,9 +13,12 @@ import HTTPDownloader
 from utils import format_size
 
 import utils
+superglobal=utils.SuperGlobal()
 
 import gnome
 import gnomevfs
+
+from penguintv import DOWNLOAD_ERROR, DOWNLOAD_PROGRESS, DOWNLOAD_WARNING, DOWNLOAD_QUEUED
 
 FINISHED=0
 FINISHED_AND_PLAY=1
@@ -138,15 +141,14 @@ class MediaManager:
 				'--max_upload_rate', str(self.bt_settings['ul_limit'])]
 				
 			downloader = BTDownloader.BTDownloader(media, self.media_dir, params,True, queue, self.pool_progress_callback,self.pool_finished_callback)
-			print "queueing "+str(media)
 			self.pool.queueTask(downloader.download)
 			pass
 		else: #http regular download
 			downloader = HTTPDownloader.HTTPDownloader(media, self.media_dir, None, resume, queue, self.pool_progress_callback, self.pool_finished_callback)
-			print "queueing "+str(media)
 			self.pool.queueTask(downloader.download)
 			
 		self.db.set_media_download_status(media['media_id'],1)
+		superglobal.download_status[media['media_id']] = (DOWNLOAD_QUEUED,0,media['size'])
 		#self.db.set_media_viewed(media['media_id'],False)
 		self.db.set_media_filename(media['media_id'],media['file'])
 		self.index=self.index+1
@@ -179,9 +181,12 @@ class MediaManager:
 			return 0
 		
 	def pause_all_downloads(self):
-		print "downloads paused"
-		self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
-		self.pool.setThreadCount(5)
+		#print "downloads paused"
+		try:
+			self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
+			self.pool.setThreadCount(5)
+		except:
+			pass
 			
 	def get_disk_usage(self):
 		size = 0

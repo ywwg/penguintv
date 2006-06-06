@@ -65,7 +65,9 @@ from HTMLParser import HTMLParser
 from formatter import NullFormatter
 
 class ptvDB:
-	def __init__(self, polling_callback=None):#,username,password):
+	entry_flag_cache = {}
+	
+	def __init__(self, polling_callback=None):#,username,password):	
 		try:
 			self.home=os.getenv('HOME')
 			os.stat(self.home+"/.penguintv")
@@ -87,13 +89,11 @@ class ptvDB:
 			raise DBError,"error connecting to database"
 		
 		self.c = self.db.cursor()
-		self.entry_flag_cache = {}
 		self.cache_dirty = True
 		try:
 			self.c.execute(u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
 			if self.c.fetchone()[0] == 0:
 				self.cache_dirty = False
-				print "cache clean"
 		except:
 			pass
 			
@@ -500,7 +500,7 @@ class ptvDB:
 			print "can't get lock, giving up"
 			return (feed_id,{'pollfail':True})
 		except FeedPollError,e:
-			print e
+			#print e
 			pollfail = True
 			db.close()
 			del db
@@ -544,8 +544,8 @@ class ptvDB:
 			self.poll_feed(feed_id)
 			callback(feed, True)
 		except FeedPollError,e:
-			print e
-			print "error polling feed:"
+			#print e
+			#print "error polling feed:"
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			error_msg = ""
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):

@@ -323,6 +323,10 @@ class MainWindow:
 			item.connect('activate',self.on_mark_feed_as_viewed_activate)
 			menu.append(item)
 			
+			item = gtk.MenuItem(_("_Delete All Media"))
+			item.connect('activate',self.on_delete_feed_media_activate)
+			menu.append(item)
+			
 			menu.show_all()
 			menu.popup(None,None,None, event.button,event.time)
 	
@@ -582,29 +586,30 @@ class MainWindow:
 	def update_disk_usage(self, size):
 		self.disk_usage_widget.set_text(utils.format_size(size))
 
-	def update_download_progress(self, total):
+	def update_download_progress(self):
 		progresses = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_PROGRESS]
-		if len(progresses)==0:
+		queued = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_QUEUED]
+		if len(progresses)+len(queued)==0:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)
 			return
 		total_size = 0
 		downloaded = 0
-		for progress in progresses:
-			if progress[2]<=0:
+		for item in progresses+queued:
+			if item[2]<=0:
 				total_size += 1
 			else:
-				total_size += progress[2]
-			downloaded += (progress[1]/100.0)*progress[2]
+				total_size += item[2]
+			downloaded += (item[1]/100.0)*item[2]
 		if total_size == 0:
 			total_size=1
 		dict = { 'percent': downloaded*100.0/total_size,
-				 'files': len(progresses),
+				 'files': len(progresses)+len(queued),
 				 'total': total_size>1 and "("+utils.format_size(total_size)+")" or '', #ternary operator simulation
 				 's': len(progresses)>1 and 's' or '',
-				 'queued': total-len(progresses)} 
+				 'queued': len(queued)} 
 		if dict['queued']>0:
-			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s, %(queued)d queued") % dict
+			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s, %(queued)d queued %(total)s") % dict
 		else:
 			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict
 		self.display_status_message(message , U_DOWNLOAD) 

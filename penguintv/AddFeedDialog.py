@@ -26,9 +26,9 @@ class AddFeedDialog:
 	def set_location(self):
 		def _clipboard_cb(cboard, text, data=None):
 			if text:
-				if text[0:4] == "http":
+				if text[0:5] == "http:":
 					self.feed_url_widget.set_text(text)
-				elif text[0:4] == "feed":
+				elif text[0:5] == "feed:":
 					self.feed_url_widget.set_text(text[5:])
 					        	
 		clipboard = gtk.clipboard_get(selection="CLIPBOARD")

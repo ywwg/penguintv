@@ -319,7 +319,7 @@ class StrippingParser(HTMLParser.HTMLParser):
 class AltParser(HTMLParser.HTMLParser):
 	def __init__(self):
 		HTMLParser.HTMLParser.__init__(self)
-		self.alt_tags=[]
+		self.alt_tags={}
 		self.head_end=False
 		
 	def handle_starttag(self, tag, attrs):
@@ -331,7 +331,7 @@ class AltParser(HTMLParser.HTMLParser):
 			try:
 				if attr_dic['rel'] == 'alternate':
 					if attr_dic['type'] in ['application/atom+xml','application/rss+xml','text/xml']:
-						self.alt_tags.append({attr_dic['type']:attr_dic['href']})
+						self.alt_tags[attr_dic['type']] = attr_dic['href']
 			except:
 				pass
 

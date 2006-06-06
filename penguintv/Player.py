@@ -70,7 +70,7 @@ class Player:
 			for filename in players[player]:
 				cmdline+=filename+" "
 			cmdline+="&"
-			print "running: "+str(cmdline)
+			#print "running: "+str(cmdline)
 			subProcess.subProcess(cmdline)
 			
 			

@@ -106,6 +106,20 @@ except:
 	
 from penguintv import utils
 
+locales = []
+if "build" in sys.argv or "install" in sys.argv:
+	for file in GlobDirectoryWalker("./po", "*.po"):	
+		this_locale = os.path.basename(file)	
+		this_locale = this_locale[0:this_locale.rfind('.')]
+		_mkdir("./mo/"+this_locale+"/LC_MESSAGES")
+		msgfmt_line = "msgfmt "+file+" -o ./mo/"+this_locale+"/LC_MESSAGES/penguintv.mo"
+		print msgfmt_line
+		locales.append(('share/locale/'+this_locale+'/LC_MESSAGES', ['mo/'+this_locale+'/LC_MESSAGES/penguintv.mo']))
+		sp = my_subProcess.subProcess(msgfmt_line)
+		if sp.read() != 0:
+			print "There was an error building the MO file for locale "+this_locale
+			sys.exit(1)
+
 if BUILD_MOZ:
 	in_f = file("share/penguintv.schema.in")
 	out_f = open("share/penguintv.schema","w")
@@ -146,7 +160,7 @@ if BUILD_MOZ:
 			scripts          = ['PenguinTV'],
 			data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png']),
 								('share/pixmaps',		['share/penguintvicon.png']),
-								('share/applications',	['penguintv.desktop'])],
+								('share/applications',	['penguintv.desktop'])]+locales,
 			packages = ["penguintv", "penguintv/ptvbittorrent", "penguintv/democracy_moz"],
 			ext_modules = [mozilla_browser_ext],
 			cmdclass = {
@@ -175,7 +189,7 @@ if BUILD_MOZ==False:
 	scripts          = ['PenguinTV'],
 	data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png']),
 						('share/pixmaps',		['share/penguintvicon.png']),
-						('share/applications',	['penguintv.desktop'])],
+						('share/applications',	['penguintv.desktop'])]+locales,
 	packages = ["penguintv", "penguintv/ptvbittorrent"])
 
 if "install" in sys.argv:
@@ -187,22 +201,6 @@ if "install" in sys.argv:
 	else:
 		print sp.outdata
 		
-	from penguintv.utils import GlobDirectoryWalker,_mkdir
-	import os.path
-
-	for file in GlobDirectoryWalker("./po", "*.po"):
-		locale = os.path.basename(file)
-		locale = locale[0:locale.rfind('.')]
-		_mkdir(sys.prefix+'/share/locale/'+locale+'/LC_MESSAGES/')
-		msgfmt_line = "msgfmt "+file+" -o "+sys.prefix+"/share/locale/"+locale+"/LC_MESSAGES/penguintv.mo"
-		print msgfmt_line
-		sp = my_subProcess.subProcess(msgfmt_line)
-		if sp.read() != 0:
-			print sp.outdata
-			print "There was an error installing the PO file for locale "+locale
-			sys.exit(1)
-		else:
-			print sp.outdata
 	if  BUILD_MOZ:
 		print """By default, penguintv will use the gtkhtml renderrer.  If you want to use mozilla instead, run the command:
 gconftool-2 -s -t string /apps/penguintv/renderrer DEMOCRACY_MOZ

@@ -6,6 +6,8 @@ import utils
 
 import MainWindow
 
+import traceback, sys
+
 
 ALL=0
 DOWNLOADED=1
@@ -68,7 +70,7 @@ class FeedList:
 		self._widget.columns_autosize()
 		
 		#signals
-		self._widget.get_selection().connect("changed", self.item_selection_changed)
+		self._widget.get_selection().connect("changed", self._item_selection_changed)
 				
 	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
@@ -232,10 +234,23 @@ class FeedList:
 				
 			if self.feedlist[i][FLAG]!=0:
 				flag = self.feedlist[i][FLAG] #don't overwrite flag (race condition)
+				
+			if unviewed == 0 and flag & ptvDB.F_UNVIEWED:
+				print "ERROR: this is that case where the thing is wrong"
+				print "subset: "+str(subset)
+				print "feed info: ",
+				print str(unviewed)+" ",
+				print str(flag)+" ",
+				print str(pollfail)+" ",
+				print str(entry_count)+" ",
+				print str(feed_id)+" ",
+				print title
+				
+				traceback.print_tb(sys.last_traceback)
 			
-			m_title = self.get_markedup_title(title,flag) 
-			m_readinfo = self.get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
-			icon = self.get_icon(flag)	
+			m_title = self._get_markedup_title(title,flag) 
+			m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
+			icon = self._get_icon(flag)	
 
  			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':
@@ -275,7 +290,7 @@ class FeedList:
 		except:
 			print "Error: feed not in list"
 				
-	def get_icon(self, flag):
+	def _get_icon(self, flag):
 		if flag & ptvDB.F_ERROR == ptvDB.F_ERROR:
 			return 'gtk-dialog-error'
 		if flag & ptvDB.F_DOWNLOADING == ptvDB.F_DOWNLOADING:
@@ -286,7 +301,7 @@ class FeedList:
 			return 'gtk-media-pause'
 		return 'gnome-stock-blank'
 	
-	def get_markedup_title(self, title, flag):
+	def _get_markedup_title(self, title, flag):
 		if not title:
 			return _("Please wait...")
 		try:
@@ -346,7 +361,7 @@ class FeedList:
 				if flag & ptvDB.F_DOWNLOADING:
 					active=1
 
-			flag = self.pick_important_flag(feed_id, update_data['flag_list'])
+			flag = self._pick_important_flag(feed_id, update_data['flag_list'])
 
 		if 'icon' in update_what and 'pollfail' not in update_what:
 			update_what.append('pollfail')	 #we need that data for icon updates
@@ -363,14 +378,14 @@ class FeedList:
 			###print "new info: "+"("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))
 			if update_data['unread_count']:
 				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
-					feed[FLAG] += ptvDB.F_UNVIEWED
+					feed[FLAG] = feed[FLAG] + ptvDB.F_UNVIEWED
 			else:
 				if feed[FLAG] & ptvDB.F_UNVIEWED:
-					feed[FLAG] -= ptvDB.F_UNVIEWED
+					feed[FLAG] = feed[FLAG]-ptvDB.F_UNVIEWED
 			feed[UNREAD]   = update_data['unread_count']
 			feed[TOTAL]    = len(update_data['flag_list'])
-			feed[READINFO] = self.get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
-			feed[MARKUPTITLE] = self.get_markedup_title(feed[TITLE],flag)
+			feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
+			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
 			if unviewed != db_unread_count:
 				self.db.correct_unread_count(feed_id) #FIXME this shouldn't be necessary
 			if self.filter_unread:
@@ -379,7 +394,7 @@ class FeedList:
 		if 'title' in update_what:
 			update_data.setdefault('title',self.db.get_feed_title(feed_id))
 			feed[TITLE] = update_data['title']
-			feed[MARKUPTITLE] = self.get_markedup_title(feed[TITLE],flag)
+			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
 			try:
 				old_iter = self.feedlist.get_iter((self.find_index_of_item(feed_id),))
 				new_iter = self.feedlist.get_iter(([f[0] for f in self.db.get_feedlist()].index(feed_id),))
@@ -388,7 +403,7 @@ class FeedList:
 				print "Error finding feed for update"
 			need_filter = True
 		if 'icon' in update_what:
-			feed[STOCKID] = self.get_icon(flag)
+			feed[STOCKID] = self._get_icon(flag)
 			if update_data['pollfail']:
 				if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 					feed[STOCKID]='gtk-dialog-error'
@@ -407,7 +422,7 @@ class FeedList:
 		if need_filter:
 			self.do_filter()
 		
-	def pick_important_flag(self, feed_id, flag_list):
+	def _pick_important_flag(self, feed_id, flag_list):
 		"""go through entries and pull out most important flag"""
 		if len(flag_list)==0:
 			return 0
@@ -426,7 +441,7 @@ class FeedList:
 		else:
 			return best_flag
 			
-	def item_selection_changed(self, selection):
+	def _item_selection_changed(self, selection):
 		item = self.get_selected(selection)
 		self.last_feed=item
 		if item:
