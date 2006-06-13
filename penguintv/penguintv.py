@@ -252,9 +252,10 @@ class PenguinTVApp:
 		self.conf.set_int('/apps/penguintv/app_window_position_y',y)
 		if self.main_window.window_maximized == False:
 			x,y=self.main_window.app_window.get_size()
-		else:
-			x,y=self.main_window.app_window.get_size()
-			x,y=(-x,-y)
+		else: #grabbing the size when we are maximized is pointless, so just go by the old resized size
+			x = self.conf.get_int('/apps/penguintv/app_window_size_x')
+			y = self.conf.get_int('/apps/penguintv/app_window_size_y')
+			x,y=(-abs(x),-abs(y))
 		self.conf.set_int('/apps/penguintv/app_window_size_x',x)
 		self.conf.set_int('/apps/penguintv/app_window_size_y',y)
 		
