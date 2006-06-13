@@ -27,6 +27,7 @@ class HTTPDownloader:
 		self.progress_callback = progress_callback
 		self.finished_callback = finished_callback
 		self.resume = resume
+		self.resume_from = 0
 		self.queue = queue
 		
 	def download(self,args_unused):
@@ -53,8 +54,8 @@ class HTTPDownloader:
 			curl.setopt(pycurl.NOPROGRESS, 0)
 			curl.setopt(pycurl.USERAGENT,'PenguinTV '+utils.VERSION)
 			if self.resume:
-				cursize = os.stat(self.media['file'])[6]
-				curl.setopt(pycurl.RESUME_FROM_LARGE, cursize)
+				self.resume_from = os.stat(self.media['file'])[6]
+				curl.setopt(pycurl.RESUME_FROM_LARGE, self.resume_from)
 			curl.perform()
 			response = curl.getinfo(pycurl.RESPONSE_CODE)
 			curl.close()
@@ -87,10 +88,13 @@ class HTTPDownloader:
 		#current_time = time.time()
 		#if current_time - self.last_update > 2: #update only once every 2 seconds
 	#	self.last_update = current_time
+		if self.resume: #adjust sizes so that the percentages are correct
+			dl_total += self.resume_from
+			dl_now   += self.resume_from
 		try:
 			progress = int((dl_now*100.0)/dl_total)
 		except:
-			progress = 0
+			progress = 0	
 		if self.media.has_key('size')==False:
 			self.media['size']=round(dl_total)
 			self.media['size_adjustment']=True
@@ -101,6 +105,6 @@ class HTTPDownloader:
 			self.media['size_adjustment']=False
 		d = { 'progress': str(progress),
 			  'size': utils.format_size(self.media['size'])}
-		return self.progress_callback((self.media,progress,"Downloaded %(progress)s%% of %(size)s" % d))
+		return self.progress_callback((self.media,progress,_("Downloaded %(progress)s%% of %(size)s") % d))
 		#return result
 		#return 0

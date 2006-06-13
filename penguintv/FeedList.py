@@ -213,6 +213,7 @@ class FeedList:
 				flag = self.feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADING==0:
 					continue
+				print "updating an 'active' one!"
 			if feed_cache is not None:
 				cached     = feed_cache[i]
 				unviewed   = cached[2]
@@ -251,6 +252,9 @@ class FeedList:
 			m_title = self._get_markedup_title(title,flag) 
 			m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 			icon = self._get_icon(flag)	
+			
+			if subset==ACTIVE:
+				print "and lo, icon is " +str(icon)
 
  			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':

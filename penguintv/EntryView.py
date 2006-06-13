@@ -418,7 +418,7 @@ class EntryView:
 					ret.append('<p>'+utils.html_command('download:',medium['media_id'])+' '+
 									 utils.html_command('downloadqueue:',medium['media_id'])+
 							         ' (%s)</p>' % (utils.format_size(medium['size'],)))
-				elif medium['download_status'] == ptvDB.D_DOWNLOADING: 	
+				elif medium['download_status'] == ptvDB.D_DOWNLOADING: 
 					if medium.has_key('progress_message'): #downloading and we have a custom message
 						ret.append('<p><i>'+medium['progress_message']+'</i> '+
 						                    utils.html_command('pause:',medium['media_id'])+' '+
@@ -431,13 +431,17 @@ class EntryView:
 							ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
 							            utils.html_command('pause:',medium['media_id'])+' '+
 							            utils.html_command('stop:',medium['media_id'])+'</p>')
+						elif status[0] == penguintv.DOWNLOAD_QUEUED:
+							ret.append('<p><i>'+_("Download queued") +'</i> '+
+							            utils.html_command('pause:',medium['media_id'])+' '+
+							            utils.html_command('stop:',medium['media_id'])+'</p>')
 					elif medium.has_key('progress'):       #no custom message, but we have a progress value
 						d = {'progress':medium['progress'],
 						     'size':utils.format_size(medium['size'])}
 						ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
 						            utils.html_command('pause:',medium['media_id'])+' '+
 						            utils.html_command('stop:',medium['media_id'])+'</p>')
-					else:                                  #no progress value to report
+					else:       
 						ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
 																  utils.html_command('stop:',medium['media_id'])+'</p>')
 				elif medium['download_status'] == ptvDB.D_DOWNLOADED:

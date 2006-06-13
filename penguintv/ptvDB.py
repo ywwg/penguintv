@@ -40,6 +40,8 @@ DELETED = 3
 
 MAX_ARTICLES = 30
 
+_common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
+
 F_ERROR       = 64
 F_DOWNLOADING = 32   
 F_UNVIEWED    = 16
@@ -83,7 +85,7 @@ class ptvDB:
 						shutil.copyfile(self.home+"/.penguintv/penguintv.db", self.home+"/.penguintv/penguintv2.db")
 					except:
 						raise DBError,"couldn't create new database file"
-			self.db=sqlite.connect(self.home+"/.penguintv/penguintv2.db", timeout=20	)
+			self.db=sqlite.connect(self.home+"/.penguintv/penguintv2.db", timeout=10	)
 			self.db.isolation_level="DEFERRED"
 		except:
 			raise DBError,"error connecting to database"
@@ -755,11 +757,14 @@ class ptvDB:
 			p.cleanup()
 			item['title'] = p.result
 
-			#this may seem weird, but this prevents &amp;amp; and &amp;lt;					
+			#this may seem weird, but this prevents &amp;amp;	
 			item['title'] = re.sub('&amp;','&',item['title'])
-			#item['title'] = re.sub('&lt;','<',item['title'])
 			item['title'] = re.sub('&','&amp;',item['title'])
-			#item['title'] = re.sub('<','&lt;',item['title'])
+			
+			if type(item['body']) is str:
+				item['body'] = unicode(item['body'],'utf-8')
+			for uni in _common_unicode.keys():
+				item['body'] = item['body'].replace(uni, _common_unicode[uni])
 			
 			item['title'] = self.encode_text(item['title'])
 			

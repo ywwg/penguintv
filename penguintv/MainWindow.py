@@ -436,7 +436,6 @@ class MainWindow:
 		self.app.show_downloads()
 		
 	def on_stop_downloads_clicked(self, widget):
-		print "clicked"
 		self.app.stop_downloads()
 		
 	#def on_stop_downloads_toggled(self, widget):
