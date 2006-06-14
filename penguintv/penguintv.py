@@ -1089,6 +1089,8 @@ class PenguinTVApp:
 			#taken care of in callbacks?
 			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
+		except:
+			print "some other error"
 		self.feed_list_view.do_filter() #to remove active downloads from the list
 			
 	def rename_feed(self, feed_id, name):

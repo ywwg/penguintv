@@ -81,7 +81,7 @@ class FeedList:
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
 		self.filter_name = name
-		self.do_filter()
+		self.do_filter(False)
 		self.va.set_value(0)
 		self.resize_columns()
 		
@@ -127,8 +127,22 @@ class FeedList:
 						self.selecting_misfiltered=True
 					else:
 						passed_filter = False  #otherwise lose it
-				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED:
+				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
 					if keep_misfiltered==True:
+						print "passed!"
+						passed_filter = True
+						self.selecting_misfiltered = True
+					else:
+						print "not keeping bad"
+						passed_filter = False
+				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
+					if keep_misfiltered==True:
+						passed_filter = True
+						self.selecting_misfiltered = True
+					else:
+						passed_filter = False
+				if self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
+					if keep_misfiltered:
 						passed_filter = True
 						self.selecting_misfiltered = True
 					else:
