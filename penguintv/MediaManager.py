@@ -108,7 +108,8 @@ class MediaManager:
 		"""queues a download"""
 		media = self.db.get_media(media_id)
 		media['downloader_index']=self.index
-		media['download_status']=1			
+		media['download_status']=1
+		media.setdefault('size',0)			
 		if media['file'] is None:
 			filename = os.path.basename(media['url'])
 			filen, ext = os.path.splitext(filename)

@@ -121,32 +121,18 @@ class FeedList:
 							break
 			#so now we know if we passed the main filter, but not the unviewed filter
 			if i == index and selected is not None:  #if it's the selected feed, we have to be careful
-				if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
-					if self.filter_setting != NONE and keep_misfiltered==True:    # except with NONE and also not if overridden
+				if self.filter_setting != NONE and keep_misfiltered==True:
+					#some cases when we want to keep the current feed visible
+					if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
 						passed_filter = True  #keep it
-						self.selecting_misfiltered=True
-					else:
-						passed_filter = False  #otherwise lose it
-				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
-					if keep_misfiltered==True:
-						print "passed!"
+					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
 						passed_filter = True
-						self.selecting_misfiltered = True
-					else:
-						print "not keeping bad"
-						passed_filter = False
-				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
-					if keep_misfiltered==True:
+					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
 						passed_filter = True
-						self.selecting_misfiltered = True
-					else:
-						passed_filter = False
-				if self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
-					if keep_misfiltered:
+					elif self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
 						passed_filter = True
-						self.selecting_misfiltered = True
-					else:
-						passed_filter = False
+				else:
+					passed_filter = False
 				if passed_filter == False:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 					self._app.display_feed(-1)
