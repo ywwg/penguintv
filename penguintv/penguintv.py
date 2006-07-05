@@ -613,19 +613,41 @@ class PenguinTVApp:
 			
 	def import_opml(self, f):
 		def import_gen(f):
+			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
+			label = gtk.Label(_("Loading the feeds from the OPML file"))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			bar = gtk.ProgressBar()
+			dialog.vbox.pack_start(bar, True, True, 0)
+			bar.show()
+			response = dialog.show()
+
 			gen = self.db.import_OPML(f)
 			newfeeds = []
+			feed_count=-1.0
+			i=1.0
 			for feed in gen:
+				if feed_count == -1:
+					#first yield is the total count
+					feed_count = feed
+					continue
 				if feed==-1: #either EOL or error on insert
 					continue
 				if self.exiting:
+					dialog.hide()
+					del dialog
 					yield False
-				self.feed_list_view.add_feed(feed)
+				#self.feed_list_view.add_feed(feed)
 				newfeeds.append(feed)
+				bar.update(i/feed_count)
+				i+=1.0
 				yield True
+			self.feed_list_view.clear_list()
+			self.feed_list_view.populate_feeds()
+			self.main_window.update_filters()
 			saved_auto = False
 			self.main_window.display_status_message("")
-			#shut down auto-downloading
+			#shut down auto-downloading for now (need to wait until feeds are marked)
 			if self.auto_download:
 				saved_auto = True
 				self.auto_download = False
@@ -635,8 +657,10 @@ class PenguinTVApp:
 				task_id = self.updater.queue_task(GUI, self.auto_download_unviewed,None,task_id) #auto download
 			if saved_auto:
 				self.updater.queue_task(GUI, self._reset_auto_download, None, task_id) 
+			dialog.hide()
+			del dialog
 			yield False
-			
+		#schedule the import pseudo-threadidly
 		gobject.idle_add(import_gen(f).next)
 					
 	def _first_poll_marking_list(self, list):
@@ -941,6 +965,7 @@ class PenguinTVApp:
 			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed['feed_id'],['readinfo','icon','title']))
 			if self.auto_download:
 				self.updater.queue_task(GUI, self.auto_download_unviewed)
+			self.updater.queue_task(GUI, gobject.idle_add, self.entry_list_view.auto_pane) #oh yeah, queue an idler
 		else:
 			self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed['feed_id'],['icon','pollfail']))
 			self.updater.queue_task(GUI, self._add_feed_error, feed['feed_id'])
@@ -1066,7 +1091,7 @@ class PenguinTVApp:
 					del superglobal.download_status[media['media_id']] #clear progress information
 					self.main_window.update_download_progress() #should clear things out
 				except:
-					print "error deleting progress info"
+					#print "error deleting progress info"
 					pass #no big whoop if it fails
 				if status==MediaManager.FINISHED_AND_PLAY:
 					self.db.set_media_viewed(media['media_id'],True)

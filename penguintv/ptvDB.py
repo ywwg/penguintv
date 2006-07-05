@@ -1505,6 +1505,9 @@ class ptvDB:
 		stream.close()
 		
 	def import_OPML(self, stream):
+		"""A generator which first yields the number of feeds, and then the feedids as they
+		are inserted, and finally -1 on completion"""
+		
 		def outline_generator(outline):
 			if type(outline) is list:
 				for o in outline:
@@ -1526,7 +1529,9 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			stream.close()
+			yield -1
 		added_feeds=[]
+		yield len(p.outlines)
 		for o in outline_generator(p.outlines):
 			try:
 				feed_id=self.insertURL(o['xmlUrl'],o['text'])

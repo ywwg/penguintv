@@ -178,7 +178,7 @@ class FeedList:
 	def populate_feeds(self,subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds)"""
 		#FIXME:  better way to get to the status display?
-		#DON'T gtk.iteration in this func! Causes problems!
+		#DON'T gtk.iteration in this func! Causes endless loops!
 		if len(self.feedlist)==0:
 			self._app.main_window.display_status_message(_("Loading Feeds..."))
 			#first fill out rough feedlist
