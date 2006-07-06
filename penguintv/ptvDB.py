@@ -134,6 +134,30 @@ class ptvDB:
 		except:
 			self.migrate_database_one_two()
 			self.migrate_database_two_three()
+			
+		try:
+			self.c.execute(u'SELECT * from entries')
+		except: #corrupt database
+			print "ERROR: database is corrupt, need to repoll to fix data"
+			self.c.execute(u'DELETE * from entries')
+			
+		try:
+			self.c.execute(u'SELECT * from settings')
+		except: #corrupt database
+			print "ERROR: database is corrupt, settings need repairing"
+			
+		try:
+			self.c.execute(u'SELECT * from media')
+		except: #corrupt database
+			print "ERROR: database is corrupt, need to repoll to fix data"
+			self.c.execute(u'DELETE * from media')
+			
+		try:
+			self.c.execute(u'SELECT * from tags')
+		except: #corrupt database
+			print "ERROR: database is corrupt, tags will be lost.  Sorry."
+			self.c.execute(u'DELETE * from tags')
+		
         
 	def migrate_database_one_two(self):
 		#add table settings
