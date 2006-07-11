@@ -125,12 +125,16 @@ class FeedList:
 					#some cases when we want to keep the current feed visible
 					if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
 						passed_filter = True  #keep it
+						self.selecting_misfiltered=True
 					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
 						passed_filter = True
+						self.selecting_misfiltered=True
 					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
 						passed_filter = True
+						self.selecting_misfiltered=True
 					elif self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
 						passed_filter = True
+						self.selecting_misfiltered=True
 				else:
 					passed_filter = False
 				if passed_filter == False:

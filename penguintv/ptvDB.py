@@ -119,9 +119,11 @@ class ptvDB:
 			db_ver = db_ver[0]
 			if db_ver is None:
 				self.migrate_database_one_two()
+				self.migrate_database_two_three()
 				self.clean_database_media()
 			elif db_ver < 2:
 				self.migrate_database_one_two()
+				self.migrate_database_two_three()
 				self.clean_database_media()
 			elif db_ver < 3:
 				self.migrate_database_two_three()
@@ -129,36 +131,12 @@ class ptvDB:
 			elif db_ver > 3:
 				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
 				raise DBError, "db_ver is "+str(db_ver)+" instead of 2"
-			else:
-				return False
 		except:
 			self.migrate_database_one_two()
 			self.migrate_database_two_three()
+			return False
+		return False
 			
-		try:
-			self.c.execute(u'SELECT * from entries')
-		except: #corrupt database
-			print "ERROR: database is corrupt, need to repoll to fix data"
-			self.c.execute(u'DELETE * from entries')
-			
-		try:
-			self.c.execute(u'SELECT * from settings')
-		except: #corrupt database
-			print "ERROR: database is corrupt, settings need repairing"
-			
-		try:
-			self.c.execute(u'SELECT * from media')
-		except: #corrupt database
-			print "ERROR: database is corrupt, need to repoll to fix data"
-			self.c.execute(u'DELETE * from media')
-			
-		try:
-			self.c.execute(u'SELECT * from tags')
-		except: #corrupt database
-			print "ERROR: database is corrupt, tags will be lost.  Sorry."
-			self.c.execute(u'DELETE * from tags')
-		
-        
 	def migrate_database_one_two(self):
 		#add table settings
 		try:
@@ -494,6 +472,7 @@ class ptvDB:
 				return
 			time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
+		del pool
 				
 	def pool_poll_feed(self,args, recurse=0):
 		"""a wrapper function that returns the index along with the result
@@ -1009,7 +988,7 @@ class ptvDB:
 					new_media.append(m['href'])
 					
 				if len(old_media) != len(new_media):
-					print "different lengths, modified!"
+					#print "different lengths, modified!"
 					return (MODIFIED,entry_id)
 				
 				old_media = utils.uniquer(old_media)
@@ -1025,7 +1004,7 @@ class ptvDB:
 				#new_media_set = sets.Set(str(new_media))
 				#if old_media_set != new_media_set:# or len(old_media) != len(new_media):
 				if old_media != new_media:
-					print str(old_media)+" != "+str(new_media)
+					#print str(old_media)+" != "+str(new_media)
 					return (MODIFIED,entry_id)
 			return (EXISTS,entry_id)
 		else:

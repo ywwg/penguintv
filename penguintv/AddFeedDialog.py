@@ -1,7 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
 
-import penguintv
+#import penguintv
 import gtk
 
 class AddFeedDialog:

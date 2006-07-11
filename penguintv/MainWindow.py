@@ -1,13 +1,13 @@
 import gtk
-import gnome.ui
+#import gnome.ui
 import gtk.glade
 import gobject
-import pango
-import pycurl
-import locale
-import gettext
+#import pango
+#import pycurl
+#import locale
+#import gettext
 import gconf
-import time
+#import time
 
 import ptvDB
 import penguintv

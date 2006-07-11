@@ -3,14 +3,22 @@
 # using pieces from Straw
 # see LICENSE for license information
 
+
+#memory profiling:
+
+#import code
+#from sizer import scanner
+#objs = scanner.Objects()
+#code.interact(local = {'objs': objs})
+#from sizer import formatting
+
+
 import urlparse
 import threading
-from threading import RLock
 import sys,os, os.path
 import traceback
 import urllib
 import time
-import random
 import sets
 import string
 
@@ -18,7 +26,6 @@ import gtk
 import gnome.ui
 import gtk.glade
 import gobject
-import pango
 import locale
 import gettext
 import gconf
@@ -33,6 +40,11 @@ _=gettext.gettext
 
 #DEBUG (see also utils.py for some debugs)
 _FORCE_DEMOCRACY_MOZ=False
+
+DOWNLOAD_ERROR=0
+DOWNLOAD_PROGRESS=1
+DOWNLOAD_WARNING=2
+DOWNLOAD_QUEUED=3
 
 import ptvDB
 import MediaManager
@@ -58,11 +70,6 @@ AUTO_REFRESH_FREQUENCY=5*60*1000
 
 superglobal=utils.SuperGlobal()
 superglobal.download_status={}
-
-DOWNLOAD_ERROR=0
-DOWNLOAD_PROGRESS=1
-DOWNLOAD_WARNING=2
-DOWNLOAD_QUEUED=3
 
 class PenguinTVApp:
 

@@ -3,7 +3,7 @@ import ptvDB
 import penguintv
 
 import string
-import copy
+#import copy
 
 class EntryList:
 	def __init__(self, widget_tree, app, main_window, db):
