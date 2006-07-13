@@ -21,6 +21,7 @@ import urllib
 import time
 import sets
 import string
+import timeoutsocket
 
 import gtk
 import gnome.ui

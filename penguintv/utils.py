@@ -56,8 +56,7 @@ def is_known_media(filename):
 		for root,dirs,files in os.walk(filename):
 			for f in files:
 				try:
-					if desktop_has_file_handler(f):
-						return True
+					return desktop_has_file_handler(f)
 				except:
 					pass
 		return False
@@ -245,6 +244,20 @@ def desktop_has_file_handler(filename):
 		if handler is not None:
 			return True
 		return False
+		
+def is_file_media(filename):
+	"""Returns true if this is a media file (audio or video) and false if it is any other type of file"""
+	if is_kde():
+		mime_magic = kio.KMimeMagic()
+		mimetype = str(mime_magic.findFileType(filename).mimeType())
+	else:
+		mimetype = gnomevfs.get_mime_type(urllib.quote(filename))
+	print mimetype
+	valid_mimes=['video','audio','mp4','realmedia','m4v','mov']
+	for mime in valid_mimes:
+		if mime in mimetype:
+			return True
+	return False
 		
 #http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/440481
 #class MLStripper(HTMLParser.HTMLParser):
