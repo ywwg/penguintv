@@ -2,8 +2,9 @@
 # see LICENSE for license information
 
 import penguintv
+import gtk
 
-class LoginDialog:
+class LoginDialog(gtk.Dialog):
 	def __init__(self,xml):
 		self.xml = xml
 		self._dialog = xml.get_widget("dialog_login")
@@ -28,15 +29,9 @@ class LoginDialog:
 		self._pass_widget.set_text("")
 		self._dialog.hide()
 		
-	#def on_button_ok_clicked(self):
-	#	print "called"
-	#	self.username = self._user_widget.get_text()
-	#	self.password = self._pass_widget.get_text()
-	#	
-	#def on_user_widget_activate(self):
-	#	print "user_act"
-	#	self._pass_widget.grab_focus()
-	#	
-	#def on_pass_widget_activate(self):
-	#	print "pass_act"
-	#	self.on_button_ok_clicked(event)
+	def on_user_widget_activate(self):
+		print "user_act"
+		self._pass_widget.grab_focus()
+		
+	def on_pass_widget_activate(self, event):
+		self._dialog.response(gtk.RESPONSE_OK)

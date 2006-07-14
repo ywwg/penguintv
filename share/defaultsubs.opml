@@ -1,11 +1,6 @@
 <opml version="1.1">
 <head><title>All</title></head>
 <body>
-	<outline xmlUrl="http://feeds.feedburner.com/Headsoff" 
-	         text="headsoff" 
-	         description="This blog is about our exploration of our city, and our society.  Serra is a graduate student studying video and new media at Emerson College, and Mike is a programmer who is inquisitive, motivated and sociable.  Together, this is what you get.  Heads off." 
-	         title="headsoff">
-	</outline>
 	<outline xmlUrl="http://lugradio.org/episodes.ogg.rss" 
 	         text="LugRadio episodes (ogg)" 
 	         description="The world's premiere Linux and Free Software radio show" 
@@ -20,5 +15,10 @@
 	          text="Owen's Photolog" 
 	          description="Just another WordPress weblog with the ugly default template." 
 	          title="Owen's Photolog">
+	 </outline>
+	 <outline xmlUrl="http://gnomefiles.org/files/gnomefiles.rdf" 
+	          text="GnomeFiles.org" 
+	          description="GNOME/GTK+ Software Repository" 
+	          title="GnomeFiles.org">
 	 </outline>
 </body></opml>

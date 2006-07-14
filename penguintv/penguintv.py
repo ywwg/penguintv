@@ -55,7 +55,6 @@ import utils
 
 import AddFeedDialog
 import PreferencesDialog
-import LoginDialog
 import MainWindow, FeedList, EntryList, EntryView
 
 CANCEL=0
@@ -363,6 +362,7 @@ class PenguinTVApp:
 		"""Automatically download any unviewed media.  Runs every five minutes when auto-polling, so make sure is good"""
 		download_list=self.db.get_media_for_download()
 		if len(download_list)==0:
+			print "ain't none"
 			return #no need to bother
 		total_size=0
 		disk_usage = self.mediamanager.get_disk_usage()
@@ -647,7 +647,7 @@ class PenguinTVApp:
 					yield False
 				#self.feed_list_view.add_feed(feed)
 				newfeeds.append(feed)
-				bar.update(i/feed_count)
+				bar.set_fraction(i/feed_count)
 				i+=1.0
 				yield True
 			self.feed_list_view.clear_list()
@@ -660,18 +660,14 @@ class PenguinTVApp:
 				saved_auto = True
 				self.auto_download = False
 			self.do_poll_multiple(None, ptvDB.A_ALL_FEEDS)
-			task_id = self.updater.queue_task(GUI, self._first_poll_marking_list, newfeeds, self.polling_taskid)
-			if self.auto_download:
-				task_id = self.updater.queue_task(GUI, self.auto_download_unviewed,None,task_id) #auto download
-			if saved_auto:
-				self.updater.queue_task(GUI, self._reset_auto_download, None, task_id) 
+			task_id = self.updater.queue_task(GUI, self._first_poll_marking_list, (newfeeds,saved_auto), self.polling_taskid) 
 			dialog.hide()
 			del dialog
 			yield False
 		#schedule the import pseudo-threadidly
 		gobject.idle_add(import_gen(f).next)
 					
-	def _first_poll_marking_list(self, list):
+	def _first_poll_marking_list(self, list, saved_auto=False):
 		def marking_gen(list):
 			self.main_window.display_status_message(_("Finishing OPML import"))
 			selected = self.feed_list_view.get_selected()
@@ -682,12 +678,14 @@ class PenguinTVApp:
 					self.entry_list_view.update_entry_list()
 				yield True
 			self.main_window.display_status_message("")
+			if saved_auto:
+				self.auto_download_unviewed()
+				self._reset_auto_download()
 			yield False
 		
 		gobject.idle_add(marking_gen(list).next)
 
 	def _reset_auto_download(self):
-		print "resetting auto-download"
 		self.auto_download = True
 			
 	def mark_entry_as_viewed(self,entry):
@@ -819,137 +817,8 @@ class PenguinTVApp:
 			self.feed_refresh_method=REFRESH_SPECIFIED
 			self.set_polling_frequency(client,None,None)
 			
-	def add_feed(self, url):
-		"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Also does http auth.  
-		   Then it inserts the proper url and starts the polling process"""
-		def display_add_error(message=_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry.")): #no gotos for error handling?  how about an embedded function then!
-			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label(message)
-			dialog.vbox.pack_start(label, True, True, 0)
-			label.show()
-			response = dialog.run()
-			dialog.hide()
-			del dialog
-			return -1
-			
-		class my_url_opener(urllib.FancyURLopener):
-			"""Little class to pop up a login window"""
-			NONE = 0		
-			FAILED = 1
-			CANCELLED = 2
-
-			def __init__(self, widget):
-				urllib.FancyURLopener.__init__(self)
-				self.widget = widget
-				self.username = None
-				self.password = None
-				self.tries = 0
-				self.failed_auth = 0 
-				
-			def prompt_user_passwd(self, host, realm):
-				if self.tries==3:
-					self.failed_auth = my_url_opener.FAILED
-					return (None,None)
-				d = LoginDialog.LoginDialog(self.widget)
-				response = d.run()
-				d.hide()
-				if response != gtk.RESPONSE_OK:
-					self.failed_auth = my_url_opener.CANCELLED
-					return (None,None)
-				self.username = d.username
-				self.password = d.password
-				self.tries+=1
-				return (d.username, d.password)
-				
-		urllib._urlopener = my_url_opener(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
-		url_stream = None
-		try:
-			url_stream = urllib.urlopen(url)	
-		except timeoutsocket.Timeout:
-			return display_add_error("The website took too long to respond, and the connection timed out.")
-		title = url
-		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
-			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label(_("You must specify a valid username and password in order to add this feed."))
-			dialog.vbox.pack_start(label, True, True, 0)
-			label.show()
-			response = dialog.run()
-			dialog.hide()
-			del dialog
-			return -1
-		if urllib._urlopener.failed_auth == my_url_opener.CANCELLED:
-			return -1
-		if urllib._urlopener.username is not None:
-			#scheme://netloc/path;parameters?query#fragment
-			#http://www.cwi.nl:80/%7Eguido/Python.html
-			#('http', 'www.cwi.nl:80', '/%7Eguido/Python.html', '', '', '')
-			u_t = urlparse.urlparse(url)
-			url = u_t[0]+"://"+str(urllib._urlopener.username)+":"+str(urllib._urlopener.password)+"@"+u_t[1]+u_t[2]
-			title = u_t[0]+"://"+str(urllib._urlopener.username)+":"+("*"*len(urllib._urlopener.password))+"@"+u_t[1]+u_t[2]
-			if len(u_t[3])>0:
-				url=url+";"+u_t[3]
-				title=title+";"+u_t[3]
-			if len(u_t[4])>0:
-				url=url+"?"+u_t[4]
-				title=title+";"+u_t[4]
-			if len(u_t[5])>0:
-				url=url+"#"+u_t[5]
-				title=title+";"+u_t[5]
-			url_stream = urllib.urlopen(url)
-		
-		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
-		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
-			pass
-		elif mimetype in ['text/html', 'application/xhtml+xml']:
-			p = utils.AltParser()
-			try:
-				for line in url_stream.readlines():
-					p.feed(line)
-					if p.head_end: #if we've gotten an error, we need the whole page
-						break #otherwise the header is enough
-					
-				available_versions = p.alt_tags.keys()
-				if len(available_versions)==0: #this might actually be a feed
-					data = feedparser.parse(url)
-					if len(data['channel']) == 0 or len(data['items']) == 0: #nope
-						print "warning: no alt mimetypes:"+str(p.alt_tags)
-						return display_add_error()
-					else:
-						pass #we're good
-				else:
-					if 'application/atom+xml' in available_versions:
-						newurl = p.alt_tags['application/atom+xml']
-					elif 'application/rss+xml' in available_versions:
-						newurl = p.alt_tags['application/rss+xml']
-					elif 'application/xml' in available_versions:
-						newurl = p.alt_tags['application/xml']
-					elif 'text/xml' in available_versions:
-						newurl = p.alt_tags['text/xml']
-					else:
-						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
-						return display_add_error()
-					if newurl[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
-						if newurl[0] == '/':
-							url=os.path.split(url)[0]+newurl
-						else:
-							url=os.path.split(url)[0]+'/'+newurl
-					else:
-						url = newurl	
-			except HTMLParser.HTMLParseError:
-				exc_type, exc_value, exc_traceback = sys.exc_info()
-				error_msg = ""
-				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
-					error_msg += s
-				#sometimes this is actually the feed (pogue's posts @ nytimes.com)
-				p = feedparser.parse(url)
-				if len(p['channel']) == 0 or len(p['items']) == 0: #ok there really is a problem here
-					print "htmlparser error:"
-					print error_msg
-					return display_add_error()
-		else:
-			print "warning: unhandled page mimetypes: "+str(mimetype)+"<--"
-			return display_add_error()
-
+	def add_feed(self, url, title):
+		"""Inserts the url and starts the polling process"""
 		self.main_window.display_status_message(_("Trying to poll feed..."))
 		feed_id = -1
 		try:

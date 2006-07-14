@@ -3,6 +3,16 @@
 
 #import penguintv
 import gtk
+import urllib, urlparse
+import timeoutsocket
+import gettext
+import HTMLParser
+
+import utils
+import LoginDialog
+import feedparser
+
+_=gettext.gettext
 
 class AddFeedDialog:
 	def __init__(self,xml,app):
@@ -49,8 +59,27 @@ class AddFeedDialog:
 		self._window.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
-		#try:
-		feed_id = self._app.add_feed(url)
+		try:
+			url,title = self._correct_url(url)
+			feed_id = self._app.add_feed(url,title)
+		except AuthorizationFailed:
+			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("You must specify a valid username and password in order to add this feed."))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+		except AuthorizationCancelled:
+			return
+		except BadFeedURL:
+			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry."))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
 		#except:
 		#	self._window.set_sensitive(True)
 		#	return 
@@ -71,3 +100,145 @@ class AddFeedDialog:
 	
 	def on_button_cancel_clicked(self,event):
 		self.hide()
+		
+	def _correct_url(self,url):
+		"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Also does http auth.  returns
+		the correct url and a title"""
+		
+		class my_url_opener(urllib.FancyURLopener):
+			"""Little class to pop up a login window"""
+			NONE = 0		
+			FAILED = 1
+			CANCELLED = 2
+
+			def __init__(self, widget):
+				urllib.FancyURLopener.__init__(self)
+				self.widget = widget
+				self.username = None
+				self.password = None
+				self.tries = 0
+				self.failed_auth = 0 
+				
+			def prompt_user_passwd(self, host, realm):
+				if self.tries==3:
+					self.failed_auth = my_url_opener.FAILED
+					return (None,None)
+				d = LoginDialog.LoginDialog(self.widget)
+				response = d.run()
+				d.hide()
+				if response != gtk.RESPONSE_OK:
+					self.failed_auth = my_url_opener.CANCELLED
+					return (None,None)
+				self.username = d.username
+				self.password = d.password
+				self.tries+=1
+				return (d.username, d.password)
+				
+		urllib._urlopener = my_url_opener(gtk.glade.XML(self._app.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
+		url_stream = None
+		try:
+			url_stream = urllib.urlopen(url)	
+		except timeoutsocket.Timeout:
+			raise BadFeedURL,"The website took too long to respond, and the connection timed out."
+		except IOError, e:
+			if "No such file or directory" in e:
+				return self._correct_url("http://"+url)
+			raise BadFeedURL,"There was an error loading the url."
+		title = url
+		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
+			raise AuthorizationFailed
+		if urllib._urlopener.failed_auth == my_url_opener.CANCELLED:
+			raise AuthorizationCancelled
+		if urllib._urlopener.username is not None:
+			#build an auth-compatible url
+			
+			#scheme://netloc/path;parameters?query#fragment
+			#http://www.cwi.nl:80/%7Eguido/Python.html
+			#('http', 'www.cwi.nl:80', '/%7Eguido/Python.html', '', '', '')
+			u_t = urlparse.urlparse(url)
+			url = u_t[0]+"://"+str(urllib._urlopener.username)+":"+str(urllib._urlopener.password)+"@"+u_t[1]+u_t[2]
+			title = u_t[0]+"://"+str(urllib._urlopener.username)+":"+("*"*len(urllib._urlopener.password))+"@"+u_t[1]+u_t[2]
+			if len(u_t[3])>0:
+				url=url+";"+u_t[3]
+				title=title+";"+u_t[3]
+			if len(u_t[4])>0:
+				url=url+"?"+u_t[4]
+				title=title+";"+u_t[4]
+			if len(u_t[5])>0:
+				url=url+"#"+u_t[5]
+				title=title+";"+u_t[5]
+			url_stream = urllib.urlopen(url)
+		
+		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
+		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
+			pass
+		elif mimetype in ['text/html', 'application/xhtml+xml']:
+			p = utils.AltParser()
+			try:
+				for line in url_stream.readlines():
+					p.feed(line)
+					if p.head_end: #if we've gotten an error, we need the whole page
+						break #otherwise the header is enough
+					
+				available_versions = p.alt_tags.keys()
+				if len(available_versions)==0: #this might actually be a feed
+					data = feedparser.parse(url)
+					if len(data['channel']) == 0 or len(data['items']) == 0: #nope
+						print "warning: no alt mimetypes:"+str(p.alt_tags)
+						raise BadFeedURL
+					else:
+						pass #we're good
+				else:
+					if 'application/atom+xml' in available_versions:
+						newurl = p.alt_tags['application/atom+xml']
+					elif 'application/rss+xml' in available_versions:
+						newurl = p.alt_tags['application/rss+xml']
+					elif 'application/xml' in available_versions:
+						newurl = p.alt_tags['application/xml']
+					elif 'text/xml' in available_versions:
+						newurl = p.alt_tags['text/xml']
+					else:
+						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
+						raise BadFeedURL
+					if newurl[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
+						if newurl[0:2] == '//': #fix for gnomefiles.org
+							url = "http:"+newurl
+						elif newurl[0] == '/':
+							url=os.path.split(url)[0]+newurl
+						else:
+							url=os.path.split(url)[0]+'/'+newurl
+					else:
+						url = newurl	
+			except HTMLParser.HTMLParseError:
+				exc_type, exc_value, exc_traceback = sys.exc_info()
+				error_msg = ""
+				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
+					error_msg += s
+				#sometimes this is actually the feed (pogue's posts @ nytimes.com)
+				p = feedparser.parse(url)
+				if len(p['channel']) == 0 or len(p['items']) == 0: #ok there really is a problem here
+					print "htmlparser error:"
+					print error_msg
+					raise BadFeedURL
+		else:
+			print "warning: unhandled page mimetypes: "+str(mimetype)+"<--"
+			raise BadFeedURL
+		return (url,title)
+
+class AuthorizationFailed(Exception):
+	def __init__(self):
+		pass
+	def __str__(self):
+		return "Bad username or password"
+		
+class AuthorizationCancelled(Exception):
+	def __init__(self):
+		pass
+	def __str__(self):
+		return "Authorization cancelled"
+		
+class BadFeedURL(Exception):
+	def __init__(self, message="couldn't get a feed from this url"):
+		self.message = message
+	def __str__(self):
+		return self.message

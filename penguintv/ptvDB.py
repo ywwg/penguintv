@@ -601,7 +601,7 @@ class ptvDB:
 				c.execute("""UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 				db.commit()
 				c.close()
-				raise FeedPollError,(feed_id,"404 not found")
+				raise FeedPollError,(feed_id,"404 not found: "+url)
 
 		if len(data['channel']) == 0 or len(data['items']) == 0:
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
