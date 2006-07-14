@@ -241,7 +241,7 @@ class FeedList:
 				flag = self.feedlist[i][FLAG] #don't overwrite flag (race condition)
 				
 			if unviewed == 0 and flag & ptvDB.F_UNVIEWED:
-				print "ERROR: this is that case where the thing is wrong"
+				print "ERROR: zero unread articles but flag says there should be some"
 				print "subset: "+str(subset)
 				print "feed info: ",
 				print str(unviewed)+" ",
@@ -251,7 +251,7 @@ class FeedList:
 				print str(feed_id)+" ",
 				print title
 				
-				traceback.print_tb(sys.last_traceback)
+				traceback.print_stack()
 			
 			m_title = self._get_markedup_title(title,flag) 
 			m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)

@@ -2908,6 +2908,7 @@ No Feeds (Calm Mode)</property>
 	  <property name="has_frame">True</property>
 	  <property name="invisible_char">*</property>
 	  <property name="activates_default">False</property>
+	  <signal name="activate" handler="on_feed_name_activate" last_modification_time="Thu, 13 Jul 2006 14:15:23 GMT"/>
 	</widget>
 	<packing>
 	  <property name="padding">0</property>

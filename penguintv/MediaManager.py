@@ -145,6 +145,16 @@ class MediaManager:
 			self.pool.queueTask(downloader.download)
 			pass
 		else: #http regular download
+			ext = os.path.splitext(media['file'])[1]
+			if len(ext)>5 or len(ext)==0:
+				#I think this isn't really the right extension.   See fucking ask a ninja: http://feeds.feedburner.com/AskANinja
+				try:
+					import mimetypes
+					real_ext = mimetypes.guess_extension(media['mimetype'])
+					if real_ext is not None:
+						media['file']=media['file']+real_ext
+				except:
+					print "ERROR couldn't guess mimetype, leaving filename alone"
 			downloader = HTTPDownloader.HTTPDownloader(media, self.media_dir, None, resume, queue, self.pool_progress_callback, self.pool_finished_callback)
 			self.pool.queueTask(downloader.download)
 			

@@ -31,8 +31,14 @@ class RenameFeedDialog:
 	
 	def set_feed_id(self, feed_id):
 		self.feed_id = feed_id	
+		
+	def on_feed_name_activate(self, event):
+		self.finish()
 				
 	def on_button_ok_clicked(self,event):
+		self.finish()
+		
+	def finish(self):
 		self._app.rename_feed(self.feed_id, self.feed_name_widget.get_text())
 		self.hide()
 	
