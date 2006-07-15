@@ -1124,9 +1124,6 @@ class PenguinTVApp:
 			self.main_window.update_progress_bar(-1) #reset
 			self.main_window.display_status_message("")
 			#blow them all away, they will be regenerated
-			#for p in superglobal.download_status.keys():
-			#	if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS:
-			#		del superglobal.download_status[p]
 		return True
 		
 	def _entry_image_download_callback(self, entry_id, html):

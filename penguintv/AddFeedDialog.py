@@ -82,9 +82,6 @@ class AddFeedDialog:
 			dialog.hide()
 			del dialog
 			return
-		#except:
-		#	self._window.set_sensitive(True)
-		#	return 
 		self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.
