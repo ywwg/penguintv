@@ -362,7 +362,6 @@ class PenguinTVApp:
 		"""Automatically download any unviewed media.  Runs every five minutes when auto-polling, so make sure is good"""
 		download_list=self.db.get_media_for_download()
 		if len(download_list)==0:
-			print "ain't none"
 			return #no need to bother
 		total_size=0
 		disk_usage = self.mediamanager.get_disk_usage()
@@ -601,7 +600,10 @@ class PenguinTVApp:
 				for entry_id,title,date,new in self.db.get_entrylist(feed):
 					try:
 						for medium in self.db.get_entry_media(entry_id):
-							self.download_task_ops.append((CANCEL,medium['media_id']))
+							#hack because we don't really know about downloads, and we can't just cancel them all
+							#because they might add the feed again, and then the cancels would still be hanging around
+							if superglobal.download_status.has_key(medium['media_id']):
+								self.download_task_ops.append((CANCEL,medium['media_id']))
 					except: #keep trying
 						pass
 			except:
@@ -927,7 +929,7 @@ class PenguinTVApp:
 			self.update_entry_list(data['entry_id'])
 			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
-			print "noentry error"
+			print "noentry error, don't worry about it"
 			#print "downloads finished pop"
 			#taken care of in callbacks?
 			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
@@ -1115,7 +1117,7 @@ class PenguinTVApp:
 		val1 = len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS])
 		val2 = self.mediamanager.get_download_count()
 		if len([p for p in superglobal.download_status.keys() if superglobal.download_status[p][0]==DOWNLOAD_PROGRESS]) > self.mediamanager.get_download_count():
-			print "There are "+str(val1)+ " files downloading, but download_status records "+str(val2)+"  Resetting download_status"
+			print "There are "+str(val2)+ " files downloading, but download_status records "+str(val1)+"  Resetting download_status"
 			print superglobal.download_status
 			print self.mediamanager.get_download_count()
 			superglobal.download_status = {}

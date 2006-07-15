@@ -70,6 +70,7 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
+			return
 		except AuthorizationCancelled:
 			return
 		except BadFeedURL:
@@ -80,6 +81,7 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
+			return
 		#except:
 		#	self._window.set_sensitive(True)
 		#	return 
