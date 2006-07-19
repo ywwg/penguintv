@@ -16,7 +16,7 @@
 	          description="Just another WordPress weblog with the ugly default template." 
 	          title="Owen's Photolog">
 	 </outline>
-	 <outline xmlUrl="http://gnomefiles.org/files/gnomefiles.rdf" 
+	 <outline xmlUrl="http://www.gnomefiles.org/files/gnomefiles2.xml" 
 	          text="GnomeFiles.org" 
 	          description="GNOME/GTK+ Software Repository" 
 	          title="GnomeFiles.org">

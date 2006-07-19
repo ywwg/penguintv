@@ -7,6 +7,8 @@ import urllib, urlparse
 import timeoutsocket
 import gettext
 import HTMLParser
+import os.path
+import traceback
 
 import utils
 import LoginDialog
@@ -70,8 +72,11 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
+
+			self._window.set_sensitive(True)
 			return
 		except AuthorizationCancelled:
+			self._window.set_sensitive(True)
 			return
 		except BadFeedURL:
 			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -81,7 +86,12 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
+			self._window.set_sensitive(True)
 			return
+		#except:
+		#	self._window.set_sensitive(True)
+		#	return 
+
 		self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.
@@ -182,6 +192,7 @@ class AddFeedDialog:
 				available_versions = p.alt_tags.keys()
 				if len(available_versions)==0: #this might actually be a feed
 					data = feedparser.parse(url)
+					print data
 					if len(data['channel']) == 0 or len(data['items']) == 0: #nope
 						print "warning: no alt mimetypes:"+str(p.alt_tags)
 						raise BadFeedURL

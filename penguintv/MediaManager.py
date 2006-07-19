@@ -195,7 +195,8 @@ class MediaManager:
 		#print "downloads paused"
 		try:
 			self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
-			self.pool.setThreadCount(5)
+			if self.quitting == False:
+				self.pool.setThreadCount(5)
 		except:
 			pass
 			

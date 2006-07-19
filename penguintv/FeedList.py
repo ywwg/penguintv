@@ -217,7 +217,6 @@ class FeedList:
 				flag = self.feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADING==0:
 					continue
-				print "updating an 'active' one!"
 			if feed_cache is not None:
 				cached     = feed_cache[i]
 				unviewed   = cached[2]
@@ -241,24 +240,25 @@ class FeedList:
 				flag = self.feedlist[i][FLAG] #don't overwrite flag (race condition)
 				
 			if unviewed == 0 and flag & ptvDB.F_UNVIEWED:
-				print "ERROR: zero unread articles but flag says there should be some"
-				print "subset: "+str(subset)
-				print "feed info: ",
-				print str(unviewed)+" ",
-				print str(flag)+" ",
-				print str(pollfail)+" ",
-				print str(entry_count)+" ",
-				print str(feed_id)+" ",
-				print title
+				print "WARNING: zero unread articles but flag says there should be some"
+				#print "subset: "+str(subset)
+				#print "feed info: ",
+				#print str(unviewed)+" ",
+				#print str(flag)+" ",
+				#print str(pollfail)+" ",
+				#print str(entry_count)+" ",
+				#print str(feed_id)+" ",
+				#print title
 				
-				traceback.print_stack()
+				#traceback.print_stack()
+				flag -= ptvDB.F_UNVIEWED
 			
 			m_title = self._get_markedup_title(title,flag) 
 			m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 			icon = self._get_icon(flag)	
 			
-			if subset==ACTIVE:
-				print "and lo, icon is " +str(icon)
+			#if subset==ACTIVE:
+			#	print "and lo, icon is " +str(icon)
 
  			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':

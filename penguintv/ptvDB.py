@@ -19,7 +19,6 @@ import locale
 import gettext
 import sets
 
-
 import timeoutsocket
 import smtplib
 timeoutsocket.setDefaultSocketTimeout(20)
@@ -49,7 +48,6 @@ F_DOWNLOADED  = 8
 F_NEW         = 4
 F_PAUSED      = 2
 F_MEDIA       = 1
-
 
 A_ALL_FEEDS      = 8
 A_AUTOTUNE       = 4
@@ -798,6 +796,8 @@ class ptvDB:
 				
 			status = self.get_status(item,existing_entries,c)
 			
+			#print item['title']
+			
 			if status[0]==NEW:
 				new_items = new_items+1
 				#finally insert the entry with fake time
@@ -824,15 +824,20 @@ class ptvDB:
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
 					c.execute("DELETE FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)",(status[1],D_NOT_DOWNLOADED,D_ERROR)) #delete any not-downloaded or errored enclosures
+					db.commit()
 					for media in item['enclosures']: #add the rest
 						c.execute(u'SELECT url FROM media WHERE url=?',(media['href'],))
 						dburl = c.fetchone()
 						if dburl:
-							if dburl[0] != media['href']: #only add if that url doesn't exist
+							if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
 								c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				#db.commit()
+						else:
+							media.setdefault('length', 0)
+							media.setdefault('type', 'application/octet-stream')
+							c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 			i+=1
 		db.commit()
 		#loop through old-marked entries...
@@ -974,38 +979,30 @@ class ptvDB:
 		if new_hash.hexdigest() == old_hash.hexdigest():
 			#now check enclosures
 			old_media = self.get_entry_media(entry_id,c)
+			
 			if old_media is not None:
-				#old_media = [[medium['url'],medium['mimetype']] for medium in old_media]
-				#new_media = []
-				#for m in item['enclosures']:
-				#	m.setdefault('length', 0)
-				#	m.setdefault('type', 'application/octet-stream')
-				#	new_media.append([m['href'],m['type']])
-				
 				old_media = [medium['url'] for medium in old_media]
-				new_media = []
+			else:
+				old_media = []
+
+			new_media = []
+			if item.has_key('enclosures'):
 				for m in item['enclosures']:
 					new_media.append(m['href'])
-					
-				if len(old_media) != len(new_media):
-					#print "different lengths, modified!"
-					return (MODIFIED,entry_id)
 				
-				old_media = utils.uniquer(old_media)
-				old_media.sort()
-				new_media = utils.uniquer(new_media)
-				new_media.sort()
+			if len(old_media) != len(new_media):
+				return (MODIFIED,entry_id)
+				
+			if len(old_media) == 0 and len(new_media)==0:
+				return (EXISTS,entry_id)
+			
+			old_media = utils.uniquer(old_media)
+			old_media.sort()
+			new_media = utils.uniquer(new_media)
+			new_media.sort()
 
-					
-				#print "old_media: "+str(old_media)
-				#print "new_media: "+str(new_media)
-				
-				#old_media_set = sets.Set(str(old_media)) #ugly hack because lists aren't normally hashable
-				#new_media_set = sets.Set(str(new_media))
-				#if old_media_set != new_media_set:# or len(old_media) != len(new_media):
-				if old_media != new_media:
-					#print str(old_media)+" != "+str(new_media)
-					return (MODIFIED,entry_id)
+			if old_media != new_media:
+				return (MODIFIED,entry_id)
 			return (EXISTS,entry_id)
 		else:
 			return (MODIFIED,entry_id)
@@ -1139,7 +1136,7 @@ class ptvDB:
 		self.c.execute(u'UPDATE media SET file=? WHERE id=?', (filename,media_id))
 		self.db.commit()
 		
-	def set_media_viewed(self, media_id, viewed=1):
+	def set_media_viewed(self, media_id, viewed):
 		self.c.execute(u'UPDATE media SET viewed=? WHERE id=?',(int(viewed),media_id))
 		self.db.commit()
 		self.c.execute(u'SELECT entry_id FROM media WHERE id=?',(media_id,))
@@ -1151,8 +1148,8 @@ class ptvDB:
 			self.c.execute(u'SELECT viewed FROM media WHERE entry_id=?',(entry_id,))
 			list = self.c.fetchall()
 			if list:
-				for viewed in list:
-					if viewed==0: #still some unviewed
+				for v in list:
+					if v==0: #still some unviewed
 						return
 					#else
 					self.set_entry_read(entry_id, 1)

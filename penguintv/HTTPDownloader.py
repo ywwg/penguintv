@@ -72,6 +72,7 @@ class HTTPDownloader:
 			
 			if self.queue:
 				self.finished_callback((self.media, MediaManager.FINISHED_AND_PLAY,_("finished downloading %s") % self.media['file']))
+				return
 			self.finished_callback((self.media, MediaManager.FINISHED,_("finished downloading %s") % self.media['file']))
 		except Exception, data: #this can happen if we cancelled the download
 			if data[0]==33: #if server doesn't support resuming, retry

@@ -973,8 +973,10 @@ class PenguinTVApp:
 					#print "error deleting progress info"
 					pass #no big whoop if it fails
 				if status==MediaManager.FINISHED_AND_PLAY:
-					self.db.set_media_viewed(media['media_id'],True)
 					self.db.set_entry_read(media['entry_id'],True)
+					self.db.set_media_viewed(media['media_id'], True)
+					self.feed_list_view.update_feed_list(None,['readinfo'])
+					self.update_entry_list()
 					self.player.play(media['file'])
 				else:
 					self.db.set_entry_read(media['entry_id'],False)
