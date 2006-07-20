@@ -460,7 +460,8 @@ class FeedList:
 				self._app.display_feed(item, -2)
 				if self.selecting_misfiltered == True and item!=None:
 					self.selecting_misfiltered = False
-					gobject.timeout_add(250, self.populate_feeds) #update in just a bit so people can see the change
+					#gobject.timeout_add(250, self.populate_feeds) #update in just a bit so people can see the change
+					gobject.timeout_add(250, self.do_filter)
 			try:
 				if self.feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
 					self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
