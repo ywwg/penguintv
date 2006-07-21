@@ -12,6 +12,7 @@ import sys,os
 from penguintv import subProcess as my_subProcess
 import subprocess #<-- ^-- oh god the buggy possibilities
 import locale, gettext
+from penguintv.utils import GlobDirectoryWalker, _mkdir
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -108,11 +109,11 @@ from penguintv import utils
 
 locales = []
 if "build" in sys.argv or "install" in sys.argv:
-	for file in GlobDirectoryWalker("./po", "*.po"):	
-		this_locale = os.path.basename(file)	
+	for f in GlobDirectoryWalker("./po", "*.po"):	
+		this_locale = os.path.basename(f)	
 		this_locale = this_locale[0:this_locale.rfind('.')]
 		_mkdir("./mo/"+this_locale+"/LC_MESSAGES")
-		msgfmt_line = "msgfmt "+file+" -o ./mo/"+this_locale+"/LC_MESSAGES/penguintv.mo"
+		msgfmt_line = "msgfmt "+f+" -o ./mo/"+this_locale+"/LC_MESSAGES/penguintv.mo"
 		print msgfmt_line
 		locales.append(('share/locale/'+this_locale+'/LC_MESSAGES', ['mo/'+this_locale+'/LC_MESSAGES/penguintv.mo']))
 		sp = my_subProcess.subProcess(msgfmt_line)
