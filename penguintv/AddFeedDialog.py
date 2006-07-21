@@ -72,7 +72,6 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
-
 			self._window.set_sensitive(True)
 			return
 		except AuthorizationCancelled:
