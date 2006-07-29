@@ -73,4 +73,8 @@ class Player:
 			#print "running: "+str(cmdline)
 			subProcess.subProcess(cmdline)
 			
-			
+class NoDir(Exception):
+	def __init__(self,durr):
+		self.durr = durr
+	def __str__(self):
+		return "no such directory: "+self.durr

@@ -212,8 +212,9 @@ class AddFeedDialog:
 					if newurl[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
 						if newurl[0:2] == '//': #fix for gnomefiles.org
 							url = "http:"+newurl
-						elif newurl[0] == '/':
-							url=os.path.split(url)[0]+newurl
+						elif newurl[0] == '/': #fix for lwn.net.  Maybe we should do more proper base detection?
+							parsed = urlparse.urlsplit(url)
+							url=parsed[0]+"://"+parsed[1]+newurl
 						else:
 							url=os.path.split(url)[0]+'/'+newurl
 					else:

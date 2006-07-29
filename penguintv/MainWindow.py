@@ -8,6 +8,8 @@ import gobject
 #import gettext
 import gconf
 #import time
+import sys
+
 
 import ptvDB
 import penguintv
