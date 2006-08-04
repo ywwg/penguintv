@@ -752,11 +752,14 @@ class ptvDB:
 				else:
 					item['title'] = item['title'].strip()
 			
-			p = utils.StrippingParser()
-			p.feed(item['title'])
-			p.close()
-			p.cleanup()
-			item['title'] = p.result
+			try:
+				p = utils.StrippingParser()
+				p.feed(item['title'])
+				p.close()
+				p.cleanup()
+				item['title'] = p.result				
+			except:
+				pass
 
 			#this may seem weird, but this prevents &amp;amp;	
 			item['title'] = re.sub('&amp;','&',item['title'])
