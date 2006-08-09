@@ -119,7 +119,11 @@ class EntryList:
 		return title
 		
 	def update_entry_list(self, entry_id=None):
+		print "updating entry list"
 		if entry_id is None:
+			if len(self.entrylist) != self.db.get_entrylist(self.feed_id):
+				self.populate_entries(self.feed_id)
+				return
 			for entry in self.entrylist:
 				entry[5] = self.db.get_entry_flag(entry[2])
 		 		entry[1] = self.get_markedup_title(entry[0],entry[5])

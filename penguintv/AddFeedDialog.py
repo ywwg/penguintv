@@ -178,7 +178,8 @@ class AddFeedDialog:
 			url_stream = urllib.urlopen(url)
 		
 		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
-		if mimetype in ['application/atom+xml','application/rss+xml','application/xml','text/xml']:
+		handled_mimetypes = ['application/atom+xml','application/rss+xml','application/rdf+xml','application/xml','text/xml']
+		if mimetype in handled_mimetypes:
 			pass
 		elif mimetype in ['text/html', 'application/xhtml+xml']:
 			p = utils.AltParser()
@@ -198,15 +199,11 @@ class AddFeedDialog:
 					else:
 						pass #we're good
 				else:
-					if 'application/atom+xml' in available_versions:
-						newurl = p.alt_tags['application/atom+xml']
-					elif 'application/rss+xml' in available_versions:
-						newurl = p.alt_tags['application/rss+xml']
-					elif 'application/xml' in available_versions:
-						newurl = p.alt_tags['application/xml']
-					elif 'text/xml' in available_versions:
-						newurl = p.alt_tags['text/xml']
-					else:
+					newurl=""
+					for m in handled_mimetypes:
+						if m in available_versions:
+							newurl = p.alt_tags[m]
+					if newurl == "":
 						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
 						raise BadFeedURL
 					if newurl[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)

@@ -562,6 +562,9 @@ class ptvDB:
 		
 	def poll_feed(self, feed_id, arguments=0, db=None):
 		"""polls a feed and returns the number of new articles"""
+		
+		print "polling feed"
+		
 		if db is None:
 			db = self.db
 		c = db.cursor()
@@ -880,6 +883,9 @@ class ptvDB:
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
 			self.set_new_update_freq(db,c, feed_id, new_items)
 		c.close()
+		
+		print "done polling"
+		
 		return new_items
 		
 	def set_new_update_freq(self, db,c, feed_id, new_items):
