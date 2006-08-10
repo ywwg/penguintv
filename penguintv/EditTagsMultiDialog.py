@@ -52,7 +52,7 @@ class EditTagsMultiDialog:
 		model.clear()
 		self.tag_selector_widget.append_text(_("None"))
 		self.tag_selector_widget.append_text(_("No Tag"))
-		i=1
+		i=2
 		for tag in self.app.db.get_all_tags():
 			self.tag_selector_widget.append_text(tag)
 			if tag == selected:

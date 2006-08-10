@@ -119,7 +119,6 @@ class EntryList:
 		return title
 		
 	def update_entry_list(self, entry_id=None):
-		print "updating entry list"
 		if entry_id is None:
 			if len(self.entrylist) != self.db.get_entrylist(self.feed_id):
 				self.populate_entries(self.feed_id)

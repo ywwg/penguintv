@@ -330,8 +330,6 @@ class FeedList:
 		update_what is a bunch of strings saying what we want to update.  it will go to the
 		db for info unless the value is already in update_data"""
 		
-		print "updating feed list"
-		   
 		if feed_id is None:
 			if self.last_feed is None:
 				return
