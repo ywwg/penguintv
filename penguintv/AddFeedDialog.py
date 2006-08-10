@@ -203,6 +203,7 @@ class AddFeedDialog:
 					for m in handled_mimetypes:
 						if m in available_versions:
 							newurl = p.alt_tags[m]
+							break
 					if newurl == "":
 						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
 						raise BadFeedURL
