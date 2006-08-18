@@ -1,537 +1,587 @@
-# Swedish translation of PenguinTV.
-# Copyright (C) YEAR ORGANIZATION
-# Daniel Nylander <po@danielnylander.se>, 2006.
+# PenguinTV
+# Copyright (C) 2006 Owen Williams
+# Owen Williams <ywwg@usa.net>, 2006.
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: penguintv\n"
-"POT-Creation-Date: 2006-05-09 16:03+EDT\n"
-"PO-Revision-Date: 2006-05-12 17:03+0100\n"
-"Last-Translator: Daniel Nylander <po@danielnylander.se>\n"
-"Language-Team: Swedish <tp-sv@listor.tp-sv.se>\n"
+"Project-Id-Version: PACKAGE VERSION\n"
+"POT-Creation-Date: 2006-08-10 12:26+EDT\n"
+"PO-Revision-Date: 2006-0814    12:26+CEST\n"
+"Last-Translator: Mikael Freeman <mikael.freeman@mac.se>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=utf-8\n"
-"Content-Transfer-Encoding: 8bit\n"
+"Content-Type: text/plain; charset=CHARSET\n"
+"Content-Transfer-Encoding: ENCODING\n"
 "Generated-By: pygettext.py 1.5\n"
 
-#: BTDownloader.py:61
-#: BTDownloader.py:62
-msgid "There was an error downloading the torrent"
-msgstr "Det inträffade ett fel vid hämtning av torrent-filen"
 
-#: BTDownloader.py:104
-msgid "Downloaded %(progress)s%% of %(size)s, %(time)s remaining."
-msgstr "Hämtat %(progress)s%% av %(size)s, %(time)s återstår."
+#: AddFeedDialog.py:68
+msgid "Authorization Required"
+msgstr "Verifiering krävs"
 
-#: BTDownloader.py:106
-msgid "Downloaded %(progress)s%% of %(size)s"
-msgstr "Hämtat %(progress)s%% av %(size)s"
+#: AddFeedDialog.py:69
+msgid "You must specify a valid username and password in order to add this feed."
+msgstr "DU måste fylla i ett giltigt användarnamn och lösenord för att lägga till denna feeden"
 
-#: EntryList.py:212
-msgid "_Download"
-msgstr "_Hämta"
-
-#: EntryList.py:222
-#: utils.py:195
-msgid "Delete"
-msgstr "Ta bort"
-
-#: EntryList.py:227
-msgid "Mark as _Viewed"
-msgstr "Markera som _visad"
-
-#: EntryList.py:231
-msgid "Mark as _Unviewed"
-msgstr "Markera som _ej visad"
-
-#: EntryView.py:307
-msgid "Loading images..."
-msgstr "Läser in bilder..."
-
-#: EntryView.py:420
-#: EntryView.py:426
-msgid "Downloaded %(progress)d%% of %(size)s"
-msgstr "Hämtat %(progress)d%% av %(size)s"
-
-#: EntryView.py:430
-msgid "Downloading %s..."
-msgstr "Hämtar %s..."
-
-#: EntryView.py:458
-msgid "There was an error downloading the file."
-msgstr "Det inträffade ett fel vid hämtning av filen."
-
-#: EntryView.py:469
-msgid "Full Entry..."
-msgstr "Fullständig post..."
-
-#: FeedList.py:13
-msgid "Active Downloads"
-msgstr "Aktiva hämtningar"
-
-#: FeedList.py:13
-msgid "Downloaded Media"
-msgstr "Hämtat media"
-
-#: FeedList.py:13
-msgid "No Feeds (Calm Mode)"
-msgstr "Inga kanaler (lugnt läge)"
-
-#: FeedList.py:13
-#: FeedList.py:29
-msgid "All Feeds"
-msgstr "Alla kanaler"
-
-#: FeedList.py:58
-msgid "Loading feeds..."
-msgstr "Läser in kanaler..."
-
-#: FeedList.py:206
-msgid "Please wait..."
-msgstr "Var god vänta..."
-
-#: FeedList.py:318
-msgid "There was an error trying to poll this feed."
-msgstr "Det inträffade ett fel vid försök att kontrollera denna kanal."
-
-#: HTTPDownloader.py:65
-msgid "404: File Not Found"
-msgstr "404: Filen finns inte"
-
-#: HTTPDownloader.py:68
-msgid "Some HTTP error: %(response)s"
-msgstr "Vissa HTTP-fel: %(response)s"
-
-#: HTTPDownloader.py:73
-#: HTTPDownloader.py:74
-msgid "finished downloading %s"
-msgstr "färdig med hämtning av %s"
-
-#: penguintv.py:166
-msgid "Polling feeds for the first time..."
-msgstr "Kontrollerar kanaler för första gången..."
-
-#: penguintv.py:315
-msgid "Polling Feeds..."
-msgstr "Kontrollerar kanaler..."
-
-#: penguintv.py:318
-#: penguintv.py:979
-msgid "Feeds Updated"
-msgstr "Kanaler uppdaterade"
-
-#: penguintv.py:487
-msgid "No Unviewed Media"
-msgstr "Inget ej visat media"
-
-#: penguintv.py:488
-msgid "There is no unviewed media to download."
-msgstr "Det finns inget ej visat media att hämta."
-
-#: penguintv.py:498
-msgid "Large Download"
-msgstr "Stor hämtning"
-
-#: penguintv.py:499
-msgid ""
-"If PenguinTV downloads all of the unviewed media, \n"
-"it will take %(space)s. Do you wish to continue?"
-msgstr ""
-"Om PenguinTV hämtat allt media som ej visats, \n"
-"kommer det att ta upp %(space)s. Vill du fortsätta?"
-
-#: penguintv.py:512
-msgid "Select OPML..."
-msgstr "Välj OPML..."
-
-#: penguintv.py:532
-msgid "Exporting Feeds..."
-msgstr "Exporterar kanaler..."
-
-#: penguintv.py:544
-msgid "Really Delete Feed?"
-msgstr "Verkligen ta bort kanal?"
-
-#: penguintv.py:545
-msgid "Are you sure you want to delete this feed?"
-msgstr "Är du säker på att du vill ta bort denna kanal?"
-
-#: penguintv.py:625
-msgid "Polling Feed..."
-msgstr "Kontrollerar kanal..."
-
-#: penguintv.py:628
-msgid "Feed Updated"
-msgstr "Kanal uppdaterad"
-
-#: penguintv.py:701
+#: AddFeedDialog.py:81
 msgid "No Feed in Page"
-msgstr "Ingen kanal på sidan"
+msgstr "Inga feeds på sidan"
 
-#: penguintv.py:702
+#: AddFeedDialog.py:82
 msgid ""
 "PenguinTV couldn't find a feed in the web page you provided.\n"
 "You will need to find the RSS feed link in the web page yourself.  Sorry."
+msgstr "PenguinTV kunde inte hitta en feed på websidan du angav.\n"
+"Du måste hitta länken till RSS feeden på websidan själv"
+
+
+#: BTDownloader.py:61 BTDownloader.py:62
+msgid "There was an error downloading the torrent"
+msgstr "Det uppstod ett fel vid nerladdningen av torrenten"
+
+#: BTDownloader.py:104
+msgid "Downloaded %(progress)s%% of %(size)s, %(time)s remaining."
+msgstr "Nerladdat %(progress)s%% av %(storlek)ar, %(timme)ar återstår."
+
+#: BTDownloader.py:106 HTTPDownloader.py:109
+msgid "Downloaded %(progress)s%% of %(size)s"
+msgstr "Nerladdat %(progress)s%% av %(size)s"
+
+#: EntryList.py:27
+msgid "Articles"
+msgstr "Artiklar"
+
+#: EntryList.py:232
+msgid "_Download"
+msgstr "Ladda ner"
+
+#: EntryList.py:242 utils.py:203
+msgid "Delete"
+msgstr "Ta bort"
+
+#: EntryList.py:247
+msgid "Mark as _Viewed"
+msgstr "Markera som _sedd"
+
+#: EntryList.py:251
+msgid "Mark as _Unviewed"
+msgstr "Markera som _icke sedd"
+
+#: EntryView.py:318
+msgid "Loading images..."
+msgstr "Laddar bilder..."
+
+#: EntryView.py:431 EntryView.py:441
+msgid "Downloaded %(progress)d%% of %(size)s"
+msgstr "Nerladdat %(progress)%% av %(size)s"
+#: EntryView.py:435
+msgid "Download queued"
+msgstr "Nerladdning i kö"
+
+#: EntryView.py:445
+msgid "Downloading %s..."
+msgstr "Laddar ner %s..."
+
+#: EntryView.py:473
+msgid "There was an error downloading the file."
+msgstr "Det blev ett fel vid nerladdning av filen"
+
+#: EntryView.py:484
+msgid "Full Entry..."
+msgstr "Hela Listan.."
+
+#: FeedList.py:17
+msgid "Active Downloads"
+msgstr "Aktiva Nerladdningar"
+
+#: FeedList.py:17
+msgid "Downloaded Media"
+msgstr "Nerladdad Media"
+
+#: FeedList.py:17
+msgid "No Feeds (Calm Mode)"
+msgstr "Inga Feeds"
+
+#: FeedList.py:17 FeedList.py:44
+msgid "All Feeds"
+msgstr "Alla Feeds"
+
+#: FeedList.py:53
+msgid "Feeds"
+msgstr "Feeds"
+
+#: FeedList.py:63
+msgid ""
 msgstr ""
-"PenguinTV kunde inte hitta en kanal på webbsidan som du angav.\n"
-"Du behöver hitta länken för RSS-kanalen på webbsidan själv. Tyvärr."
 
-#: penguintv.py:749
+#: FeedList.py:187
+msgid "Loading Feeds..."
+msgstr "Laddar Feeds..."
+
+#: FeedList.py:193
+msgid "Reloading Feeds..."
+msgstr "Laddar om Feeds..."
+
+#: FeedList.py:314
+msgid "Please wait..."
+msgstr "Var vänlig vänta..."
+
+#: FeedList.py:467
+msgid "There was an error trying to poll this feed."
+msgstr "Det uppstod ett fel vid gransking av denna feeden"
+
+#: HTTPDownloader.py:66
+msgid "404: File Not Found"
+msgstr "404: Filen Hittades Inte"
+
+#: HTTPDownloader.py:69
+msgid "Some HTTP error: %(response)s"
+msgstr "HTTP fel: %(response)s"
+
+#: HTTPDownloader.py:74 HTTPDownloader.py:76
+msgid "finished downloading %s"
+msgstr "slutförde nerladdning av %s"
+
+#: penguintv.py:175
+msgid "Polling feeds for the first time..."
+msgstr "Granskar feeds för första gången... "
+
+#: penguintv.py:348
+msgid "Polling Feeds..."
+msgstr "granskar feeds"
+
+#: penguintv.py:351 penguintv.py:1109
+msgid "Feeds Updated"
+msgstr "Feeds Uppdaterade"
+
+#: penguintv.py:525
+msgid "No Unviewed Media"
+msgstr "Ingen Icke Visad Media"
+
+#: penguintv.py:526
+msgid "There is no unviewed media to download."
+msgstr "Det finns ingen icke visad media att ladda ner"
+
+#: penguintv.py:536
+msgid "Large Download"
+msgstr "Stor nerladdning"
+
+#: penguintv.py:537
+msgid ""
+"If PenguinTV downloads all of the unviewed media, \n"
+"it will take %(space)s. Do you wish to continue?"
+msgstr "OM PenguinTV laddar ner all icke seed media, \n"
+"kommer de att ta %(space)s. Vill du fortsätta?"
+
+#: penguintv.py:557
+msgid "Select OPML..."
+msgstr "Välj OPML..."
+
+#: penguintv.py:577
+msgid "Exporting Feeds..."
+msgstr "Exporterar Feeds..."
+
+#: penguintv.py:588
+msgid "Really Delete Feed?"
+msgstr "Vill Du Verkligen Ta Bort Feeden?"
+
+#: penguintv.py:589
+msgid "Are you sure you want to delete this feed?"
+msgstr "Är du säker du vill ta bort den här feeden?"
+
+#: penguintv.py:626
+msgid "Importing OPML file"
+msgstr "importerar OPML fil"
+
+#: penguintv.py:627
+msgid "Loading the feeds from the OPML file"
+msgstr "Laddar feeds from OPML filen"
+
+#: penguintv.py:674
+msgid "Finishing OPML import"
+msgstr "Avslutar OPML importering"
+
+#: penguintv.py:737
+msgid "Polling Feed..."
+msgstr "Granskar Feed..."
+
+#: penguintv.py:741
+msgid "Feed Updated"
+msgstr "Feed Uppdaterad"
+
+#: penguintv.py:824
 msgid "Trying to poll feed..."
-msgstr "Försöker att kontrollera kanal..."
+msgstr "Försöker att granska feed..."
 
-#: penguintv.py:778
+#: penguintv.py:863
 msgid "Error adding feed"
-msgstr "Fel när kanalen lades till"
+msgstr "Fel vid tilläggande av feed"
 
-#: penguintv.py:785
+#: penguintv.py:869
 msgid "Feed Added"
-msgstr "Kanalen lades till"
+msgstr "Feed tillagd"
 
-#: penguintv.py:847
+#: penguintv.py:963
 msgid "WARNING: Expected %(reported_size)s bytes but the file is %(actual_size)s bytes."
-msgstr "VARNING: Förväntade %(reported_size)s byte, men filen är %(actual_size)s byte."
+msgstr "VARNING: Förväntade sig %(reported_size)s bytes med filen is %(actual_size)s bytes."
 
-#: utils.py:34
+#: utils.py:43
 msgid "complete!"
 msgstr "färdig!"
 
-#: utils.py:189
-msgid "Play"
-msgstr "Spela upp"
-
-#: utils.py:190
-msgid "Download"
-msgstr "Hämta"
-
-#: utils.py:191
-msgid "Download And Play"
-msgstr "Hämta och spela upp"
-
-#: utils.py:192
-msgid "Pause"
-msgstr "Paus"
-
-#: utils.py:193
 #: utils.py:197
+msgid "Play"
+msgstr "Spela"
+
+#: utils.py:198
+msgid "Download"
+msgstr "Ladda ner"
+
+#: utils.py:199
+msgid "Download And Play"
+msgstr "Ladda Ner Och Spela"
+
+#: utils.py:200
+msgid "Pause"
+msgstr "Pause"
+
+#: utils.py:201 utils.py:205
 msgid "Cancel"
 msgstr "Avbryt"
 
-#: utils.py:194
+#: utils.py:202
 msgid "Open File"
-msgstr "Öppna fil"
+msgstr "Öppna Fil"
 
-#: utils.py:196
+#: utils.py:204
 msgid "Resume"
-msgstr "Fortsätt"
+msgstr "Forsätt"
 
-#: utils.py:198
+#: utils.py:206
 msgid "Stop"
 msgstr "Stopp"
 
-#: utils.py:207
+#: utils.py:215
 msgid "Re-Download"
-msgstr "Hämta igen"
+msgstr "Ladda Ner Igen"
 
-#: utils.py:210
+#: utils.py:218
 msgid "Retry"
-msgstr "Försök igen"
-
-#: ../share/penguintv.glade.h:1
-msgid " "
-msgstr " "
+msgstr "Försök Igen"
 
 #: ../share/penguintv.glade.h:2
 msgid " megabytes"
-msgstr " megabyte"
+msgstr "megabytes"
 
 #: ../share/penguintv.glade.h:3
 msgid " minutes"
-msgstr " minuter"
+msgstr "minuter"
 
 #: ../share/penguintv.glade.h:4
 msgid "(c)2005 Owen Williams"
-msgstr "©2005 Owen Williams"
+msgstr "(c)2005 Owen Williams"
 
 #: ../share/penguintv.glade.h:5
 msgid "0 bytes"
-msgstr "0 byte"
+msgstr "0 bytes"
 
 #: ../share/penguintv.glade.h:6
 msgid "<b>Add Feed</b>"
-msgstr "<b>Lägg till kanal</b>"
+msgstr "<b>Lägg till Feed</b>"
 
 #: ../share/penguintv.glade.h:7
 msgid "<b>BitTorrent Options</b>"
-msgstr "<b>Alternativ för BitTorrent</b>"
+msgstr "<b>BitTorrent Val</b>"
 
 #: ../share/penguintv.glade.h:8
 msgid "<b>Edit Tags</b>"
-msgstr "<b>Redigera taggar</b>"
+msgstr "Editera Tagar"
 
 #: ../share/penguintv.glade.h:9
 msgid "<b>General Options</b>"
-msgstr "<b>Allmänna alternativ</b>"
+msgstr "<b>Allmäna Val</b>"
 
 #: ../share/penguintv.glade.h:10
-msgid "<b>Refresh Mode</b>"
-msgstr "<b>Uppdateringsläge</b>"
+msgid "<b>Login Required</b>"
+msgstr "<b>Inloggning Krävs</b>"
 
 #: ../share/penguintv.glade.h:11
-msgid "<b>Rename Feed</b>"
-msgstr "<b>Byt namn på kanal</b>"
+msgid "<b>Refresh Mode</b>"
+msgstr "<b>Omladdningsläge</b>"
 
 #: ../share/penguintv.glade.h:12
-msgid "Add Feed"
-msgstr "Lägg till kanal"
+msgid "<b>Rename Feed</b>"
+msgstr "<b>Byt Namn På Feed</b>"
 
 #: ../share/penguintv.glade.h:13
+msgid "A username and password are required for this feed:"
+msgstr "Ett användarnamn och lösenord krävs för denna feeden:"
+
+#: ../share/penguintv.glade.h:14
+msgid "Add Feed"
+msgstr "Lägg Till Feed"
+
+#: ../share/penguintv.glade.h:15
 msgid ""
 "All Feeds\n"
 "Downloaded Media\n"
 "No Feeds (Calm Mode)"
-msgstr ""
-"Alla kanaler\n"
-"Hämtat media\n"
-"Inga kanaler (lugnt läge)"
-
-#: ../share/penguintv.glade.h:16
-msgid "Automatically download new media"
-msgstr "Hämta nytt media automatiskt"
-
-#: ../share/penguintv.glade.h:17
-msgid "Autotune refresh period"
-msgstr "Justera uppdateringsperiod automatiskt"
+msgstr "Alla Feeds\n"
+"Nerladdad Media\n"
+"Inga Feeds (Calm Mode)"
 
 #: ../share/penguintv.glade.h:18
-msgid "Changing Layouts..."
-msgstr "Byter utseende..."
+msgid "Automatically download new media"
+msgstr "Ladda ner automatiskt ny media"
 
 #: ../share/penguintv.glade.h:19
-msgid "Download Unviewed Media"
-msgstr "Hämta ej visat media"
+msgid "Autotune refresh period"
+msgstr "Automatisera omladdningsperiod"
 
 #: ../share/penguintv.glade.h:20
-msgid "Download _Unviewed Media"
-msgstr "Hämta _ej visat media"
+msgid "Changing Layouts..."
+msgstr "Byt Layout..."
 
 #: ../share/penguintv.glade.h:21
-msgid "E_ntry"
-msgstr "Pos_t"
+msgid "Download Unviewed Media"
+msgstr "Ladda Ner Icke Seed Media"
 
 #: ../share/penguintv.glade.h:22
-msgid "Edit Tags"
-msgstr "Redigera taggar"
+msgid "Download _Unviewed Media"
+msgstr "Ladda Ner _Icke sedd Media"
 
 #: ../share/penguintv.glade.h:23
-msgid "Edit _Tags..."
-msgstr "Redigera _taggar..."
+msgid "E_ntry"
+msgstr "L_ista"
 
 #: ../share/penguintv.glade.h:24
-msgid "Fee_d"
-msgstr "Kana_l"
+msgid "Edit Tags"
+msgstr "Editera Tagar"
 
 #: ../share/penguintv.glade.h:25
-msgid "Hide Viewed"
-msgstr "Dölj visade"
+msgid "Edit _Tags..."
+msgstr "Editera _Tagar..."
 
 #: ../share/penguintv.glade.h:26
-msgid "Limit total disk usage to "
-msgstr "Begränsa total diskanvändning till "
+msgid "Fee_d"
+msgstr "Fee_d"
 
 #: ../share/penguintv.glade.h:27
-msgid "Mark As _Unviewed"
-msgstr "Markera som _ej visad"
+msgid "Hide Viewed"
+msgstr "Göm sedda"
 
 #: ../share/penguintv.glade.h:28
-msgid "Mark As _Viewed"
-msgstr "Markera som _visad"
+msgid "Limit total disk usage to "
+msgstr "Begränsa diskutrymme till"
 
 #: ../share/penguintv.glade.h:29
-msgid "Maximum port"
-msgstr "Högsta port"
+msgid "Login Required"
+msgstr "Inloggning Krävs"
 
 #: ../share/penguintv.glade.h:30
-msgid "Minimum port"
-msgstr "Lägsta port"
+msgid "Mark As _Unviewed"
+msgstr "Markera Som _Icke Sedd"
+
+#: ../share/penguintv.glade.h:31
+msgid "Mark As _Viewed"
+msgstr "Markera Som _visad"
 
 #: ../share/penguintv.glade.h:32
+msgid "Maximum port"
+msgstr "Sista porten"
+
+#: ../share/penguintv.glade.h:33
+msgid "Minimum port"
+msgstr "Första porten"
+
+#: ../share/penguintv.glade.h:35
 msgid "None yet"
 msgstr "Ingen ännu"
 
-#: ../share/penguintv.glade.h:33
+#: ../share/penguintv.glade.h:36
+msgid "Password: "
+msgstr "Lösenord: "
+
+#: ../share/penguintv.glade.h:37
 msgid "PenguinTV"
 msgstr "PenguinTV"
 
-#: ../share/penguintv.glade.h:34
-msgid "PenguinTV Sourceforge Site"
-msgstr "PenguinTV på Sourceforge"
-
-#: ../share/penguintv.glade.h:35
-msgid "Play Unviewed Media"
-msgstr "Spela upp ej visat media"
-
-#: ../share/penguintv.glade.h:36
-msgid "Please enter a new name for this feed:"
-msgstr "Ange ett nytt namn för denna kanal:"
-
-#: ../share/penguintv.glade.h:37
-msgid "Please enter tags you would like to apply to this feed, separated by commas. "
-msgstr "Ange taggar du vill ska gälla för denna kanal, separera dem med kommatecken. "
-
 #: ../share/penguintv.glade.h:38
-msgid "Please enter the URL of the feed you would like to add; and any tags you would like to apply to this feed, separated by commas:"
-msgstr "Ange adressen till kanalen du vill lägga till; och de taggar du vill ska gälla för denna kanal, separera dem med kommatecken:"
+msgid "PenguinTV Sourceforge Site"
+msgstr "PenguinTV Sourceforge Sida"
 
 #: ../share/penguintv.glade.h:39
-msgid "Please wait while PenguinTV changes layouts..."
-msgstr "Var god vänta under tiden PenguinTV byter utseende..."
+msgid "Play Unviewed Media"
+msgstr "Spela Icke Sedd Media"
 
 #: ../share/penguintv.glade.h:40
-msgid "Podcast and Video Blog aggregator for GTK+ and GNOME"
-msgstr "En poddradio- och videobloggsläsare för GTK+ och GNOME"
+msgid "Please enter a new name for this feed:"
+msgstr "Var vänlig ange ett nytt namn för denna feeden:"
 
 #: ../share/penguintv.glade.h:41
-msgid "Poll all feeds on startup"
-msgstr "Kontrollera alla kanaler vid uppstart"
+msgid ""
+"Please enter tags you would like to apply to this feed, separated by commas. "
+msgstr "Var vänlig att skriva in tagar Du villl. lägg till feeden, separerade av kommatecken. "
 
 #: ../share/penguintv.glade.h:42
+msgid ""
+"Please enter the URL of the feed you would like to add; and any tags you "
+"would like to apply to this feed, separated by commas:"
+msgstr "Var vänlig att fylla i url:en på feeden du vill lägga till; och tagar du  "
+"vill lägga till denna feeden, separerade av kommatecken:"
+
+#: ../share/penguintv.glade.h:43
+msgid "Please wait while PenguinTV changes layouts..."
+msgstr "Var vänlig vänta medans PenguinTV byter layout..."
+
+#: ../share/penguintv.glade.h:44
+msgid "Podcast and Video Blog aggregator for GTK+ and GNOME"
+msgstr "Podcast och Video Blog aggregator för GTK+ och GNOME"
+
+#: ../share/penguintv.glade.h:45
+msgid "Poll all feeds on startup"
+msgstr "Granska alla feeds vid upstart"
+
+#: ../share/penguintv.glade.h:46
 msgid "Preferences"
 msgstr "Inställningar"
 
-#: ../share/penguintv.glade.h:43
-msgid "Re_fresh"
-msgstr "Uppda_tera"
-
-#: ../share/penguintv.glade.h:44
-msgid "Re_name..."
-msgstr "Byt _namn..."
-
-#: ../share/penguintv.glade.h:45
-msgid "Refresh Feeds"
-msgstr "Uppdatera kanaler"
-
-#: ../share/penguintv.glade.h:46
-msgid "Refresh every "
-msgstr "Uppdatera alla "
-
 #: ../share/penguintv.glade.h:47
-msgid "Remove Feed"
-msgstr "Ta bort kanal"
+msgid "Re_fresh"
+msgstr "Ladda_Om"
 
 #: ../share/penguintv.glade.h:48
-msgid "Rename Feed"
-msgstr "Byt namn på kanal"
+msgid "Re_name..."
+msgstr "Byt_namn..."
 
 #: ../share/penguintv.glade.h:49
-msgid "Resume _All"
-msgstr "Återuppta _alla"
+msgid "Refresh Feeds"
+msgstr "Ladda Om Feeds"
 
 #: ../share/penguintv.glade.h:50
-msgid "Resume downloads on startup"
-msgstr "Återuppta hämtningar vid uppstart"
+msgid "Refresh every "
+msgstr "Ladda om varje "
 
 #: ../share/penguintv.glade.h:51
-msgid "Stop All Active Downloads"
-msgstr "Stoppa alla aktiva hämtningar"
+msgid "Remove Feed"
+msgstr "Ta Bort Feed"
 
 #: ../share/penguintv.glade.h:52
-msgid "Tag Editor"
-msgstr "Taggredigerare"
+msgid "Rename Feed"
+msgstr "Byt Namn På Feed"
 
 #: ../share/penguintv.glade.h:53
-msgid "Tag Highlighter:"
-msgstr "Framhäv tagg:"
+msgid "Resume _All"
+msgstr "Fortsätt _Alla"
 
 #: ../share/penguintv.glade.h:54
-msgid "Tags:"
-msgstr "Taggar:"
+msgid "Resume downloads on startup"
+msgstr "Fortsätt nerladdningar vid uppstart"
 
 #: ../share/penguintv.glade.h:55
-msgid "Tags: "
-msgstr "Taggar: "
+msgid "Stop All Active Downloads"
+msgstr "Stoppa Alla Aktiva Nerladdningar"
 
 #: ../share/penguintv.glade.h:56
-msgid "URL: "
-msgstr "Url: "
+msgid "Tag Editor"
+msgstr "Tag Editor"
 
 #: ../share/penguintv.glade.h:57
-msgid "Upload rate limit"
-msgstr "Hastighetsgräns uppströms"
+msgid "Tag Highlighter:"
+msgstr "Framhäv Tag:"
 
 #: ../share/penguintv.glade.h:58
+msgid "Tags:"
+msgstr "Tagar:"
+
+#: ../share/penguintv.glade.h:59
+msgid "Tags: "
+msgstr "Tagar: "
+
+#: ../share/penguintv.glade.h:60
+msgid "URL: "
+msgstr "URL: "
+
+#: ../share/penguintv.glade.h:61
+msgid "Upload rate limit"
+msgstr "Uppladningsgräns"
+
+#: ../share/penguintv.glade.h:62
+msgid "User Name: "
+msgstr "Användarnamn: "
+
+#: ../share/penguintv.glade.h:63
 msgid "Using: "
 msgstr "Använder: "
 
-#: ../share/penguintv.glade.h:59
+#: ../share/penguintv.glade.h:64
 msgid "_Add Feed..."
-msgstr "_Lägg till kanal..."
+msgstr "_Lägg Till Feed..."
 
-#: ../share/penguintv.glade.h:60
+#: ../share/penguintv.glade.h:65
 msgid "_Delete All Media"
-msgstr "_Ta bort allt media"
+msgstr "_Tab Bort All Media"
 
-#: ../share/penguintv.glade.h:61
+#: ../share/penguintv.glade.h:66
 msgid "_Delete Media"
-msgstr "_Ta bort media"
+msgstr "_Ta Bort Media"
 
-#: ../share/penguintv.glade.h:62
+#: ../share/penguintv.glade.h:67
 msgid "_Download Media"
-msgstr "_Hämta media"
+msgstr "_Nerladdad Media"
 
-#: ../share/penguintv.glade.h:63
+#: ../share/penguintv.glade.h:68
 msgid "_Export OPML..."
 msgstr "_Exportera OPML..."
 
-#: ../share/penguintv.glade.h:64
+#: ../share/penguintv.glade.h:69
 msgid "_Go"
-msgstr "_Gå"
+msgstr "_Kör"
 
-#: ../share/penguintv.glade.h:65
+#: ../share/penguintv.glade.h:70
 msgid "_Horizontal Layout"
-msgstr "_Horisontalt utseende"
+msgstr "Horisontell Layout"
 
-#: ../share/penguintv.glade.h:66
+#: ../share/penguintv.glade.h:71
 msgid "_Import OPML..."
 msgstr "_Importera OPML..."
 
-#: ../share/penguintv.glade.h:67
-msgid "_Mark As Viewed"
-msgstr "_Markera som visad"
-
-#: ../share/penguintv.glade.h:68
-msgid "_Play Media"
-msgstr "_Spela upp media"
-
-#: ../share/penguintv.glade.h:69
-msgid "_Play Unviewed"
-msgstr "_Spela upp ej visad"
-
-#: ../share/penguintv.glade.h:70
-msgid "_Refresh Feeds"
-msgstr "_Uppdatera kanaler"
-
-#: ../share/penguintv.glade.h:71
-msgid "_Remove Feed"
-msgstr "_Ta bort kanal"
-
 #: ../share/penguintv.glade.h:72
-msgid "_Show Today's Downloads..."
-msgstr "_Visa dagens hämtningar..."
+msgid "_Mark As Viewed"
+msgstr "_Markera som sedd"
 
 #: ../share/penguintv.glade.h:73
-msgid "_Standard Layout"
-msgstr "_Standardutseende"
+msgid "_Play Media"
+msgstr "Spela Media"
 
 #: ../share/penguintv.glade.h:74
-msgid "_Vertical Layout"
-msgstr "_Vertikalt utseende"
+msgid "_Play Unviewed"
+msgstr "_Spela icke sedd"
 
 #: ../share/penguintv.glade.h:75
+msgid "_Refresh Feeds"
+msgstr "_Ladda om Feeds"
+
+#: ../share/penguintv.glade.h:76
+msgid "_Remove Feed"
+msgstr "_Ta bort Feed"
+
+#: ../share/penguintv.glade.h:77
+msgid "_Show Today's Downloads..."
+msgstr "_Visa Dagens Nerladdningar..."
+
+#: ../share/penguintv.glade.h:78
+msgid "_Standard Layout"
+msgstr "_Standard Layout"
+
+#: ../share/penguintv.glade.h:79
+msgid "_Vertical Layout"
+msgstr "_Vertikal Layout"
+
+#: ../share/penguintv.glade.h:80
 msgid "_View"
 msgstr "_Visa"
 
-#: ../share/penguintv.glade.h:76
+#: ../share/penguintv.glade.h:81
 msgid "a"
-msgstr "a"
-
+msgstr "en"
