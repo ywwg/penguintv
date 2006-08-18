@@ -185,8 +185,9 @@ share/defaultsubs.opml
 share/penguintv.glade
 share/penguintvicon.png
 po/penguintv.pot
-po/pt.pot
-po/pt_BR.pot
+po/pt.po
+po/pt_BR.po
+po/sv.po
 po/make_pot.sh
 po/install-po.sh
 PenguinTV
