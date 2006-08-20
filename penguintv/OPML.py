@@ -136,4 +136,20 @@ def parse(stream):
     parser.setContentHandler(handler)
     parser.parse(stream)
     return handler.get_opml()
+    
+def outline_generator(outline):
+	if type(outline) is list:
+		for o in outline:
+			if o.has_key('xmlUrl'):
+				yield o
+			for i in o.get_children_iter():
+				for item in outline_generator(i):
+					yield item
+	elif type(outline) is Outline:
+		if outline.has_key('xmlUrl'):
+			yield outline
+		for i in outline.get_children_iter():
+			for item in outline_generator(i):
+				yield item
+
 

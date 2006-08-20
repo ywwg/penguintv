@@ -1512,18 +1512,6 @@ class ptvDB:
 		"""A generator which first yields the number of feeds, and then the feedids as they
 		are inserted, and finally -1 on completion"""
 		
-		def outline_generator(outline):
-			if type(outline) is list:
-				for o in outline:
-					if o.has_key('xmlUrl'):
-						yield o
-					for i in o.get_children_iter():
-						for item in outline_generator(i):
-							yield item
-			elif type(outline) is OPML.Outline:
-				if outline.has_key('xmlUrl'):
-					yield outline
-			
 		try:
 			p = OPML.parse(stream)
 		except:
@@ -1536,7 +1524,7 @@ class ptvDB:
 			yield -1
 		added_feeds=[]
 		yield len(p.outlines)
-		for o in outline_generator(p.outlines):
+		for o in OPML.outline_generator(p.outlines):
 			try:
 				feed_id=self.insertURL(o['xmlUrl'],o['text'])
 				#added_feeds.append(feed_id)
