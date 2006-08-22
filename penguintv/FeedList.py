@@ -115,27 +115,29 @@ class FeedList:
 			else:
 				tags = self.db.get_tags_for_feed(feed[2])
 				if tags:
-					for tag in tags:
-						if tag == self.filter_name:
-							passed_filter = True
-							break
-			#so now we know if we passed the main filter, but not the unviewed filter
+					if self.filter_name in tags:
+						passed_filter = True
+			#so now we know if we passed the main filter, but we need to test for special cases where we keep it anyway
+			#also, we still need to test for unviewed
 			if i == index and selected is not None:  #if it's the selected feed, we have to be careful
-				if self.filter_setting != NONE and keep_misfiltered==True:
-					#some cases when we want to keep the current feed visible
-					if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
-						passed_filter = True  #keep it
-						self.selecting_misfiltered=True
-					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
-						passed_filter = True
-						self.selecting_misfiltered=True
-					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
-						passed_filter = True
-						self.selecting_misfiltered=True
-					elif self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
-						passed_filter = True
-						self.selecting_misfiltered=True
+				if self.filter_setting != NONE:
+					if keep_misfiltered==True: 
+						#some cases when we want to keep the current feed visible
+						if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
+							passed_filter = True  #keep it
+							self.selecting_misfiltered=True
+						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
+							passed_filter = True
+							self.selecting_misfiltered=True
+						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
+							passed_filter = True
+							self.selecting_misfiltered=True
+						elif self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
+							passed_filter = True
+							self.selecting_misfiltered=True
+					#else: leave the filter result alone
 				else:
+					#if filter is NONE, no one is getting past.
 					passed_filter = False
 				if passed_filter == False:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
@@ -170,17 +172,15 @@ class FeedList:
 		else:
 			tags = self.db.get_tags_for_feed(feed_id)
 			if tags:
-				for tag in tags:
-					if tag == self.filter_name:
-						passed_filter = True
-						break
+				if self.filter_name in tags:
+					passed_filter = True
 		return passed_filter
 		
 	def clear_list(self):
 		self.feedlist.clear()
 		
 	def populate_feeds(self,subset=ALL):
-		"""With 100 feeds, this is starting to get slow (2-3 seconds)"""
+		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
 		#FIXME:  better way to get to the status display?
 		#DON'T gtk.iteration in this func! Causes endless loops!
 		if len(self.feedlist)==0:
@@ -441,6 +441,7 @@ class FeedList:
 		for flag in flag_list:
 			if flag & ptvDB.F_DOWNLOADED == ptvDB.F_DOWNLOADED:
 				media_exists=1
+				break
 		flag_list.sort()
 		best_flag = flag_list[-1]
 		if best_flag & ptvDB.F_DOWNLOADED == 0 and media_exists==1: #if there is an unread text-only entry, but all viewed media,
