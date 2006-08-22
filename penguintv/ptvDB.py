@@ -137,6 +137,7 @@ class ptvDB:
 			
 	def migrate_database_one_two(self):
 		#add table settings
+		print "upgrading to database schema 2"
 		try:
 			self.c.execute(u'SELECT * FROM settings')  #if it doesn't exist, 
 		except:                                        #we create it
@@ -170,9 +171,10 @@ class ptvDB:
 		self.c.execute(u'UPDATE feeds SET newatlast=0')
    
 		try:
-			self.c.execute(u'UPDATE settings SET value=2 WHERE data="db_ver"')
-		except:
 			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",2)')
+		except:
+			self.c.execute(u'UPDATE settings SET value=2 WHERE data="db_ver"')
+		self.db.commit()
 			
 	def migrate_database_two_three(self):
 		print "upgrading to database schema 3"
@@ -186,9 +188,7 @@ class ptvDB:
 			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",3)')
 		self.c.execute(u'INSERT INTO settings (data, value) VALUES ("feed_cache_dirty",1)')
 		self.db.commit()
-		print "done"
 		
-			
 	def clean_database_media(self):
 		self.c.execute("SELECT id,file,entry_id FROM media")
 		result = self.c.fetchall()

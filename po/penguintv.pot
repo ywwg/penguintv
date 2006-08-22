@@ -1,11 +1,11 @@
-# PenguinTV
-# Copyright (C) 2006 Owen Williams
-# Owen Williams <ywwg@usa.net>, 2006.
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR ORGANIZATION
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
-"POT-Creation-Date: 2006-08-10 12:26+EDT\n"
+"POT-Creation-Date: 2006-08-21 09:18+EDT\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -57,7 +57,7 @@ msgstr ""
 msgid "Delete"
 msgstr ""
 
-#: EntryList.py:247
+#: EntryList.py:247 MainWindow.py:324
 msgid "Mark as _Viewed"
 msgstr ""
 
@@ -109,10 +109,6 @@ msgstr ""
 msgid "Feeds"
 msgstr ""
 
-#: FeedList.py:63
-msgid ""
-msgstr ""
-
 #: FeedList.py:187
 msgid "Loading Feeds..."
 msgstr ""
@@ -139,6 +135,34 @@ msgstr ""
 
 #: HTTPDownloader.py:74 HTTPDownloader.py:76
 msgid "finished downloading %s"
+msgstr ""
+
+#: MainWindow.py:312
+msgid "Re_name"
+msgstr ""
+
+#: MainWindow.py:316
+msgid "Edit _Tags"
+msgstr ""
+
+#: MainWindow.py:328
+msgid "_Delete All Media"
+msgstr ""
+
+#: MainWindow.py:356 penguintv.py:557
+msgid "Select OPML..."
+msgstr ""
+
+#: MainWindow.py:374
+msgid "Importing Feeds, please wait..."
+msgstr ""
+
+#: MainWindow.py:613
+msgid "Downloaded %(percent)d%% of %(files)d file%(s)s, %(queued)d queued %(total)s"
+msgstr ""
+
+#: MainWindow.py:615
+msgid "Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s"
 msgstr ""
 
 #: penguintv.py:175
@@ -169,10 +193,6 @@ msgstr ""
 msgid ""
 "If PenguinTV downloads all of the unviewed media, \n"
 "it will take %(space)s. Do you wish to continue?"
-msgstr ""
-
-#: penguintv.py:557
-msgid "Select OPML..."
 msgstr ""
 
 #: penguintv.py:577
