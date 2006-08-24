@@ -100,6 +100,11 @@ except:
 	sys.exit("Need gnome-vfs python bindings")	
 	
 try:
+	import PyLucene
+except:
+	sys.exit("Need PyLucene")
+	
+try:
 	from xml.sax import saxutils
 	test = saxutils.DefaultHandler
 except:

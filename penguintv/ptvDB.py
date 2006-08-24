@@ -1205,6 +1205,7 @@ class ptvDB:
 			self.c.execute(u'UPDATE feeds SET title=? WHERE id=?',(channel['title'],feed_id))
 			self.db.commit()
 		self.reindex_feed_list.append(feed_id)
+		self.reindex()
 				
 	def set_media_download_status(self, media_id, status):
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))

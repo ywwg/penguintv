@@ -142,7 +142,7 @@ class EntryList:
 		if self.showing_search:
 			if len(self.search_results) > 0: 
 				if feed_id in [s[1] for s in self.search_results]:
-					self.show_search_results(self.search_results)
+					self.show_search_results(self.search_results, self.search_query)
 					self.highlight_results(feed_id)
 					return
 	

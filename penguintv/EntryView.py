@@ -308,6 +308,7 @@ class EntryView:
 		if self.RENDERRER == GTKHTML:
 			if len(highlight)>0:
 				try:
+					highlight = highlight.replace("*","")
 					p = HTMLHighlightParser(highlight)
 					p.feed(html)
 					html = p.new_data

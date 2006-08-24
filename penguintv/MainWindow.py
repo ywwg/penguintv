@@ -153,6 +153,14 @@ class MainWindow:
 		
 		self.search_entry = self.widgetTree.get_widget('search_entry')
 		self.search_container = self.widgetTree.get_widget('search_container')
+		
+		#button = self.widgetTree.get_widget('search_button')
+		#button.set_property("image",gtk.image_new_from_stock('gtk-find',gtk.ICON_SIZE_SMALL_TOOLBAR))
+		#button.set_property("label",None)
+		
+		#button = self.widgetTree.get_widget('clear_search_button')
+		#button.set_property("image",gtk.image_new_from_stock('gtk-clear',gtk.ICON_SIZE_SMALL_TOOLBAR))
+		#button.set_property("label",None)
 			
 		#set up separator between toolbar buttons and free space indicator
 		vseparator = self.widgetTree.get_widget('vseparator1')
@@ -465,6 +473,9 @@ class MainWindow:
 		self.window_add_search.show()
 		self.window_add_search.set_query(query)		
 		
+	def on_search_clear_clicked(self, event):
+		self.app.manual_search("")
+		
 	def on_saved_searches_activate(self, event):
 		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_edit_search_tags",'penguintv'),self.app)
 		window_edit_saved_searches.show()
@@ -582,7 +593,6 @@ class MainWindow:
 		model.append(["---","---",True,ptvDB.T_BUILTIN])			
 		tags = self.db.get_all_tags(ptvDB.T_SEARCH)	
 		if tags:
-
 			for tag in tags:
 				model.append([tag,"",False,ptvDB.T_SEARCH])
 		

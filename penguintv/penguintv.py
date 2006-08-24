@@ -766,8 +766,8 @@ class PenguinTVApp:
 			print "error with that search term", e
 			result=([],[])
 		try:
-			self.feed_list_view.show_search_results(result[0])
 			self.entry_list_view.show_search_results(result[1], query)
+			self.feed_list_view.show_search_results(result[0])
 		except ptvDB.BadSearchResults, e:
 			print e
 			self.db.reindex(result[0], [i[0] for i in result[1]])
@@ -777,9 +777,10 @@ class PenguinTVApp:
 		
 	def unshow_search(self):
 		self.showing_search = False
-		self.feed_list_view.unshow_search()
 		self.entry_list_view.unshow_search()
+		self.feed_list_view.unshow_search()
 		self.entry_view.display_item()
+		self.main_window.search_entry.set_text("")
 		self.main_window.filter_unread_checkbox.set_sensitive(True)
 		
 	def manual_search(self, query):

@@ -132,16 +132,32 @@ class FeedList:
 		#we now have a list of old indexes in the new order		
 		self.feedlist.reorder(i_list)
 		self.feed_filter.refilter()
+		self.va.set_value(0)
+		showing_feed = self.get_selected()
+		if not self._app.entrylist_selecting_right_now():
+			highlight_count = self._app.highlight_entry_results(showing_feed)
+			if highlight_count == 0:
+				self._app.display_feed(showing_feed)
 		
 	def unshow_search(self):
+		showing_feed = self.get_selected()
 		self.showing_search = False
 		id_list = [feed[FEEDID] for feed in self.feedlist]
 		f_list = list(self.feedlist)
-		f_list.sort(lambda x,y: x[TITLE]==y[TITLE] and 0 or x[TITLE]>y[TITLE])
+		def alpha_sorter(x,y):
+			if x[TITLE].upper()>y[TITLE].upper():
+				return 1
+			if x[TITLE].upper()==y[TITLE].upper():
+				return 0
+			return -1
+		f_list.sort(alpha_sorter)
 		i_list = []
 		for f in f_list:
 			i_list.append(id_list.index(f[FEEDID]))
 		self.feedlist.reorder(i_list)
+		if showing_feed is not None:
+			self.set_selected(showing_feed)
+			self._app.display_feed(showing_feed)
 		self.do_filter(False)
 		
 	def set_unread_toggle(self, active):
@@ -494,7 +510,7 @@ class FeedList:
 			#	return True
 		
 			
-		if need_filter:
+		if need_filter and not self.showing_search:
 			self.do_filter()
 		
 	def _pick_important_flag(self, feed_id, flag_list):
@@ -530,7 +546,6 @@ class FeedList:
 					if highlight_count == 0:
 						self._app.display_feed(item)
 				return
-				
 			if item == self.last_selected:
 				self._app.display_feed(item)
 			else:
