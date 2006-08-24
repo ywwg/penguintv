@@ -1,5 +1,5 @@
 cd ../penguintv
-pygettext penguintv.py utils.py MainWindow.py MediaManager.py BTDownloader.py EntryList.py FeedList.py HTTPDownloader.py EntryView.py AddFeedDialog.py
+pygettext penguintv.py utils.py MainWindow.py MediaManager.py BTDownloader.py EntryList.py FeedList.py HTTPDownloader.py EntryView.py AddFeedDialog.py EditSearchesDialog.py
 mv messages.pot ../po/penguintv.pot
 cd ../po
 intltool-extract --type "gettext/glade" ../share/penguintv.glade

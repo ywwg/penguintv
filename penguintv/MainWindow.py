@@ -20,6 +20,8 @@ import utils
 import EditTextTagsDialog
 import EditTagsMultiDialog
 import RenameFeedDialog
+import AddSearchTagDialog
+import EditSearchesDialog
 import MainWindow, FeedList, EntryList, EntryView
 
 superglobal=utils.SuperGlobal()
@@ -53,6 +55,7 @@ class MainWindow:
 		self.window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_rename_feed",'penguintv'),self.app) #MAGIC
 		self.window_rename_feed.hide()
 		self.window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_edit_tags_single",'penguintv'),self.app)
+		self.window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_search_tag",'penguintv'),self.app)
 		self.about_box_widgets = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "aboutdialog1",'penguintv')
 		self.about_box = self.about_box_widgets.get_widget('aboutdialog1')
 		try:
@@ -127,7 +130,7 @@ class MainWindow:
 		self.disk_usage_widget = self.widgetTree.get_widget('disk_usage')
 		
 		self.filter_combo_widget = self.widgetTree.get_widget('filter_combo')
-		filter_combo_model = gtk.ListStore(str,str,bool) #text to display, name of filter, separator-or-not
+		filter_combo_model = gtk.ListStore(str,str,bool,int) #text to display, name of filter, separator-or-not, type
 		self.filter_combo_widget.set_model(filter_combo_model)		
 		self.filter_combo_widget.set_row_separator_func(lambda model,iter: model[model.get_path(iter)[0]][2])
 		
@@ -142,10 +145,10 @@ class MainWindow:
 		
 		self.filter_unread_checkbox = self.widgetTree.get_widget('unread_filter')
 		
-		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False])
+		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
-			filter_combo_model.append([builtin,"",False])
-		filter_combo_model.append(["---","---",True])
+			filter_combo_model.append([builtin,"",False,ptvDB.T_BUILTIN])
+		filter_combo_model.append(["---","---",True,ptvDB.T_BUILTIN])
 		self.update_filters()
 		
 		self.search_entry = self.widgetTree.get_widget('search_entry')
@@ -198,8 +201,13 @@ class MainWindow:
 		val = conf.get_string('/apps/penguintv/default_filter')
 		if val is not None:
 			try:
-				self.feed_list_view.set_filter([row[0] for row in filter_combo_model].index(val),val)
-				self.filter_combo_widget.set_active([row[0] for row in filter_combo_model].index(val))
+				filter_index = [row[0] for row in filter_combo_model].index(val)
+				cur_filter = filter_combo_model[filter_index]
+				if cur_filter[3] != ptvDB.T_SEARCH and filter_index!=FeedList.SEARCH:
+					self.feed_list_view.set_filter(filter_index,val)
+					self.filter_combo_widget.set_active(filter_index)
+				else:
+					self.filter_combo_widget.set_active(FeedList.ALL)
 			except ValueError: #didn't find the item in the model (.index(val) fails)
 				self.filter_combo_widget.set_active(FeedList.ALL)
 		else:
@@ -356,8 +364,8 @@ class MainWindow:
 		
 	def on_filter_combo_changed(self, event):
 		model = self.filter_combo_widget.get_model()
-		current_filter = model[self.filter_combo_widget.get_active()][0]
-		self.app.change_filter(current_filter)
+		current_filter = model[self.filter_combo_widget.get_active()]
+		self.app.change_filter(current_filter[0],current_filter[3])
 			
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -433,6 +441,9 @@ class MainWindow:
 		self.app.poll_feeds()
 		self.set_wait_cursor(False)
 		
+	def on_reindex_searches_activate(self, event):
+		self.app.db.reindex()
+		
 	def on_remove_feed_activate(self, event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
@@ -447,8 +458,20 @@ class MainWindow:
 	def on_resume_all_activate(self, event):
 		self.app.resume_resumable()
 		
+	def on_save_search_clicked(self, event):
+		query = self.search_entry.get_text()
+		if query=="":
+			return
+		self.window_add_search.show()
+		self.window_add_search.set_query(query)		
+		
+	def on_saved_searches_activate(self, event):
+		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_edit_search_tags",'penguintv'),self.app)
+		window_edit_saved_searches.show()
+		del window_edit_saved_searches
+		
 	def on_search_entry_activate(self, event):
-		self.app.search(self.search_entry.get_text())
+		self.app.manual_search(self.search_entry.get_text())
 		
 	def on_show_downloads_activate(self, event):
 		self.app.show_downloads()
@@ -552,15 +575,22 @@ class MainWindow:
 		#		current_filter = ALL  #in case the current filter is an out of date tag
 		model.clear()
 
-		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False])
+		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
-			model.append([builtin,"",False])
-		model.append(["---","---",True])
-		tags = self.db.get_all_tags()	
+			model.append([builtin,"",False,ptvDB.T_BUILTIN])
+		model.append(["---","---",True,ptvDB.T_BUILTIN])
+		
+		tags = self.db.get_all_tags(ptvDB.T_SEARCH)	
 		if tags:
 			for tag in tags:
-				model.append([tag,"("+str(self.db.get_count_for_tag(tag))+")",False])
-			
+				model.append([tag,"",False,ptvDB.T_SEARCH])
+		model.append(["---","---",True,ptvDB.T_BUILTIN])
+		
+		tags = self.db.get_all_tags(ptvDB.T_TAG)	
+		if tags:
+			for tag in tags:
+				model.append([tag,"("+str(self.db.get_count_for_tag(tag))+")",False,ptvDB.T_TAG])
+		
 		#get index for our previously selected tag
 		i = 0
 		found = 0

@@ -246,7 +246,6 @@ class FeedList:
 		
 	def populate_feeds(self,subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
-		print "populate"
 		#FIXME:  better way to get to the status display?
 		#DON'T gtk.iteration in this func! Causes endless loops!
 		if len(self.feedlist)==0:
@@ -263,7 +262,6 @@ class FeedList:
 	
 	def _update_feeds_generator(self, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
-		print "update gen"
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self.db.get_feed_cache()

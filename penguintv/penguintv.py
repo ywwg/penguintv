@@ -385,6 +385,11 @@ class PenguinTVApp:
 			#self.entry_list_view.populate_entries(d[3])
 			self.entry_list_view.update_entry_list(d[2])
 			
+	def add_search_tag(self, query, tag_name):
+		self.db.add_search_tag(query, tag_name)
+		#could raise ptvDB.TagAlreadyExists, let it go
+		self.main_window.update_filters()
+			
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
 		old_set = sets.Set(old_tags)
@@ -753,17 +758,8 @@ class PenguinTVApp:
 		
 	def search(self, query):
 		query = query.replace("!","")
-		self.saved_search = query #even if it's blank
 		self.showing_search = True
-		if len(query)==0:
-			self.saved_search = ""
-			self.showing_search = False
-			self.feed_list_view.unshow_search()
-			self.entry_list_view.unshow_search()
-			self.entry_view.display_item()
-			self.main_window.filter_combo_widget.set_active(self.saved_filter)
-			self.main_window.filter_unread_checkbox.set_sensitive(True)
-			return
+		
 		try:
 			result = self.db.search(query)
 		except Exception, e:
@@ -777,9 +773,26 @@ class PenguinTVApp:
 			self.db.reindex(result[0], [i[0] for i in result[1]])
 			self.search(query)
 			return
+		self.main_window.filter_unread_checkbox.set_sensitive(False)
+		
+	def unshow_search(self):
+		self.showing_search = False
+		self.feed_list_view.unshow_search()
+		self.entry_list_view.unshow_search()
+		self.entry_view.display_item()
+		self.main_window.filter_unread_checkbox.set_sensitive(True)
+		
+	def manual_search(self, query):
+		self.saved_search = query #even if it's blank
+		if len(query)==0:
+			self.unshow_search()
+			self.saved_search = ""
+			self.main_window.filter_combo_widget.set_active(self.saved_filter)
+			return
+			
+		self.search(query)
 		self.saved_filter = self.main_window.filter_combo_widget.get_active()
 		self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
-		self.main_window.filter_unread_checkbox.set_sensitive(False)
 		
 	def entrylist_selecting_right_now(self):
 		return self.entry_list_view.presently_selecting
@@ -790,27 +803,20 @@ class PenguinTVApp:
 	def select_feed(self, feed_id):
 		self.feed_list_view.set_selected(feed_id)
 
-	def change_filter(self, current_filter):
+	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.filter_combo_widget.get_active()
 		if filter_id == FeedList.SEARCH:
-			self.showing_search = True
-			if self.saved_search != "":
-				result = self.db.search(self.saved_search)
-			else:
-				result = ([],[])
-			self.feed_list_view.show_search_results(result[0])
-			self.entry_list_view.show_search_results(result[1], self.saved_search)
-			self.main_window.filter_unread_checkbox.set_sensitive(False)
+			self.search(self.saved_search)
 			self.main_window.search_entry.set_text(self.saved_search)
 		else:
-			if self.showing_search:
-				self.feed_list_view.unshow_search()
-				self.entry_list_view.unshow_search()
-				self.entry_view.display_item()
-				self.main_window.search_entry.set_text("")
-				self.main_window.filter_unread_checkbox.set_sensitive(True)
-				self.showing_search = False
-			self.main_window.feed_list_view.set_filter(filter_id, current_filter)
+			if tag_type != ptvDB.T_SEARCH:
+				if self.showing_search:
+					self.unshow_search()
+				self.main_window.feed_list_view.set_filter(filter_id, current_filter)
+			else:
+				query = self.db.get_search_tag(current_filter)
+				self.unshow_search()
+				self.search(query)
 				
 	def show_downloads(self):
 		self.mediamanager.generate_playlist()

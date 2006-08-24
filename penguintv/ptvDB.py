@@ -43,6 +43,7 @@ MAX_ARTICLES = 0
 
 _common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
 
+#Possible entry flags
 F_ERROR       = 64
 F_DOWNLOADING = 32   
 F_UNVIEWED    = 16
@@ -51,18 +52,26 @@ F_NEW         = 4
 F_PAUSED      = 2
 F_MEDIA       = 1
 
+#arguments for poller
 A_DO_REINDEX     = 16
 A_ALL_FEEDS      = 8
 A_AUTOTUNE       = 4
 A_IGNORE_ETAG    = 2
 A_DELETE_ENTRIES = 1 
 
+#download statuses
 D_NOT_DOWNLOADED = 0
 D_DOWNLOADING    = 1
 D_DOWNLOADED     = 2
 D_RESUMABLE      = 3
 D_ERROR          = -1
 D_WARNING        = -2
+
+#tag types
+T_ALL     = 0
+T_TAG     = 1
+T_SEARCH  = 2
+T_BUILTIN = 3
 
 NOAUTODOWNLOAD="noautodownload"
 
@@ -82,18 +91,18 @@ class ptvDB:
 			except:
 				raise DBError, "error creating directories: "+self.home+"/.penguintv"
 		try:	
-			if os.path.isfile(self.home+"/.penguintv/penguintv2.db") == False:
-				#if os.path.isfile(self.home+"/.penguintv/penguintv2.db"):
-				#	try: 
-				#		shutil.copyfile(self.home+"/.penguintv/penguintv2.db", self.home+"/.penguintv/penguintv3.db")
-				#	except:
-				#		raise DBError,"couldn't create new database file"
-				if os.path.isfile(self.home+"/.penguintv/penguintv.db"):
+			if os.path.isfile(self.home+"/.penguintv/penguintv3.db") == False:
+				if os.path.isfile(self.home+"/.penguintv/penguintv2.db"):
 					try: 
-						shutil.copyfile(self.home+"/.penguintv/penguintv.db", self.home+"/.penguintv/penguintv2.db")
+						shutil.copyfile(self.home+"/.penguintv/penguintv2.db", self.home+"/.penguintv/penguintv3.db")
 					except:
 						raise DBError,"couldn't create new database file"
-			self.db=sqlite.connect(self.home+"/.penguintv/penguintv2.db", timeout=10	)
+				elif os.path.isfile(self.home+"/.penguintv/penguintv.db"):
+					try: 
+						shutil.copyfile(self.home+"/.penguintv/penguintv.db", self.home+"/.penguintv/penguintv3.db")
+					except:
+						raise DBError,"couldn't create new database file"
+			self.db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=10	)
 			self.db.isolation_level="DEFERRED"
 		except:
 			raise DBError,"error connecting to database"
@@ -137,24 +146,29 @@ class ptvDB:
 			self.c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
 			db_ver = self.c.fetchone()
 			db_ver = db_ver[0]
+			print "current database version is",db_ver
 			if db_ver is None:
 				self.migrate_database_one_two()
 				self.migrate_database_two_three()
+				self.migrate_database_three_four()
 				self.clean_database_media()
 			elif db_ver < 2:
 				self.migrate_database_one_two()
 				self.migrate_database_two_three()
+				self.migrate_database_three_four()
 				self.clean_database_media()
 			elif db_ver < 3:
 				self.migrate_database_two_three()
+				self.migrate_database_three_four()
 				self.clean_database_media()
-			#elif db_ver < 4:
-			#	self.migrate_database_three_four()
-			#	self.clean_database_media()
-			elif db_ver > 3:
+			elif db_ver < 4:
+				self.migrate_database_three_four()
+				self.clean_database_media()
+			elif db_ver > 4:
 				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
-				raise DBError, "db_ver is "+str(db_ver)+" instead of 3"
-		except:
+				raise DBError, "db_ver is "+str(db_ver)+" instead of 4"
+		except Exception, e:
+			print "exception:",e
 			self.migrate_database_one_two()
 			self.migrate_database_two_three()
 			#self.migrate_database_three_four()
@@ -202,7 +216,11 @@ class ptvDB:
 		try:
 			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",2)')
 		except:
+			pass
+		try:
 			self.c.execute(u'UPDATE settings SET value=2 WHERE data="db_ver"')
+		except:
+			pass
 		self.db.commit()
 			
 	def migrate_database_two_three(self):
@@ -212,16 +230,18 @@ class ptvDB:
 		self.c.execute(u'ALTER TABLE feeds ADD COLUMN entry_count_cache INT')
 		self.c.execute(u'ALTER TABLE feeds ADD COLUMN unread_count_cache INT')
 		
-		try:
-			self.c.execute(u'UPDATE settings SET value=3 WHERE data="db_ver"')
-		except:
-			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",3)')
+		self.c.execute(u'UPDATE settings SET value=3 WHERE data="db_ver"')
 		self.c.execute(u'INSERT INTO settings (data, value) VALUES ("feed_cache_dirty",1)')
 		self.db.commit()
 		
-	#def migrate_database_three_four(self):
-	#	"""version 4 adds fulltext table"""
-	#	print "upgrading to database schema 4"
+	def migrate_database_three_four(self):
+		"""version 4 adds fulltext table"""
+		print "upgrading to database schema 4"
+		self.c.execute(u'ALTER TABLE tags ADD COLUMN type INT')
+		self.c.execute(u'ALTER TABLE tags ADD COLUMN query')
+		self.c.execute(u'UPDATE tags SET type=?',(T_TAG,)) #they must all be regular tags
+		self.c.execute(u'UPDATE settings SET value=4 WHERE data="db_ver"')
+		self.db.commit()
 		
 	def init_database(self):
 		try:
@@ -309,7 +329,9 @@ class ptvDB:
 							(
 							id INTEGER PRIMARY KEY,
 							tag,
-							feed_id INT UNSIGNED NOT NULL);""")
+							feed_id INT UNSIGNED NOT NULL,
+							query,
+							type INT);""")
 							
 #		self.c.execute(u"""CREATE TABLE fulltext
 #						   (
@@ -1176,6 +1198,7 @@ class ptvDB:
 			
 			self.c.execute(u'UPDATE feeds SET title=? WHERE id=?',(channel['title'],feed_id))
 			self.db.commit()
+		self.searcher.Re_Index_Threaded([feed_id])
 		self.reindex_feed_list.append(feed_id)
 				
 	def set_media_download_status(self, media_id, status):
@@ -1505,21 +1528,54 @@ class ptvDB:
 		else:
 			return
 		return dataList
+		
+	def get_search_tag(self, tag):
+		self.c.execute(u'SELECT query FROM tags WHERE tag=?',(tag,))
+		result = self.c.fetchone()
+		if result: 
+			return result[0]
+		return None
+		
+	def get_search_tags(self):
+		self.c.execute(u'SELECT tag,query FROM tags WHERE type=? ORDER BY tag',(T_SEARCH,))
+		result = self.c.fetchall()
+		if result:
+			return result
+		return None
 	
 	def add_tag_for_feed(self, feed_id, tag):
 		current_tags = self.get_tags_for_feed(feed_id)
 		if current_tags:
 			if tag not in current_tags and len(tag)>0:
-				self.c.execute(u'INSERT INTO tags (tag, feed_id) VALUES (?,?)',(tag,feed_id))
+				self.c.execute(u'INSERT INTO tags (tag, feed_id, type) VALUES (?,?,?)',(tag,feed_id, T_TAG))
 				self.db.commit()
 		else:
-			self.c.execute(u'INSERT INTO tags (tag, feed_id) VALUES (?,?)',(tag,feed_id))
+			self.c.execute(u'INSERT INTO tags (tag, feed_id, type) VALUES (?,?,?)',(tag,feed_id, T_TAG))
 			self.db.commit()
+			
+	def add_search_tag(self, query, tag):
+		current_tags = self.get_all_tags(T_ALL)
+		if current_tags:
+			if tag not in current_tags:
+				self.c.execute(u'INSERT INTO tags (tag, feed_id, query, type) VALUES (?,?,?,?)',(tag,0,query,T_SEARCH))
+				self.db.commit()
+			else:
+				raise TagAlreadyExists,"The tag name "+str(tag)+" is already being used"
+		else:
+			self.c.execute(u'INSERT INTO tags (tag, feed_id, query, type) VALUES (?,?,?,?)',(tag,0,query,T_SEARCH))
+			self.db.commit()	
+	
+	def change_query_for_tag(self, tag, query):
+		try:
+			self.c.execute(u'UPDATE tags SET query=? WHERE tag=?',(query,tag))
+			self.db.commit()
+		except:
+			print "error updating tag"
 
 	def rename_tag(self, old_tag, new_tag):
 		self.c.execute(u'UPDATE tags SET tag=? WHERE tag=?',(new_tag,old_tag))
 		self.db.commit()
-	
+		
 	def remove_tag_from_feed(self, feed_id, tag):
 		self.c.execute(u'DELETE FROM tags WHERE tag=? AND feed_id=?',(tag,feed_id))
 		self.db.commit()
@@ -1528,8 +1584,13 @@ class ptvDB:
 		self.c.execute(u'DELETE FROM tags WHERE tag=?',(tag,))
 		self.db.commit()
 		
-	def get_all_tags(self):
-		self.c.execute(u'SELECT DISTINCT tag FROM tags ORDER BY tag')
+	def get_all_tags(self, type=T_TAG):
+		if type==T_ALL:
+			self.c.execute(u'SELECT DISTINCT tag FROM tags ORDER BY tag')
+		elif type==T_TAG:
+			self.c.execute(u'SELECT DISTINCT tag FROM tags WHERE type=? ORDER BY tag',(T_TAG,))
+		elif type==T_SEARCH:
+			self.c.execute(u'SELECT DISTINCT tag FROM tags WHERE type=? ORDER BY tag',(T_SEARCH,))
 		result = self.c.fetchall()
 		dataList = []
 		if result: 
@@ -1601,8 +1662,8 @@ class ptvDB:
 	def search(self, query):
 		return self.searcher.Search(query)
 		
-	def reindex(self, feedlist, entrylist):
-		self.searcher.Re_Index(feedlist,entrylist)
+	def reindex(self):
+		self.searcher.Do_Index_Threaded()
 		
 	#############convenience Functions####################3
 		
@@ -1719,6 +1780,12 @@ class FeedAlreadyExists(Exception):
 		self.feed = feed
 	def __str__(self):
 		return self.feed
+		
+class TagAlreadyExists(Exception):
+	def __init__(self,tag):
+		self.tag = tag
+	def __str__(self):
+		return self.tag
 		
 class BadSearchResults(Exception):
 	def __init__(self,m):
