@@ -442,7 +442,7 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def on_reindex_searches_activate(self, event):
-		self.app.db.reindex()
+		self.app.db.doindex()
 		
 	def on_remove_feed_activate(self, event):
 		selected = self.feed_list_view.get_selected()
@@ -578,14 +578,15 @@ class MainWindow:
 		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
 			model.append([builtin,"",False,ptvDB.T_BUILTIN])
-		model.append(["---","---",True,ptvDB.T_BUILTIN])
-		
+
+		model.append(["---","---",True,ptvDB.T_BUILTIN])			
 		tags = self.db.get_all_tags(ptvDB.T_SEARCH)	
 		if tags:
+
 			for tag in tags:
 				model.append([tag,"",False,ptvDB.T_SEARCH])
-		model.append(["---","---",True,ptvDB.T_BUILTIN])
 		
+		model.append(["---","---",True,ptvDB.T_BUILTIN])
 		tags = self.db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
 			for tag in tags:

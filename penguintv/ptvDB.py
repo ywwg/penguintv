@@ -75,6 +75,8 @@ T_BUILTIN = 3
 
 NOAUTODOWNLOAD="noautodownload"
 
+DB_FILE="penguintv3.db"
+
 from HTMLParser import HTMLParser
 from formatter import NullFormatter
 
@@ -91,6 +93,7 @@ class ptvDB:
 			except:
 				raise DBError, "error creating directories: "+self.home+"/.penguintv"
 		try:	
+			#also change db connection in pool poll
 			if os.path.isfile(self.home+"/.penguintv/penguintv3.db") == False:
 				if os.path.isfile(self.home+"/.penguintv/penguintv2.db"):
 					try: 
@@ -498,6 +501,8 @@ class ptvDB:
 		"""Polls multiple feeds multithreadedly"""
 		###print "start poll"
 		successes=[]
+		self.reindex_entry_list = []
+		self.reindex_feed_list = []
 		index = 0
 		cur_time = time.time()
 		
@@ -531,18 +536,19 @@ class ptvDB:
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
 		print "reindexing"
-		self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
+		self.reindex()
 				
 	def pool_poll_feed(self,args, recurse=0):
 		"""a wrapper function that returns the index along with the result
 		so we can sort.  Each poller needs its own db connection for locking reasons"""
 		try:	
-			db=sqlite.connect(self.home+"/.penguintv/penguintv2.db", timeout=20)
+			db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=20)
 		except:
 			raise DBError,"error connecting to database"
-			
+		
 		index=args[0]
 		feed_id=args[1]
+		
 		poll_arguments = 0
 		result = 0
 		pollfail = False
@@ -564,7 +570,7 @@ class ptvDB:
 			print "can't get lock, giving up"
 			return (feed_id,{'pollfail':True})
 		except FeedPollError,e:
-			#print e
+			print e
 			pollfail = True
 			db.close()
 			del db
@@ -608,7 +614,7 @@ class ptvDB:
 			print "polling feed"
 			self.poll_feed(feed_id)
 			print "reindexing"
-			self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
+			self.reindex()
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
 			print e
@@ -951,7 +957,7 @@ class ptvDB:
 		c.close()
 		if arguments & A_DO_REINDEX:
 			print "reindexing"
-			self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
+			self.reindex()
 		return new_items
 		
 	def set_new_update_freq(self, db,c, feed_id, new_items):
@@ -1198,7 +1204,6 @@ class ptvDB:
 			
 			self.c.execute(u'UPDATE feeds SET title=? WHERE id=?',(channel['title'],feed_id))
 			self.db.commit()
-		self.searcher.Re_Index_Threaded([feed_id])
 		self.reindex_feed_list.append(feed_id)
 				
 	def set_media_download_status(self, media_id, status):
@@ -1292,8 +1297,9 @@ class ptvDB:
 		#build a list of feeds that do not include the noautodownload tag
 		feeds = [l[3] for l in newlist]
 		feeds = utils.uniquer(feeds)
-		good_feeds = [f for f in feeds if NOAUTODOWNLOAD not in self.get_tags_for_feed(f)]
-		newlist = [l for l in newlist if l[3] in good_feeds]
+		if feeds is not None:
+			good_feeds = [f for f in feeds if NOAUTODOWNLOAD not in self.get_tags_for_feed(f)]
+			newlist = [l for l in newlist if l[3] in good_feeds]
 		return newlist 
 		
 	def get_resumable_media(self):
@@ -1321,7 +1327,7 @@ class ptvDB:
 			if item[1] == D_ERROR:
 				self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (D_NOT_DOWNLOADED,item[0]))
 		self.db.commit()
-		self.c.execute(u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
+		self.c.execute(u'SELECT id,read FROM entries WHERE feed_id=?',(feed_id,))
 		list = self.c.fetchall()
 		for item in list:
 			if self.entry_flag_cache.has_key(item[0]): 
@@ -1662,8 +1668,13 @@ class ptvDB:
 	def search(self, query):
 		return self.searcher.Search(query)
 		
-	def reindex(self):
+	def doindex(self):
 		self.searcher.Do_Index_Threaded()
+		
+	def reindex(self):
+		self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
+		self.reindex_feed_list = []
+		self.reindex_entry_list = []
 		
 	#############convenience Functions####################3
 		
