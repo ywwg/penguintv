@@ -5,7 +5,7 @@ import penguintv
 import utils
 import time
 import os
-import htmllib
+import htmllib, HTMLParser
 import formatter
 import threading
 
@@ -224,7 +224,7 @@ class EntryView:
 		va.set_value(info[0])
 		ha.get_value(info[1])
 			  		
-	def display_item(self, item=None):
+	def display_item(self, item=None, highlight=""):
 		va = self._scrolled_window.get_vadjustment()
 		ha = self._scrolled_window.get_hadjustment()
 		rescroll=0
@@ -305,6 +305,10 @@ class EntryView:
 		#print html
 		html = html.encode('utf-8')
 		if self.RENDERRER == GTKHTML:
+			if len(highlight)>0:
+				p = HTMLHighlightParser(highlight)
+				p.feed(html)
+				html = p.new_data
 			p = HTMLimgParser()
 			p.feed(html)
 			uncached=0
@@ -536,3 +540,29 @@ class HTMLimgParser(htmllib.HTMLParser):
 			if name == 'src':
 				new_image = value
 				self.images.append(new_image)
+				
+class HTMLHighlightParser(HTMLParser.HTMLParser):
+	def __init__(self, highlight_terms):
+		HTMLParser.HTMLParser.__init__(self)
+		self.terms = highlight_terms.split()
+		self.new_data = ""
+		
+	def handle_starttag(self, tag, attrs):
+		if len(attrs)>0:
+			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+">"
+		else:
+			self.new_data+="<"+str(tag)+">"
+			
+	def handle_startendtag(self, tag, attrs):
+		if len(attrs)>0:
+			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+"/>"
+		else:
+			self.new_data+="<"+str(tag)+"/>"
+			
+	def handle_endtag(self, tag):
+		self.new_data+="</"+str(tag)+">"
+	
+	def handle_data(self, data):
+		for term in self.terms:
+			data = data.replace(term, """<span style="background-color: #FFFF00">"""+term+"</span>")
+		self.new_data+=data

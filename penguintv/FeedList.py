@@ -11,13 +11,13 @@ import traceback, sys
 import random
 
 
+NONE=-1 #unused, needs a value
 ALL=0
 DOWNLOADED=1
 ACTIVE=2
-NONE=3
-SEARCH=4
-UNKNOWN=5
-BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"),_("No Feeds (Calm Mode)"), _("Search Results")]
+SEARCH=3
+UNKNOWN=4
+BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"), _("Search Results")]
 
 TITLE=0
 MARKUPTITLE=1

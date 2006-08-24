@@ -403,7 +403,7 @@ class PenguinTVApp:
 		"""used by other classes so they don't all need to know about EntryList"""
 		self.entry_list_view.populate_entries(feed_id,selected_entry)
 		
-	def display_entry(self, entry_id, set_read=1):
+	def display_entry(self, entry_id, set_read=1, query=""):
 		if entry_id is not None:
 			item = self.db.get_entry(entry_id)
 			media = self.db.get_entry_media(entry_id)
@@ -419,7 +419,7 @@ class PenguinTVApp:
 				self.db.set_entry_read(entry_id,1)
 				self.entry_list_view.update_entry_list(entry_id)
 				self.feed_list_view.update_feed_list(item['feed_id'],['readinfo','icon'])
-		self.entry_view.display_item(item)
+		self.entry_view.display_item(item, query)
 	
 	def display_custom_entry(self, message):
 		"""Used by other classes so they don't need to know about EntryView"""
@@ -752,6 +752,7 @@ class PenguinTVApp:
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
 		
 	def search(self, query):
+		query = query.replace("!","")
 		self.saved_search = query #even if it's blank
 		self.showing_search = True
 		if len(query)==0:
@@ -763,10 +764,14 @@ class PenguinTVApp:
 			self.main_window.filter_combo_widget.set_active(self.saved_filter)
 			self.main_window.filter_unread_checkbox.set_sensitive(True)
 			return
-		result = self.db.search(query)
+		try:
+			result = self.db.search(query)
+		except Exception, e:
+			print "error with that search term", e
+			result=([],[])
 		try:
 			self.feed_list_view.show_search_results(result[0])
-			self.entry_list_view.show_search_results(result[1])
+			self.entry_list_view.show_search_results(result[1], query)
 		except ptvDB.BadSearchResults, e:
 			print e
 			self.db.reindex(result[0], [i[0] for i in result[1]])
@@ -794,7 +799,7 @@ class PenguinTVApp:
 			else:
 				result = ([],[])
 			self.feed_list_view.show_search_results(result[0])
-			self.entry_list_view.show_search_results(result[1])
+			self.entry_list_view.show_search_results(result[1], self.saved_search)
 			self.main_window.filter_unread_checkbox.set_sensitive(False)
 			self.main_window.search_entry.set_text(self.saved_search)
 		else:

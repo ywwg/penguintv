@@ -23,6 +23,7 @@ class EntryList:
 		self.feed_id=None
 		self.last_entry=None
 		self.showing_search = False
+		self.search_query = ""
 		self.search_results = []
 		self.presently_selecting = False
 		#self.context_menu_activate=False
@@ -60,9 +61,10 @@ class EntryList:
 		if feed_id == self.feed_id:
 			self.populate_entries(feed_id, -1)
 			
-	def show_search_results(self, entries):
+	def show_search_results(self, entries, query):
 		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
 		self.showing_search = True
+		self.search_query = query
 		if entries is None:
 			entries = []
 		self.search_results = entries
@@ -90,6 +92,7 @@ class EntryList:
 		
 	def unshow_search(self):
 		self.showing_search = False
+		self.search_query = ""
 		self._widget.get_selection().unselect_all()
 		self.search_results = []
 		self.entrylist.clear()
@@ -251,7 +254,7 @@ class EntryList:
 		selection = self._widget.get_selection()
 		try:
 			selected = self.get_selected(selection)['entry_id']
-			self._app.display_entry(selected, 0) #don't change read-state on this display, 
+			self._app.display_entry(selected, 0, self.search_query) #don't change read-state on this display, 
 		except:									#so if someone just marked this unread, it won't change right back
 			pass
 	 
@@ -272,7 +275,8 @@ class EntryList:
 		#print "selected item: "+str(selected) #CONVENIENT
 		if self.showing_search:
 			self._app.select_feed(selected['feed_id'])
-		self._app.display_entry(selected['entry_id'])
+		if selection.count_selected_rows()==1:
+			self._app.display_entry(selected['entry_id'], query=self.search_query)
 		self.presently_selecting = False
 			
 	def get_selected(self, selection=None):
