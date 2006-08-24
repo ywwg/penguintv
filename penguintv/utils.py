@@ -18,7 +18,7 @@ _=gettext.gettext
 
 
 
-VERSION="2.0.2"
+VERSION="2.5"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 

@@ -33,6 +33,8 @@ import gconf
 import HTMLParser
 import feedparser
 
+import PyLucene
+
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -91,6 +93,8 @@ class PenguinTVApp:
 		self.db = ptvDB.ptvDB(self._polling_callback)
 		self.firstrun = self.db.maybe_initialize_db()
 		self.db.clean_media_status()
+		if self.db.cache_dirty: #assume index is bad as well
+			self.db.searcher.Do_Index_Threaded()
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
 		self.conf = gconf.client_get_default()
 		self.player = Player.Player()
@@ -106,6 +110,9 @@ class PenguinTVApp:
 		self.auto_download_limiter = False
 		self.auto_download_limit=1024*1024
 		self.pausing_all_downloads = False
+		self.saved_filter = FeedList.ALL
+		self.saved_search = ""
+		self.showing_search = False
 		
 		window_layout = self.conf.get_string('/apps/penguintv/app_window_layout')
 		if window_layout is None:
@@ -156,6 +163,7 @@ class PenguinTVApp:
 		#updaters
 		gobject.timeout_add(500, self._gui_updater)
 		gobject.timeout_add(10000, self.progress_checker)
+		self.main_window.search_container.set_sensitive(False)
 		self.feed_list_view.populate_feeds()
 		if self.autoresume:
 			gobject.idle_add(self.resume_resumable)
@@ -653,6 +661,7 @@ class PenguinTVApp:
 				i+=1.0
 				yield True
 			self.feed_list_view.clear_list()
+			self.main_window.search_container.set_sensitive(False)
 			self.feed_list_view.populate_feeds()
 			self.main_window.update_filters()
 			saved_auto = False
@@ -735,12 +744,68 @@ class PenguinTVApp:
 		#if event.state & gtk.gdk.SHIFT_MASK:
 		#	print "shift-- shift delete it"
 		self.main_window.display_status_message(_("Polling Feed..."))
-		task_id = self.updater.queue_task(DB,self.updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG))
+		task_id = self.updater.queue_task(DB,self.updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG+ptvDB.A_DO_REINDEX))
 		self.updater.queue_task(GUI,self.feed_list_view.update_feed_list,(feed,['readinfo','icon']), task_id, False)
 		self.updater.queue_task(GUI,self.entry_list_view.update_entry_list,None, task_id, False)
 		task_id2 = self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feed Updated"), task_id)
 		self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
+		
+	def search(self, query):
+		self.saved_search = query #even if it's blank
+		self.showing_search = True
+		if len(query)==0:
+			self.saved_search = ""
+			self.showing_search = False
+			self.feed_list_view.unshow_search()
+			self.entry_list_view.unshow_search()
+			self.entry_view.display_item()
+			self.main_window.filter_combo_widget.set_active(self.saved_filter)
+			self.main_window.filter_unread_checkbox.set_sensitive(True)
+			return
+		result = self.db.search(query)
+		try:
+			self.feed_list_view.show_search_results(result[0])
+			self.entry_list_view.show_search_results(result[1])
+		except ptvDB.BadSearchResults, e:
+			print e
+			self.db.reindex(result[0], [i[0] for i in result[1]])
+			self.search(query)
+			return
+		self.saved_filter = self.main_window.filter_combo_widget.get_active()
+		self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
+		self.main_window.filter_unread_checkbox.set_sensitive(False)
+		
+	def entrylist_selecting_right_now(self):
+		return self.entry_list_view.presently_selecting
+		
+	def highlight_entry_results(self, feed_id):
+		return self.entry_list_view.highlight_results(feed_id)
+		
+	def select_feed(self, feed_id):
+		self.feed_list_view.set_selected(feed_id)
+
+	def change_filter(self, current_filter):
+		filter_id = self.main_window.filter_combo_widget.get_active()
+		if filter_id == FeedList.SEARCH:
+			self.showing_search = True
+			if self.saved_search != "":
+				result = self.db.search(self.saved_search)
+			else:
+				result = ([],[])
+			self.feed_list_view.show_search_results(result[0])
+			self.entry_list_view.show_search_results(result[1])
+			self.main_window.filter_unread_checkbox.set_sensitive(False)
+			self.main_window.search_entry.set_text(self.saved_search)
+		else:
+			if self.showing_search:
+				self.feed_list_view.unshow_search()
+				self.entry_list_view.unshow_search()
+				self.entry_view.display_item()
+				self.main_window.search_entry.set_text("")
+				self.main_window.filter_unread_checkbox.set_sensitive(True)
+				self.showing_search = False
+			self.main_window.feed_list_view.set_filter(filter_id, current_filter)
 				
 	def show_downloads(self):
 		self.mediamanager.generate_playlist()
@@ -756,6 +821,7 @@ class PenguinTVApp:
 			self.db.pause_all_downloads() #blocks, but prevents race conditions
 			#print "stop download pop"
 			if not self.exiting:
+				self.main_window.search_container.set_sensitive(False)
 				self.feed_list_view.populate_feeds(FeedList.ACTIVE) #right now this is taking the longest
 				self.feed_list_view.populate_feeds(FeedList.DOWNLOADED) #right now this is taking the longest
 				self.entry_list_view.update_entry_list()
@@ -862,6 +928,7 @@ class PenguinTVApp:
 	def _add_feed_error(self,feed_id):
 		self.main_window.display_status_message(_("Error adding feed"))
 		self.main_window.select_feed(feed_id)
+		return False #for idle_add
 		
 	def _add_feed_success(self, feed_id):
 		self.feed_list_view.update_feed_list(feed_id,['title'])
@@ -932,6 +999,7 @@ class PenguinTVApp:
 			print "noentry error, don't worry about it"
 			#print "downloads finished pop"
 			#taken care of in callbacks?
+			self.main_window.search_container.set_sensitive(False)
 			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		self.feed_list_view.do_filter() #to remove active downloads from the list
@@ -993,6 +1061,7 @@ class PenguinTVApp:
 			print "noentry error"
 			#print "downloads finished pop"
 			#taken care of in callbacks?
+			self.main_window.search_container.set_sensitive(False)
 			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		except:
@@ -1047,6 +1116,9 @@ class PenguinTVApp:
 	def update_disk_usage(self):
 		size = self.mediamanager.get_disk_usage()
 		self.main_window.update_disk_usage(size)
+		
+	def _done_populating(self):
+		self.main_window.search_container.set_sensitive(True)
 
 	def _progress_callback(self,data):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
@@ -1131,7 +1203,7 @@ class PenguinTVApp:
 	def _entry_image_download_callback(self, entry_id, html):
 		self.updater.queue_task(GUI, self.entry_view._images_loaded,(entry_id, html))
 			
-	class DBUpdaterThread(threading.Thread):
+	class DBUpdaterThread(PyLucene.PythonThread):
 		def __init__(self, updater, polling_callback=None):
 			threading.Thread.__init__(self)
 			self.__isDying = False
@@ -1195,7 +1267,7 @@ class PenguinTVApp:
 							else:
 								func()
 						except ptvDB.FeedPollError,e:
-							#print e
+							print e
 							pass
 						except:
 							print "ERROR from db updater:"

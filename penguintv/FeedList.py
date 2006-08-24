@@ -8,13 +8,16 @@ import MainWindow
 
 import traceback, sys
 
+import random
+
 
 ALL=0
 DOWNLOADED=1
 ACTIVE=2
 NONE=3
-UNKNOWN=4
-BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"),_("No Feeds (Calm Mode)")]
+SEARCH=4
+UNKNOWN=5
+BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"),_("No Feeds (Calm Mode)"), _("Search Results")]
 
 TITLE=0
 MARKUPTITLE=1
@@ -45,6 +48,8 @@ class FeedList:
 		self.selecting_misfiltered=False
 		self.filter_unread = False
 		self.cancel_load = False
+		
+		self.showing_search = False
 		
 		#build list view
 		self._widget.set_model(self.feed_filter)
@@ -81,16 +86,76 @@ class FeedList:
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
 		self.filter_name = name
+		
+		if new_filter != SEARCH and self.showing_search:
+			self.unshow_search()
+			
 		self.do_filter(False)
 		self.va.set_value(0)
 		self.resize_columns()
 		
+	def show_search_results(self, results=[]):
+		"""shows the feeds in the list 'results'"""
+		self.showing_search = True
+		if results is None:
+			results = []
+		if len(results) == 0:
+			for feed in self.feedlist:
+				feed[VISIBLE] = 0
+			self.feed_filter.refilter()
+			return
+		
+		for feed in self.feedlist:
+			if feed[FEEDID] in results:
+				feed[VISIBLE] = 1
+			else:
+				feed[VISIBLE] = 0
+							
+		id_list = [feed[FEEDID] for feed in self.feedlist]
+						
+		def sorter(a, b):
+			if a[VISIBLE] != b[VISIBLE]:
+				return b[VISIBLE] - a[VISIBLE]
+			if a[VISIBLE]==1:
+				return results.index(a[FEEDID]) - results.index(b[FEEDID])
+			else:
+				return id_list.index(a[FEEDID]) - id_list.index(b[FEEDID])
+		
+		#convert to list
+		f_list = list(self.feedlist)
+		#we sort the new feed list as is
+		f_list.sort(sorter)
+		#we go through the new feed list, and for each id find its old index
+		i_list = []
+		for f in f_list:
+			i_list.append(id_list.index(f[FEEDID]))
+		#we now have a list of old indexes in the new order		
+		self.feedlist.reorder(i_list)
+		self.feed_filter.refilter()
+		
+	def unshow_search(self):
+		self.showing_search = False
+		id_list = [feed[FEEDID] for feed in self.feedlist]
+		f_list = list(self.feedlist)
+		f_list.sort(lambda x,y: x[TITLE]==y[TITLE] and 0 or x[TITLE]>y[TITLE])
+		i_list = []
+		for f in f_list:
+			i_list.append(id_list.index(f[FEEDID]))
+		self.feedlist.reorder(i_list)
+		self.do_filter(False)
+		
 	def set_unread_toggle(self, active):
+		if self.showing_search:
+			return
 		self.filter_unread = active
 		self.do_filter(False)
 		self.va.set_value(0)
 		
 	def do_filter(self,keep_misfiltered=True):
+		if self.filter_setting == SEARCH:
+			print "not filtering, we have search results"
+			return #not my job
+	
 		#if index == -1:
 		selected = self.get_selected()
 		index = self.find_index_of_item(selected)
@@ -181,6 +246,7 @@ class FeedList:
 		
 	def populate_feeds(self,subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
+		print "populate"
 		#FIXME:  better way to get to the status display?
 		#DON'T gtk.iteration in this func! Causes endless loops!
 		if len(self.feedlist)==0:
@@ -197,6 +263,7 @@ class FeedList:
 	
 	def _update_feeds_generator(self, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
+		print "update gen"
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self.db.get_feed_cache()
@@ -283,6 +350,7 @@ class FeedList:
 		self.do_filter()
 		self._app.main_window.display_status_message("")	
 		self._app.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
+		self._app._done_populating()		
 		yield False
 		
 	def add_feed(self, feed_id):
@@ -340,11 +408,12 @@ class FeedList:
 		if update_data is None:
 			update_data = {}
 		
-		#try:
-		feed = self.feedlist[self.find_index_of_item(feed_id)]
- 		#except:
-		#	print "error getting feed"
-		#	return
+		try:
+			feed = self.feedlist[self.find_index_of_item(feed_id)]
+			#print "feed is at index",self.find_index_of_item(feed_id)
+		except:
+			print "error getting feed", feed_id, self.find_index_of_item(feed_id)
+			return
 			
 		need_filter = False #some updates will require refiltering. 
 		
@@ -454,6 +523,16 @@ class FeedList:
 		item = self.get_selected(selection)
 		self.last_feed=item
 		if item:
+			if self.showing_search:
+				if item == self.last_selected:
+					return
+				self.last_selected = item
+				if not self._app.entrylist_selecting_right_now():
+					highlight_count = self._app.highlight_entry_results(item)
+					if highlight_count == 0:
+						self._app.display_feed(item)
+				return
+				
 			if item == self.last_selected:
 				self._app.display_feed(item)
 			else:
@@ -461,7 +540,6 @@ class FeedList:
 				self._app.display_feed(item, -2)
 				if self.selecting_misfiltered == True and item!=None:
 					self.selecting_misfiltered = False
-					#gobject.timeout_add(250, self.populate_feeds) #update in just a bit so people can see the change
 					gobject.timeout_add(250, self.do_filter)
 			try:
 				if self.feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
@@ -498,9 +576,15 @@ class FeedList:
 			self._widget.get_selection().unselect_all()
 			
 	def find_index_of_item(self, feed_id):
-		list = [feed[FEEDID] for feed in self.feedlist]
+		#list = [feed[FEEDID] for feed in self.feedlist]
 		try:
-			return list.index(feed_id)
+			i=-1
+			for feed in self.feedlist:
+				i+=1
+				if feed_id == feed[FEEDID]:
+					return i
+			#return list.index(feed_id)
+			return None
 		except:
 			return None
 			

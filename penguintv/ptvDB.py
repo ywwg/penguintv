@@ -19,6 +19,8 @@ import locale
 import gettext
 import sets
 
+import Lucene
+
 import timeoutsocket
 import smtplib
 timeoutsocket.setDefaultSocketTimeout(20)
@@ -37,7 +39,7 @@ EXISTS = 1
 MODIFIED = 2
 DELETED = 3
 
-MAX_ARTICLES = 30
+MAX_ARTICLES = 0
 
 _common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
 
@@ -49,6 +51,7 @@ F_NEW         = 4
 F_PAUSED      = 2
 F_MEDIA       = 1
 
+A_DO_REINDEX     = 16
 A_ALL_FEEDS      = 8
 A_AUTOTUNE       = 4
 A_IGNORE_ETAG    = 2
@@ -60,6 +63,8 @@ D_DOWNLOADED     = 2
 D_RESUMABLE      = 3
 D_ERROR          = -1
 D_WARNING        = -2
+
+NOAUTODOWNLOAD="noautodownload"
 
 from HTMLParser import HTMLParser
 from formatter import NullFormatter
@@ -78,6 +83,11 @@ class ptvDB:
 				raise DBError, "error creating directories: "+self.home+"/.penguintv"
 		try:	
 			if os.path.isfile(self.home+"/.penguintv/penguintv2.db") == False:
+				#if os.path.isfile(self.home+"/.penguintv/penguintv2.db"):
+				#	try: 
+				#		shutil.copyfile(self.home+"/.penguintv/penguintv2.db", self.home+"/.penguintv/penguintv3.db")
+				#	except:
+				#		raise DBError,"couldn't create new database file"
 				if os.path.isfile(self.home+"/.penguintv/penguintv.db"):
 					try: 
 						shutil.copyfile(self.home+"/.penguintv/penguintv.db", self.home+"/.penguintv/penguintv2.db")
@@ -103,6 +113,18 @@ class ptvDB:
 			self.polling_callback=self._polling_callback
 		else:
 			self.polling_callback = polling_callback		
+			
+		self.searcher = Lucene.Lucene()
+		self.reindex_entry_list = []
+		self.reindex_feed_list = []
+				
+	def __del__(self):
+		self.finish()
+		
+	def finish(self):
+		self.exiting=True
+		#self.c.close() finish gets called out of thread so this is bad
+		#self.db.close()
 
 	def maybe_initialize_db(self):
 		try:
@@ -126,13 +148,20 @@ class ptvDB:
 			elif db_ver < 3:
 				self.migrate_database_two_three()
 				self.clean_database_media()
+			#elif db_ver < 4:
+			#	self.migrate_database_three_four()
+			#	self.clean_database_media()
 			elif db_ver > 3:
 				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
-				raise DBError, "db_ver is "+str(db_ver)+" instead of 2"
+				raise DBError, "db_ver is "+str(db_ver)+" instead of 3"
 		except:
 			self.migrate_database_one_two()
 			self.migrate_database_two_three()
-			return False
+			#self.migrate_database_three_four()
+			
+		if self.searcher.needs_index:
+			print "indexing for the first time"
+			self.searcher.Do_Index_Threaded()
 		return False
 			
 	def migrate_database_one_two(self):
@@ -177,6 +206,7 @@ class ptvDB:
 		self.db.commit()
 			
 	def migrate_database_two_three(self):
+		"""version 3 added flag cache, entry_count_cache, and unread_count_cache"""
 		print "upgrading to database schema 3"
 		self.c.execute(u'ALTER TABLE feeds ADD COLUMN flag_cache INT')
 		self.c.execute(u'ALTER TABLE feeds ADD COLUMN entry_count_cache INT')
@@ -187,6 +217,108 @@ class ptvDB:
 		except:
 			self.c.execute(u'INSERT INTO settings (data, value) VALUES ("db_ver",3)')
 		self.c.execute(u'INSERT INTO settings (data, value) VALUES ("feed_cache_dirty",1)')
+		self.db.commit()
+		
+	#def migrate_database_three_four(self):
+	#	"""version 4 adds fulltext table"""
+	#	print "upgrading to database schema 4"
+		
+	def init_database(self):
+		try:
+			self.c.execute(u'DROP TABLE settings')
+		except:
+			pass	
+			
+		try:
+			self.c.execute(u'DROP TABLE feeds')
+		except:
+			pass
+			
+		try:
+			self.c.execute(u'DROP TABLE entries')
+		except:
+			pass
+			
+		try:
+			self.c.execute(u'DROP TABLE media')
+		except:
+			pass
+			
+		try:
+			self.c.execute(u'DROP TABLE fulltext')
+		except:
+			pass
+			
+		self.c.execute(u"""CREATE TABLE settings
+							(
+								id INTEGER PRIMARY KEY,
+							    data NOT NULL,
+								value
+								);""")
+
+		
+		self.c.execute(u"""CREATE TABLE  feeds
+							(
+							    id INTEGER PRIMARY KEY,
+							    url NOT NULL,
+							    polled INT NOT NULL,
+							    pollfail BOOL NOT NULL,
+							    title  ,
+							    description  ,
+							    modified INT UNSIGNED NOT NULL,
+							    etag ,
+							    pollfreq INT NOT NULL,
+							    lastpoll DATE,
+							    newatlast INT,
+							    flag_cache INT,
+							    entry_count_cache INT,
+							    unread_count_cache INT,
+							    UNIQUE(url)
+							);""")
+		self.c.execute(u"""CREATE TABLE entries
+							(
+							    id INTEGER  PRIMARY KEY,
+							        feed_id INT UNSIGNED NOT NULL,
+							        title ,
+							        creator  ,
+							        description,
+							        fakedate DATE,
+							        date DATE,
+							        guid ,
+							        link ,
+											read BOOL NOT NULL,
+							        old BOOL NOT NULL,
+							        new BOOL NOT NULL,
+							        UNIQUE(id)
+							);""")
+		self.c.execute(u"""CREATE TABLE  media
+							(
+								id INTEGER  PRIMARY KEY,
+								entry_id INTEGER UNSIGNED NOT NULL,
+								url  NOT NULL,
+								file ,
+								mimetype ,
+								download_status NOT NULL,
+								viewed BOOL NOT NULL,
+								keep BOOL NOT NULL,
+								length,
+								UNIQUE(id)
+							);
+							""")
+		self.c.execute(u"""CREATE TABLE tags
+							(
+							id INTEGER PRIMARY KEY,
+							tag,
+							feed_id INT UNSIGNED NOT NULL);""")
+							
+#		self.c.execute(u"""CREATE TABLE fulltext
+#						   (
+#						   		id INTEGER PRIMARY KEY,
+						   		
+							
+		self.db.commit()
+		
+		self.c.execute(u"""INSERT INTO settings (data, value) VALUES ("db_ver",4)""")
 		self.db.commit()
 		
 	def clean_database_media(self):
@@ -224,102 +356,6 @@ class ptvDB:
 				elif len(files) == 0:
 					print "deleting "+root
 					utils.deltree(root)
-
-
-	def __del__(self):
-		self.finish()
-		
-	def finish(self):
-		self.exiting=True
-		#self.c.close() finish gets called out of thread so this is bad
-		#self.db.close()
-		
-	def init_database(self):
-		try:
-			self.c.execute(u'DROP TABLE settings')
-		except:
-			pass	
-			
-		try:
-			self.c.execute(u'DROP TABLE feeds')
-		except:
-			pass
-			
-		try:
-			self.c.execute(u'DROP TABLE entries')
-		except:
-			pass
-			
-		try:
-			self.c.execute(u'DROP TABLE media')
-		except:
-			pass
-			
-		self.c.execute(u"""CREATE TABLE settings
-(
-	id INTEGER PRIMARY KEY,
-    data NOT NULL,
-	value
-	);""")
-
-		
-		self.c.execute(u"""CREATE TABLE  feeds
-(
-    id INTEGER PRIMARY KEY,
-    url NOT NULL,
-    polled INT NOT NULL,
-    pollfail BOOL NOT NULL,
-    title  ,
-    description  ,
-    modified INT UNSIGNED NOT NULL,
-    etag ,
-    pollfreq INT NOT NULL,
-    lastpoll DATE,
-    newatlast INT,
-    flag_cache INT,
-    entry_count_cache INT,
-    unread_count_cache INT,
-    UNIQUE(url)
-);""")
-		self.c.execute(u"""CREATE TABLE entries
-(
-    id INTEGER  PRIMARY KEY,
-        feed_id INT UNSIGNED NOT NULL,
-        title ,
-        creator  ,
-        description,
-        fakedate DATE,
-        date DATE,
-        guid ,
-        link ,
-				read BOOL NOT NULL,
-        old BOOL NOT NULL,
-        new BOOL NOT NULL,
-        UNIQUE(id)
-);""")
-		self.c.execute(u"""CREATE TABLE  media
-(
-	id INTEGER  PRIMARY KEY,
-	entry_id INTEGER UNSIGNED NOT NULL,
-	url  NOT NULL,
-	file ,
-	mimetype ,
-	download_status NOT NULL,
-	viewed BOOL NOT NULL,
-	keep BOOL NOT NULL,
-	length,
-	UNIQUE(id)
-);
-""")
-		self.c.execute(u"""CREATE TABLE tags
-		(
-		id INTEGER PRIMARY KEY,
-		tag,
-		feed_id INT UNSIGNED NOT NULL);""")
-		self.db.commit()
-		
-		self.c.execute(u"""INSERT INTO settings (data, value) VALUES ("db_ver",3)""")
-		self.db.commit()
 		
 	def set_feed_cache(self, cachelist):
 		"""Cachelist format:
@@ -371,7 +407,6 @@ class ptvDB:
 			print "db: feed already exists"
 			raise FeedAlreadyExists(feed_id)
 			
-					
 		return feed_id
 		
 	def delete_feed(self, feed_id):
@@ -384,6 +419,7 @@ class ptvDB:
 		
 		#delete the feed, its entries, and its media (this does not delete files)
 		self.c.execute("""DELETE FROM feeds WHERE id=?""",(feed_id,))
+		self.reindex_feed_list.append(feed_id)
 		self.c.execute(u'DELETE FROM tags WHERE feed_id=?',(feed_id,))
 		self.db.commit()
 		#result = self.c.fetchone()
@@ -401,6 +437,7 @@ class ptvDB:
 						self.delete_media(int(medium[0]))
 						self.db.commit()
 					self.c.execute('DELETE FROM media WHERE entry_id=?',(datum[0],))
+			self.reindex_entry_list.append(datum[0])
 		self.c.execute("""DELETE FROM entries WHERE feed_id=?""",(feed_id,))
 		self.db.commit()
 		
@@ -454,7 +491,7 @@ class ptvDB:
 		else:
 			###print "nothing to poll"
 			return
-		pool = ThreadPool.ThreadPool(10,"ptvDB")
+		pool = ThreadPool.ThreadPool(6,"ptvDB")
 		for feed in feeds:
 			if self.exiting:
 				break
@@ -471,6 +508,8 @@ class ptvDB:
 			time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
+		print "reindexing"
+		self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
 				
 	def pool_poll_feed(self,args, recurse=0):
 		"""a wrapper function that returns the index along with the result
@@ -544,11 +583,14 @@ class ptvDB:
 			feed['feed_id']=feed_id
 			feed['title']=result[0]
 			feed['url']=result[1]
+			print "polling feed"
 			self.poll_feed(feed_id)
+			print "reindexing"
+			self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
 			callback(feed, True)
-		except FeedPollError,e:
-			#print e
-			#print "error polling feed:"
+		except Exception, e:#FeedPollError,e:
+			print e
+			print "error polling feed:"
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			error_msg = ""
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
@@ -562,7 +604,6 @@ class ptvDB:
 		
 	def poll_feed(self, feed_id, arguments=0, db=None):
 		"""polls a feed and returns the number of new articles"""
-		
 		if db is None:
 			db = self.db
 		c = db.cursor()
@@ -661,8 +702,10 @@ class ptvDB:
 					c.execute("""UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE id=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			else:
 				c.execute("""UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE id=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
+			self.reindex_feed_list.append(feed_id)
 			db.commit()
-		except:
+		except Exception, e:
+			print e
 			#f = open("/var/log/penguintv.log",'a')
 			#f.write("borked on: UPDATE feeds SET title="+str(channel['title'])+", description="+str(channel['description'])+", modified="+str(modified)+", etag="+str(data['etag'])+", pollfail=0 WHERE id="+str(feed_id))
 			#f.close()	
@@ -819,6 +862,7 @@ class ptvDB:
 						media.setdefault('type', 'application/octet-stream')
 						c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 						#db.commit()
+				self.reindex_entry_list.append(entry_id)
 			elif status[0]==EXISTS:
 				c.execute("""UPDATE entries SET old=0 where id=?""",(status[1],))
 				#db.commit()
@@ -842,6 +886,7 @@ class ptvDB:
 							media.setdefault('length', 0)
 							media.setdefault('type', 'application/octet-stream')
 							c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
+				self.reindex_entry_list.append(status[1])
 			i+=1
 		db.commit()
 		#loop through old-marked entries...
@@ -863,17 +908,18 @@ class ptvDB:
 		old_entries = len(c.fetchall())
 		if old_entries>0:
 			new_entries = all_entries - old_entries
-			if new_entries >= MAX_ARTICLES:
-				#deleting all old because we got more than enough new
-				c.execute("""DELETE FROM entries WHERE old=1 AND feed_id=?""",(feed_id,))
-			elif new_entries+old_entries > MAX_ARTICLES:
-				old_articles_to_keep = MAX_ARTICLES-new_entries
-				if old_articles_to_keep > 0:
-					old_articles_to_ditch = old_entries - old_articles_to_keep
-					c.execute("""SELECT id,title FROM entries WHERE old=1 AND feed_id=? ORDER BY fakedate LIMIT ?""",(feed_id,old_articles_to_ditch))
-					ditchables = c.fetchall()
-					for e in ditchables:
-						c.execute("""DELETE FROM entries WHERE id=?""",(e[0],))
+			if MAX_ARTICLES > 0: #zero means never delete
+				if new_entries >= MAX_ARTICLES:
+					#deleting all old because we got more than enough new
+					c.execute("""DELETE FROM entries WHERE old=1 AND feed_id=?""",(feed_id,))
+				elif new_entries+old_entries > MAX_ARTICLES:
+					old_articles_to_keep = MAX_ARTICLES-new_entries
+					if old_articles_to_keep > 0:
+						old_articles_to_ditch = old_entries - old_articles_to_keep
+						c.execute("""SELECT id,title FROM entries WHERE old=1 AND feed_id=? ORDER BY fakedate LIMIT ?""",(feed_id,old_articles_to_ditch))
+						ditchables = c.fetchall()
+						for e in ditchables:
+							c.execute("""DELETE FROM entries WHERE id=?""",(e[0],))
 		c.execute("DELETE FROM entries WHERE fakedate=0 AND feed_id=?",(feed_id,))
 		#self.update_entry_flags(feed_id,db)
 		#self.update_feed_flag(feed_id,db)
@@ -881,6 +927,9 @@ class ptvDB:
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
 			self.set_new_update_freq(db,c, feed_id, new_items)
 		c.close()
+		if arguments & A_DO_REINDEX:
+			print "reindexing"
+			self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
 		return new_items
 		
 	def set_new_update_freq(self, db,c, feed_id, new_items):
@@ -1127,6 +1176,7 @@ class ptvDB:
 			
 			self.c.execute(u'UPDATE feeds SET title=? WHERE id=?',(channel['title'],feed_id))
 			self.db.commit()
+		self.reindex_feed_list.append(feed_id)
 				
 	def set_media_download_status(self, media_id, status):
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
@@ -1215,6 +1265,12 @@ class ptvDB:
 			new_item = (item[0],size,item[2], item[3])
 			newlist.append(new_item)
 			if self.entry_flag_cache.has_key(item[2]): del self.entry_flag_cache[item[2]]
+			
+		#build a list of feeds that do not include the noautodownload tag
+		feeds = [l[3] for l in newlist]
+		feeds = utils.uniquer(feeds)
+		good_feeds = [f for f in feeds if NOAUTODOWNLOAD not in self.get_tags_for_feed(f)]
+		newlist = [l for l in newlist if l[3] in good_feeds]
 		return newlist 
 		
 	def get_resumable_media(self):
@@ -1542,7 +1598,14 @@ class ptvDB:
 		#return added_feeds
 		yield -1
 		
-						
+	def search(self, query):
+		return self.searcher.Search(query)
+		
+	def reindex(self, feedlist, entrylist):
+		self.searcher.Re_Index(feedlist,entrylist)
+		
+	#############convenience Functions####################3
+		
 	def encode_text(self,text):
 		try:
 			return text.encode('utf8')
@@ -1656,3 +1719,9 @@ class FeedAlreadyExists(Exception):
 		self.feed = feed
 	def __str__(self):
 		return self.feed
+		
+class BadSearchResults(Exception):
+	def __init__(self,m):
+		self.m = m
+	def __str__(self):
+		return self.m

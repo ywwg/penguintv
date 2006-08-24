@@ -147,6 +147,9 @@ class MainWindow:
 			filter_combo_model.append([builtin,"",False])
 		filter_combo_model.append(["---","---",True])
 		self.update_filters()
+		
+		self.search_entry = self.widgetTree.get_widget('search_entry')
+		self.search_container = self.widgetTree.get_widget('search_container')
 			
 		#set up separator between toolbar buttons and free space indicator
 		vseparator = self.widgetTree.get_widget('vseparator1')
@@ -249,9 +252,11 @@ class MainWindow:
 	#	self.feed_list_view.resize_columns(self.feed_pane.get_position())
 		
 	def on_download_entry_activate(self, event):
-		entry = self.entry_list_view.get_selected()['entry_id']
-		if entry:
+		try:
+			entry = self.entry_list_view.get_selected()['entry_id']
 			self.app.download_entry(entry)
+		except:
+			pass
 			
 	def on_download_unviewed_activate(self, event):
 		self.app.download_unviewed()
@@ -260,9 +265,11 @@ class MainWindow:
 		self.app.download_unviewed()
 			
 	def on_delete_entry_media_activate(self,event):
-		selected = self.entry_list_view.get_selected()['entry_id']
-		if selected:
+		try:
+			selected = self.entry_list_view.get_selected()['entry_id']
 			self.app.delete_entry_media(selected)
+		except:
+			pass
 			
 	def on_delete_feed_media_activate(self,event):
 		selected = self.feed_list_view.get_selected()
@@ -350,7 +357,7 @@ class MainWindow:
 	def on_filter_combo_changed(self, event):
 		model = self.filter_combo_widget.get_model()
 		current_filter = model[self.filter_combo_widget.get_active()][0]
-		self.change_filter(current_filter)
+		self.app.change_filter(current_filter)
 			
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -380,14 +387,18 @@ class MainWindow:
 		dialog.destroy()		
 			
 	def on_mark_entry_as_viewed_activate(self,event):
-		entry = self.entry_list_view.get_selected()['entry_id']
-		if entry:
+		try:
+			entry = self.entry_list_view.get_selected()['entry_id']
 			self.app.mark_entry_as_viewed(entry)
+		except:
+			pass
 		
 	def on_mark_entry_as_unviewed_activate(self,event):
-		entry = self.entry_list_view.get_selected()['entry_id']
-		if entry:
+		try:
+			entry = self.entry_list_view.get_selected()['entry_id']
 			self.app.mark_entry_as_unviewed(entry)
+		except:
+			pass
 
 	def on_mark_feed_as_viewed_activate(self,event):
 		feed = self.feed_list_view.get_selected()
@@ -395,9 +406,11 @@ class MainWindow:
 			self.app.mark_feed_as_viewed(feed)
  
  	def on_play_entry_activate(self, event):
-		entry = self.entry_list_view.get_selected()['entry_id']
-		if entry:
+ 		try:
+			entry = self.entry_list_view.get_selected()['entry_id']
 			self.app.play_entry(entry)
+		except:
+			pass
 				
 	def on_play_unviewed_activate(self, event):
 		self.app.play_unviewed()
@@ -433,6 +446,9 @@ class MainWindow:
 
 	def on_resume_all_activate(self, event):
 		self.app.resume_resumable()
+		
+	def on_search_entry_activate(self, event):
+		self.app.search(self.search_entry.get_text())
 		
 	def on_show_downloads_activate(self, event):
 		self.app.show_downloads()
@@ -560,9 +576,6 @@ class MainWindow:
 			self.filter_combo_widget.set_active(FeedList.ALL)
 			self.feed_list_view.set_filter(FeedList.ALL,current_filter)
 
-	def change_filter(self, current_filter):
-		self.feed_list_view.set_filter(self.filter_combo_widget.get_active(), current_filter)
-
 	#def populate_and_select(self, feed_id):
 	def select_feed(self, feed_id):
 		#self.feed_list_view.populate_feeds()
@@ -574,7 +587,10 @@ class MainWindow:
 	def get_selected_items(self):
 		selected_feed = self.feed_list_view.get_selected()
 		filter_setting = self.feed_list_view.filter_setting
-		selected_entry = self.entry_list_view.get_selected()['entry_id']
+		try:
+			selected_entry = self.entry_list_view.get_selected()['entry_id']
+		except:
+			selected_entry = 0
 		return {'feed':selected_feed,
 				'filter':filter_setting,
 				'entry':selected_entry}
