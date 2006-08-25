@@ -1200,11 +1200,7 @@ class ptvDB:
 					i+=1
 				ret_val.append((entry[0],entry[1],entry[2],new_info[i][1]))
 			self.filtered_entries[feed_index] = ret_val
-			#print ret_val
 			return ret_val
-		#except Exception e:
-		#	print e
-		#	pass
 	
 		self.c.execute("""SELECT id,title,fakedate,new FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
 		result = self.c.fetchall()
@@ -1773,7 +1769,9 @@ class ptvDB:
 		yield -1
 		
 	def search(self, query, filter_feed=None):
-		return self.searcher.Search(query, filter_feed)
+		if filter_feed:
+			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query)
+		return self.searcher.Search(query)
 		
 	def doindex(self):
 		self.searcher.Do_Index_Threaded()
@@ -1802,30 +1800,11 @@ class ptvDB:
 		return False
 		
 	def get_pointer_feeds(self, feed_id):
-		#self.c.execute(u'SELECT feed_pointer FROM feeds WHERE id=?',(feed_id,))
-		#try:
-	#		pointed_feed = self.c.fetchone()[0]
-	#	except:
-	#		return []
-		#if pointed_feed == -1: #this is what is pointed to
 		self.c.execute(u'SELECT id FROM feeds WHERE feed_pointer=?',(feed_id,))
 		results = self.c.fetchall()
 		if results is None:
 			return []
 		return [f[0] for f in results]
-		#else: #this is pointing
-		#	self.c.execute(u'SELECT id FROM feeds WHERE feed_pointer=?',(pointed_feed,))
-		#	others = self.c.fetchall()
-		#	if others is None:
-		#		others = []
-		#	else:
-		#		others = [f[0] for f in others]
-		#	try:
-		#		others.remove(feed_id) #don't include ourselves
-		#	except:
-		#		pass
-		#	others.append(pointed_feed)
-		#	return others
 		
 	#############convenience Functions####################3
 		

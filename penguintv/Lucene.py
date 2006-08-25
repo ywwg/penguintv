@@ -27,12 +27,6 @@ class Lucene:
 			self.needs_index = True
 			
 		self.index_lock = Lock()
-		#self.db = self._get_db()
-		#self.c = self.db.cursor()
-			
-#	def finish(self):
-#		self.c.close()
-#		self.db.close()
 		
 	def _get_db(self):
 		try:	
@@ -68,7 +62,7 @@ class Lucene:
 		for feed_id, title, description in feeds:
 			try:
 				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("id", "feed "+str(feed_id), 
+				doc.add(PyLucene.Field("feed_id", str(feed_id), 
 											   PyLucene.Field.Store.YES,
 	                                           PyLucene.Field.Index.UN_TOKENIZED))
 				doc.add(PyLucene.Field("title", title,
@@ -86,7 +80,7 @@ class Lucene:
 		for entry_id, feed_id, title, description, fakedate in entries:
 			try:
 				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("id", "entry "+str(entry_id), 
+				doc.add(PyLucene.Field("entry_id", str(entry_id), 
 											   PyLucene.Field.Store.YES,
 	                                           PyLucene.Field.Index.UN_TOKENIZED))
 				doc.add(PyLucene.Field("feed_id", str(feed_id), 
@@ -116,13 +110,11 @@ class Lucene:
 		
 	def Re_Index(self, feedlist=[], entrylist=[]):
 		if len(feedlist)==0 and len(entrylist)==0:
-			#print "nothing to reindex"
 			return
 		self.index_lock.acquire()
 		db = self._get_db()
 		c = db.cursor()
 					
-		#print "reindexing "+str(len(feedlist))+" feeds and "+str(len(entrylist))+" entries"
 		analyzer = PyLucene.StandardAnalyzer()
 		indexModifier = PyLucene.IndexModifier(self.storeDir, analyzer, False)
 		
@@ -133,7 +125,6 @@ class Lucene:
 		
 		for feed_id in feedlist:
 			try:
-				#print "checking feed "+str(feed_id)
 				c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
 				title, description = c.fetchone()
 				feed_addition.append((feed_id, title, description))
@@ -142,7 +133,6 @@ class Lucene:
 
 		for entry_id in entrylist:
 			try:
-				#print "checking entry "+str(entry_id)
 				c.execute(u"""SELECT feed_id, title, description, fakedate FROM entries WHERE id=?""",(entry_id,))
 				feed_id, title, description, fakedate = c.fetchone()
 				entry_addition.append((entry_id, feed_id, title, description, fakedate))
@@ -155,14 +145,12 @@ class Lucene:
 		#first delete anything deleted or changed
 		for feed_id in feedlist:
 			try:
-				#print "deleting feed "+str(feed_id)
 				indexModifier.deleteDocuments(PyLucene.Term("id","feed "+str(feed_id)))
 			except Exception, e:
 				print "Failed deleting feed:", e
 				
 		for entry_id in entrylist:
 			try:
-				#print "deleting entry "+str(entry_id)
 				indexModifier.deleteDocuments(PyLucene.Term("id","entry "+str(entry_id)))
 			except Exception, e:
 				print "Failed deleting entry:", e
@@ -170,9 +158,8 @@ class Lucene:
 		#now add back the changes
 		for feed_id, title, description in feed_addition:
 			try:
-				#print "adding feed "+str(feed_id)
 				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("id", "feed "+str(feed_id), 
+				doc.add(PyLucene.Field("feed_id", str(feed_id), 
 											   PyLucene.Field.Store.YES,
 	                                           PyLucene.Field.Index.UN_TOKENIZED))
 				doc.add(PyLucene.Field("title",title,
@@ -187,9 +174,8 @@ class Lucene:
 		
 		for entry_id, feed_id, title, description, fakedate in entry_addition:
 			try:
-				#print "adding entry "+str(entry_id)
 				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("id", "entry "+str(entry_id), 
+				doc.add(PyLucene.Field("entry_id", str(entry_id), 
 											   PyLucene.Field.Store.YES,
 	                                           PyLucene.Field.Index.UN_TOKENIZED))
 				doc.add(PyLucene.Field("feed_id", str(feed_id), 
@@ -210,13 +196,11 @@ class Lucene:
 				
 		indexModifier.flush()
 		indexModifier.close()
-		#print "done reindexing"
 		self.index_lock.release()
 						
-	def Search(self, command, filter_feed=None):
+	def Search(self, command):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It
 		is sorted so that title results are first, description results are second"""
-		#print "performing search"
 		analyzer = PyLucene.StandardAnalyzer()
 		directory = PyLucene.FSDirectory.getDirectory(self.storeDir, False)
 		searcher = PyLucene.IndexSearcher(directory)
@@ -231,25 +215,25 @@ class Lucene:
 		#query TITLES
 		queryparser = PyLucene.QueryParser("title", analyzer)
 		query = PyLucene.QueryParser.parse(queryparser, command)
-		hits = searcher.search(query)
-		#print "%s total matching document titles." % hits.length()
-		for i, doc in hits:
-			#print 'id:', doc.get("id"), 'title:', doc.get("title")#, 'desc:', doc.get("description")
-			id    = doc.get("id")
-			title = doc.get("title")
-			desc  = doc.get("description")
-			if id[:4] == "feed":
-				feed_results.append(int(id[5:]))
-			else: # == "entry"
-				feed_id = int(doc.get("feed_id"))
-				fakedate = float(doc.get("fakedate"))
-				if filter_feed is not None:
-					if feed_id == filter_feed:
-						entry_results.append((int(id[6:]),title, fakedate, feed_id))
-				else:
+		
+		def build_results(hits):
+			"""we use this twice, so save some typing"""
+			for i, doc in hits:
+				feed_id  = int(doc.get("feed_id"))
+				entry_id = doc.get("entry_id")
+				if entry_id is None: #meaning this is actually a feed
+					feed_results.append(int(feed_id))
+				else: #               meaning "entry"
 					if len(entry_results) < ENTRY_LIMIT:
-						entry_results.append((int(id[6:]),title, fakedate, feed_id))
-				
+						title    = doc.get("title")
+						desc     = doc.get("description")
+						fakedate = float(doc.get("fakedate"))
+						entry_results.append((int(entry_id),title, fakedate, feed_id))
+		
+		hits = searcher.search(query)
+		build_results(hits)
+		#print "%s total matching document titles." % hits.length()
+		
 		for entry in entry_results: #also add feed results so that they show up in the feed list too
 			feed_results.append(entry[1])
 			
@@ -258,30 +242,14 @@ class Lucene:
 		query = PyLucene.QueryParser.parse(queryparser, command)
 		hits = searcher.search(query)
 		#print "%s total matching document descriptions." % hits.length()
-		for i, doc in hits:
-			#print 'id:', doc.get("id"), 'title:', doc.get("title")#, 'desc:', doc.get("description")
-			id    = doc.get("id")
-			title = doc.get("title")
-			desc  = doc.get("description")
-			if id[:4] == "feed":
-				feed_results.append(int(id[5:]))
-			else: # == "entry"
-				feed_id = int(doc.get("feed_id"))
-				fakedate = float(doc.get("fakedate"))
-				if filter_feed is not None:
-					if feed_id == filter_feed:
-						entry_results.append((int(id[6:]),title, fakedate, feed_id))
-				else:
-					if len(entry_results) < ENTRY_LIMIT:
-						entry_results.append((int(id[6:]),title, fakedate, feed_id))
+		build_results(hits)
 		
 		for entry in entry_results:
 			feed_results.append(entry[3]) #this redoes the stuff at the top, but I 
-											#don't care because we are going to pare down the list
+										  #don't care because we are going to pare down the list
 		feed_results = utils.uniquer(feed_results)
 		entry_results = utils.uniquer(entry_results)	
 		searcher.close()           				
-		#print "search done"					
 		return (feed_results, entry_results)
 		
 class DBError(Exception):
