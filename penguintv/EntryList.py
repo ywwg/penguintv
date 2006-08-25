@@ -74,7 +74,7 @@ class EntryList:
 			return
 		
 		i=-1
-		for entry_id,feed_id in entries:	
+		for entry_id,title, fakedate, feed_id in entries:	
 			i+=1
 			try:
 				entry = self.db.get_entry(entry_id)

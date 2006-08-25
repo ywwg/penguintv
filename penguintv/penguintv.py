@@ -766,6 +766,7 @@ class PenguinTVApp:
 			print "error with that search term", e
 			result=([],[])
 		try:
+			#print result
 			self.entry_list_view.show_search_results(result[1], query)
 			self.feed_list_view.show_search_results(result[0])
 		except ptvDB.BadSearchResults, e:
@@ -913,6 +914,17 @@ class PenguinTVApp:
 			self.updater.queue_task(GUI, self.main_window.select_feed, e.feed)
 		self.window_add_feed.hide()
 		return feed_id
+		
+	def add_feed_filter(self, pointed_feed_id, filter_name, query):
+		#print pointed_feed_id, filter_name, query
+		try:
+			feed_id = self.db.add_feed_filter(pointed_feed_id, filter_name, query)
+		except ptvDB.FeedAlreadyExists, f:
+			self.main_window.select_feed(f)
+			return
+
+		self.feed_list_view.add_feed(feed_id)
+		self.main_window.select_feed(feed_id)
 		
 	def _add_feed_callback(self, feed, success):
 		if success:

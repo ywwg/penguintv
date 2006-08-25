@@ -22,6 +22,7 @@ import EditTagsMultiDialog
 import RenameFeedDialog
 import AddSearchTagDialog
 import EditSearchesDialog
+import FeedFilterDialog
 import MainWindow, FeedList, EntryList, EntryView
 
 superglobal=utils.SuperGlobal()
@@ -261,6 +262,24 @@ class MainWindow:
 	def on_add_feed_activate(self, event):
 		self.app.window_add_feed.show() #not modal / blocking
 		
+	def on_add_feed_filter_activate(self,event):
+		selected = self.feed_list_view.get_selected()
+		if selected:
+			title = self.db.get_feed_title(selected)
+			dialog = FeedFilterDialog.FeedFilterDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_feed_filter",'penguintv'),self.app)
+			dialog.show()
+			dialog.set_pointed_feed(selected,title)
+			d = { 'title':title }
+			dialog.set_filter_name(_("%(title)s Filtered" % d))
+		else:
+			dialog = gtk.Dialog(title=_("No Feed Selected"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("Please select the feed you would like to filter"))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+		
 	def on_feed_add_clicked(self, event):
 		self.app.window_add_feed.show() #not modal / blocking
 	
@@ -352,6 +371,11 @@ class MainWindow:
 			item.connect('activate',self.on_delete_feed_media_activate)
 			menu.append(item)
 			
+			print "FIXME: need to test if this is already a filtered fed"
+			item = gtk.MenuItem(_("_Create Feed Filter"))
+			item.connect('activate',self.on_add_feed_filter_activate)
+			menu.append(item)
+
 			menu.show_all()
 			menu.popup(None,None,None, event.button,event.time)
 	

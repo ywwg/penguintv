@@ -99,6 +99,7 @@ class FeedList:
 		self.showing_search = True
 		if results is None:
 			results = []
+		#print results[0]
 		if len(results) == 0:
 			for feed in self.feedlist:
 				feed[VISIBLE] = 0
@@ -134,7 +135,7 @@ class FeedList:
 		self.feed_filter.refilter()
 		self.va.set_value(0)
 		showing_feed = self.get_selected()
-		if not self._app.entrylist_selecting_right_now():
+		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
 			highlight_count = self._app.highlight_entry_results(showing_feed)
 			if highlight_count == 0:
 				self._app.display_feed(showing_feed)
@@ -401,7 +402,7 @@ class FeedList:
 			return title
 		return title
 		
-	def update_feed_list(self, feed_id=None, update_what=None, update_data=None):  #returns True if this is the already-displayed feed
+	def update_feed_list(self, feed_id=None, update_what=None, update_data=None, recur_ok=True):  #returns True if this is the already-displayed feed
 		"""updates the feed list.  Right now uses db to get flags, entrylist (for unread count), pollfail
 	
 		We should just get the flag, unread count, and poll fail, and then figure out:
@@ -416,6 +417,17 @@ class FeedList:
 			if self.last_feed is None:
 				return
 			feed_id = self.last_feed
+			
+		pointed = self.db.resolve_pointed_feed(feed_id)
+
+		if pointed != feed_id: #this is a pointer
+			if recur_ok: 
+				self.update_feed_list(pointed, update_what, update_data)
+				return
+			#else continue...
+		else:
+			for f in self.db.get_pointer_feeds(feed_id):
+				self.update_feed_list(f, update_what, update_data, False)
 			
 		if update_what is None:
 			update_what = ['readinfo','icon','pollfail','title']
