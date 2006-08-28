@@ -1,6 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
 import threading
+import PyLucene
 from time import sleep
 
 # Ensure booleans exist (not needed for Python 2.2.1 or higher)
@@ -16,7 +17,7 @@ class ThreadPool:
     accepts tasks that will be dispatched to the next available
     thread."""
     
-    def __init__(self, numThreads,name="ThreadPoolThread"):
+    def __init__(self, numThreads,name="ThreadPoolThread", lucene_compat=False):
 
         """Initialize the thread pool with numThreads workers."""
         
@@ -27,7 +28,9 @@ class ThreadPool:
         self.__isJoining = False
         self.__name = name
         self.occupied_threads = 0
+        self.lucene_compat = lucene_compat        
         self.setThreadCount(numThreads)
+
 
     def setThreadCount(self, newNumThreads):
 
@@ -54,7 +57,10 @@ class ThreadPool:
         
         # If we need to grow the pool, do so
         while newNumThreads > len(self.__threads):
-            newThread = ThreadPoolThread(self,self.__name)
+            if self.lucene_compat:
+                newThread = LuceneThreadPoolThread(self,self.__name)
+            else:
+                newThread = ThreadPoolThread(self,self.__name)
             self.__threads.append(newThread)
             newThread.start()
         # If we need to shrink the pool, do so
@@ -169,6 +175,45 @@ class ThreadPoolThread(threading.Thread):
             # If there's nothing to do, just sleep a bit
             if cmd is None:
                 sleep(ThreadPoolThread.threadSleepTime)
+            elif callback is None:
+            	self.__pool.occupied_threads+=1
+                cmd(args)
+                self.__pool.occupied_threads-=1
+            else:
+            	self.__pool.occupied_threads+=1
+                callback(cmd(args))
+                self.__pool.occupied_threads-=1
+    
+    def goAway(self):
+
+        """ Exit the run loop next time through."""
+        
+        self.__isDying = True
+        
+class LuceneThreadPoolThread(PyLucene.PythonThread):
+
+    """ Pooled thread class. """
+    
+    threadSleepTime = 0.1
+
+    def __init__(self, pool, n="LuceneThreadPoolThread"):
+
+        """ Initialize the thread and remember the pool. """
+        
+        threading.Thread.__init__(self,name=n)
+        self.__pool = pool
+        self.__isDying = False
+        
+    def run(self):
+
+        """ Until told to quit, retrieve the next task and execute
+        it, calling the callback if any.  """
+        
+        while self.__isDying == False:
+            cmd, args, callback = self.__pool.getNextTask()
+            # If there's nothing to do, just sleep a bit
+            if cmd is None:
+                sleep(LuceneThreadPoolThread.threadSleepTime)
             elif callback is None:
             	self.__pool.occupied_threads+=1
                 cmd(args)

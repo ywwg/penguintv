@@ -1,22 +1,51 @@
+QUEUED            = 0
+DOWNLOADING       = 1
+FINISHED          = 2
+FINISHED_AND_PLAY = 3
+STOPPED           = 4
+FAILURE           = -1
+
 class Downloader:
 	"""Interface class for downloading.  Doesn't do anything"""
 	def __init__(self, media, media_dir, params, resume, queue, progress_callback=None, finished_callback=None):
 		#no params
-		self.media = media
 		if progress_callback is not None:
-			self.progress_callback = progress_callback
+			self.app_progress_callback = progress_callback
 		else:
-			self.progress_callback = self._basic_progress_callback
+			self.app_progress_callback = self._basic_progress_callback
 		if finished_callback is not None:
-			self.finished_callback = finished_callback
+			self.app_finished_callback = finished_callback
 		else:
-			self.finished_callback = self._basic_finished_callback
+			self.app_finished_callback = self._basic_finished_callback
 		self.resume = resume
 		self.queue = queue
-		
+		self.progress = 0
+		self.total_size = 1
+		self.media = media
+		self.status = QUEUED
+		self.message = ""
+		self._stop_download = False
+			
 	def download(self,args):
 		"""args is set by ThreadPool, and is unused"""
-		print "The Downloader base class does not implement this method"
+		#print "The Downloader base class does not implement this method"
+		self.running = True
+		self.status = DOWNLOADING
+		
+	def progress_callback(self):
+		#print "Downloader progress"
+		if self._stop_download:
+			print "got stop signal",self.media
+			self.app_progress_callback(self)
+			return 1
+		return self.app_progress_callback(self)
+		
+	def finished_callback(self):
+		print "Downloader finished"
+		return self.app_finished_callback(self)
+		
+	def stop(self):
+		self._stop_download = True
 		
 	def _basic_finished_callback(self, data):
 		filename = data[0]['file']

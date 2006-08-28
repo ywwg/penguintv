@@ -249,7 +249,7 @@ class Lucene:
 										  #don't care because we are going to pare down the list
 		feed_results = utils.uniquer(feed_results)
 		entry_results = utils.uniquer(entry_results)	
-		searcher.close()           				
+		searcher.close()    
 		return (feed_results, entry_results)
 		
 class DBError(Exception):

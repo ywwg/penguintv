@@ -179,7 +179,7 @@ def my_quote(str):
 	
 def uniquer(seq, idfun=None):
 	if not seq:
-		return None
+		return []
 	if idfun is None:
 		def idfun(x): return x
 	seen = {}
@@ -390,6 +390,11 @@ def html_entity_unfixer(text):
 	for entity in _my_entities.keys():
 		text = text.replace("&"+entity+";", _my_entities[entity])
 	return text
+	
+#def lucene_escape(text):
+#	#+ - & | ! ( ) { } [ ] ^ " ~ * ? : \\
+#	escape_chars="""+-&|!(){}[]^"~*?:\\"""
+#	text = text.replace(
 	
 if is_kde():
 	import kio

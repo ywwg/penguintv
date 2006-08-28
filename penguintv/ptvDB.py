@@ -537,7 +537,7 @@ class ptvDB:
 		else:
 			###print "nothing to poll"
 			return
-		pool = ThreadPool.ThreadPool(6,"ptvDB")
+		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
 		for feed in feeds:
 			if self.exiting:
 				break
@@ -609,14 +609,25 @@ class ptvDB:
 		#assemble our handy dictionary while we're in a thread
 		update_data={}
 		c = db.cursor()
-		c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
-		list = c.fetchall()
-		update_data['unread_count'] = len([item for item in list if item[0]==0])
 		
-		flag_list = self.get_entry_flags(feed_id,c)
-		
-		update_data['flag_list']=flag_list
-		update_data['pollfail']=pollfail
+		if self.is_feed_filter(feed_id, c):
+			entries = self.get_entrylist(feed_id, c) #reinitialize filtered_entries dict
+			update_data['unread_count'] = self.get_unread_count(feed_id, c)
+			flag_list = self.get_entry_flags(feed_id,c)
+			update_data['pollfail']=self.get_feed_poll_fail(self.resolve_pointed_feed(feed_id,c),c)
+		else:
+			c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
+			list = c.fetchall()
+			update_data['unread_count'] = len([item for item in list if item[0]==0])
+			
+			flag_list = self.get_entry_flags(feed_id,c)
+			
+			if len(self.get_pointer_feeds(feed_id, c)) > 0:
+				print "have pointers, reindexing now"
+				self.reindex()
+				
+			update_data['flag_list']=flag_list
+			update_data['pollfail']=pollfail
 		c.close()
 		db.close()
 		del db
@@ -1178,9 +1189,11 @@ class ptvDB:
 			raise NoEntry, entry_id
 		return entry_dic
 		
-	def get_entrylist(self, feed_index):
-		self.c.execute(u'SELECT feed_pointer,description FROM feeds WHERE id=?',(feed_index,))
-		result = self.c.fetchone()
+	def get_entrylist(self, feed_index, c=None):
+		if c is None:
+			c = self.c
+		c.execute(u'SELECT feed_pointer,description FROM feeds WHERE id=?',(feed_index,))
+		result = c.fetchone()
 		if result is None:
 			return []
 		if result[0] >= 0:
@@ -1191,19 +1204,25 @@ class ptvDB:
 				return []
 			entries.sort(lambda x,y: int(y[2] - x[2]))
 			#need list of "new"s.
-			self.c.execute(u'SELECT id,new FROM entries WHERE feed_id=? ORDER BY fakedate DESC',(pointed_feed,))
-			new_info = self.c.fetchall()
+			c.execute(u'SELECT id,new FROM entries WHERE feed_id=? ORDER BY fakedate DESC',(pointed_feed,))
+			new_info = c.fetchall()
 			ret_val = []
 			i=0
-			for entry in entries:
-				while new_info[i][0] != entry[0]:
-					i+=1
-				ret_val.append((entry[0],entry[1],entry[2],new_info[i][1]))
+			try:
+				for entry in entries:
+					while new_info[i][0] != entry[0]:
+						i+=1
+					ret_val.append((entry[0],entry[1],entry[2],new_info[i][1]))
+			except Exception, e:
+				print e
+				print i
+				print len(entries)
+				print len(new_info)
 			self.filtered_entries[feed_index] = ret_val
 			return ret_val
 	
-		self.c.execute("""SELECT id,title,fakedate,new FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
-		result = self.c.fetchall()
+		c.execute("""SELECT id,title,fakedate,new FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
+		result = c.fetchall()
 		
 		if result=="":
 			raise NoFeed, feed_index
@@ -1452,11 +1471,13 @@ class ptvDB:
 				return D_RESUMABLE
 		return D_DOWNLOADED		
 		
-	def get_feed_poll_fail(self, feed_id):
-		feed_id = self.resolve_pointed_feed(feed_id)
+	def get_feed_poll_fail(self, feed_id,c=None):
+		if c is None:
+			c = self.c
+		feed_id = self.resolve_pointed_feed(feed_id, c)
 	
-		self.c.execute(u'SELECT pollfail FROM feeds WHERE id=?',(feed_id,))
-		result = self.c.fetchone()[0]
+		c.execute(u'SELECT pollfail FROM feeds WHERE id=?',(feed_id,))
+		result = c.fetchone()[0]
 		if result==0:
 			return False
 		return True
@@ -1555,20 +1576,22 @@ class ptvDB:
 		self.entry_flag_cache[entry_id] = importance
 		return importance		
 		
-	def get_unread_count(self, feed_id):
+	def get_unread_count(self, feed_id, c=None):
+		if c is None:
+			c = self.c
 		if self.filtered_entries.has_key(feed_id):
 			entries = self.filtered_entries[feed_id]
 			list = []
 			for entry in entries:
-				self.c.execute(u'SELECT read FROM entries WHERE id=?',(entry[0],))
+				c.execute(u'SELECT read FROM entries WHERE id=?',(entry[0],))
 				try:
-					list.append(self.c.fetchone())
+					list.append(c.fetchone())
 				except:
 					pass
 		else:
 			feed_id = self.resolve_pointed_feed(feed_id)		
-			self.c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
-			list = self.c.fetchall()
+			c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
+			list = c.fetchall()
 		unread=0
 		for item in list:
 			if item[0]==0:
@@ -1776,8 +1799,11 @@ class ptvDB:
 	def doindex(self):
 		self.searcher.Do_Index_Threaded()
 		
-	def reindex(self):
-		self.searcher.Re_Index_Threaded(self.reindex_feed_list, self.reindex_entry_list)
+	def reindex(self, feed_list=[], entry_list=[]):
+		"""reindex self.reindex_feed_list and self.reindex_entry_list as well as anything specified"""
+		feed_list += self.reindex_feed_list
+		entry_list += self.reindex_entry_list
+		self.searcher.Re_Index_Threaded(feed_list, entry_list)
 		self.reindex_feed_list = []
 		self.reindex_entry_list = []
 		
@@ -1799,9 +1825,11 @@ class ptvDB:
 			return True
 		return False
 		
-	def get_pointer_feeds(self, feed_id):
-		self.c.execute(u'SELECT id FROM feeds WHERE feed_pointer=?',(feed_id,))
-		results = self.c.fetchall()
+	def get_pointer_feeds(self, feed_id, c=None):
+		if c is None:
+			c = self.c
+		c.execute(u'SELECT id FROM feeds WHERE feed_pointer=?',(feed_id,))
+		results = c.fetchall()
 		if results is None:
 			return []
 		return [f[0] for f in results]

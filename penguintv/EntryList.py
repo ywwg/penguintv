@@ -224,7 +224,7 @@ class EntryList:
 		
 	def update_entry_list(self, entry_id=None):
 		if entry_id is None:
-			if len(self.entrylist) != self.db.get_entrylist(self.feed_id):
+			if len(self.entrylist) != len(self.db.get_entrylist(self.feed_id)):
 				self.populate_entries(self.feed_id)
 				return
 			for entry in self.entrylist:

@@ -16,6 +16,7 @@ import penguintv
 import Player
 import UpdateTasksManager
 import utils
+import Downloader
 
 import EditTextTagsDialog
 import EditTagsMultiDialog
@@ -25,8 +26,8 @@ import EditSearchesDialog
 import FeedFilterDialog
 import MainWindow, FeedList, EntryList, EntryView
 
-superglobal=utils.SuperGlobal()
-superglobal.download_status={}
+#superglobal=utils.SuperGlobal()
+#superglobal.download_status={}
 
 #status of the main window progress bar
 U_NOBODY=0
@@ -43,6 +44,7 @@ class MainWindow:
 
 	def __init__(self, app, glade_prefix):
 		self.app = app
+		self.mm = self.app.mediamanager
 		self.db = self.app.db #this and app are always in the same thread
 		self.glade_prefix = glade_prefix
 		self.widgetTree   = None
@@ -669,20 +671,22 @@ class MainWindow:
 		self.disk_usage_widget.set_text(utils.format_size(size))
 
 	def update_download_progress(self):
-		progresses = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_PROGRESS]
-		queued = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_QUEUED]
+		#progresses = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_PROGRESS]
+		#queued = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_QUEUED]
+		progresses = self.mm.get_download_list(Downloader.DOWNLOADING)
+		queued     = self.mm.get_download_list(Downloader.QUEUED)
 		if len(progresses)+len(queued)==0:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)
 			return
 		total_size = 0
 		downloaded = 0
-		for item in progresses+queued:
-			if item[2]<=0:
+		for d in progresses+queued:
+			if d.total_size<=0:
 				total_size += 1
 			else:
-				total_size += item[2]
-			downloaded += (item[1]/100.0)*item[2]
+				total_size += d.total_size
+			downloaded += (d.progress/100.0)*d.total_size
 		if total_size == 0:
 			total_size=1
 		dict = { 'percent': downloaded*100.0/total_size,

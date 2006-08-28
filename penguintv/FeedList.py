@@ -412,22 +412,21 @@ class FeedList:
 		
 		update_what is a bunch of strings saying what we want to update.  it will go to the
 		db for info unless the value is already in update_data"""
-		
 		if feed_id is None:
 			if self.last_feed is None:
 				return
 			feed_id = self.last_feed
 			
-		pointed = self.db.resolve_pointed_feed(feed_id)
+		#pointed = self.db.resolve_pointed_feed(feed_id)
 
-		if pointed != feed_id: #this is a pointer
-			if recur_ok: 
-				self.update_feed_list(pointed, update_what, update_data)
-				return
-			#else continue...
-		else:
-			for f in self.db.get_pointer_feeds(feed_id):
-				self.update_feed_list(f, update_what, update_data, False)
+		#if pointed != feed_id: #this is a pointer
+		#	if recur_ok: 
+		#		self.update_feed_list(pointed, update_what)
+		#		return
+		#	#else continue...
+		#else:
+		#	for f in self.db.get_pointer_feeds(feed_id):
+		#		self.update_feed_list(f, update_what=update_what, recur_ok=False)
 			
 		if update_what is None:
 			update_what = ['readinfo','icon','pollfail','title']

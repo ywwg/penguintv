@@ -8,8 +8,11 @@ import ThreadPool
 import time
 import os,os.path
 import glob
+
+import Downloader
 import BTDownloader
 import HTTPDownloader
+
 from utils import format_size
 
 import utils
@@ -20,11 +23,9 @@ import gnomevfs
 
 from penguintv import DOWNLOAD_ERROR, DOWNLOAD_PROGRESS, DOWNLOAD_WARNING, DOWNLOAD_QUEUED
 
-FINISHED=0
-FINISHED_AND_PLAY=1
-STOPPED=2
-FAILURE=-1
-
+RUNNING = 0
+PAUSING = 1 
+PAUSED  = 2
 
 #Downloader API:
 #constructor takes:  media, params, resume, queue, progress_callback, finished_callback
@@ -43,20 +44,22 @@ class MediaManager:
 	def __init__(self, progress_callback=None, finished_callback=None):
 		self.index=0
 		self.pool = ThreadPool.ThreadPool(5,"MediaManager")
+		self.downloads = []
 		self.db = ptvDB.ptvDB()
 		self.time_appendix=0
 		self.bt_settings = {'min_port':6881, 'max_port':6999, 'ul_limit':0}
 		self.id_time=0
 		self.quitting = False
+		self.pause_state = RUNNING
 		if finished_callback:
-			self.pool_finished_callback = finished_callback
+			self.app_callback_finished = finished_callback
 		else:
-			self.pool_finished_callback = self._basic_finished_callback
+			self.app_callback_finished = self._basic_finished_callback
 			
 		if progress_callback:
-			self.pool_progress_callback = progress_callback
+			self.app_callback_progress = progress_callback
 		else:
-			self.pool_progress_callback = self._basic_progress_callback	
+			self.app_callback_progress = self._basic_progress_callback	
 		try:
 			home=os.getenv('HOME')
 			os.stat(home+'/.penguintv/media')
@@ -141,7 +144,8 @@ class MediaManager:
 				'--maxport', str(self.bt_settings['max_port']),
 				'--max_upload_rate', str(self.bt_settings['ul_limit'])]
 				
-			downloader = BTDownloader.BTDownloader(media, self.media_dir, params,True, queue, self.pool_progress_callback,self.pool_finished_callback)
+			downloader = BTDownloader.BTDownloader(media, self.media_dir, params,True, queue, self.callback_progress,self.callback_finished)
+			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
 			pass
 		else: #http regular download
@@ -155,50 +159,87 @@ class MediaManager:
 						media['file']=media['file']+real_ext
 				except:
 					print "ERROR couldn't guess mimetype, leaving filename alone"
-			downloader = HTTPDownloader.HTTPDownloader(media, self.media_dir, None, resume, queue, self.pool_progress_callback, self.pool_finished_callback)
+			downloader = HTTPDownloader.HTTPDownloader(media, self.media_dir, None, resume, queue, self.callback_progress, self.callback_finished)
+			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
 			
 		self.db.set_media_download_status(media['media_id'],1)
-		superglobal.download_status[media['media_id']] = (DOWNLOAD_QUEUED,0,media['size'])
+		#superglobal.download_status[media['media_id']] = (DOWNLOAD_QUEUED,0,media['size'])
 		#self.db.set_media_viewed(media['media_id'],False)
 		self.db.set_media_filename(media['media_id'],media['file'])
 		self.index=self.index+1
 		
-	def bt_progress_callback(self, data):
-		if self.quitting == True:
-			return 1
-		self.pool_progress_callback(data)
+	def has_downloader(self, media_id):
+		for download in self.downloads:
+			if download.media['media_id'] == media_id:
+				return True
+		return False
+		
+	def get_downloader(self, media_id):
+		for download in self.downloads:
+			if download.media['media_id'] == media_id:
+				return download
+		raise DownloadNotFound, media_id
+		
+	def get_download_list(self, status=None):
+		list = []
+		for d in self.downloads:
+			if status is not None:
+				if d.status == status:
+					list.append(d)
+			else:
+				list.append(d)
+		return list
 		
 	def _basic_finished_callback(self, data):
-		#filename = data[0]['file']
-		#info = data[1:]
-		#print filename+" "+str(info)
 		print data
 		self.db.set_media_download_status(data[0]['media_id'],ptvDB.D_DOWNLOADED)	
 			
 	def _basic_progress_callback(self, data):
-		#media, blocks, blocksize, totalsize=data
-		#percent = (blocks*blocksize*100) / totalsize
-		#if percent>100:
-	#		percent = 100
-		#if percent%10 == 0:
-		#	print media['file']+" "+str(percent)+"%"
 		print os.path.split(data[0]['file'])[1]+" "+data[2]
+		
+	def callback_progress(self, obj):
+		#print "mediamanager progress"
+		return self.app_callback_progress(obj)
+	
+	def callback_finished(self, obj):
+		self.downloads.remove(obj)
+		self.update_playlist(obj.media)
+		#if self.pause_state == RUNNING:
+		self.app_callback_finished(obj)
 			
 	def get_download_count(self):
 		try:
-			return self.pool.getTaskCount()
+			#return self.pool.getTaskCount()
+			return len(self.downloads)
 		except:
 			return 0
 		
 	def pause_all_downloads(self):
 		#print "downloads paused"
-		try:
+		#try:
+		if self.pause_state == RUNNING:
+			for download in self.downloads:
+				download.stop()
+				#if not download.status == Downloader.DOWNLOADING: #send signal for all queued downloads
+				#	self.finished_callback(download, (download.media,MediaManager.STOPPED,None)) 
 			self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
 			if self.quitting == False:
 				self.pool.setThreadCount(5)
-		except:
-			pass
+			#reset
+			self.downloads = []
+			self.pause_state = PAUSED
+		#except:
+		#	pass
+		
+	def unpause_downloads(self):
+		"""DOES NOT requeue downloads.  Just clears the state"""
+		self.pause_state = RUNNING
+		
+	def stop_download(self, media_id):
+		if self.has_downloader(media_id):
+			downloader = self.get_downloader(media_id)
+			downloader.stop()
 			
 	def get_disk_usage(self):
 		size = 0
@@ -250,3 +291,9 @@ class NoDir(Exception):
 		self.durr = durr
 	def __str__(self):
 		return "no such directory: "+self.durr
+		
+class DownloadNotFound(Exception):
+	def __init__(self,durr):
+		self.durr = durr
+	def __str__(self):
+		return "download not found: "+str(self.durr)

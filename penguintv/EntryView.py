@@ -2,6 +2,7 @@ import gobject
 import gtk
 import ptvDB
 import penguintv
+import Downloader
 import utils
 import time
 import os
@@ -9,6 +10,8 @@ import htmllib, HTMLParser
 import formatter
 import threading
 import re
+
+#import traceback
 
 GTKHTML=0
 MOZILLA=1
@@ -20,6 +23,7 @@ superglobal=utils.SuperGlobal()
 class EntryView:
 	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
 		self._app = app
+		self.mm = self._app.mediamanager
 		self.main_window = main_window
 		self.RENDERRER = renderrer
 		scrolled_window = widget_tree.get_widget('html_scrolled_window')
@@ -171,27 +175,29 @@ class EntryView:
 			stream.close()
 			raise
 	
-	def update_progress(self, item, progress, message):
+	def update_progress(self, d):
+		#print "we are updating progress"
 		#item, progress, message = data
 		try:
 			if len(self.current_entry) == 0:
 				return
 		except:
 			return
-		if item['entry_id'] != self.current_entry['entry_id'] or self.currently_blank==True:
+		if d.media['entry_id'] != self.current_entry['entry_id'] or self.currently_blank==True:
 			return
 			
 		for medium in self.current_entry['media']:
-			if medium['media_id'] == item['media_id']:
-				medium['progress']=progress
-				medium['progress_message']=message
+			if medium['media_id'] == d.media['media_id']:
+				medium['progress']=d.progress
+				medium['progress_message']=d.message
 		
 		if self.updater_timer==0:
 			self.updater_timer=1
-			self.updater_entry_id = item['entry_id']
+			self.updater_entry_id = d.media['entry_id']
 			gobject.timeout_add(2000, self.update_display)
     		
 	def update_display(self):
+		#print "updating display"
 		try:
 			if self.updater_entry_id != self.current_entry['entry_id'] or self.currently_blank == True:
 				self.updater_timer=0
@@ -226,6 +232,8 @@ class EntryView:
 		ha.get_value(info[1])
 			  		
 	def display_item(self, item=None, highlight=""):
+		#print "DISPLAYING ITEM:",item
+		#traceback.print_stack()
 		va = self._scrolled_window.get_vadjustment()
 		ha = self._scrolled_window.get_hadjustment()
 		rescroll=0
@@ -432,18 +440,24 @@ class EntryView:
 						ret.append('<p><i>'+medium['progress_message']+'</i> '+
 						                    utils.html_command('pause:',medium['media_id'])+' '+
 						                    utils.html_command('stop:',medium['media_id'])+'</p>')
-					elif superglobal.download_status.has_key(medium['media_id']): #cached information
-						status = superglobal.download_status[medium['media_id']]
-						if status[0] == penguintv.DOWNLOAD_PROGRESS:
-							d = {'progress':status[1],
+					elif self.mm.has_downloader(medium['media_id']):
+						print "we have downloader"
+						downloader = self.mm.get_downloader(medium['media_id'])
+					#elif superglobal.download_status.has_key(medium['media_id']): #cached information
+					#	status = superglobal.download_status[medium['media_id']]
+					#	if status[0] == penguintv.DOWNLOAD_PROGRESS:
+						if downloader.status == Downloader.DOWNLOADING:
+							d = {'progress':downloader.progress,
 							     'size':utils.format_size(medium['size'])}
 							ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
 							            utils.html_command('pause:',medium['media_id'])+' '+
 							            utils.html_command('stop:',medium['media_id'])+'</p>')
-						elif status[0] == penguintv.DOWNLOAD_QUEUED:
+						elif downloader.status == Downloader.QUEUED:
 							ret.append('<p><i>'+_("Download queued") +'</i> '+
 							            utils.html_command('pause:',medium['media_id'])+' '+
 							            utils.html_command('stop:',medium['media_id'])+'</p>')
+						elif downloader.status == Downloader.STOPPED:
+							ret.append("STOPPPPPPPPPED")
 					elif medium.has_key('progress'):       #no custom message, but we have a progress value
 						d = {'progress':medium['progress'],
 						     'size':utils.format_size(medium['size'])}
@@ -454,8 +468,10 @@ class EntryView:
 						ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
 																  utils.html_command('stop:',medium['media_id'])+'</p>')
 				elif medium['download_status'] == ptvDB.D_DOWNLOADED:
-					if superglobal.download_status.has_key(medium['media_id']):
-						ret.append('<p>'+ str(superglobal.download_status[medium['media_id']][1])+'</p>')
+					if self.mm.has_downloader(medium['media_id']):	
+						downloader = self.mm.get_downloader(medium['media_id'])
+					#if superglobal.download_status.has_key(medium['media_id']):
+						ret.append('<p>'+ str(downloader.message)+'</p>')
 					filename = medium['file'][medium['file'].rfind("/")+1:]
 					if utils.is_known_media(medium['file']):
 						if os.path.isdir(medium['file']) and medium['file'][-1]!='/':
@@ -476,8 +492,11 @@ class EntryView:
 									 utils.html_command('redownload',medium['media_id'])+' '+
 									 utils.html_command('delete:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))	
 				elif medium['download_status'] == ptvDB.D_ERROR:
-					if superglobal.download_status.has_key(medium['media_id']):
-						error_msg = superglobal.download_status[medium['media_id']][1]
+					if self.mm.has_downloader(medium['media_id']):	
+						downloader = self.mm.get_downloader(medium['media_id'])
+						error_msg = downloader.message
+#					if superglobal.download_status.has_key(medium['media_id']):
+#						error_msg = superglobal.download_status[medium['media_id']][1]
 					else:
 						error_msg = _("There was an error downloading the file.")
 					ret.append('<p>'+medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg)+'  '+
