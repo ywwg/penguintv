@@ -74,6 +74,7 @@ T_SEARCH  = 2
 T_BUILTIN = 3
 
 NOAUTODOWNLOAD="noautodownload"
+NOINDEX="noindex"
 
 DB_FILE="penguintv3.db"
 
@@ -127,6 +128,7 @@ class ptvDB:
 			self.polling_callback = polling_callback		
 			
 		self.searcher = Lucene.Lucene()
+		self.searcher.set_blacklist(self.get_feeds_for_tag(NOINDEX))
 		self.reindex_entry_list = []
 		self.reindex_feed_list = []
 		self.filtered_entries = {}
@@ -1650,6 +1652,11 @@ class ptvDB:
 			return best_flag + F_DOWNLOADED
 		else:
 			return best_flag
+	
+	def get_feeds_for_tag(self, tag):
+		self.c.execute(u'SELECT feeds.id FROM feeds INNER JOIN tags ON tags.feed_id=feeds.id WHERE tag=?',(tag,))
+		result = self.c.fetchall()
+		return [r[0] for r in result]
 			
 	def get_tags_for_feed(self, feed_id):
 		self.c.execute(u'SELECT tag FROM tags WHERE feed_id=? ORDER BY tag',(feed_id,))
@@ -1684,6 +1691,8 @@ class ptvDB:
 		else:
 			self.c.execute(u'INSERT INTO tags (tag, feed_id, type) VALUES (?,?,?)',(tag,feed_id, T_TAG))
 			self.db.commit()
+		if tag == NOINDEX:
+			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
 			
 	def add_search_tag(self, query, tag):
 		current_tags = self.get_all_tags(T_ALL)
@@ -1707,14 +1716,21 @@ class ptvDB:
 	def rename_tag(self, old_tag, new_tag):
 		self.c.execute(u'UPDATE tags SET tag=? WHERE tag=?',(new_tag,old_tag))
 		self.db.commit()
+		if tag == NOINDEX:
+			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
+
 		
 	def remove_tag_from_feed(self, feed_id, tag):
 		self.c.execute(u'DELETE FROM tags WHERE tag=? AND feed_id=?',(tag,feed_id))
 		self.db.commit()
+		if tag == NOINDEX:
+			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
 		
 	def remove_tag(self, tag):
 		self.c.execute(u'DELETE FROM tags WHERE tag=?',(tag,))
 		self.db.commit()
+		if tag == NOINDEX:
+			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
 		
 	def get_all_tags(self, type=T_TAG):
 		if type==T_ALL:

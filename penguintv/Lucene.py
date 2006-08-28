@@ -22,11 +22,15 @@ class Lucene:
 				raise DBError, "error creating directories: "+self.home+"/.penguintv"
 		self.storeDir = self.home+"/.penguintv/search_store"
 		self.needs_index = False
+		self.blacklist = []
 		if not os.path.exists(self.storeDir):
 			os.mkdir(self.storeDir)
 			self.needs_index = True
 			
 		self.index_lock = Lock()
+		
+	def set_blacklist(self, blacklist):
+		self.blacklist = blacklist
 		
 	def _get_db(self):
 		try:	
@@ -220,15 +224,23 @@ class Lucene:
 			"""we use this twice, so save some typing"""
 			for i, doc in hits:
 				feed_id  = int(doc.get("feed_id"))
-				entry_id = doc.get("entry_id")
-				if entry_id is None: #meaning this is actually a feed
-					feed_results.append(int(feed_id))
-				else: #               meaning "entry"
-					if len(entry_results) < ENTRY_LIMIT:
-						title    = doc.get("title")
-						desc     = doc.get("description")
-						fakedate = float(doc.get("fakedate"))
-						entry_results.append((int(entry_id),title, fakedate, feed_id))
+				try:
+					if feed_id not in self.blacklist:
+						entry_id = doc.get("entry_id")
+						if entry_id is None: #meaning this is actually a feed
+							feed_results.append(int(feed_id))
+						else: #               meaning "entry"
+							if len(entry_results) < ENTRY_LIMIT:
+								title    = doc.get("title")
+								desc     = doc.get("description")
+								fakedate = float(doc.get("fakedate"))
+								entry_results.append((int(entry_id),title, fakedate, feed_id))
+					else:
+						print "excluding:"+doc.get("title")
+				except Exception, e:
+					print e
+					print feed_id
+					print self.blacklist
 		
 		hits = searcher.search(query)
 		build_results(hits)

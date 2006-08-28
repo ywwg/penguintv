@@ -4182,6 +4182,7 @@ j@v2v.cc
 		  <property name="invisible_char">●</property>
 		  <property name="activates_default">False</property>
 		  <signal name="activate" handler="on_search_entry_activate" last_modification_time="Wed, 23 Aug 2006 19:39:57 GMT"/>
+		  <signal name="changed" handler="on_search_entry_changed" last_modification_time="Mon, 28 Aug 2006 19:00:36 GMT"/>
 		</widget>
 		<packing>
 		  <property name="padding">0</property>
