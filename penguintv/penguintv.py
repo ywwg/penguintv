@@ -109,6 +109,8 @@ class PenguinTVApp:
 		self.saved_filter = FeedList.ALL
 		self.saved_search = ""
 		self.showing_search = False
+		self.threaded_searcher = None
+		self.waiting_for_search = False
 		
 		window_layout = self.conf.get_string('/apps/penguintv/app_window_layout')
 		if window_layout is None:
@@ -751,14 +753,16 @@ class PenguinTVApp:
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
 		
 	def search(self, query):
-		query = query.replace("!","")
-		self.showing_search = True
-		
 		try:
+			query = query.replace("!","")
 			result = self.db.search(query)
 		except Exception, e:
 			print "error with that search term", e
 			result=([],[])
+		return result
+	
+	def show_search(self, query, result):
+		self.showing_search = True		
 		try:
 			#print result
 			self.entry_list_view.show_search_results(result[1], query)
@@ -766,7 +770,7 @@ class PenguinTVApp:
 		except ptvDB.BadSearchResults, e:
 			print e
 			self.db.reindex(result[0], [i[0] for i in result[1]])
-			self.search(query)
+			self.show_search(query, self.search(query))
 			return
 		self.main_window.filter_unread_checkbox.set_sensitive(False)
 		
@@ -778,6 +782,53 @@ class PenguinTVApp:
 		self.main_window.search_entry.set_text("")
 		self.main_window.filter_unread_checkbox.set_sensitive(True)
 		
+	def threaded_search(self, query):
+		if self.threaded_searcher is None:
+			self.threaded_searcher = PenguinTVApp.threaded_searcher(query, self._got_search, self._searcher_done)
+		self.threaded_searcher.set_query(query)
+		if not self.waiting_for_search:
+			self.waiting_for_search = True
+			self.threaded_searcher.start()
+	
+	def _got_search(self, query, results):
+		self.updater.queue_task(GUI, self.got_search, (query,results))
+		
+	def _searcher_done(self):
+		self.waiting_for_search = False
+		
+	def got_search(self, query, results):
+		self.show_search(query, results)
+		if self.main_window.filter_combo_widget.get_active() != FeedList.SEARCH:
+			self.saved_filter = self.main_window.filter_combo_widget.get_active()
+			self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
+		
+	class threaded_searcher(PyLucene.PythonThread):
+		def __init__(self, query, callback, done_callback):
+			PyLucene.PythonThread.__init__(self)
+			self.query = query
+			self.callback = callback
+			self.done_callback = done_callback
+			self.db = ptvDB.ptvDB()
+			
+		def set_query(self, query):
+			self.query = query.replace("!","")
+		
+		def run(self):
+			old_query = self.query+"different"
+			waits=0
+			while waits<3:
+				if self.query == old_query: #we get .2*3 seconds to wait for more characters
+					waits+=1
+				else:
+					waits=0
+					try:
+						old_query = self.query
+						self.callback(self.query, self.db.search(self.query))
+					except:
+						self.callback(self.query, ([],[]))
+				time.sleep(.2) #give signals a chance to get around
+			self.done_callback()
+		
 	def manual_search(self, query):
 		self.saved_search = query #even if it's blank
 		if len(query)==0:
@@ -786,7 +837,7 @@ class PenguinTVApp:
 			self.main_window.filter_combo_widget.set_active(self.saved_filter)
 			return
 			
-		self.search(query)
+		self.show_search(query, self.search(query))
 		self.saved_filter = self.main_window.filter_combo_widget.get_active()
 		self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
 		
@@ -802,8 +853,10 @@ class PenguinTVApp:
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.filter_combo_widget.get_active()
 		if filter_id == FeedList.SEARCH:
-			self.search(self.saved_search)
-			self.main_window.search_entry.set_text(self.saved_search)
+			self.show_search(self.saved_search, self.search(self.saved_search))
+			if self.threaded_searcher:
+				if not self.waiting_for_search:
+					self.main_window.search_entry.set_text(self.saved_search)
 		else:
 			if tag_type != ptvDB.T_SEARCH:
 				if self.showing_search:
@@ -812,7 +865,7 @@ class PenguinTVApp:
 			else:
 				query = self.db.get_search_tag(current_filter)
 				self.unshow_search()
-				self.search(query)
+				self.show_search(query, self.search(query))
 				
 	def show_downloads(self):
 		self.mediamanager.generate_playlist()
@@ -984,7 +1037,8 @@ class PenguinTVApp:
 		"""cancels a download and cleans up.  Right now there's redundancy because we call this twice
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
 		   callback tells the thread to stop working.  how to make this better?"""
-		self.mediamanager.get_downloader(item['media_id']).stop()
+		if self.mediamanager.has_downloader(item['media_id']):
+			self.mediamanager.get_downloader(item['media_id']).stop()
 		self.db.set_media_download_status(item['media_id'],ptvDB.D_NOT_DOWNLOADED)
 		self.delete_media(item['media_id']) #marks as viewed
 		self.main_window.update_download_progress()
@@ -1153,7 +1207,7 @@ class PenguinTVApp:
 			
 	class DBUpdaterThread(PyLucene.PythonThread):
 		def __init__(self, updater, polling_callback=None):
-			threading.Thread.__init__(self)
+			PyLucene.PythonThread.__init__(self)
 			self.__isDying = False
 			self.db = None
 			self.updater = updater

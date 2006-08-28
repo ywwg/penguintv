@@ -200,7 +200,7 @@ class LuceneThreadPoolThread(PyLucene.PythonThread):
 
         """ Initialize the thread and remember the pool. """
         
-        threading.Thread.__init__(self,name=n)
+        PyLucene.PythonThread.__init__(self,name=n)
         self.__pool = pool
         self.__isDying = False
         

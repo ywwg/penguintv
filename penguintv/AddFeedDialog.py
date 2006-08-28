@@ -178,7 +178,7 @@ class AddFeedDialog:
 			url_stream = urllib.urlopen(url)
 		
 		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
-		handled_mimetypes = ['application/atom+xml','application/rss+xml','application/rdf+xml','application/xml','text/xml']
+		handled_mimetypes = ['application/atom+xml','application/rss+xml','application/rdf+xml','application/xml','text/xml', 'text/plain']
 		if mimetype in handled_mimetypes:
 			pass
 		elif mimetype in ['text/html', 'application/xhtml+xml']:
@@ -200,23 +200,29 @@ class AddFeedDialog:
 						pass #we're good
 				else:
 					newurl=""
+					largest=0
 					for m in handled_mimetypes:
 						if m in available_versions:
-							newurl = p.alt_tags[m]
-							break
+							pos_url = p.alt_tags[m]
+							#first clean it up
+							if pos_url[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
+								if pos_url[0:2] == '//': #fix for gnomefiles.org
+									pos_url = "http:"+pos_url
+								elif pos_url[0] == '/': #fix for lwn.net.  Maybe we should do more proper base detection?
+									parsed = urlparse.urlsplit(url)
+									pos_url=parsed[0]+"://"+parsed[1]+pos_url
+								else:
+									pos_url=os.path.split(url)[0]+'/'+pos_url
+									
+							#now test sizes
+							size = len(urllib.urlopen(pos_url).read())
+							if size > largest:
+								newurl = pos_url
+								
 					if newurl == "":
 						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
 						raise BadFeedURL
-					if newurl[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
-						if newurl[0:2] == '//': #fix for gnomefiles.org
-							url = "http:"+newurl
-						elif newurl[0] == '/': #fix for lwn.net.  Maybe we should do more proper base detection?
-							parsed = urlparse.urlsplit(url)
-							url=parsed[0]+"://"+parsed[1]+newurl
-						else:
-							url=os.path.split(url)[0]+'/'+newurl
-					else:
-						url = newurl	
+					url = newurl	
 			except HTMLParser.HTMLParseError:
 				exc_type, exc_value, exc_traceback = sys.exc_info()
 				error_msg = ""

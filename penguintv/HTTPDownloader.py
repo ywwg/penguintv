@@ -68,7 +68,7 @@ class HTTPDownloader(Downloader):
 					self.media['errormsg']=_("Some HTTP error: %(response)s") % d
 				self.status = FAILURE
 				self.message = self.media['errormsg']
-				self.finished_callback(self)
+				self.finished_callback()
 				return
 			
 			if self.queue:

@@ -507,6 +507,9 @@ class MainWindow:
 	def on_search_entry_activate(self, event):
 		self.app.manual_search(self.search_entry.get_text())
 		
+	def on_search_entry_changed(self, event):
+		self.app.threaded_search(self.search_entry.get_text())
+		
 	def on_show_downloads_activate(self, event):
 		self.app.show_downloads()
 		

@@ -39,7 +39,7 @@ EXISTS = 1
 MODIFIED = 2
 DELETED = 3
 
-MAX_ARTICLES = 100
+MAX_ARTICLES = 1000
 
 _common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
 
