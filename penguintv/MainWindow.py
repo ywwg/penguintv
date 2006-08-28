@@ -26,9 +26,6 @@ import EditSearchesDialog
 import FeedFilterDialog
 import MainWindow, FeedList, EntryList, EntryView
 
-#superglobal=utils.SuperGlobal()
-#superglobal.download_status={}
-
 #status of the main window progress bar
 U_NOBODY=0
 U_DOWNLOAD=1

@@ -441,7 +441,6 @@ class EntryView:
 						                    utils.html_command('pause:',medium['media_id'])+' '+
 						                    utils.html_command('stop:',medium['media_id'])+'</p>')
 					elif self.mm.has_downloader(medium['media_id']):
-						print "we have downloader"
 						downloader = self.mm.get_downloader(medium['media_id'])
 					#elif superglobal.download_status.has_key(medium['media_id']): #cached information
 					#	status = superglobal.download_status[medium['media_id']]

@@ -1135,7 +1135,7 @@ class ptvDB:
 		if data: 
 			dataList = [list(row) for row in data]
 		else:
-			return None
+			return []
 		media_list=[]
 		for datum in dataList:
 			medium={}

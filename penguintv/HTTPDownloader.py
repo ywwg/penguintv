@@ -112,5 +112,9 @@ class HTTPDownloader(Downloader):
 		d = { 'progress': str(self.progress),
 			  'size': utils.format_size(self.media['size'])}
 		self.total_size = self.media['size']
-		self.message = _("Downloaded %(progress)s%% of %(size)s") % d
+		if self.total_size == 0:
+			d['dl_now'] = dl_now
+			self.message = _("Downloaded %(dl_now)s...") % d
+		else:
+			self.message = _("Downloaded %(progress)s%% of %(size)s") % d
 		return self.progress_callback()

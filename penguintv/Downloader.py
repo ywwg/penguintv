@@ -33,15 +33,13 @@ class Downloader:
 		self.status = DOWNLOADING
 		
 	def progress_callback(self):
-		#print "Downloader progress"
+		print self.media['media_id'],self.progress,self.total_size
 		if self._stop_download:
-			print "got stop signal",self.media
 			self.app_progress_callback(self)
 			return 1
 		return self.app_progress_callback(self)
 		
 	def finished_callback(self):
-		print "Downloader finished"
 		return self.app_finished_callback(self)
 		
 	def stop(self):
