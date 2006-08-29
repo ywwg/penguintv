@@ -78,6 +78,21 @@ class FeedList:
 		
 		#signals
 		self._widget.get_selection().connect("changed", self._item_selection_changed)
+		self._widget.connect("row-activated", self.on_row_activated)
+		
+	def on_row_activated(self, treeview, path, view_column):
+		index = path[0]
+		model = treeview.get_model()
+		link = self.db.get_feed_info(model[index][FEEDID])['link']
+		if len(link) == 0:
+			dialog = gtk.Dialog(title=_("No Homepage"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("There is no homepage associated with this feed.  You can set one in the feed properties"))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+		self._app.activate_link(link)
 	
 	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
@@ -159,10 +174,13 @@ class FeedList:
 			i_list.append(id_list.index(f[FEEDID]))
 		self.feedlist.reorder(i_list)
 		if showing_feed is not None:
-			self.set_selected(showing_feed)
 			self._app.display_feed(showing_feed)
 			if not self.filter_test_feed(showing_feed):
 				self._app.main_window.filter_combo_widget.set_active(ALL)
+			self.set_selected(showing_feed)
+		else:
+			self._app.main_window.filter_combo_widget.set_active(ALL)
+			self._app.display_entry(None)
 		
 	def set_unread_toggle(self, active):
 		if self.showing_search:

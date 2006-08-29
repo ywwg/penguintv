@@ -876,7 +876,7 @@ class PenguinTVApp:
 				self.main_window.feed_list_view.set_filter(filter_id, current_filter)
 			else:
 				query = self.db.get_search_tag(current_filter)
-				self.unshow_search()
+				#self.unshow_search()
 				self.show_search(query, self.search(query))
 				
 	def show_downloads(self):
@@ -970,6 +970,10 @@ class PenguinTVApp:
 
 		self.feed_list_view.add_feed(feed_id)
 		self.main_window.select_feed(feed_id)
+		
+	def set_feed_filter(self, pointer_feed_id, filter_name, query):
+		self.db.set_feed_filter(pointer_feed_id, filter_name, query)
+		self.display_feed(pointer_feed_id)
 		
 	def _add_feed_callback(self, feed, success):
 		if success:

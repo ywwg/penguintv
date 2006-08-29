@@ -10,6 +10,8 @@ import gconf
 #import time
 import sys
 
+import traceback
+
 
 import ptvDB
 import penguintv
@@ -24,6 +26,8 @@ import RenameFeedDialog
 import AddSearchTagDialog
 import EditSearchesDialog
 import FeedFilterDialog
+import FeedPropertiesDialog
+import FeedFilterPropertiesDialog
 import MainWindow, FeedList, EntryList, EntryView
 
 #status of the main window progress bar
@@ -58,6 +62,9 @@ class MainWindow:
 		self.window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_search_tag",'penguintv'),self.app)
 		self.about_box_widgets = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "aboutdialog1",'penguintv')
 		self.about_box = self.about_box_widgets.get_widget('aboutdialog1')
+		self.feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_feed_properties",'penguintv'),self.app)
+		self.feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_filter_properties",'penguintv'),self.app)
+		
 		try:
 			self.about_box.set_version(utils.VERSION)
 		except:
@@ -301,6 +308,29 @@ class MainWindow:
 	
 	#def on_feed_pane_expose_event(self, widget, event):
 	#	self.feed_list_view.resize_columns(self.feed_pane.get_position())
+	
+	def on_feed_properties_activate(self, event):
+		selected = self.feed_list_view.get_selected()
+		if selected:
+			#title, description, url, link
+			feed_info = self.db.get_feed_info(selected)
+			self.feed_properties_dialog.set_feedid(selected)
+			self.feed_properties_dialog.set_title(feed_info['title'])
+			self.feed_properties_dialog.set_rss(feed_info['url'])
+			self.feed_properties_dialog.set_description(feed_info['description'])
+			self.feed_properties_dialog.set_link(feed_info['link'])
+			self.feed_properties_dialog.show()
+			
+	def on_feed_filter_properties_activate(self, event):
+		selected = self.feed_list_view.get_selected()
+		if selected:
+			#title, description, url, link
+			feed_info = self.db.get_feed_info(selected)
+			self.feed_filter_properties_dialog.set_feed_id(selected)
+			self.feed_filter_properties_dialog.set_pointed_feed_id(feed_info['feed_pointer'])
+			self.feed_filter_properties_dialog.set_filter_name(feed_info['title'])
+			self.feed_filter_properties_dialog.set_query(feed_info['description'])
+			self.feed_filter_properties_dialog.show()
 		
 	def on_download_entry_activate(self, event):
 		try:
@@ -365,7 +395,13 @@ class MainWindow:
 			
 	def on_feedlistview_button_press_event(self, widget, event):          
 		if event.button==3: #right click                               
-			menu = gtk.Menu()                                       
+			menu = gtk.Menu()   
+			
+			path = widget.get_path_at_pos(int(event.x),int(event.y))
+			model = widget.get_model()
+			if path is None: #nothing selected
+				return
+			selected = model[path[0]][FeedList.FEEDID]
 
 			item = gtk.MenuItem(_("Re_name"))
 			item.connect('activate',self.on_rename_feed_activate)
@@ -387,10 +423,22 @@ class MainWindow:
 			item.connect('activate',self.on_delete_feed_media_activate)
 			menu.append(item)
 			
-			print "FIXME: need to test if this is already a filtered fed"
-			item = gtk.MenuItem(_("_Create Feed Filter"))
-			item.connect('activate',self.on_add_feed_filter_activate)
-			menu.append(item)
+			separator = gtk.SeparatorMenuItem()
+			menu.append(separator)
+			
+			#print "FIXME: need to test if this is already a filtered feed"
+			if not self.db.is_feed_filter(selected):
+				item = gtk.MenuItem(_("_Create Feed Filter"))
+				item.connect('activate',self.on_add_feed_filter_activate)
+				menu.append(item)
+					
+				item = gtk.ImageMenuItem('gtk-properties')
+				item.connect('activate',self.on_feed_properties_activate)
+				menu.append(item)
+			else:
+				item = gtk.ImageMenuItem('gtk-properties')
+				item.connect('activate',self.on_feed_filter_properties_activate)
+				menu.append(item)
 
 			menu.show_all()
 			menu.popup(None,None,None, event.button,event.time)
@@ -411,6 +459,8 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def on_filter_combo_changed(self, event):
+		#print "changed"
+		#print traceback.print_stack()
 		model = self.filter_combo_widget.get_model()
 		current_filter = model[self.filter_combo_widget.get_active()]
 		self.app.change_filter(current_filter[0],current_filter[3])
@@ -503,7 +553,7 @@ class MainWindow:
 		if selected:
 			self.app.remove_feed(selected)
 		
-	def on_rename_feed_activate(self, event):
+	def on_rename_feed_activate(self, widget):
 		feed = self.feed_list_view.get_selected()
 		self.window_rename_feed.set_feed_id(feed)
 		self.window_rename_feed.set_feed_name(self.db.get_feed_title(feed))

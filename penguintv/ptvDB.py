@@ -74,7 +74,7 @@ T_SEARCH  = 2
 T_BUILTIN = 3
 
 NOAUTODOWNLOAD="noautodownload"
-NOINDEX="noindex"
+NOSEARCH="nosearch"
 
 DB_FILE="penguintv3.db"
 
@@ -128,7 +128,7 @@ class ptvDB:
 			self.polling_callback = polling_callback		
 			
 		self.searcher = Lucene.Lucene()
-		self.searcher.set_blacklist(self.get_feeds_for_tag(NOINDEX))
+		self.blacklist = self.get_feeds_for_tag(NOSEARCH)
 		self.reindex_entry_list = []
 		self.reindex_feed_list = []
 		self.filtered_entries = {}
@@ -248,7 +248,9 @@ class ptvDB:
 		self.c.execute(u'UPDATE tags SET type=?',(T_TAG,)) #they must all be regular tags right now
 		self.c.execute(u'UPDATE settings SET value=4 WHERE data="db_ver"')
 		self.c.execute(u'ALTER TABLE feeds ADD COLUMN feed_pointer INT')
+		self.c.execute(u'ALTER TABLE feeds ADD COLUMN link')
 		self.c.execute(u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
+		self.c.execute(u'UPDATE feeds SET link=""')
 		self.db.commit()
 		
 	def init_database(self):
@@ -293,6 +295,7 @@ class ptvDB:
 							    pollfail BOOL NOT NULL,
 							    title  ,
 							    description  ,
+							    link, 
 							    modified INT UNSIGNED NOT NULL,
 							    etag ,
 							    pollfreq INT NOT NULL,
@@ -441,7 +444,7 @@ class ptvDB:
 		return feed_id
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
-		self.c.execute(u'SELECT id,feed_pointer,description FROM feeds WHERE url=? AND description=?',(pointed_feed_id,query))
+		self.c.execute(u'SELECT id,feed_pointer,description FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
 		result = self.c.fetchone()
 		if result is None:
 		#if self.c.fetchone() != (str(pointed_feed_id),query):
@@ -452,6 +455,20 @@ class ptvDB:
 			self.db.commit()
 			self.c.execute(u'SELECT id FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
 			return self.c.fetchone()[0]
+		else:
+			raise FeedAlreadyExists, result[0]
+			
+	def set_feed_filter(self, pointer_feed_id, filter_name, query):
+		self.c.execute(u'SELECT feed_pointer FROM feeds WHERE id=?',(pointer_feed_id,))
+		pointed_id = self.c.fetchone()
+		if pointed_id is None:
+			raise NoFeed, pointer_feed_id
+		pointed_id = pointed_id[0]
+		self.c.execute(u'SELECT id FROM feeds WHERE feed_pointer=? AND description=?',(pointed_id,query))
+		result = self.c.fetchone()
+		if result is None:
+			self.c.execute(u'UPDATE feeds SET title=?, description=? WHERE id=?',(filter_name, query, pointer_feed_id))
+			self.db.commit()
 		else:
 			raise FeedAlreadyExists, result[0]
 				
@@ -556,7 +573,7 @@ class ptvDB:
 			time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
-		print "reindexing"
+		#print "reindexing"
 		self.reindex()
 				
 	def pool_poll_feed(self,args, recurse=0):
@@ -643,9 +660,7 @@ class ptvDB:
 			feed['feed_id']=feed_id
 			feed['title']=result[0]
 			feed['url']=result[1]
-			print "polling feed"
 			self.poll_feed(feed_id)
-			print "reindexing"
 			self.reindex()
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
@@ -769,6 +784,11 @@ class ptvDB:
 			else:
 				c.execute("""UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE id=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			self.reindex_feed_list.append(feed_id)
+			
+			c.execute(u'SELECT link FROM feeds WHERE id=?',(feed_id,))
+			link = c.fetchone()[0]
+			if link == "":
+				c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
 			db.commit()
 		except Exception, e:
 			print e
@@ -995,7 +1015,6 @@ class ptvDB:
 		c.close()
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
-				print "reindexing"
 				self.reindex()
 		return new_items
 		
@@ -1216,6 +1235,7 @@ class ptvDB:
 						i+=1
 					ret_val.append((entry[0],entry[1],entry[2],new_info[i][1]))
 			except Exception, e:
+				print "problem with getentrylist..."
 				print e
 				print i
 				print len(entries)
@@ -1250,6 +1270,20 @@ class ptvDB:
 		#don't return a tuple
 		return result #self.decode_text(result)
 		
+	def get_feed_info(self, feed_id):
+		self.c.execute("""SELECT title, description, url, link, feed_pointer FROM feeds WHERE id=?""",(feed_id,))
+		try:
+			result = self.c.fetchone()
+			d = {'title':result[0],
+				 'description':result[1],
+				 'url':result[2],
+				 'link':result[3],
+				 'feed_pointer':result[4]}
+			return d
+		except TypeError:
+			raise NoFeed, feed_id	
+		return result
+		
 	def set_feed_name(self, feed_id, name):
 		name = self.encode_text(name)
 		
@@ -1277,6 +1311,17 @@ class ptvDB:
 			self.db.commit()
 		self.reindex_feed_list.append(feed_id)
 		self.reindex()
+		
+	def set_feed_url(self, feed_id, url):
+		try:
+			self.c.execute(u'UPDATE feeds SET url=? WHERE id=?',(url,feed_id))
+			self.db.commit()
+		except sqlite.IntegrityError:
+			raise FeedAlreadyExists,feed_id			
+		
+	def set_feed_link(self, feed_id, link):
+		self.c.execute(u'UPDATE feeds SET link=? WHERE id=?',(link,feed_id))
+		self.db.commit()
 				
 	def set_media_download_status(self, media_id, status):
 		self.c.execute(u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
@@ -1326,8 +1371,6 @@ class ptvDB:
 		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 		
 	def set_entry_read(self, entry_id, read):
-		#print "this one"
-		#traceback.print_stack()
 		self.c.execute(u'UPDATE entries SET read=? WHERE id=?',(int(read),entry_id))
 		self.c.execute(u'UPDATE media SET viewed=? WHERE entry_id=?',(int(read),entry_id))
 		self.db.commit()
@@ -1691,8 +1734,8 @@ class ptvDB:
 		else:
 			self.c.execute(u'INSERT INTO tags (tag, feed_id, type) VALUES (?,?,?)',(tag,feed_id, T_TAG))
 			self.db.commit()
-		if tag == NOINDEX:
-			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
+		if tag == NOSEARCH:
+			self.blacklist = self.get_tags_for_feed(NOSEARCH)
 			
 	def add_search_tag(self, query, tag):
 		current_tags = self.get_all_tags(T_ALL)
@@ -1716,21 +1759,21 @@ class ptvDB:
 	def rename_tag(self, old_tag, new_tag):
 		self.c.execute(u'UPDATE tags SET tag=? WHERE tag=?',(new_tag,old_tag))
 		self.db.commit()
-		if tag == NOINDEX:
-			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
+		if tag == NOSEARCH:
+			self.blacklist=self.get_tags_for_feed(NOSEARCH)
 
 		
 	def remove_tag_from_feed(self, feed_id, tag):
 		self.c.execute(u'DELETE FROM tags WHERE tag=? AND feed_id=?',(tag,feed_id))
 		self.db.commit()
-		if tag == NOINDEX:
-			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
+		if tag == NOSEARCH:
+			self.blacklist=self.get_tags_for_feed(NOSEARCH)
 		
 	def remove_tag(self, tag):
 		self.c.execute(u'DELETE FROM tags WHERE tag=?',(tag,))
 		self.db.commit()
-		if tag == NOINDEX:
-			self.searcher.set_blacklist(self.get_tags_for_feed(NOINDEX))
+		if tag == NOSEARCH:
+			self.blacklist=self.get_tags_for_feed(NOSEARCH)
 		
 	def get_all_tags(self, type=T_TAG):
 		if type==T_ALL:
@@ -1807,10 +1850,12 @@ class ptvDB:
 		#return added_feeds
 		yield -1
 		
-	def search(self, query, filter_feed=None):
-		if filter_feed:
+	def search(self, query, filter_feed=None, blacklist=None):
+		if blacklist is None:
+			blacklist = self.blacklist
+		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
 			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query)
-		return self.searcher.Search(query)
+		return self.searcher.Search(query,blacklist)
 		
 	def doindex(self, callback=None):
 		self.searcher.Do_Index_Threaded(callback)

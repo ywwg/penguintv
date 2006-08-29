@@ -22,15 +22,11 @@ class Lucene:
 				raise DBError, "error creating directories: "+self.home+"/.penguintv"
 		self.storeDir = self.home+"/.penguintv/search_store"
 		self.needs_index = False
-		self.blacklist = []
 		if not os.path.exists(self.storeDir):
 			os.mkdir(self.storeDir)
 			self.needs_index = True
 			
 		self.index_lock = Lock()
-		
-	def set_blacklist(self, blacklist):
-		self.blacklist = blacklist
 		
 	def _get_db(self):
 		try:	
@@ -204,7 +200,7 @@ class Lucene:
 		indexModifier.close()
 		self.index_lock.release()
 						
-	def Search(self, command):
+	def Search(self, command, blacklist=[]):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It
 		is sorted so that title results are first, description results are second"""
 		analyzer = PyLucene.StandardAnalyzer()
@@ -227,7 +223,7 @@ class Lucene:
 			for i, doc in hits:
 				feed_id  = int(doc.get("feed_id"))
 				try:
-					if feed_id not in self.blacklist:
+					if feed_id not in blacklist:
 						entry_id = doc.get("entry_id")
 						if entry_id is None: #meaning this is actually a feed
 							feed_results.append(int(feed_id))
@@ -263,6 +259,8 @@ class Lucene:
 										  #don't care because we are going to pare down the list
 		feed_results = utils.uniquer(feed_results)
 		entry_results = utils.uniquer(entry_results)	
+		#sort by date:
+		#entry_results.sort(lambda x,y: int(y[2]-x[2]))
 		searcher.close()    
 		return (feed_results, entry_results)
 		
