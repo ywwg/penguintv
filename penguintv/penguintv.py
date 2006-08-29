@@ -778,20 +778,22 @@ class PenguinTVApp:
 		self.main_window.filter_unread_checkbox.set_sensitive(False)
 		
 	def unshow_search(self):
+		self.saved_search = self.main_window.search_entry.get_text()
 		self.showing_search = False
 		self.entry_list_view.unshow_search()
 		self.feed_list_view.unshow_search()
-		self.entry_view.display_item()
+		#self.entry_view.display_item()
 		self.main_window.search_entry.set_text("")
 		self.main_window.filter_unread_checkbox.set_sensitive(True)
 		
 	def threaded_search(self, query):
-		if self.threaded_searcher is None:
-			self.threaded_searcher = PenguinTVApp.threaded_searcher(query, self._got_search, self._searcher_done)
-		self.threaded_searcher.set_query(query)
-		if not self.waiting_for_search:
-			self.waiting_for_search = True
-			self.threaded_searcher.start()
+		if query != "":
+			if self.threaded_searcher is None:
+				self.threaded_searcher = PenguinTVApp.threaded_searcher(query, self._got_search, self._searcher_done)
+			self.threaded_searcher.set_query(query)
+			if not self.waiting_for_search:
+				self.waiting_for_search = True
+				self.threaded_searcher.start()
 	
 	def _got_search(self, query, results):
 		self.updater.queue_task(GUI, self.got_search, (query,results))
@@ -833,15 +835,22 @@ class PenguinTVApp:
 			self.done_callback()
 		
 	def manual_search(self, query):
-		self.saved_search = query #even if it's blank
+		#self.saved_search = query #even if it's blank
 		if len(query)==0:
 			self.unshow_search()
-			self.saved_search = ""
-			self.main_window.filter_combo_widget.set_active(self.saved_filter)
+			#self.saved_search = ""
+			selected = self.feed_list_view.get_selected()
+			if selected is not None:
+				name = self.main_window.get_filter_name(self.saved_filter)
+				if name not in self.db.get_tags_for_feed(selected):
+					self.main_window.filter_combo_widget.set_active(FeedList.ALL)
+				else:
+					self.main_window.filter_combo_widget.set_active(self.saved_filter)
 			return
-			
+	
 		self.show_search(query, self.search(query))
-		self.saved_filter = self.main_window.filter_combo_widget.get_active()
+		if self.main_window.filter_combo_widget.get_active() != FeedList.SEARCH:
+			self.saved_filter = self.main_window.filter_combo_widget.get_active()
 		self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
 		
 	def entrylist_selecting_right_now(self):

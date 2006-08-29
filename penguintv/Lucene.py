@@ -237,8 +237,8 @@ class Lucene:
 								desc     = doc.get("description")
 								fakedate = float(doc.get("fakedate"))
 								entry_results.append((int(entry_id),title, fakedate, feed_id))
-					else:
-						print "excluding:"+doc.get("title")
+					#else:
+					#	print "excluding:"+doc.get("title")
 				except Exception, e:
 					print e
 					print feed_id

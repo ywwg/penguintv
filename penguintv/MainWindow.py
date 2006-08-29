@@ -649,6 +649,10 @@ class MainWindow:
 		else:
 			self.filter_combo_widget.set_active(FeedList.ALL)
 			self.feed_list_view.set_filter(FeedList.ALL,current_filter)
+			
+	def get_filter_name(self, filt):
+		model = self.filter_combo_widget.get_model()
+		return model[filt][0]
 
 	#def populate_and_select(self, feed_id):
 	def select_feed(self, feed_id):

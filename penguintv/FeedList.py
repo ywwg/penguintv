@@ -48,7 +48,6 @@ class FeedList:
 		self.selecting_misfiltered=False
 		self.filter_unread = False
 		self.cancel_load = False
-		
 		self.showing_search = False
 		
 		#build list view
@@ -159,7 +158,8 @@ class FeedList:
 		if showing_feed is not None:
 			self.set_selected(showing_feed)
 			self._app.display_feed(showing_feed)
-		self.do_filter(False)
+			if not self.filter_test_feed(showing_feed):
+				self._app.main_window.filter_combo_widget.set_active(ALL)
 		
 	def set_unread_toggle(self, active):
 		if self.showing_search:
