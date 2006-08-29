@@ -261,7 +261,7 @@ class FeedList:
 	def clear_list(self):
 		self.feedlist.clear()
 		
-	def populate_feeds(self,subset=ALL):
+	def populate_feeds(self,subset=ALL, callback=None):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
 		#FIXME:  better way to get to the status display?
 		#DON'T gtk.iteration in this func! Causes endless loops!
@@ -273,11 +273,11 @@ class FeedList:
 				self.feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", 0, 0, 0, False, False]) #assume invisible
 		else:
 			self._app.main_window.display_status_message(_("Reloading Feeds..."))
-		gobject.idle_add(self._update_feeds_generator(subset).next)
+		gobject.idle_add(self._update_feeds_generator(subset,callback).next)
 		#self._update_feeds_generator(subset)
 		return False #in case this was called by the timeout below
 	
-	def _update_feeds_generator(self, subset=ALL):
+	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
@@ -363,9 +363,8 @@ class FeedList:
 			else:
 				selection.select_path((index,))
 		self.do_filter()
-		self._app.main_window.display_status_message("")	
-		self._app.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
-		self._app._done_populating()		
+		if callback is not None:
+			callback()
 		yield False
 		
 	def add_feed(self, feed_id):

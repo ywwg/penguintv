@@ -473,7 +473,13 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def on_reindex_searches_activate(self, event):
-		self.app.db.doindex()
+		self.search_container.set_sensitive(False)
+		self.search_entry.set_text(_("Please wait..."))
+		self.app.db.doindex(self.app._done_populating)
+		
+	def _sensitize_search(self):
+		self.search_entry.set_text("")
+		self.search_container.set_sensitive(True)
 		
 	def on_remove_feed_activate(self, event):
 		selected = self.feed_list_view.get_selected()
@@ -507,8 +513,9 @@ class MainWindow:
 	def on_search_entry_activate(self, event):
 		self.app.manual_search(self.search_entry.get_text())
 		
-	def on_search_entry_changed(self, event):
-		self.app.threaded_search(self.search_entry.get_text())
+	def on_search_entry_changed(self, widget):
+		if self.search_container.get_property("sensitive"):
+			self.app.threaded_search(self.search_entry.get_text())
 		
 	def on_show_downloads_activate(self, event):
 		self.app.show_downloads()
@@ -538,7 +545,7 @@ class MainWindow:
 		self.app.write_feed_cache()
 		self.Hide()
 		self.Show()
-		self.feed_list_view.populate_feeds()
+		self.feed_list_view.populate_feeds(self.app._done_populating)
 		self.set_selected_items(dic)
 		self.app.update_disk_usage()
 		

@@ -152,7 +152,7 @@ class ptvDB:
 			self.c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
 			db_ver = self.c.fetchone()
 			db_ver = db_ver[0]
-			print "current database version is",db_ver
+			#print "current database version is",db_ver
 			if db_ver is None:
 				self.migrate_database_one_two()
 				self.migrate_database_two_three()
@@ -1812,8 +1812,8 @@ class ptvDB:
 			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query)
 		return self.searcher.Search(query)
 		
-	def doindex(self):
-		self.searcher.Do_Index_Threaded()
+	def doindex(self, callback=None):
+		self.searcher.Do_Index_Threaded(callback)
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self.reindex_feed_list and self.reindex_entry_list as well as anything specified"""

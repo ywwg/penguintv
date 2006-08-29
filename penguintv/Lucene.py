@@ -42,10 +42,10 @@ class Lucene:
 		except:
 			raise DBError, "Error connecting to database in Lucene module"
 		
-	def Do_Index_Threaded(self):
-		PyLucene.PythonThread(target=self.Do_Index).start()
+	def Do_Index_Threaded(self, callback):
+		PyLucene.PythonThread(target=self.Do_Index, args=(callback,)).start()
 		
-	def Do_Index(self,get_new_db=False):
+	def Do_Index(self, callback=None):
 		"""loop through all feeds and entries and feed them to the beast"""
 		self.index_lock.acquire()
 		db = self._get_db()
@@ -108,6 +108,8 @@ class Lucene:
 		writer.close()
 		print "done indexing"
 		self.index_lock.release()
+		if callback is not None:
+			callback()
 		
 	def Re_Index_Threaded(self,feedlist=[], entrylist=[]):
 		PyLucene.PythonThread(target=self.Re_Index, args=(feedlist,entrylist)).start()

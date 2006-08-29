@@ -91,8 +91,6 @@ class PenguinTVApp:
 		self.db = ptvDB.ptvDB(self._polling_callback)
 		self.firstrun = self.db.maybe_initialize_db()
 		self.db.clean_media_status()
-		if self.db.cache_dirty: #assume index is bad as well
-			self.db.searcher.Do_Index_Threaded()
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
 		self.conf = gconf.client_get_default()
 		self.player = Player.Player()
@@ -161,7 +159,12 @@ class PenguinTVApp:
 		#updaters
 		gobject.timeout_add(500, self._gui_updater)
 		self.main_window.search_container.set_sensitive(False)
-		self.feed_list_view.populate_feeds()
+		if self.db.cache_dirty: #assume index is bad as well
+			self.main_window.search_entry.set_text(_("Please wait..."))
+			self.db.doindex(self._sensitize_search)
+			self.feed_list_view.populate_feeds(self._done_populating_dont_sensitize)
+		else:
+			self.feed_list_view.populate_feeds(self._done_populating)
 		if self.autoresume:
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
@@ -663,7 +666,7 @@ class PenguinTVApp:
 				yield True
 			self.feed_list_view.clear_list()
 			self.main_window.search_container.set_sensitive(False)
-			self.feed_list_view.populate_feeds()
+			self.feed_list_view.populate_feeds(self._done_populating)
 			self.main_window.update_filters()
 			saved_auto = False
 			self.main_window.display_status_message("")
@@ -1054,7 +1057,7 @@ class PenguinTVApp:
 			#print "downloads finished pop"
 			#taken care of in callbacks?
 			self.main_window.search_container.set_sensitive(False)
-			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
+			self.feed_list_view.populate_feeds(self._done_populating, FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		self.feed_list_view.do_filter() #to remove active downloads from the list
 		
@@ -1102,7 +1105,7 @@ class PenguinTVApp:
 			#print "downloads finished pop"
 			#taken care of in callbacks?
 			self.main_window.search_container.set_sensitive(False)
-			self.feed_list_view.populate_feeds(FeedList.DOWNLOADED)
+			self.feed_list_view.populate_feeds(self._done_populating, FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		except:
 			print "some other error"
@@ -1157,9 +1160,21 @@ class PenguinTVApp:
 		size = self.mediamanager.get_disk_usage()
 		self.main_window.update_disk_usage(size)
 		
+	def _sensitize_search(self):
+		self.updater.queue_task(GUI, self.main_window._sensitize_search)
+		
 	def _done_populating(self):
-		self.main_window.search_container.set_sensitive(True)
+		self.updater.queue_task(GUI, self.done_populating)
 
+	def _done_populating_dont_sensitize(self):
+		self.updater.queue_task(GUI, self.done_populating, False)
+		
+	def done_populating(self, sensitize=True):
+		self.main_window.display_status_message("")	
+		self.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
+		if sensitize:
+			self.main_window._sensitize_search()
+	
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
 		if self.exiting == 1:
@@ -1240,7 +1255,7 @@ class PenguinTVApp:
 							try:
 								if type(args) is tuple:
 									func(*args)
-								elif args:
+								elif args is not None:
 									func(args)
 								else:
 									func()
@@ -1264,7 +1279,7 @@ class PenguinTVApp:
 						try:
 							if type(args) is tuple:
 								func(*args)
-							elif args:
+							elif args is not None:
 								func(args)
 							else:
 								func()
@@ -1310,7 +1325,7 @@ class PenguinTVApp:
 						###print var
 						if type(args) is tuple:
 							func(*args)
-						elif args:
+						elif args is not None:
 							func(args)
 						else:
 							func()
@@ -1334,7 +1349,7 @@ class PenguinTVApp:
 					###print var
 					if type(args) is tuple:
 						func(*args)
-					elif args:
+					elif args is not None:
 						func(args)
 					else:
 						func()
