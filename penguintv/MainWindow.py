@@ -65,8 +65,8 @@ class MainWindow:
 		self.about_box.hide()
 		#most of the initialization is done on Show()
 
-	def __getitem__(self, key):
-		return self.widgets.get_widget(key)
+#	def __getitem__(self, key):
+#		return self.widgets.get_widget(key)
 
 	def set_wait_cursor(self, wait=True):
 		if wait:
@@ -77,9 +77,54 @@ class MainWindow:
 
 	def Show(self):
 		conf = gconf.client_get_default()
-		self.widgetTree = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', self.layout+'app','penguintv') #MAGIC
-		self.feed_list_view = FeedList.FeedList(self.widgetTree,self.app, self.db)
-		self.entry_list_view = EntryList.EntryList(self.widgetTree,self.app, self, self.db)
+		self.widgetTree = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
+		self.layout_dock = self.widgetTree.get_widget('layout_dock')
+		self.app_window = self.widgetTree.get_widget('app')
+		
+		try:
+			self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/pixmaps/penguintvicon.png")
+		except:
+			try:
+				self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/penguintvicon.png") #in case the install is still in the source dirs
+			except:
+				self.app_window.set_icon_from_file(self.glade_prefix+"/penguintvicon.png")
+		self._status_view = self.widgetTree.get_widget("appbar")
+		self.disk_usage_widget = self.widgetTree.get_widget('disk_usage')
+		
+		#set up separator between toolbar buttons and free space indicator
+		vseparator = self.widgetTree.get_widget('vseparator1')
+		vseparator_toolitem = self.widgetTree.get_widget('toolitem1')
+		vseparator_toolitem.set_expand(True)
+		vseparator.set_draw(False)
+		
+		#load the layout
+		self.load_layout(self.layout)
+		
+		#final setup for the window comes from gconf
+		x = conf.get_int('/apps/penguintv/app_window_position_x')
+		y = conf.get_int('/apps/penguintv/app_window_position_y')
+		if x is None:
+			x=40
+		if y is None:
+			y=40
+		self.app_window.move(x,y)
+		w = conf.get_int('/apps/penguintv/app_window_size_x')
+		h = conf.get_int('/apps/penguintv/app_window_size_y')
+		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
+			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
+			self.app_window.maximize()
+			self.window_maximized = True
+		else:
+			self.app_window.resize(w,h)
+		
+	def load_layout(self, layout):
+		conf = gconf.client_get_default()
+		components = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', layout+'_layout_container','penguintv') #MAGIC
+		self.layout_container = components.get_widget(layout+'_layout_container')
+		self.layout_dock.pack_start(self.layout_container)
+		
+		self.feed_list_view = FeedList.FeedList(components,self.app, self.db)
+		self.entry_list_view = EntryList.EntryList(components,self.app, self, self.db)
 		renderrer_str = conf.get_string('/apps/penguintv/renderrer')
 		renderrer = EntryView.GTKHTML
 		
@@ -95,7 +140,7 @@ class MainWindow:
 				self.do_quit()
 				sys.exit(2)
 			try:
-				self.entry_view = EntryView.EntryView(self.widgetTree, self.app, self, x)
+				self.entry_view = EntryView.EntryView(components, self.app, self, x)
 			except:
 				if renderrer == EntryView.DEMOCRACY_MOZ:
 					if  _FORCE_DEMOCRACY_MOZ:
@@ -114,22 +159,16 @@ class MainWindow:
 			if key[:3] == 'on_':
 				self.widgetTree.signal_connect(key, getattr(self, key))
 				
+		for key in dir(self.__class__): #python insaneness
+			if key[:3] == 'on_':
+				components.signal_connect(key, getattr(self, key))
+				
 		#major WIDGETS
-		self.feed_pane = self.widgetTree.get_widget('feed_pane')
-		self.feedlist = self.widgetTree.get_widget('feedlistview')
-		self.entry_pane = self.widgetTree.get_widget('entry_pane')
-		self.app_window = self.widgetTree.get_widget(self.layout+'app')
-		try:
-			self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/pixmaps/penguintvicon.png")
-		except:
-			try:
-				self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/penguintvicon.png") #in case the install is still in the source dirs
-			except:
-				self.app_window.set_icon_from_file(self.glade_prefix+"/penguintvicon.png")
-		self._status_view = self.widgetTree.get_widget("appbar")
-		self.disk_usage_widget = self.widgetTree.get_widget('disk_usage')
+		self.feed_pane = components.get_widget('feed_pane')
+		self.feedlist = components.get_widget('feedlistview')
+		self.entry_pane = components.get_widget('entry_pane')
 		
-		self.filter_combo_widget = self.widgetTree.get_widget('filter_combo')
+		self.filter_combo_widget = components.get_widget('filter_combo')
 		filter_combo_model = gtk.ListStore(str,str,bool,int) #text to display, name of filter, separator-or-not, type
 		self.filter_combo_widget.set_model(filter_combo_model)		
 		self.filter_combo_widget.set_row_separator_func(lambda model,iter: model[model.get_path(iter)[0]][2])
@@ -143,7 +182,7 @@ class MainWindow:
 		self.filter_combo_widget.pack_start(renderer, False)
 		self.filter_combo_widget.set_attributes(renderer, text=1)
 		
-		self.filter_unread_checkbox = self.widgetTree.get_widget('unread_filter')
+		self.filter_unread_checkbox = components.get_widget('unread_filter')
 		
 		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
@@ -151,8 +190,8 @@ class MainWindow:
 		filter_combo_model.append(["---","---",True,ptvDB.T_BUILTIN])
 		self.update_filters()
 		
-		self.search_entry = self.widgetTree.get_widget('search_entry')
-		self.search_container = self.widgetTree.get_widget('search_container')
+		self.search_entry = components.get_widget('search_entry')
+		self.search_container = components.get_widget('search_container')
 		
 		#button = self.widgetTree.get_widget('search_button')
 		#button.set_property("image",gtk.image_new_from_stock('gtk-find',gtk.ICON_SIZE_SMALL_TOOLBAR))
@@ -161,13 +200,7 @@ class MainWindow:
 		#button = self.widgetTree.get_widget('clear_search_button')
 		#button.set_property("image",gtk.image_new_from_stock('gtk-clear',gtk.ICON_SIZE_SMALL_TOOLBAR))
 		#button.set_property("label",None)
-			
-		#set up separator between toolbar buttons and free space indicator
-		vseparator = self.widgetTree.get_widget('vseparator1')
-		vseparator_toolitem = self.widgetTree.get_widget('toolitem1')
-		vseparator_toolitem.set_expand(True)
-		vseparator.set_draw(False)
-					
+						
 		#dnd
 		self.TARGET_TYPE_TEXT = 80
 		self.TARGET_TYPE_URL = 81
@@ -176,22 +209,6 @@ class MainWindow:
 									 ('text/plain',0,self.TARGET_TYPE_TEXT)]
 		self.feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 		
-		#final setup for the window comes from gconf
-		x = conf.get_int('/apps/penguintv/app_window_position_x')
-		y = conf.get_int('/apps/penguintv/app_window_position_y')
-		if x is None:
-			x=40
-		if y is None:
-			y=40
-		self.app_window.move(x,y)
-		w = conf.get_int('/apps/penguintv/app_window_size_x')
-		h = conf.get_int('/apps/penguintv/app_window_size_y')
-		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
-			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
-			self.app_window.maximize()
-			self.window_maximized = True
-		else:
-			self.app_window.resize(w,h)
 		val = conf.get_int('/apps/penguintv/feed_pane_position')
 		if val is None:
 			val=132
@@ -203,7 +220,7 @@ class MainWindow:
 			val=309
 		if val < 10:
 			val = 50
-		self.app_window.show()
+		self.app_window.show_all()
 		self.entry_pane.set_position(val)
 		
 		val = conf.get_string('/apps/penguintv/default_filter')
@@ -543,8 +560,10 @@ class MainWindow:
 		dic = self.get_selected_items()
 		self.app.save_settings()
 		self.app.write_feed_cache()
-		self.Hide()
-		self.Show()
+		self.layout_dock.remove(self.layout_container)
+		self.load_layout(self.layout)
+		#self.Hide()
+		#self.Show()
 		self.feed_list_view.populate_feeds(self.app._done_populating)
 		self.set_selected_items(dic)
 		self.app.update_disk_usage()

@@ -32,10 +32,13 @@ POLLFAIL=9
 
 class FeedList:
 	def __init__(self, widget_tree, app, db):
-		self.scrolled_window = widget_tree.get_widget('scrolledwindow2')
+		self.scrolled_window = widget_tree.get_widget('feed_scrolled_window')
+		#self.scrolled_window = widgets['feed_scrolled_window']
 		self.va = self.scrolled_window.get_vadjustment()
 		self._widget = widget_tree.get_widget('feedlistview')
+		#self._widget = widgets['feedlistview']
 		self.entry_list_widget = widget_tree.get_widget('entrylistview')
+		#self.entry_list_widget = widgets['entrylistview']
 		self._app = app
 		self.feedlist = gtk.ListStore(str, str, int, str, str, int, int, int, bool, bool) #title, markuptitle, feed_id, stock_id, readinfo, unread, total, flag, visible, pollfail
 		self.feed_filter = self.feedlist.filter_new()
@@ -75,7 +78,7 @@ class FeedList:
 		
 		#signals
 		self._widget.get_selection().connect("changed", self._item_selection_changed)
-				
+	
 	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
 	#	if pane_size>0:

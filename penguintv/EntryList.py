@@ -16,6 +16,7 @@ FEED          = 6
 class EntryList:
 	def __init__(self, widget_tree, app, main_window, db):
 		self._widget = widget_tree.get_widget("entrylistview")
+		#self._widget = widgets['entrylistview']
 		self._app = app
 		self.main_window = main_window
 		self.entrylist = gtk.ListStore(str, str, int, int, str, int, int) #title, markeduptitle, entry_id, index, icon, flag, feed
@@ -36,6 +37,8 @@ class EntryList:
 		renderer = gtk.CellRendererText()
 		self.vadjustment = widget_tree.get_widget("entry_scrolled_window").get_vadjustment()
 		self.hadjustment = widget_tree.get_widget("entry_scrolled_window").get_hadjustment()
+		#self.vadjustment = widgets['entry_scrolled_window'].get_vadjustment()
+		#self.hadjustment = widgets['entry_scrolled_window'].get_hadjustment()
 		column = gtk.TreeViewColumn(_('Articles'))
 		column.pack_start(icon_renderer, False)
 		column.pack_start(renderer, True)

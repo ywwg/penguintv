@@ -133,9 +133,9 @@ class PenguinTVApp:
 		self.window_add_feed.hide()
 		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
-		self.layout_changing_dialog = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_changing_layout",'penguintv').get_widget("window_changing_layout")
-		self.layout_changing_dialog.connect("delete-event",self.on_window_changing_layout_delete_event)
-		self.layout_changing_dialog.hide()
+		#self.layout_changing_dialog = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_changing_layout",'penguintv').get_widget("window_changing_layout")
+		#self.layout_changing_dialog.connect("delete-event",self.on_window_changing_layout_delete_event)
+		#self.layout_changing_dialog.hide()
 					
 		#gconf
 		self.conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
@@ -893,7 +893,7 @@ class PenguinTVApp:
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
-			self.layout_changing_dialog.show_all()
+			#self.layout_changing_dialog.show_all()
 			self.feed_list_view.interrupt()
 			while gtk.events_pending(): #make sure everything gets shown
 				gtk.main_iteration()
@@ -902,7 +902,7 @@ class PenguinTVApp:
 			self.entry_list_view = self.main_window.entry_list_view
 			self.entry_view = self.main_window.entry_view
 			self.main_window.changing_layout = False
-			self.layout_changing_dialog.hide()
+			#self.layout_changing_dialog.hide()
 
 	def on_window_changing_layout_delete_event(self, widget, event):
 		self.main_window.changing_layout = False

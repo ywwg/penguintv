@@ -72,8 +72,11 @@ class MediaManager:
 	
 	def finish(self):
 		self.quitting = True
-		self.pool.joinAll()
-		del self.pool
+		try:
+			self.pool.joinAll()
+			del self.pool
+		except:
+			pass
 		
 	def __del__(self):
 		self.finish()
