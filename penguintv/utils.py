@@ -1,6 +1,6 @@
 # Written by Owen Williams
 # see LICENSE for license information
-import os,sys,time
+import os,sys,time, pwd
 import string
 import fnmatch
 import gnomevfs
@@ -395,6 +395,6 @@ def html_entity_unfixer(text):
 #	#+ - & | ! ( ) { } [ ] ^ " ~ * ? : \\
 #	escape_chars="""+-&|!(){}[]^"~*?:\\"""
 #	text = text.replace(
-	
+
 if is_kde():
 	import kio

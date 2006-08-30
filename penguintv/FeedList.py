@@ -300,6 +300,7 @@ class FeedList:
 	
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
+			
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self.db.get_feed_cache()
@@ -432,6 +433,7 @@ class FeedList:
 		
 		update_what is a bunch of strings saying what we want to update.  it will go to the
 		db for info unless the value is already in update_data"""
+		
 		if feed_id is None:
 			if self.last_feed is None:
 				return
@@ -514,6 +516,7 @@ class FeedList:
 		 		if updated==1 and unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
 					need_filter = True
 		if 'title' in update_what:
+			selected = self.get_selected()
 			update_data.setdefault('title',self.db.get_feed_title(feed_id))
 			feed[TITLE] = update_data['title']
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
@@ -521,6 +524,8 @@ class FeedList:
 				old_iter = self.feedlist.get_iter((self.find_index_of_item(feed_id),))
 				new_iter = self.feedlist.get_iter(([f[0] for f in self.db.get_feedlist()].index(feed_id),))
 				self.feedlist.move_after(old_iter,new_iter)
+				if selected == feed_id:
+					self._widget.scroll_to_cell((self.find_index_of_item(feed_id),))
 			except:
 				print "Error finding feed for update"
 			need_filter = True

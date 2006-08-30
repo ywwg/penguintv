@@ -32,17 +32,25 @@ class FeedPropertiesDialog:
 		self.feed_id = id
 	
 	def set_title(self, title):
+		if title is None:
+			title=""
 		self.title_widget.set_text(title)
 		self.old_title = title
 		
 	def set_rss(self, rss):
+		if rss is None:
+			rss=""
 		self.rss_widget.set_text(rss)
 		self.old_rss = rss
 		
 	def set_description(self, desc):
+		if desc is None:
+			desc = ""
 		self.description_widget.set_text(desc)
 		
 	def set_link(self, link):
+		if link is None:
+			link = ""
 		self.link_widget.set_text(link)
 		self.old_link = link
 		

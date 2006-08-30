@@ -55,6 +55,7 @@ import Player
 import UpdateTasksManager
 import utils
 import Downloader
+import PTVAppSocket
 
 import AddFeedDialog
 import PreferencesDialog
@@ -72,8 +73,19 @@ REFRESH_AUTO=1
 AUTO_REFRESH_FREQUENCY=5*60*1000
 
 class PenguinTVApp:
-
 	def __init__(self):
+		self.socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
+		if not self.socket.is_server:
+			#just pass the arguments and quit
+			if len(sys.argv)>1:
+				self.socket.send(" ".join(sys.argv[1:]))
+			self.socket.close()
+			return
+			
+		self.for_import = []
+		if len(sys.argv)>1:
+			self.for_import.append(sys.argv[1])
+			
 		try:
 			self.glade_prefix = utils.GetPrefix()+"/share/penguintv"
 			os.stat(self.glade_prefix+"/penguintv.glade")
@@ -329,12 +341,13 @@ class PenguinTVApp:
 			###print threading.enumerate()
 			###print str(threading.activeCount())+" threads active..."
 			time.sleep(1)
+		self.socket.close()
 		gtk.main_quit()
 		
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
 		
-	def do_poll_multiple(self, was_setup=None, arguments=0):
+	def do_poll_multiple(self, was_setup=None, arguments=0, feeds=None):
 		#"was_setup":  So do_poll_multiple is going to get called by timers and manually, and we needed some
 		#way of saying "I've got a new frequency, stop the old timer and start the new one."  so it checks to
 		#see that the frequency it 'was setup' with is the same as the current frequency.  If not, exit with
@@ -354,7 +367,7 @@ class PenguinTVApp:
 			self.poll_tasks = len(self.db.get_feedlist())
 			self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
-		task_id = self.updater.queue_task(DB, self.updater_thread_db.poll_multiple, arguments)
+		task_id = self.updater.queue_task(DB, self.updater_thread_db.poll_multiple, (arguments,feeds))
 		if arguments & ptvDB.A_ALL_FEEDS==0:
 			self.updater.queue_task(GUI, self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
 			#insane: queueing a timeout
@@ -633,6 +646,7 @@ class PenguinTVApp:
 		self.do_poll_multiple(None, args)
 			
 	def import_opml(self, f):
+		print "import"
 		def import_gen(f):
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
 			label = gtk.Label(_("Loading the feeds from the OPML file"))
@@ -645,27 +659,37 @@ class PenguinTVApp:
 
 			gen = self.db.import_OPML(f)
 			newfeeds = []
+			oldfeeds = []
 			feed_count=-1.0
 			i=1.0
 			for feed in gen:
+				#status, value
 				if feed_count == -1:
 					#first yield is the total count
-					feed_count = feed
+					feed_count = feed[1]
 					continue
-				if feed==-1: #either EOL or error on insert
+				if feed==(-1,0): #either EOL or error on insert
 					continue
 				if self.exiting:
 					dialog.hide()
 					del dialog
 					yield False
 				#self.feed_list_view.add_feed(feed)
-				newfeeds.append(feed)
+				if feed[0]==1:
+					newfeeds.append(feed[1])
+				elif feed[0]==0:
+					oldfeeds.append(feed[1])
 				bar.set_fraction(i/feed_count)
 				i+=1.0
 				yield True
-			self.feed_list_view.clear_list()
-			self.main_window.search_container.set_sensitive(False)
-			self.feed_list_view.populate_feeds(self._done_populating)
+			if len(newfeeds)>10:
+				#it's faster to just start over if we have a lot of feeds to add
+				self.main_window.search_container.set_sensitive(False)
+				self.feed_list_view.clear_list()
+				self.feed_list_view.populate_feeds(self._done_populating)
+			else:
+				for feed in newfeeds:
+					self.feed_list_view.add_feed(feed)
 			self.main_window.update_filters()
 			saved_auto = False
 			self.main_window.display_status_message("")
@@ -673,10 +697,14 @@ class PenguinTVApp:
 			if self.auto_download:
 				saved_auto = True
 				self.auto_download = False
-			self.do_poll_multiple(None, ptvDB.A_ALL_FEEDS)
-			task_id = self.updater.queue_task(GUI, self._first_poll_marking_list, (newfeeds,saved_auto), self.polling_taskid) 
+			self.do_poll_multiple(feeds=newfeeds)
+			task_id = self.updater.queue_task(GUI, self._first_poll_marking_list, (newfeeds,saved_auto), self.polling_taskid)
 			dialog.hide()
 			del dialog
+			if len(newfeeds)==1:
+				self.feed_list_view.set_selected(newfeeds[0])
+			elif len(oldfeeds)==1:
+				self.feed_list_view.set_selected(oldfeeds[0])
 			yield False
 		#schedule the import pseudo-threadidly
 		gobject.idle_add(import_gen(f).next)
@@ -1184,10 +1212,19 @@ class PenguinTVApp:
 		self.updater.queue_task(GUI, self.done_populating, False)
 		
 	def done_populating(self, sensitize=True):
+		"""this is only called on startup I think"""
 		self.main_window.display_status_message("")	
 		self.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
 		if sensitize:
 			self.main_window._sensitize_search()
+		for filename in self.for_import:
+			try:
+				f = open(filename)
+				self.import_opml(f)
+			except Exception, e:
+				print "not a valid file",e
+		self.for_import = []
+			
 	
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
@@ -1233,6 +1270,20 @@ class PenguinTVApp:
 			
 	def _entry_image_download_callback(self, entry_id, html):
 		self.updater.queue_task(GUI, self.entry_view._images_loaded,(entry_id, html))
+		
+	def _socket_cb(self, data):
+		"""right now just tries to import an opml file"""
+		#goddamn hack: if it's insensitive, _done_pop will get called so use that
+		#method
+		if not self.main_window.search_container.get_property('sensitive'):
+			self.for_import.append(data)
+		else:
+			try:
+				f = open(data)
+				self.import_opml(f)
+			except Exception, e:
+				print "not a valid file: ",e
+				
 			
 	class DBUpdaterThread(PyLucene.PythonThread):
 		def __init__(self, updater, polling_callback=None):
@@ -1383,6 +1434,8 @@ class PenguinTVApp:
 def main():
 	gnome.init("PenguinTV", utils.VERSION)
 	app = PenguinTVApp()    # Instancing of the GUI
+	if not app.socket.is_server:
+		sys.exit(0)
 	app.main_window.Show() 
 	gobject.idle_add(app.post_show_init) #lets window appear first)
 	gtk.threads_init()
@@ -1408,9 +1461,10 @@ def main():
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	gnome.init("PenguinTV", utils.VERSION)
 	app = PenguinTVApp()    # Instancing of the GUI
+	if not app.socket.is_server:
+		sys.exit(0)
 	app.main_window.Show() 
 	gobject.idle_add(app.post_show_init) #lets window appear first)
-	#app.post_show_init()
 	gtk.threads_init()
 #	import profile
 #	profile.run('gtk.main()', 'pengprof')

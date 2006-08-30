@@ -535,7 +535,7 @@ class ptvDB:
 		self.c.execute("""DELETE FROM feeds WHERE title IS NULL""")
 		self.db.commit()
 		
-	def poll_multiple(self, arguments=0):
+	def poll_multiple(self, arguments=0, feeds=None):
 		"""Polls multiple feeds multithreadedly"""
 		###print "start poll"
 		successes=[]
@@ -544,23 +544,25 @@ class ptvDB:
 		index = 0
 		cur_time = time.time()
 		
-		if arguments & A_AUTOTUNE == A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:
-			self.c.execute('SELECT id FROM feeds WHERE (? - lastpoll) >= pollfreq', (cur_time,))
-		else:
-			###print "polling all"
-			self.c.execute('SELECT id FROM feeds')
-			
-		data=self.c.fetchall()
-		if data: 
-			feeds = [list(row) for row in data]
-		else:
-			###print "nothing to poll"
-			return
+		if feeds is None:
+			if arguments & A_AUTOTUNE == A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:
+				self.c.execute('SELECT id FROM feeds WHERE (? - lastpoll) >= pollfreq', (cur_time,))
+			else:
+				###print "polling all"
+				self.c.execute('SELECT id FROM feeds')
+				
+			data=self.c.fetchall()
+			if data: 
+				feeds = [row[0] for row in data]
+			else:
+				###print "nothing to poll"
+				return
+		
 		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
 		for feed in feeds:
 			if self.exiting:
 				break
-			pool.queueTask(self.pool_poll_feed,(index,feed[0],arguments),self.polling_callback)
+			pool.queueTask(self.pool_poll_feed,(index,feed,arguments),self.polling_callback)
 			time.sleep(.1) #maybe this will help stagger things a bit?
 			index = index + 1
 			
@@ -1829,26 +1831,26 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			stream.close()
-			yield -1
+			yield (-1,0)
 		added_feeds=[]
-		yield len(p.outlines)
+		yield (1,len(p.outlines))
 		for o in OPML.outline_generator(p.outlines):
 			try:
 				feed_id=self.insertURL(o['xmlUrl'],o['text'])
 				#added_feeds.append(feed_id)
-				yield feed_id
-			except FeedAlreadyExists:
-				yield -1
+				yield (1,feed_id)
+			except FeedAlreadyExists, f:
+				yield (0,f.feed)
 			except:
 				exc_type, exc_value, exc_traceback = sys.exc_info()
 				error_msg = ""
 				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 					error_msg += s
 				print error_msg
-				yield -1
+				yield (-1,0)
 		stream.close()
 		#return added_feeds
-		yield -1
+		yield (-1,0)
 		
 	def search(self, query, filter_feed=None, blacklist=None):
 		if blacklist is None:
