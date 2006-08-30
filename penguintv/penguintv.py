@@ -368,7 +368,6 @@ class PenguinTVApp:
 	
 	def auto_download_unviewed(self):
 		"""Automatically download any unviewed media.  Runs every five minutes when auto-polling, so make sure is good"""
-		print "auto download unviewed"
 		download_list=self.db.get_media_for_download()
 		if len(download_list)==0:
 			return #no need to bother
@@ -755,10 +754,11 @@ class PenguinTVApp:
 		self.updater.queue_task(GUI, gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
 		#self.updater.queue_task(GUI,self.feed_list_view.set_selected,selected, task_id)
 		
-	def search(self, query):
+	def search(self, query, blacklist=None):
 		try:
 			query = query.replace("!","")
-			result = self.db.search(query)
+			#print blacklist
+			result = self.db.search(query, blacklist=blacklist)
 		except Exception, e:
 			print "error with that search term", e
 			result=([],[])
@@ -870,14 +870,15 @@ class PenguinTVApp:
 				if not self.waiting_for_search:
 					self.main_window.search_entry.set_text(self.saved_search)
 		else:
-			if tag_type != ptvDB.T_SEARCH:
+			if tag_type == ptvDB.T_SEARCH:
+				query = self.db.get_search_tag(current_filter)
+				#self.unshow_search()
+				self.show_search(query, self.search(query,blacklist=[]))			
+			else:
 				if self.showing_search:
 					self.unshow_search()
 				self.main_window.feed_list_view.set_filter(filter_id, current_filter)
-			else:
-				query = self.db.get_search_tag(current_filter)
-				#self.unshow_search()
-				self.show_search(query, self.search(query))
+				
 				
 	def show_downloads(self):
 		self.mediamanager.generate_playlist()

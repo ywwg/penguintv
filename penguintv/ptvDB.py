@@ -1759,7 +1759,7 @@ class ptvDB:
 	def rename_tag(self, old_tag, new_tag):
 		self.c.execute(u'UPDATE tags SET tag=? WHERE tag=?',(new_tag,old_tag))
 		self.db.commit()
-		if tag == NOSEARCH:
+		if new_tag == NOSEARCH or old_tag == NOSEARCH:
 			self.blacklist=self.get_tags_for_feed(NOSEARCH)
 
 		
@@ -1853,7 +1853,9 @@ class ptvDB:
 	def search(self, query, filter_feed=None, blacklist=None):
 		if blacklist is None:
 			blacklist = self.blacklist
+		#print blacklist
 		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
+			print "no blacklist"
 			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query)
 		return self.searcher.Search(query,blacklist)
 		
