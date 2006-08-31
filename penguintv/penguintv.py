@@ -1246,14 +1246,24 @@ class PenguinTVApp:
 		if not self.exiting:
 			feed_id,update_data = args
 			self.updater.queue_task(GUI, self.poll_update_progress)
-			if update_data['pollfail']==False:
+			if update_data.has_key('ioerror'):
+				self.updater_thread_db.interrupt_poll_multiple()
+				self.updater.queue_task(GUI, self.poll_update_progress, (True, _("Trouble connecting to internet")))
+			elif update_data['pollfail']==False:
 				self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','pollfail'],update_data))
 				self.updater.queue_task(GUI, self.entry_list_view.populate_if_selected, feed_id)
 			else:
 				self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
 		
-	def poll_update_progress(self):
+	def poll_update_progress(self, error = False, errmsg = ""):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
+		if error:
+			self.poll_tasks=0 #this is where we reset the poll tasks
+			self.polled=0
+			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
+			self.main_window.display_status_message(errmsg,MainWindow.U_POLL)
+			gobject.timeout_add(2000, self.main_window.display_status_message,"")
+			return
 		if self.poll_tasks > 0:
 			self.polled += 1
 			if self.polled == self.poll_tasks:

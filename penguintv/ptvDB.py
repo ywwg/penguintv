@@ -9,7 +9,7 @@ import OPML
 import time
 import string
 import sha
-import urllib
+import urllib, urllib2
 from types import *
 import threading
 import ThreadPool
@@ -121,6 +121,7 @@ class ptvDB:
 			pass
 			
 		self.exiting = False
+		self.cancel_poll_multiple = False
 			
 		if polling_callback==None:
 			self.polling_callback=self._polling_callback
@@ -560,7 +561,7 @@ class ptvDB:
 		
 		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
 		for feed in feeds:
-			if self.exiting:
+			if self.cancel_poll_multiple or self.exiting:
 				break
 			pool.queueTask(self.pool_poll_feed,(index,feed,arguments),self.polling_callback)
 			time.sleep(.1) #maybe this will help stagger things a bit?
@@ -577,6 +578,10 @@ class ptvDB:
 		del pool
 		#print "reindexing"
 		self.reindex()
+		self.cancel_poll_multiple = False
+		
+	def interrupt_poll_multiple(self):
+		self.cancel_poll_multiple = True
 				
 	def pool_poll_feed(self,args, recurse=0):
 		"""a wrapper function that returns the index along with the result
@@ -615,6 +620,10 @@ class ptvDB:
 			db.close()
 			del db
 			return (feed_id,{'pollfail':True})
+		except IOError, e:
+			db.close()
+			del db
+			return (feed_id,{'ioerror':e})
 		except:
 			print "other error polling feed:"
 			exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -727,6 +736,12 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"404 not found: "+url)
 
 		if len(data['channel']) == 0 or len(data['items']) == 0:
+			if isinstance(data['bozo_exception'],urllib2.URLError):
+				e = data['bozo_exception'][0]
+				errno = e[0]
+				if e[0] == -3: #failure in name resolution
+					raise IOError(e)	
+			
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
 				self.set_new_update_freq(db, c, feed_id, 0)
 			c.execute("""UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
@@ -1857,7 +1872,7 @@ class ptvDB:
 			blacklist = self.blacklist
 		#print blacklist
 		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
-			print "no blacklist"
+			#print "no blacklist"
 			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query)
 		return self.searcher.Search(query,blacklist)
 		

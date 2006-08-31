@@ -1,8 +1,9 @@
-import PyLucene
+from PyLucene import *
 import os
 import utils
 from pysqlite2 import dbapi2 as sqlite
 from threading import Lock
+import HTMLParser
 
 """
 This class does the searching for PenguinTV.  It has full access to its own database object.
@@ -39,7 +40,7 @@ class Lucene:
 			raise DBError, "Error connecting to database in Lucene module"
 		
 	def Do_Index_Threaded(self, callback):
-		PyLucene.PythonThread(target=self.Do_Index, args=(callback,)).start()
+		PythonThread(target=self.Do_Index, args=(callback,)).start()
 		
 	def Do_Index(self, callback=None):
 		"""loop through all feeds and entries and feed them to the beast"""
@@ -47,9 +48,9 @@ class Lucene:
 		db = self._get_db()
 		c = db.cursor()
 		
-		analyzer = PyLucene.StandardAnalyzer()
-		store = PyLucene.FSDirectory.getDirectory(self.storeDir, True)
-		writer = PyLucene.IndexWriter(store, analyzer, True)
+		analyzer = StandardAnalyzer()
+		store = FSDirectory.getDirectory(self.storeDir, True)
+		writer = IndexWriter(store, analyzer, True)
 				
 		c.execute(u"""SELECT id, title, description FROM feeds""")
 		feeds = c.fetchall()
@@ -61,16 +62,16 @@ class Lucene:
 		print "indexing feeds"
 		for feed_id, title, description in feeds:
 			try:
-				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("feed_id", str(feed_id), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))
-				doc.add(PyLucene.Field("title", title,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))   
-				doc.add(PyLucene.Field("description", description,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))       
+				doc = Document()
+				doc.add(Field("feed_id", str(feed_id), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))
+				doc.add(Field("title", title,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))   
+				doc.add(Field("description", description,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
 			except Exception, e:
 				print "Failed in indexDocs:", e                      
@@ -79,22 +80,25 @@ class Lucene:
 		
 		for entry_id, feed_id, title, description, fakedate in entries:
 			try:
-				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("entry_id", str(entry_id), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))
-				doc.add(PyLucene.Field("feed_id", str(feed_id), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))	                                           
-				doc.add(PyLucene.Field("fakedate", str(fakedate), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))	                                           
-				doc.add(PyLucene.Field("title",title,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))   
-				doc.add(PyLucene.Field("description", description,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))       
+				doc = Document()
+				p = HTMLDataParser()
+				p.feed(description)
+				description = p.data
+				doc.add(Field("entry_id", str(entry_id), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))
+				doc.add(Field("feed_id", str(feed_id), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))	                                           
+				doc.add(Field("fakedate", str(fakedate), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))	                                           
+				doc.add(Field("title",title,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))   
+				doc.add(Field("description", description,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
 			except Exception, e:
 				print "Failed in indexDocs:", e    
@@ -108,7 +112,7 @@ class Lucene:
 			callback()
 		
 	def Re_Index_Threaded(self,feedlist=[], entrylist=[]):
-		PyLucene.PythonThread(target=self.Re_Index, args=(feedlist,entrylist)).start()
+		PythonThread(target=self.Re_Index, args=(feedlist,entrylist)).start()
 		
 	def Re_Index(self, feedlist=[], entrylist=[]):
 		if len(feedlist)==0 and len(entrylist)==0:
@@ -117,8 +121,8 @@ class Lucene:
 		db = self._get_db()
 		c = db.cursor()
 					
-		analyzer = PyLucene.StandardAnalyzer()
-		indexModifier = PyLucene.IndexModifier(self.storeDir, analyzer, False)
+		analyzer = StandardAnalyzer()
+		indexModifier = IndexModifier(self.storeDir, analyzer, False)
 		
 		feed_addition = []
 		entry_addition = []
@@ -147,51 +151,54 @@ class Lucene:
 		#first delete anything deleted or changed
 		for feed_id in feedlist:
 			try:
-				indexModifier.deleteDocuments(PyLucene.Term("id","feed "+str(feed_id)))
+				indexModifier.deleteDocuments(Term("id","feed "+str(feed_id)))
 			except Exception, e:
 				print "Failed deleting feed:", e
 				
 		for entry_id in entrylist:
 			try:
-				indexModifier.deleteDocuments(PyLucene.Term("id","entry "+str(entry_id)))
+				indexModifier.deleteDocuments(Term("id","entry "+str(entry_id)))
 			except Exception, e:
 				print "Failed deleting entry:", e
 			
 		#now add back the changes
 		for feed_id, title, description in feed_addition:
 			try:
-				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("feed_id", str(feed_id), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))
-				doc.add(PyLucene.Field("title",title,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))   
-				doc.add(PyLucene.Field("description", description,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))
+				doc = Document()
+				doc.add(Field("feed_id", str(feed_id), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))
+				doc.add(Field("title",title,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))   
+				doc.add(Field("description", description,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))
 				indexModifier.addDocument(doc)
 			except Exception, e:
 				print "Failed adding feed:", e
 		
 		for entry_id, feed_id, title, description, fakedate in entry_addition:
 			try:
-				doc = PyLucene.Document()
-				doc.add(PyLucene.Field("entry_id", str(entry_id), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))
-				doc.add(PyLucene.Field("feed_id", str(feed_id), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))	
-				doc.add(PyLucene.Field("fakedate", str(fakedate), 
-											   PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.UN_TOKENIZED))	
-				doc.add(PyLucene.Field("title",title,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))   
-				doc.add(PyLucene.Field("description", description,
-	                                           PyLucene.Field.Store.YES,
-	                                           PyLucene.Field.Index.TOKENIZED))
+				doc = Document()
+				p = HTMLDataParser()
+				p.feed(description)
+				description = p.data
+				doc.add(Field("entry_id", str(entry_id), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))
+				doc.add(Field("feed_id", str(feed_id), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))	
+				doc.add(Field("fakedate", str(fakedate), 
+											   Field.Store.YES,
+	                                           Field.Index.UN_TOKENIZED))	
+				doc.add(Field("title",title,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))   
+				doc.add(Field("description", description,
+	                                           Field.Store.YES,
+	                                           Field.Index.TOKENIZED))
 				indexModifier.addDocument(doc)
 			except Exception, e:
 				print "Failed adding entry:", e
@@ -203,20 +210,20 @@ class Lucene:
 	def Search(self, command, blacklist=[]):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It
 		is sorted so that title results are first, description results are second"""
-		analyzer = PyLucene.StandardAnalyzer()
-		directory = PyLucene.FSDirectory.getDirectory(self.storeDir, False)
-		searcher = PyLucene.IndexSearcher(directory)
+		analyzer = StandardAnalyzer()
+		directory = FSDirectory.getDirectory(self.storeDir, False)
+		searcher = IndexSearcher(directory)
 		
 		feed_results=[]
 		entry_results=[]
 		
 		#MultiFiendQuery has a bug in 2.0.0... for now don't use
-		#queryparser = PyLucene.MultiFieldQueryParser(['title','description'], self.analyzer)
-		#query = PyLucene.MultiFiendQueryParser.parse(command, ['title','description'], self.analyzer)
+		#queryparser = MultiFieldQueryParser(['title','description'], self.analyzer)
+		#query = MultiFiendQueryParser.parse(command, ['title','description'], self.analyzer)
 
 		#query TITLES
-		queryparser = PyLucene.QueryParser("title", analyzer)
-		query = PyLucene.QueryParser.parse(queryparser, command)
+		queryparser = QueryParser("title", analyzer)
+		query = QueryParser.parse(queryparser, command)
 		
 		def build_results(hits):
 			"""we use this twice, so save some typing"""
@@ -248,8 +255,8 @@ class Lucene:
 			feed_results.append(entry[1])
 			
 		#query DESCRIPTIONS		
-		queryparser = PyLucene.QueryParser("description", analyzer)
-		query = PyLucene.QueryParser.parse(queryparser, command)
+		queryparser = QueryParser("description", analyzer)
+		query = QueryParser.parse(queryparser, command)
 		hits = searcher.search(query)
 		#print "%s total matching document descriptions." % hits.length()
 		build_results(hits)
@@ -264,8 +271,55 @@ class Lucene:
 		searcher.close()    
 		return (feed_results, entry_results)
 		
+	def get_popular_terms(self, max_terms=100, junkWords=[], fields=[]):
+		#ported from http://www.getopt.org/luke/ HighFreqTerms.java
+		self.index_lock.acquire()
+		def insert(l, val):
+			i=-1
+			for item in l:
+				i+=1
+				if val[1]>item[1]:
+					l.insert(i, val)
+					return
+			l.append(val)
+			
+		
+		reader = IndexReader.open(self.storeDir)
+		terms = reader.terms()
+		pop_terms = []
+           
+		minFreq = 0
+		while terms.next():
+			term = terms.term()
+			field = term.field()
+			if len(fields)>0:
+				if field not in fields:
+					continue
+			if term.text() in junkWords:
+				continue
+			try:
+				i = float(term.text())
+				continue
+			except:
+				pass
+			if terms.docFreq() > minFreq:
+				insert(pop_terms, (term.text(), terms.docFreq()))
+				if max_terms>0 and len(pop_terms) >= max_terms:
+					pop_terms.pop(-1)
+					minFreq = pop_terms[-1][1]
+	
+		self.index_lock.release()
+		return pop_terms
+		
 class DBError(Exception):
 	def __init__(self,error):
 		self.error = error
 	def __str__(self):
 		return self.error		
+		
+class HTMLDataParser(HTMLParser.HTMLParser):
+	def __init__(self):
+		HTMLParser.HTMLParser.__init__(self)
+		self.data = ""
+	def handle_data(self, data):
+		self.data+=data

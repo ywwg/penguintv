@@ -10,7 +10,6 @@ import os, os.path
 import ptvDB
 import utils
 import timeoutsocket
-import MediaManager
 
 #Downloader API:
 #constructor takes:  media, params, resume, queue, progress_callback, finished_callback
@@ -26,14 +25,10 @@ import MediaManager
 #              where status is 0=failed, 1=success, 2=success and queue
 		
 class BTDownloader(Downloader):
-	def __init__(self, media, media_dir, bt_params="", resume=False, queue=1, progress_callback=None, finished_callback=None):
-	#self.progress_callback((self.media,blocks,blocksize,totalsize))
-				#return (self.media, 2,"finished downloading "+self.media['file'])				0 is failure, 1 is success, 2 is success and queue
+	def __init__(self, media, media_dir, params="", resume=False, queue=1, progress_callback=None, finished_callback=None):
 		#bit torrent always resumes if it can.
 		Downloader.__init__(self, media, media_dir, params, resume, queue, progress_callback, finished_callback)
-		self.media_dir = media_dir
-		self.bt_params = bt_params
-		self.totalsize=0
+		self.bt_params = params
 		self.done = Event()
 		self.start_time=time.time()
 		self.last_update=self.start_time
@@ -42,19 +37,26 @@ class BTDownloader(Downloader):
 				
 	def download(self,args_unused):
 		Downloader.download(self,args_unused)
-		#print "bt ready to download: "+str(self.media['url'])
-		#download(params, h.chooseFile, h.display, h.finished, h.error, Event(), cols, h.newpath)
 		params = ['--url' ,self.media['url']]+self.bt_params
 		
 		try:
 			download.download(params,  self.chooseFile, self.display, self.normalize_finished, self.error, self.done, 80, self.newpath)
 		except timeoutsocket.Timeout, detail:
 			self.media['errormsg'] = str(detail)
-			self.finished_callback((self.media,MediaManager.FAILURE,detail))		
-		except:
+			self.status = FAILURE
+			self.message = detail
+			self.finished_callback()	
+			return	
+		except Exception, e:
+			print e
 			self.media['errormsg'] = _("There was an error downloading the torrent")
-			self.finished_callback((self.media,MediaManager.FAILURE,_("There was an error downloading the torrent")))
-		self.finished_callback(self, (self.media,MediaManager.STOPPED,None))
+			self.status = FAILURE
+			self.message = _("There was an error downloading the torrent")
+			self.finished_callback()
+			return
+		self.status = STOPPED
+		self.message = ""
+		self.finished_callback()
 
 	def chooseFile(self, default, size, saveas, dir):
 		self.totalsize=size
@@ -65,7 +67,6 @@ class BTDownloader(Downloader):
 			change = 1
 		if self.media['file']!=self.media_dir+"/"+dated_dir+"/"+str(default):
 			self.media['file']=self.media_dir+"/"+dated_dir+"/"+str(default)
-			#print "changed to"+str(self.media['file'])			
 			change = 1
 		if change:
 			db = ptvDB.ptvDB()
@@ -80,26 +81,23 @@ class BTDownloader(Downloader):
 			self.downTotal = dict['downTotal']
 		
 		if dict.has_key('fractionDone'):
-		#	current_time = time.time()
-		#	if current_time - self.last_update > 2: #don't update more than once every 2 seconds
-		#	self.last_update = current_time
-			progress = int(dict['fractionDone']*100.0)
-			d = {'progress':str(progress),
+			self.progress = int(dict['fractionDone']*100.0)
+			d = {'progress':str(self.progress),
 				 'size':utils.format_size(self.totalsize)
 				 }
 			if dict.has_key('timeEst'):
 				d['time']=utils.hours(dict['timeEst'])
-				progress_message = _("Downloaded %(progress)s%% of %(size)s, %(time)s remaining.") % d
+				self.message = _("Downloaded %(progress)s%% of %(size)s, %(time)s remaining.") % d
 			else:
-				progress_message = _("Downloaded %(progress)s%% of %(size)s") % d
+				self.message = _("Downloaded %(progress)s%% of %(size)s") % d
 			
-			if self.progress_callback(self, (self.media,progress,progress_message)) == 1:
+			if self.progress_callback() == 1:
 				self.done.set() 
 				
 		else:
-			progress = 0
-			progress_message = ""
-			if self.progress_callback(self, (self.media,progress,progress_message)) == 1:
+			self.progress = 0
+			self.message = ""
+			if self.progress_callback() == 1:
 				self.done.set()
 		
 		if dict.has_key('upTotal'): #check to see if we should stop
@@ -111,10 +109,12 @@ class BTDownloader(Downloader):
 		
 	def normalize_finished(self):
 		if self.queue==True:
-			q = MediaManager.FINISHED_AND_PLAY
+			self.status = FINISHED_AND_PLAY
 		else:
-			q = MediaManager.FINISHED
-		self.finished_callback(self, (self.media, q,"finished downloading "+self.media['file']))			
+			self.status = FINISHED
+		d = {'filename':self.media['file']}
+		self.message = _("Finished downloading %(filename)s") % d
+		self.finished_callback()			
 		self.done_downloading = True
 		#don't stop uploading, we keep going until 1:1 or one hour
 		#FIXME: deal with directories just in case
@@ -122,14 +122,15 @@ class BTDownloader(Downloader):
 		
 	def error(self, errormsg):
 		#for some reason this isn't a fatal error
-		if errormsg!='rejected by tracker - This tracker requires new tracker protocol. Please use our Easy Downloader or check blogtorrent.com for updates.':
+		if errormsg=='rejected by tracker - This tracker requires new tracker protocol. Please use our Easy Downloader or check blogtorrent.com for updates.':
+			print "getting blogtorrent 'rejected by tracker' error, ignoring"
+		else:
 			print "error: "+errormsg
 			self.media['errormsg']=errormsg
-			self.finished_callback(self, (self.media,MediaManager.FAILURE,errormsg))		
+			self.message = errormsg
+			self.status = FAILURE
+			self.finished_callback()		
 			self.done.set()
-		else:
-			print "getting blogtorrent 'rejected by tracker' error, ignoring"
-
 		
 	def newpath(self, path):
 		pass

@@ -150,7 +150,6 @@ class MediaManager:
 			downloader = BTDownloader.BTDownloader(media, self.media_dir, params,True, queue, self.callback_progress,self.callback_finished)
 			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
-			pass
 		else: #http regular download
 			ext = os.path.splitext(media['file'])[1]
 			if len(ext)>5 or len(ext)==0:

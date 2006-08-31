@@ -22,6 +22,7 @@ class Downloader:
 		self.progress = 0
 		self.total_size = 1
 		self.media = media
+		self.media_dir = media_dir
 		self.status = QUEUED
 		self.message = ""
 		self._stop_download = False
@@ -33,7 +34,6 @@ class Downloader:
 		self.status = DOWNLOADING
 		
 	def progress_callback(self):
-		print self.media['media_id'],self.progress,self.total_size
 		if self._stop_download:
 			self.app_progress_callback(self)
 			return 1
