@@ -256,6 +256,7 @@ class EntryView:
 			self.current_entry = item	
 			self.currently_blank = False
 		else:
+			#traceback.print_stack()
 			self.currently_blank = True
 			self.current_scroll_v = va.get_value()
 			self.current_scroll_h = ha.get_value()	

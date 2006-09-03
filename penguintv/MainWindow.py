@@ -319,6 +319,11 @@ class MainWindow:
 			self.feed_properties_dialog.set_rss(feed_info['url'])
 			self.feed_properties_dialog.set_description(feed_info['description'])
 			self.feed_properties_dialog.set_link(feed_info['link'])
+			self.feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
+			if self.app.feed_refresh_method == penguintv.REFRESH_AUTO:
+				self.feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
+			else:
+				self.feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self.app.polling_frequency)
 			self.feed_properties_dialog.show()
 			
 	def on_feed_filter_properties_activate(self, event):
@@ -537,6 +542,11 @@ class MainWindow:
 	def on_refresh_feeds_activate(self, event):
 		self.set_wait_cursor()
 		self.app.poll_feeds()
+		self.set_wait_cursor(False)
+
+	def on_refresh_feeds_with_errors_activate(self, event):
+		self.set_wait_cursor()
+		self.app.poll_feeds(ptvDB.A_ERROR_FEEDS)
 		self.set_wait_cursor(False)
 		
 	def on_reindex_searches_activate(self, event):

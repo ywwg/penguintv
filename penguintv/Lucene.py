@@ -66,10 +66,10 @@ class Lucene:
 				doc.add(Field("feed_id", str(feed_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))
-				doc.add(Field("title", title,
+				doc.add(Field("feed_title", title,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
-				doc.add(Field("description", description,
+				doc.add(Field("feed_description", description,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
@@ -93,10 +93,10 @@ class Lucene:
 				doc.add(Field("fakedate", str(fakedate), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))	                                           
-				doc.add(Field("title",title,
+				doc.add(Field("entry_title",title,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
-				doc.add(Field("description", description,
+				doc.add(Field("entry_description", description,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
@@ -151,13 +151,13 @@ class Lucene:
 		#first delete anything deleted or changed
 		for feed_id in feedlist:
 			try:
-				indexModifier.deleteDocuments(Term("id","feed "+str(feed_id)))
+				indexModifier.deleteDocuments(Term("feed_id",str(feed_id)))
 			except Exception, e:
 				print "Failed deleting feed:", e
 				
 		for entry_id in entrylist:
 			try:
-				indexModifier.deleteDocuments(Term("id","entry "+str(entry_id)))
+				indexModifier.deleteDocuments(Term("entry_id",str(entry_id)))
 			except Exception, e:
 				print "Failed deleting entry:", e
 			
@@ -168,10 +168,10 @@ class Lucene:
 				doc.add(Field("feed_id", str(feed_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))
-				doc.add(Field("title",title,
+				doc.add(Field("feed_title",title,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
-				doc.add(Field("description", description,
+				doc.add(Field("feed_description", description,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))
 				indexModifier.addDocument(doc)
@@ -193,10 +193,10 @@ class Lucene:
 				doc.add(Field("fakedate", str(fakedate), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))	
-				doc.add(Field("title",title,
+				doc.add(Field("entry_title",title,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
-				doc.add(Field("description", description,
+				doc.add(Field("entry_description", description,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))
 				indexModifier.addDocument(doc)
@@ -207,7 +207,7 @@ class Lucene:
 		indexModifier.close()
 		self.index_lock.release()
 						
-	def Search(self, command, blacklist=[]):
+	def Search(self, command, blacklist=[], include=['feeds','entries'], since=0):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It
 		is sorted so that title results are first, description results are second"""
 		analyzer = StandardAnalyzer()
@@ -221,10 +221,6 @@ class Lucene:
 		#queryparser = MultiFieldQueryParser(['title','description'], self.analyzer)
 		#query = MultiFiendQueryParser.parse(command, ['title','description'], self.analyzer)
 
-		#query TITLES
-		queryparser = QueryParser("title", analyzer)
-		query = QueryParser.parse(queryparser, command)
-		
 		def build_results(hits):
 			"""we use this twice, so save some typing"""
 			for i, doc in hits:
@@ -236,34 +232,47 @@ class Lucene:
 							feed_results.append(int(feed_id))
 						else: #               meaning "entry"
 							if len(entry_results) < ENTRY_LIMIT:
-								title    = doc.get("title")
-								desc     = doc.get("description")
+								title    = doc.get("entry_title")
+								desc     = doc.get("entry_description")
 								fakedate = float(doc.get("fakedate"))
-								entry_results.append((int(entry_id),title, fakedate, feed_id))
+								if fakedate > since:
+									entry_results.append((int(entry_id),title, fakedate, feed_id))
 					#else:
 					#	print "excluding:"+doc.get("title")
 				except Exception, e:
 					print e
 					print feed_id
 					print self.blacklist
+
+		#query FEED TITLES
+		if 'feeds' in include:
+			queryparser = QueryParser("feed_title", analyzer)
+			query = QueryParser.parse(queryparser, command)
+			hits = searcher.search(query)
+			build_results(hits)
+				
+			#query FEED DESCRIPTIONS		
+			queryparser = QueryParser("feed_description", analyzer)
+			query = QueryParser.parse(queryparser, command)
+			hits = searcher.search(query)
+			build_results(hits)
 		
-		hits = searcher.search(query)
-		build_results(hits)
-		#print "%s total matching document titles." % hits.length()
-		
-		for entry in entry_results: #also add feed results so that they show up in the feed list too
-			feed_results.append(entry[1])
+		if 'entries' in include:
+			#ENTRY TITLES
+			queryparser = QueryParser("entry_title", analyzer)
+			query = QueryParser.parse(queryparser, command)
+			hits = searcher.search(query)
+			build_results(hits)
+				
+			#ENTRY DESCRIPTIONS		
+			queryparser = QueryParser("entry_description", analyzer)
+			query = QueryParser.parse(queryparser, command)
+			hits = searcher.search(query)
+			build_results(hits)
 			
-		#query DESCRIPTIONS		
-		queryparser = QueryParser("description", analyzer)
-		query = QueryParser.parse(queryparser, command)
-		hits = searcher.search(query)
-		#print "%s total matching document descriptions." % hits.length()
-		build_results(hits)
-		
 		for entry in entry_results:
-			feed_results.append(entry[3]) #this redoes the stuff at the top, but I 
-										  #don't care because we are going to pare down the list
+			feed_results.append(entry[3])
+			
 		feed_results = utils.uniquer(feed_results)
 		entry_results = utils.uniquer(entry_results)	
 		#sort by date:
@@ -275,20 +284,35 @@ class Lucene:
 		#ported from http://www.getopt.org/luke/ HighFreqTerms.java
 		self.index_lock.acquire()
 		def insert(l, val):
+			#for item in l:
+			#	
+			#try:
+			#	print val[0]
+			#	print l.index(val
+			#	l[l.index(val[0])]=(val[0], l[l.index(val[0])][1]+val[1])
+			#	print "updating",l[l.index(val[0])]
+			#except:
+			#	pass
+			insert_at = -1
 			i=-1
 			for item in l:
 				i+=1
-				if val[1]>item[1]:
-					l.insert(i, val)
+				if item[0] == val[0]:
+					l[i] = (item[0], item[1]+val[1])
 					return
-			l.append(val)
+				if val[1]>item[1] and insert_at==-1:
+					insert_at = i
+			if insert_at >= 0:	
+				l.insert(insert_at, val)
+			else:
+				l.append(val)
 			
 		
 		reader = IndexReader.open(self.storeDir)
 		terms = reader.terms()
-		pop_terms = []
-           
-		minFreq = 0
+		pop_terms = {}
+		#minFreq = 0
+		seen=[]
 		while terms.next():
 			term = terms.term()
 			field = term.field()
@@ -302,14 +326,81 @@ class Lucene:
 				continue
 			except:
 				pass
-			if terms.docFreq() > minFreq:
-				insert(pop_terms, (term.text(), terms.docFreq()))
-				if max_terms>0 and len(pop_terms) >= max_terms:
-					pop_terms.pop(-1)
-					minFreq = pop_terms[-1][1]
-	
+			text = term.text()
+			#if text in seen:
+			#	print "exists"
+			#	i = seen.index(text)
+			#	pop_terms[i][1] = pop_terms[i][1] + terms.docFreq()
+			#else:
+			if not pop_terms.has_key(field):
+				pop_terms[field]=[]
+			pop_terms[field].append((text, terms.docFreq()))
+			#	seen.append(term.text())
+			#if terms.docFreq() > minFreq:
+			#	insert(pop_terms, (term.text(), terms.docFreq()))
+			#	if max_terms>0 and len(pop_terms) >= max_terms:
+			#		pop_terms.pop(-1)
+			#		minFreq = pop_terms[-1][1]
+			
+		def merge(l1, l2):
+			if len(l1)>len(l2):
+				l3 = l1
+				l2 = l1
+				l1 = l3
+				del l3
+			i=-1
+			for term,freq in l1:
+				i+=1
+				while term < l2[i][0] and i<len(l2):
+					i+=1
+				if i >= len(l2):
+					l2.append((term,freq))
+					break
+				if term == l2[i]:
+					l2[i] = (l2[i][0], l2[i][1] + freq)
+				if term > l2[i]:
+					l2.insert(i,(term,freq))
+			
+		field_rank = []
+		for key in pop_terms.keys():
+			field_rank.append((len(pop_terms[key]), key))
+		field_rank.sort()
+		field_rank.reverse()
+		for rank,key in field_rank[1:]:
+			pop_terms[field_rank[0][1]] = self.merge(pop_terms[field_rank[0][1]],pop_terms[key])
+			#j=-1
+			#for term in pop_terms[field_rank[0][1]]:
+			#	j+=1
+			#	if term in pop_terms[key]:					
+			#		pop_terms[field_rank[0][1]][j] = (term, pop_terms[field_rank[0][1]][j][1] + pop_terms[key][pop_terms[key].index(term)][1])
+		pop_terms=pop_terms[field_rank[0][1]]
+		#pop_terms.sort(lambda x,y: y[1]-x[1])
+		if max_terms>0:
+			pop_terms = pop_terms[:max_terms]
 		self.index_lock.release()
 		return pop_terms
+
+	def merge(self, l1, l2):
+		if len(l1)>len(l2):
+			l3 = l1
+			l1 = l2
+			l2 = l3
+			del l3
+		i=-1
+		for term,freq in l1:
+			i+=1
+			while term > l2[i][0]:
+				i+=1
+				if i>=len(l2):break
+			if i >= len(l2):
+				l2.append((term,freq))
+				break
+			if term == l2[i][0]:
+				l2[i] = (l2[i][0], l2[i][1] + freq)
+			if term < l2[i][0]:
+				l2.insert(i,(term,freq))
+		return l2
+
 		
 class DBError(Exception):
 	def __init__(self,error):
@@ -323,3 +414,5 @@ class HTMLDataParser(HTMLParser.HTMLParser):
 		self.data = ""
 	def handle_data(self, data):
 		self.data+=data
+
+

@@ -4,6 +4,8 @@
 import penguintv
 from ptvDB import FeedAlreadyExists
 import gtk
+import time, datetime
+from math import floor
 
 
 class FeedPropertiesDialog:
@@ -18,6 +20,8 @@ class FeedPropertiesDialog:
 		self.rss_widget = xml.get_widget('rss_entry')
 		self.link_widget = xml.get_widget('link_entry')
 		self.description_widget = xml.get_widget('description_label')
+		self.last_poll_widget = xml.get_widget('last_poll_label')
+		self.next_poll_widget = xml.get_widget('next_poll_label')
 		self.old_title = ""
 		self.old_rss = ""
 		self.old_link = ""
@@ -53,6 +57,20 @@ class FeedPropertiesDialog:
 			link = ""
 		self.link_widget.set_text(link)
 		self.old_link = link
+		
+	def set_last_poll(self, lastpoll):
+		self.last_poll_widget.set_text(time.strftime("%X",time.localtime(lastpoll)))
+		
+	def set_next_poll(self, nextpoll):
+		if nextpoll <= time.time():
+			self.next_poll_widget.set_text(_("Momentarily"))
+		else:
+			delta = datetime.timedelta(seconds=nextpoll-time.time())
+			print nextpoll-time.time()
+			print delta
+			d = {'hours':int(floor(delta.seconds/3600)),
+				 'mins':int((delta.seconds-(floor(delta.seconds/3600)*3600))/60)}
+			self.next_poll_widget.set_text(_("in approx %(hours)sh %(mins)sm") % d)
 		
 	def on_window_feed_properties_delete_event(self, widget, event):
 		return self._window.hide_on_delete()

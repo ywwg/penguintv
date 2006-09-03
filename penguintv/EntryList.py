@@ -188,7 +188,7 @@ class EntryList:
 		self._widget.columns_autosize()
 		if not dont_autopane: #ie, DO auto_pane please
 			gobject.idle_add(self.auto_pane)
-		self._app.display_entry(None)
+			self._app.display_entry(None)
 		
 	def auto_pane(self):
 		"""Automatically adjusts the pane width to match the column width"""
@@ -198,8 +198,8 @@ class EntryList:
 			column = self._widget.get_column(0)
 			new_width = column.get_width()+10
 			listnview_width = self.main_window.app_window.get_size()[0] - self.main_window.feed_pane.get_position()
-			if listnview_width - new_width < 300: #ie, entry view will be tiny
-				self.main_window.entry_pane.set_position(listnview_width-300) #MAGIC NUMBER
+			if listnview_width - new_width < 400: #ie, entry view will be tiny
+				self.main_window.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
 			elif new_width > 20: #MAGIC NUMBER
 				self.main_window.entry_pane.set_position(new_width)
 		return False

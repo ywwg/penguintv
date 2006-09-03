@@ -18,6 +18,7 @@ import glob
 import locale
 import gettext
 import sets
+import pickle
 
 import Lucene
 
@@ -53,6 +54,7 @@ F_PAUSED      = 2
 F_MEDIA       = 1
 
 #arguments for poller
+A_ERROR_FEEDS    = 32
 A_DO_REINDEX     = 16
 A_ALL_FEEDS      = 8
 A_AUTOTUNE       = 4
@@ -183,6 +185,8 @@ class ptvDB:
 		if self.searcher.needs_index:
 			print "indexing for the first time"
 			self.searcher.Do_Index_Threaded()
+			
+		self.fix_tags()
 		return False
 			
 	def migrate_database_one_two(self):
@@ -252,6 +256,12 @@ class ptvDB:
 		self.c.execute(u'ALTER TABLE feeds ADD COLUMN link')
 		self.c.execute(u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
 		self.c.execute(u'UPDATE feeds SET link=""')
+		self.c.execute(u"""CREATE TABLE terms
+							(
+							id INTEGER PRIMARY KEY,
+							term,
+							frequency INT);""")
+		self.c.execute(u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self.db.commit()
 		
 	def init_database(self):
@@ -346,6 +356,12 @@ class ptvDB:
 							query,
 							type INT);""")
 							
+		self.c.execute(u"""CREATE TABLE terms
+							(
+							id INTEGER PRIMARY KEY,
+							term,
+							frequency INT""")
+							
 #		self.c.execute(u"""CREATE TABLE fulltext
 #						   (
 #						   		id INTEGER PRIMARY KEY,
@@ -354,6 +370,7 @@ class ptvDB:
 		self.db.commit()
 		
 		self.c.execute(u"""INSERT INTO settings (data, value) VALUES ("db_ver",4)""")
+		self.c.execute(u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self.db.commit()
 		
 	def clean_database_media(self):
@@ -542,14 +559,14 @@ class ptvDB:
 		successes=[]
 		self.reindex_entry_list = []
 		self.reindex_feed_list = []
-		index = 0
 		cur_time = time.time()
 		
 		if feeds is None:
-			if arguments & A_AUTOTUNE == A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:
+			if arguments & A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:
 				self.c.execute('SELECT id FROM feeds WHERE (? - lastpoll) >= pollfreq', (cur_time,))
-			else:
-				###print "polling all"
+			elif arguments & A_ERROR_FEEDS:
+				self.c.execute('SELECT id FROM feeds WHERE pollfail=1')
+			else: #polling all
 				self.c.execute('SELECT id FROM feeds')
 				
 			data=self.c.fetchall()
@@ -563,9 +580,8 @@ class ptvDB:
 		for feed in feeds:
 			if self.cancel_poll_multiple or self.exiting:
 				break
-			pool.queueTask(self.pool_poll_feed,(index,feed,arguments),self.polling_callback)
+			pool.queueTask(self.pool_poll_feed,(feed,arguments,len(feeds)),self.polling_callback)
 			time.sleep(.1) #maybe this will help stagger things a bit?
-			index = index + 1
 			
 		while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 			if self.exiting:
@@ -591,19 +607,19 @@ class ptvDB:
 		except:
 			raise DBError,"error connecting to database"
 		
-		index=args[0]
-		feed_id=args[1]
+		feed_id=args[0]
+		total = args[2]
 		
 		poll_arguments = 0
 		result = 0
 		pollfail = False
 		try:
-			poll_arguments = args[2]
+			poll_arguments = args[1]
 			if self.exiting:
-				return (feed_id,{'pollfail':True})
+				return (feed_id,{'pollfail':True}, total)
 			result = self.poll_feed(feed_id,poll_arguments,db)
 			if self.exiting:
-				return (feed_id,{'pollfail':True})
+				return (feed_id,{'pollfail':True} ,total)
 		except sqlite.OperationalError:
 			print "Database lock warning..."
 			db.close()
@@ -611,19 +627,19 @@ class ptvDB:
 			if recurse < 2:
 				time.sleep(5)
 				print "trying again..."
-				return self.pool_poll_feed(args, recurse+1) #and reconnect
+				return self.pool_poll_feed(args, total, recurse+1) #and reconnect
 			print "can't get lock, giving up"
-			return (feed_id,{'pollfail':True})
+			return (feed_id,{'pollfail':True}, total)
 		except FeedPollError,e:
 			print e
 			pollfail = True
 			db.close()
 			del db
-			return (feed_id,{'pollfail':True})
+			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
 			db.close()
 			del db
-			return (feed_id,{'ioerror':e})
+			return (feed_id,{'ioerror':e}, total)
 		except:
 			print "other error polling feed:"
 			exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -634,7 +650,7 @@ class ptvDB:
 			pollfail = True
 			db.close()
 			del db
-			return (feed_id,{'pollfail':True})
+			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
 		update_data={}
@@ -661,7 +677,7 @@ class ptvDB:
 		c.close()
 		db.close()
 		del db
-		return (feed_id,update_data)
+		return (feed_id,update_data, total)
 			
 	def poll_feed_trap_errors(self, feed_id, callback):
 		try:
@@ -736,11 +752,12 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"404 not found: "+url)
 
 		if len(data['channel']) == 0 or len(data['items']) == 0:
-			if isinstance(data['bozo_exception'],urllib2.URLError):
-				e = data['bozo_exception'][0]
-				errno = e[0]
-				if e[0] == -3: #failure in name resolution
-					raise IOError(e)	
+			if data.has_key('bozo_exception'):
+				if isinstance(data['bozo_exception'],urllib2.URLError):
+					e = data['bozo_exception'][0]
+					errno = e[0]
+					if e[0] == -3: #failure in name resolution
+						raise IOError(e)	
 			
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
 				self.set_new_update_freq(db, c, feed_id, 0)
@@ -1288,14 +1305,16 @@ class ptvDB:
 		return result #self.decode_text(result)
 		
 	def get_feed_info(self, feed_id):
-		self.c.execute("""SELECT title, description, url, link, feed_pointer FROM feeds WHERE id=?""",(feed_id,))
+		self.c.execute("""SELECT title, description, url, link, feed_pointer, lastpoll, pollfreq FROM feeds WHERE id=?""",(feed_id,))
 		try:
 			result = self.c.fetchone()
 			d = {'title':result[0],
 				 'description':result[1],
 				 'url':result[2],
 				 'link':result[3],
-				 'feed_pointer':result[4]}
+				 'feed_pointer':result[4],
+				 'lastpoll':result[5],
+				 'pollfreq':result[6]}
 			return d
 		except TypeError:
 			raise NoFeed, feed_id	
@@ -1651,7 +1670,7 @@ class ptvDB:
 				except:
 					pass
 		else:
-			feed_id = self.resolve_pointed_feed(feed_id)		
+			feed_id = self.resolve_pointed_feed(feed_id, c)		
 			c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
 			list = c.fetchall()
 		unread=0
@@ -1753,6 +1772,10 @@ class ptvDB:
 			self.db.commit()
 		if tag == NOSEARCH:
 			self.blacklist = self.get_tags_for_feed(NOSEARCH)
+			
+	def fix_tags(self):
+		self.c.execute(u'DELETE FROM tags WHERE tag=""')
+		self.db.commit()
 			
 	def add_search_tag(self, query, tag):
 		current_tags = self.get_all_tags(T_ALL)
@@ -1867,14 +1890,14 @@ class ptvDB:
 		#return added_feeds
 		yield (-1,0)
 		
-	def search(self, query, filter_feed=None, blacklist=None):
+	def search(self, query, filter_feed=None, blacklist=None, since=0):
 		if blacklist is None:
 			blacklist = self.blacklist
 		#print blacklist
 		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
 			#print "no blacklist"
-			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query)
-		return self.searcher.Search(query,blacklist)
+			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query, since=since)
+		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):
 		self.searcher.Do_Index_Threaded(callback)
@@ -1886,6 +1909,123 @@ class ptvDB:
 		self.searcher.Re_Index_Threaded(feed_list, entry_list)
 		self.reindex_feed_list = []
 		self.reindex_entry_list = []
+		
+	def maybe_write_term_frequency_table(self):
+		try:
+			self.c.execute(u'SELECT value FROM settings WHERE data="frequency_table_update"')
+			last_update = self.c.fetchone()
+			if last_update is None:
+				print "nothing there"
+				self.c.execute(u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",?)',(time.time(),))
+				self.db.commit()
+				return
+			last_update = last_update[0]
+			if time.time() - last_update >= 60*60*24:
+				print "writing table"
+				self.write_term_frequency_table()
+			else:
+				print "not writing table"
+		except Exception, e:
+			print e
+		
+	def write_term_frequency_table(self):
+		terms = self.searcher.get_popular_terms(max_terms=0,fields=['entry_title','entry_description'])
+		f = open(self.home+"/.penguintv/pop_search_terms.pickle","w")
+		pickle.dump(terms,f)
+		f.close()
+		#self.c.execute(u'DELETE FROM terms')
+		#i=-1
+		#for t in terms:
+		#	i+=1
+		#	self.c.execute(u'INSERT INTO terms (term, frequency) VALUES (?,?)',(t[0],t[1]))
+		#self.c.execute(u'UPDATE settings SET value=? WHERE data="frequency_table_update"',(time.time(),))
+		#self.db.commit()
+		
+	def get_recent_popular_terms(self):
+		pop_terms = []
+		f = open(self.home+"/.penguintv/pop_search_terms.pickle")
+		old_terms = pickle.load(f)
+		#old_terms = old_terms[:100]
+		#print old_terms
+		#self.c.execute(u'SELECT term,frequency FROM terms')	
+		#old_terms = self.c.fetchall()
+		#old_terms_index = [t[0] for t in old_terms]
+		if old_terms is None:
+			print "no old terms found"
+			return []
+		new_terms = self.searcher.get_popular_terms(max_terms=0,fields=['entry_title','entry_description'])
+		#new_terms_index = [t[0] for t in new_terms]
+		simple_pop = []
+		i=-1
+		j=0
+		#print old_terms
+		#print new_terms
+		for term,freq in new_terms:
+			i+=1
+			differential = 0
+			#print "looking for",term,i,j
+			if j < len(old_terms):
+				#print "searching"
+				while old_terms[j][0] < term:			
+					j+=1
+					if j >= len(old_terms):
+						break
+			if j >= len(old_terms): #don't use else, i might have changed
+				differential = freq
+				###pop_terms.append((new_terms[i][0],new_terms[i][1], float(differential)*100.0/float(new_terms[i][1])))
+			elif term == old_terms[j][0]:
+				#print "equal!",term,old_terms[j][0]				
+				differential = freq - old_terms[j][1]
+			###if differential>0:
+				###pop_terms.append((new_terms[i][0],new_terms[i][1], float(differential)*100.0/float(new_terms[i][1])))
+			if freq<10 and freq>=0:
+				if differential>=3:
+					pop_terms.append((new_terms[i][0],new_terms[i][1], float(differential)/float(old_terms[j][1])))
+			elif freq>=0:
+				if differential >= freq/2:
+					pop_terms.append((new_terms[i][0],new_terms[i][1], float(differential)/float(old_terms[j][1])))
+
+		#simple_pop.sort(lambda x,y: int(x[2]-y[2]))
+		pop_terms.sort(lambda x,y: int(x[2]-y[2]))
+		#print len(simple_pop)
+		#for item in simple_pop:
+		#	print item
+		print "-="*20+"-"
+		#print pop_terms
+		#print "-="*20+"-"
+		#for item in pop_terms:
+		#	print item
+		since = time.time()-60*60*6 #last six hours
+		new_pop = []
+		print len(pop_terms)
+		for term,freq,rank in pop_terms:
+			result = self.search(term, since=since)
+			#breadth = len(result[0])*5+len(result[1]) #number of feeds is important
+			f_breadth = len(result[0])
+			e_breadth = len(result[1])
+			#new_pop.append((term,freq,rank, len(result[0]), len(result[1]), 0.6*f_breadth+.8*e_breadth+0.1*rank))
+			new_pop.append((term,result[0],result[1], 0.6*f_breadth+.8*e_breadth+0.1*rank))
+			#print pop_terms[i]
+		new_pop.sort(lambda x,y: int(x[-1]-y[-1]))
+		#for item in new_pop:
+		#	print item	
+		new_pop.reverse()
+		new_pop = new_pop[0:20]
+		print len(new_pop)
+		pop_feeds = []
+		pop_entries = []
+		for pop in new_pop:
+			pop_feeds+=pop[1]
+			pop_entries+=pop[2]
+		pop_feeds = utils.uniquer(pop_feeds)
+		pop_entries = utils.uniquer(pop_entries)
+		print len(pop_feeds)
+		for i in pop_feeds:
+			print i
+		for i in pop_entries:
+			print i
+		
+			
 		
 	def resolve_pointed_feed(self, feed_id, c=None):
 		if c is None:

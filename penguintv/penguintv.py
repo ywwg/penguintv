@@ -102,13 +102,13 @@ class PenguinTVApp:
 					sys.exit()
 		self.db = ptvDB.ptvDB(self._polling_callback)
 		self.firstrun = self.db.maybe_initialize_db()
+		self.db.maybe_write_term_frequency_table()
 		self.db.clean_media_status()
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
 		self.conf = gconf.client_get_default()
 		self.player = Player.Player()
 		self._updater_db = None
-		self.poll_tasks=0 #Used for updating the polling progress bar
-		self.polled=0     # ditto
+		self.polled=0      #Used for updating the polling progress bar
 		self.polling_taskid=0 #the taskid we can use to waitfor a polling operation
 		self.polling_frequency=12*60*60*1000
 		self.bt_settings = {}
@@ -361,11 +361,10 @@ class PenguinTVApp:
 			else:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
-		if arguments & ptvDB.A_ALL_FEEDS:
+		#if arguments & ptvDB.A_ALL_FEEDS:
 			#only do the progress bar for all feeds, because if we are on auto we don't know 
 			#how many polls there are
-			self.poll_tasks = len(self.db.get_feedlist())
-			self.main_window.update_progress_bar(0,MainWindow.U_POLL)
+		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
 		task_id = self.updater.queue_task(DB, self.updater_thread_db.poll_multiple, (arguments,feeds))
 		if arguments & ptvDB.A_ALL_FEEDS==0:
@@ -639,8 +638,8 @@ class PenguinTVApp:
 			self.entry_list_view.clear_entries()
 			self.main_window.update_filters()
 	
-	def poll_feeds(self):
-		args = ptvDB.A_ALL_FEEDS
+	def poll_feeds(self, args=0):
+		args = args | ptvDB.A_ALL_FEEDS
 		if self.feed_refresh_method==REFRESH_AUTO:
 			args = args | ptvDB.A_AUTOTUNE
 		self.do_poll_multiple(None, args)
@@ -1244,39 +1243,39 @@ class PenguinTVApp:
 		
 	def _polling_callback(self, args):
 		if not self.exiting:
-			feed_id,update_data = args
-			self.updater.queue_task(GUI, self.poll_update_progress)
+			feed_id,update_data,total = args
+			self.updater.queue_task(GUI, self.poll_update_progress,total)
 			if update_data.has_key('ioerror'):
 				self.updater_thread_db.interrupt_poll_multiple()
-				self.updater.queue_task(GUI, self.poll_update_progress, (True, _("Trouble connecting to internet")))
+				self.updater.queue_task(GUI, self.poll_update_progress, (total, True, _("Trouble connecting to internet")))
 			elif update_data['pollfail']==False:
 				self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','pollfail'],update_data))
 				self.updater.queue_task(GUI, self.entry_list_view.populate_if_selected, feed_id)
 			else:
 				self.updater.queue_task(GUI, self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
 		
-	def poll_update_progress(self, error = False, errmsg = ""):
+	def poll_update_progress(self, total=0, error = False, errmsg = ""):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
 		if error:
-			self.poll_tasks=0 #this is where we reset the poll tasks
+			#print "error, resetting"
 			self.polled=0
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(errmsg,MainWindow.U_POLL)
 			gobject.timeout_add(2000, self.main_window.display_status_message,"")
 			return
-		if self.poll_tasks > 0:
-			self.polled += 1
-			if self.polled == self.poll_tasks:
-				self.poll_tasks=0 #this is where we reset the poll tasks
-				self.polled=0
-				self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
-				self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
-				gobject.timeout_add(2000, self.main_window.display_status_message,"")
-			else:
-				d = { 'polled':self.polled,
-					  'total':self.poll_tasks}
-				self.main_window.update_progress_bar(float(self.polled)/float(self.poll_tasks),MainWindow.U_POLL)
-				self.main_window.display_status_message(_("Polling Feeds... (%(polled)d/%(total)d)" % d),MainWindow.U_POLL)
+		self.polled += 1
+		#print "polled",self.polled,"items"
+		if self.polled == total:
+			#print "done, resetting"
+			self.polled=0
+			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
+			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
+			gobject.timeout_add(2000, self.main_window.display_status_message,"")
+		else:
+			d = { 'polled':self.polled,
+				  'total':total}
+			self.main_window.update_progress_bar(float(self.polled)/float(total),MainWindow.U_POLL)
+			self.main_window.display_status_message(_("Polling Feeds... (%(polled)d/%(total)d)" % d),MainWindow.U_POLL)
 			
 	def _entry_image_download_callback(self, entry_id, html):
 		self.updater.queue_task(GUI, self.entry_view._images_loaded,(entry_id, html))

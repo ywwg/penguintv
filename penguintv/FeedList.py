@@ -470,6 +470,8 @@ class FeedList:
 				entrylist = self.db.get_entrylist(feed_id)
 				if entrylist:
 					update_data['flag_list'] = self.db.get_entry_flags(feed_id)
+				else:
+					update_data['flag_list'] = []
 						
 			updated=0
 			unviewed=0
@@ -485,7 +487,7 @@ class FeedList:
 				if flag & ptvDB.F_DOWNLOADING:
 					active=1
 
-			flag = self._pick_important_flag(feed_id, update_data['flag_list'])
+			flag = self._pick_important_flag(feed_id, update_data['flag_list'])				
 
 		if 'icon' in update_what and 'pollfail' not in update_what:
 			update_what.append('pollfail')	 #we need that data for icon updates
