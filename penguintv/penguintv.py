@@ -71,13 +71,13 @@ AUTO_REFRESH_FREQUENCY=5*60*1000
 
 class PenguinTVApp:
 	def __init__(self):
-		self.socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
-		if not self.socket.is_server:
-			#just pass the arguments and quit
-			if len(sys.argv)>1:
-				self.socket.send(" ".join(sys.argv[1:]))
-			self.socket.close()
-			return
+		#self.socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
+		#if not self.socket.is_server:
+		#	#just pass the arguments and quit
+		#	if len(sys.argv)>1:
+		#		self.socket.send(" ".join(sys.argv[1:]))
+		#	self.socket.close()
+		#	return
 			
 		self.for_import = []
 		if len(sys.argv)>1:
@@ -95,8 +95,23 @@ class PenguinTVApp:
 					self.glade_prefix = os.path.split(os.path.abspath(sys.argv[0]))[0]+"/share"
 					os.stat(self.glade_prefix+"/penguintv.glade")
 				except:
-					print "error finding glade file."
-					sys.exit()
+					try:
+						self.glade_prefix = utils.GetPrefix()+"/share/sugar/activities/ptv/share"
+						os.stat(self.glade_prefix+"/penguintv.glade")
+					except:
+						print "error finding glade file."
+						sys.exit()
+						
+		if logfile is not None:
+			try:
+				f = os.stat(logfile)
+				self.logfile = open(logfile,"a")	
+			except:
+				self.logfile = open(logfile,"w")
+			self.log("penguintv "+utils.VERSION+" startup")
+		else:
+			self.logfile = None
+			
 		self.db = ptvDB.ptvDB(self._polling_callback)
 		self.firstrun = self.db.maybe_initialize_db()
 		#self.db.maybe_write_term_frequency_table()
@@ -125,6 +140,11 @@ class PenguinTVApp:
 		
 		self.main_window = MainWindow.MainWindow(self,self.glade_prefix) 
 		self.main_window.layout=window_layout
+		
+	def log(self, message):
+		if self.logfile is not None:
+			self.logfile.write(message+"\n")
+			self.logfile.flush()
 			
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
@@ -272,17 +292,18 @@ class PenguinTVApp:
 	def save_settings(self):
 		self.conf.set_int('/apps/penguintv/feed_pane_position',self.main_window.feed_pane.get_position())
 		self.conf.set_int('/apps/penguintv/entry_pane_position',self.main_window.entry_pane.get_position())
-		x,y=self.main_window.app_window.get_position()
-		self.conf.set_int('/apps/penguintv/app_window_position_x',x)
-		self.conf.set_int('/apps/penguintv/app_window_position_y',y)
-		if self.main_window.window_maximized == False:
-			x,y=self.main_window.app_window.get_size()
-		else: #grabbing the size when we are maximized is pointless, so just go by the old resized size
-			x = self.conf.get_int('/apps/penguintv/app_window_size_x')
-			y = self.conf.get_int('/apps/penguintv/app_window_size_y')
-			x,y=(-abs(x),-abs(y))
-		self.conf.set_int('/apps/penguintv/app_window_size_x',x)
-		self.conf.set_int('/apps/penguintv/app_window_size_y',y)
+		if self.main_window.app_window is not None:
+			x,y=self.main_window.app_window.get_position()
+			self.conf.set_int('/apps/penguintv/app_window_position_x',x)
+			self.conf.set_int('/apps/penguintv/app_window_position_y',y)
+			if self.main_window.window_maximized == False:
+				x,y=self.main_window.app_window.get_size()
+			else: #grabbing the size when we are maximized is pointless, so just go by the old resized size
+				x = self.conf.get_int('/apps/penguintv/app_window_size_x')
+				y = self.conf.get_int('/apps/penguintv/app_window_size_y')
+				x,y=(-abs(x),-abs(y))
+			self.conf.set_int('/apps/penguintv/app_window_size_x',x)
+			self.conf.set_int('/apps/penguintv/app_window_size_y',y)
 		
 		self.conf.set_string('/apps/penguintv/app_window_layout',self.main_window.layout)
 		if self.feed_refresh_method==REFRESH_AUTO:
@@ -339,7 +360,7 @@ class PenguinTVApp:
 			###print threading.enumerate()
 			###print str(threading.activeCount())+" threads active..."
 			time.sleep(1)
-		self.socket.close()
+		#self.socket.close()
 		gtk.main_quit()
 		
 	def write_feed_cache(self):

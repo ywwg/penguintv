@@ -76,13 +76,29 @@ class MainWindow:
 #		return self.widgets.get_widget(key)
 
 	def set_wait_cursor(self, wait=True):
+		if self.app_window is None:
+			return
 		if wait:
 			c = gtk.gdk.Cursor(gtk.gdk.WATCH)
 			self.app_window.window.set_cursor(c)
 		else:
 			self.app_window.window.set_cursor(None)
 
-	def Show(self):
+	def Show(self, dock_widget = None):
+		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
+		application window"""
+		#sys.stderr.write("show,"+str(dock_widget))
+		self.app.log("Show, please")
+		
+		if dock_widget is None:
+			self.load_app_window()
+		else:
+			self._status_view = None
+			self.disk_usage_widget = None
+			self.app_window = None
+			self.load_layout(dock_widget)
+		
+	def load_app_window(self):
 		conf = gconf.client_get_default()
 		self.widgetTree = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
 		self.layout_dock = self.widgetTree.get_widget('layout_dock')
@@ -105,7 +121,8 @@ class MainWindow:
 		vseparator.set_draw(False)
 		
 		#load the layout
-		self.load_layout(self.layout)
+		self.load_layout(self.layout_dock)
+		self.app_window.show_all()
 		
 		#final setup for the window comes from gconf
 		x = conf.get_int('/apps/penguintv/app_window_position_x')
@@ -123,12 +140,19 @@ class MainWindow:
 			self.window_maximized = True
 		else:
 			self.app_window.resize(w,h)
+			
+		for key in dir(self.__class__): #python insaneness
+			if key[:3] == 'on_':
+				self.widgetTree.signal_connect(key, getattr(self, key))
 		
-	def load_layout(self, layout):
+	def load_layout(self,dock_widget):
+		self.app.log("load_layout")
+		#sys.stderr.write("load_layout")
 		conf = gconf.client_get_default()
-		components = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', layout+'_layout_container','penguintv') #MAGIC
-		self.layout_container = components.get_widget(layout+'_layout_container')
-		self.layout_dock.pack_start(self.layout_container)
+		components = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
+		self.layout_container = components.get_widget(self.layout+'_layout_container')
+		#self.dock_widget.pack_start(self.layout_container)
+		dock_widget.add(self.layout_container)
 		
 		self.feed_list_view = FeedList.FeedList(components,self.app, self.db)
 		self.entry_list_view = EntryList.EntryList(components,self.app, self, self.db)
@@ -162,9 +186,7 @@ class MainWindow:
 		
 		load_renderrer(renderrer)
 					
-		for key in dir(self.__class__): #python insaneness
-			if key[:3] == 'on_':
-				self.widgetTree.signal_connect(key, getattr(self, key))
+		
 				
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
@@ -227,7 +249,8 @@ class MainWindow:
 			val=309
 		if val < 10:
 			val = 50
-		self.app_window.show_all()
+		#self.app_window.show_all()
+		dock_widget.show_all()
 		self.entry_pane.set_position(val)
 		
 		val = conf.get_string('/apps/penguintv/default_filter')
@@ -245,8 +268,12 @@ class MainWindow:
 		else:
 			self.filter_combo_widget.set_active(FeedList.ALL)
 			
+		#sys.stderr.write("done")
+			
 	def Hide(self):
-		self.app_window.hide()
+		self.app.log("hiding")
+		if self.app_window:
+			self.app_window.hide()
 		del self.widgetTree
 		del self.feed_list_view
 		del self.entry_list_view
@@ -621,7 +648,7 @@ class MainWindow:
 		self.app.save_settings()
 		self.app.write_feed_cache()
 		self.layout_dock.remove(self.layout_container)
-		self.load_layout(self.layout)
+		self.load_layout(self.layout, self.layout_dock)
 		#self.Hide()
 		#self.Show()
 		self.feed_list_view.populate_feeds(self.app._done_populating)
@@ -637,6 +664,9 @@ class MainWindow:
 	def display_status_message(self, m, update_category=U_STANDARD):
 		"""displays a status message on the main status bar.  If this is a polling update or download
 		   update, we don't overwrite what's there."""	
+		if self._status_view is None:
+			return
+			
 		current_text = self._status_view.get_status().get_text()
 		
 		if current_text == "":
@@ -758,6 +788,8 @@ class MainWindow:
 		self.entry_list_view.populate_entries(dic['feed'],dic['entry'])
 
 	def update_disk_usage(self, size):
+		if self.disk_usage_widget is None:
+			return
 		self.disk_usage_widget.set_text(utils.format_size(size))
 
 	def update_download_progress(self):
@@ -792,7 +824,10 @@ class MainWindow:
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
 				
 	def desensitize(self):
-		self.app_window.set_sensitive(False)
+		if self.app_window:
+			self.app_window.set_sensitive(False)
+		else:
+			self.layout_container.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
 	
