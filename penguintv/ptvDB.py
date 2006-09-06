@@ -627,7 +627,7 @@ class ptvDB:
 			if recurse < 2:
 				time.sleep(5)
 				print "trying again..."
-				return self.pool_poll_feed(args, total, recurse+1) #and reconnect
+				return self.pool_poll_feed(args, recurse+1) #and reconnect
 			print "can't get lock, giving up"
 			return (feed_id,{'pollfail':True}, total)
 		except FeedPollError,e:

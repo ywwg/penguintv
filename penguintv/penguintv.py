@@ -361,9 +361,6 @@ class PenguinTVApp:
 			else:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
-		#if arguments & ptvDB.A_ALL_FEEDS:
-			#only do the progress bar for all feeds, because if we are on auto we don't know 
-			#how many polls there are
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
 		task_id = self.updater.queue_task(DB, self.updater_thread_db.poll_multiple, (arguments,feeds))
@@ -396,7 +393,6 @@ class PenguinTVApp:
 			self.feed_list_view.update_feed_list(d[3],['icon'])
 			#self.entry_list_view.populate_entries(d[3])
 			self.entry_list_view.update_entry_list(d[2])
-		print "done"
 			
 	def add_search_tag(self, query, tag_name):
 		self.db.add_search_tag(query, tag_name)
