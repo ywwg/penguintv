@@ -1,7 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
 import time
-import traceback
+import traceback, sys
 
 import gobject
 import threading
@@ -12,6 +12,8 @@ import threading
 GOBJECT=0
 THREADED=1
 MANUAL=2
+
+FLUSH_TIME = 60*10
 
 class UpdateTasksManager:
 	task_list = []
@@ -29,12 +31,12 @@ class UpdateTasksManager:
 		cur_time = int(time.time())
 		
 		if self.id_time == cur_time:
-			self.time_appendix = self.time_appendix+1
+			self.time_appendix = self.time_appendix+1.0
 		else:
 			self.id_time = cur_time
-			self.time_appendix=0
+			self.time_appendix=0.0
 		
-		return str(self.id_time)+"+"+str(self.time_appendix)
+		return float(self.id_time)+(self.time_appendix/100)
 			
 	def queue_task(self, func, arg=None, waitfor=None, clear_completed=True, priority=0):
 		task_id = self.get_task_id()
@@ -46,7 +48,7 @@ class UpdateTasksManager:
 		if self.updater_running == False:
 			self.updater_running = True
 			if self.style == GOBJECT:
-				gobject.idle_add(self.updater_gen().next)
+				gobject.timeout_add(100, self.updater_gen().next)
 			elif self.style == THREADED:
 				threading.Thread(self.updater_thread)
 			#elif manual, do nothing
@@ -79,8 +81,8 @@ class UpdateTasksManager:
 		for item in self.updater_gen():
 			time.sleep(self.threadSleepTime)
 			
-	def updater_timer(self, timed=True):
-		for item in self.updater_gen():
+	def updater_timer(self):
+		for item in self.updater_gen(True):
 			pass
 		if self.task_count() > 0: # we didn't finish
 			return True
@@ -127,7 +129,9 @@ class UpdateTasksManager:
 						self.clear_completed(waitfor)
 					self.pop_task(skipped)
 				else:
-					#print "skipping"# "+str(var)
+					if time.time() - task_id > FLUSH_TIME:
+						print self.name+" bailing on task: "+str(func)
+						self.pop_task(skipped)
 					skipped = skipped+1
 			else:
 				try:

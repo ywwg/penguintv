@@ -820,9 +820,11 @@ class ptvDB:
 			self.reindex_feed_list.append(feed_id)
 			
 			c.execute(u'SELECT link FROM feeds WHERE id=?',(feed_id,))
-			link = c.fetchone()[0]
-			if link == "":
-				c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
+			link = c.fetchone()
+			if link is not None:
+				link = link[0]
+				if link == "":
+					c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
 			db.commit()
 		except Exception, e:
 			print e

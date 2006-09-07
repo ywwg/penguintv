@@ -70,14 +70,14 @@ REFRESH_AUTO=1
 AUTO_REFRESH_FREQUENCY=5*60*1000
 
 class PenguinTVApp:
-	def __init__(self):
-		#self.socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
-		#if not self.socket.is_server:
-		#	#just pass the arguments and quit
-		#	if len(sys.argv)>1:
-		#		self.socket.send(" ".join(sys.argv[1:]))
-		#	self.socket.close()
-		#	return
+	def __init__(self, logfile=None):
+		self.socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
+		if not self.socket.is_server:
+			#just pass the arguments and quit
+			if len(sys.argv)>1:
+				self.socket.send(" ".join(sys.argv[1:]))
+			self.socket.close()
+			return
 			
 		self.for_import = []
 		if len(sys.argv)>1:
@@ -360,7 +360,7 @@ class PenguinTVApp:
 			###print threading.enumerate()
 			###print str(threading.activeCount())+" threads active..."
 			time.sleep(1)
-		#self.socket.close()
+		self.socket.close()
 		gtk.main_quit()
 		
 	def write_feed_cache(self):
