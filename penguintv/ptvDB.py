@@ -24,7 +24,7 @@ import Lucene
 
 import timeoutsocket
 import smtplib
-timeoutsocket.setDefaultSocketTimeout(20)
+timeoutsocket.setDefaultSocketTimeout(30)
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -818,14 +818,6 @@ class ptvDB:
 			else:
 				c.execute("""UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE id=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			self.reindex_feed_list.append(feed_id)
-			
-			c.execute(u'SELECT link FROM feeds WHERE id=?',(feed_id,))
-			link = c.fetchone()
-			if link is not None:
-				link = link[0]
-				if link == "":
-					c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
-			db.commit()
 		except Exception, e:
 			print e
 			#f = open("/var/log/penguintv.log",'a')
@@ -835,6 +827,18 @@ class ptvDB:
 			db.commit()	
 			c.close()		 
 			raise FeedPollError,(feed_id,"error updating title and description of feed")
+			
+		try:
+			c.execute(u'SELECT link FROM feeds WHERE id=?',(feed_id,))
+			link = c.fetchone()
+			if link is not None:
+				link = link[0]
+				if link == "":
+					c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
+			db.commit()
+		except Exception, e:
+			print "strange link exception:",link
+			print "has key?",data['feed'].has_key('link')
 		
 		#populate the entries
 		c.execute("""SELECT id,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate""",(feed_id,)) 
@@ -927,9 +931,10 @@ class ptvDB:
 			except:
 				pass
 
+			#try disabling this for a while
 			#this may seem weird, but this prevents &amp;amp;	
-			item['title'] = re.sub('&amp;','&',item['title'])
-			item['title'] = re.sub('&','&amp;',item['title'])
+			#item['title'] = re.sub('&amp;','&',item['title'])
+			#item['title'] = re.sub('&','&amp;',item['title'])
 			
 			if type(item['body']) is str:
 				item['body'] = unicode(item['body'],'utf-8')

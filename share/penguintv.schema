@@ -258,6 +258,45 @@
 	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or DEMOCRACY_MOZ</long>
      </locale>
    </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/sync_delete</key>
+     <applyto>/apps/penguintv/sync_delete</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>False</default>
+     <locale name="C">
+	<short>Delete old files</short>
+	<long>When synchronizing media, delete files on the destination that no longer exist in the database.  Default False
+	</long>
+     </locale>
+   </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/sync_audio_only</key>
+     <applyto>/apps/penguintv/sync_audio_only</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>False</default>
+     <locale name="C">
+	<short>Synchronize Audio Only</short>
+	<long>When synchronizing media, only transfer audio files to the destination.  Default False
+	</long>
+     </locale>
+   </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/sync_dest_dir</key>
+     <applyto>/apps/penguintv/sync_dest_dir</applyto>
+     <owner>penguintv</owner>
+     <type>string</type>
+     <default>False</default>
+     <locale name="C">
+	<short>Synchronize Destination</short>
+	<long>When synchronizing media, transfer files to this directory.
+	</long>
+     </locale>
+   </schema>
 
    
  </schemalist>

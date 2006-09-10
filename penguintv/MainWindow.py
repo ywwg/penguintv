@@ -8,7 +8,7 @@ import gobject
 #import gettext
 import gconf
 #import time
-import sys
+import sys, os, os.path
 
 import traceback
 
@@ -28,6 +28,7 @@ import EditSearchesDialog
 import FeedFilterDialog
 import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
+import SynchronizeDialog
 import MainWindow, FeedList, EntryList, EntryView
 
 #status of the main window progress bar
@@ -64,6 +65,7 @@ class MainWindow:
 		self.about_box = self.about_box_widgets.get_widget('aboutdialog1')
 		self.feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_feed_properties",'penguintv'),self.app)
 		self.feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_filter_properties",'penguintv'),self.app)
+		self.sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self.glade_prefix,'penguintv.glade'))
 		
 		try:
 			self.about_box.set_version(utils.VERSION)
@@ -163,6 +165,10 @@ class MainWindow:
 			renderrer = EntryView.GTKHTML
 		elif renderrer_str == "DEMOCRACY_MOZ":
 			renderrer = EntryView.DEMOCRACY_MOZ
+		elif renderrer_str == "MOZILLA":
+			renderrer = EntryView.MOZILLA
+		elif renderrer_str == "GECKOEMBED":
+			renderrer = EntryView.GECKOEMBED
 		
 		def load_renderrer(x,recur=0):
 			"""little function I define so I can recur"""
@@ -172,7 +178,8 @@ class MainWindow:
 				sys.exit(2)
 			try:
 				self.entry_view = EntryView.EntryView(components, self.app, self, x)
-			except:
+			except Exception, e:
+				print e
 				if renderrer == EntryView.DEMOCRACY_MOZ:
 					if  _FORCE_DEMOCRACY_MOZ:
 						load_renderrer(EntryView.DEMOCRACY_MOZ,recur+1)
@@ -182,7 +189,7 @@ class MainWindow:
 						load_renderrer(EntryView.GTKHTML,recur+1)
 				else:
 					print "Error loading renderrer"
-					sys.exit(2)
+					self.app.do_quit()
 		
 		load_renderrer(renderrer)
 					
@@ -630,6 +637,9 @@ class MainWindow:
 	#def on_stop_downloads_toggled(self, widget):
 	#	print "toggled"
 	#	self.app.stop_downloads_toggled(widget.get_active())
+	
+	def on_synchronize_activate(self, event):
+		self.sync_dialog.Show()
 
 	def on_standard_layout_activate(self, event):	
 		self.app.change_layout('standard')

@@ -16,6 +16,7 @@ import re
 GTKHTML=0
 MOZILLA=1
 DEMOCRACY_MOZ=2
+GECKOEMBED=3
 
 
 superglobal=utils.SuperGlobal()
@@ -37,6 +38,8 @@ class EntryView:
 			import gtkmozembed
 		elif self.RENDERRER == DEMOCRACY_MOZ:
 			from democracy_moz import MozillaBrowser
+		elif self.RENDERRER == GECKOEMBED:
+			import geckoembed
 				
 		#thanks to straw, again
 		style = scrolled_window.get_style().copy()
@@ -84,7 +87,7 @@ class EntryView:
 		elif self.RENDERRER==MOZILLA:
 			self.moz = gtkmozembed.MozEmbed()
 			self.moz.connect("open-uri", self.moz_link_clicked)
-			self.moz.connect("link-messsage", self.moz_link_message)
+			#self.moz.connect("link-messsage", self.moz_link_message)
 			self.moz.load_url("about:blank")
 			self.moz.get_location()
 			scrolled_window.add_with_viewport(self.moz)
@@ -99,6 +102,17 @@ class EntryView:
 			self.mb.setURICallBack(self.dmoz_link_clicked)
 			self.moz.load_url("about:blank")
 			self.moz.get_location()
+			scrolled_window.add_with_viewport(self.moz)
+			import gconf
+			self.conf = gconf.client_get_default()
+			self.conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			self.reset_moz_font()
+		elif self.RENDERRER == GECKOEMBED:
+			path = os.path.join(os.getenv('HOME'), '.penguintv','gecko')
+			geckoembed.set_profile_path(path)
+			self.moz = geckoembed.Browser()
+			self.moz.load_address('about:blank')
+			self.moz.connect("open-uri", self.moz_link_clicked)
 			scrolled_window.add_with_viewport(self.moz)
 			import gconf
 			self.conf = gconf.client_get_default()
@@ -264,7 +278,7 @@ class EntryView:
 		enc = None
 		
 		style_adjustments=""
-		if self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
+		if self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
 			if item is not None:
 				html = (
 	            """<html><head>
@@ -345,7 +359,7 @@ class EntryView:
 				self._document.open_stream("text/html")
 				self._document.write_stream(html)
 				self._document.close_stream()
-		elif self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
+		elif self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
 			self.moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 			self.moz.append_data(html, long(len(html)))
 			self.moz.close_stream()
@@ -390,7 +404,7 @@ class EntryView:
             body { background-color: %s; }</style><body>%s</body></html>""" % (self.background_color,message))
 			self._document.close_stream()
 			self.document_lock.release()
-		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
+		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
 			self.moz.open_stream("http://ywwg.com","text/html")
 			self.moz.append_data(message, long(len(message)))
 			self.moz.close_stream()		
@@ -408,7 +422,7 @@ class EntryView:
 				self._document.write_stream(message)
 				self._document.close_stream()
 				self.document_lock.release()
-			elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
+			elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
 				self.moz.open_stream("http://ywwg.com","text/html")
 				self.moz.append_data(message, long(len(message)))
 				self.moz.close_stream()	
@@ -539,7 +553,7 @@ class EntryView:
             body { background-color: %s; }</style><body></body></html>""" % (GRAY,))
 			self._document.close_stream()
 			self.document_lock.release()
-		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ:
+		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
 			self.moz.open_stream("http://ywwg.com","text/html")
 			message = """<html><style type="text/css">
             body { background-color: %s; }</style><body></body></html>""" % (GRAY,)
