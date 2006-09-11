@@ -82,6 +82,7 @@ class UpdateTasksManager:
 			time.sleep(self.threadSleepTime)
 			
 	def updater_timer(self):
+		self.updater_running = True
 		for item in self.updater_gen(True):
 			pass
 		if self.task_count() > 0: # we didn't finish
@@ -91,23 +92,24 @@ class UpdateTasksManager:
 		
 	def updater_gen(self,timed=False):
 		"""Generator that empties that queue and yields on each iteration"""
-		if self.task_count()==0:
-			yield False
+		#if self.task_count()==0:
+		#	yield False
+		#	return
 		skipped=0
-		
 		while self.task_count() > 0: #just run forever
+			#print self.name+" updater"
 			var = self.peek_task(skipped)
 			if var is None: #ran out of tasks
 				skipped=0
-				if self.style == GOBJECT:
-					if not timed:#change over to timer
-						gobject.timeout_add(500, self.updater_timer)
-					break
-				else:
-					yield True
+				#if self.style == GOBJECT:
+				#	if not timed:#change over to timer
+						#gobject.timeout_add(500, self.updater_timer)
+				#	break
+				#else:
+				yield True
 				continue
 			func, args, task_id, waitfor, clear_completed =  var
-			#print self.name+" "+str(var)
+			
 			if waitfor:
 				if self.is_completed(waitfor): #don't pop if false
 					try:
@@ -118,19 +120,16 @@ class UpdateTasksManager:
 						else:
 							func()
 					except:
-						print self.name+" error:"
 						exc_type, exc_value, exc_traceback = sys.exc_info()
 						error_msg = ""
 						for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 							error_msg += s
-						print error_msg
 					self.set_completed(task_id)
 					if clear_completed:
 						self.clear_completed(waitfor)
 					self.pop_task(skipped)
 				else:
 					if time.time() - task_id > FLUSH_TIME:
-						print self.name+" bailing on task: "+str(func)
 						self.pop_task(skipped)
 					skipped = skipped+1
 			else:
@@ -142,7 +141,6 @@ class UpdateTasksManager:
 					else:
 						func()
 				except:
-					print self.name+" error:"
 					exc_type, exc_value, exc_traceback = sys.exc_info()
 					error_msg = ""
 					for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
@@ -153,6 +151,7 @@ class UpdateTasksManager:
 			yield True
 		if not timed:
 			self.updater_running = False
+		#print self.name+" out of updater"
 		yield False		
 		
 

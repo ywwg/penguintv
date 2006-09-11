@@ -9,6 +9,7 @@ import gettext
 import HTMLParser
 import os.path
 import traceback
+import sys
 
 import utils
 import LoginDialog

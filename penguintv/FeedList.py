@@ -466,6 +466,7 @@ class FeedList:
 		
 		if 'pollfail' not in update_what or len(update_what)>1:
 			#or in the converse, if pollfail in what and len is one, we don't need to do this
+			
 			if update_data.has_key('flag_list')==False:
 				entrylist = self.db.get_entrylist(feed_id)
 				if entrylist:
@@ -493,14 +494,16 @@ class FeedList:
 			update_what.append('pollfail')	 #we need that data for icon updates
 			
 		if 'pollfail' in update_what:
-			update_data.setdefault('pollfail', self.db.get_feed_poll_fail(feed_id))
+			
+			if not update_data.has_key('pollfail'):
+				update_data['pollfail'] = self.db.get_feed_poll_fail(feed_id)
 			feed[POLLFAIL] = update_data['pollfail']
 			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 				feed[STOCKID]='gtk-dialog-error'
 		if 'readinfo' in update_what:
-			###print "updating read info"
-			db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below
-			update_data.setdefault('unread_count', db_unread_count)
+			#db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below
+			if not update_data.has_key('unread_count'):
+				update_data['unread_count'] = self.db.get_unread_count(feed_id)#, db_unread_count)
 			###print "new info: "+"("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))
 			if update_data['unread_count']:
 				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
@@ -512,14 +515,17 @@ class FeedList:
 			feed[TOTAL]    = len(update_data['flag_list'])
 			feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
-			if unviewed != db_unread_count:
-				self.db.correct_unread_count(feed_id) #FIXME this shouldn't be necessary
+			#if unviewed != db_unread_count:
+			#	print "correcting unread count"
+			#	self.db.correct_unread_count(feed_id) #FIXME this shouldn't be necessary
+			#	print "done"
 			if self.filter_unread:
 		 		if updated==1 and unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
 					need_filter = True
 		if 'title' in update_what:
 			selected = self.get_selected()
-			update_data.setdefault('title',self.db.get_feed_title(feed_id))
+			if not update_data.has_key('title'):
+				update_data['title'] = self.db.get_feed_title(feed_id)
 			feed[TITLE] = update_data['title']
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
 			try:

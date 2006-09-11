@@ -135,6 +135,7 @@ class ptvDB:
 		self.reindex_entry_list = []
 		self.reindex_feed_list = []
 		self.filtered_entries = {}
+		self._parse_list = []
 				
 	def __del__(self):
 		self.finish()
@@ -555,7 +556,6 @@ class ptvDB:
 		
 	def poll_multiple(self, arguments=0, feeds=None):
 		"""Polls multiple feeds multithreadedly"""
-		###print "start poll"
 		successes=[]
 		self.reindex_entry_list = []
 		self.reindex_feed_list = []
@@ -573,15 +573,36 @@ class ptvDB:
 			if data: 
 				feeds = [row[0] for row in data]
 			else:
-				###print "nothing to poll"
 				return
 		
 		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
+		self._parse_list = []
 		for feed in feeds:
 			if self.cancel_poll_multiple or self.exiting:
 				break
-			pool.queueTask(self.pool_poll_feed,(feed,arguments,len(feeds)),self.polling_callback)
-			time.sleep(.1) #maybe this will help stagger things a bit?
+			self.c.execute(u'SELECT feed_pointer FROM feeds WHERE id=?',(feed,))
+			result = self.c.fetchone()[0]
+			if result >= 0:
+				self._parse_list.append((feed, arguments, len(feeds), -2)) 
+				continue
+				
+			self.c.execute("""SELECT url,modified,etag FROM feeds WHERE id=?""",(feed,))
+			data = self.c.fetchone()
+			#url,modified,etag=data
+			pool.queueTask(self.pool_poll_feed,(feed,arguments,len(feeds), data),self._poll_mult_cb)
+			#time.sleep(.1) #maybe this will help stagger things a bit?
+			
+		polled = 0
+		while polled < len(feeds):
+			if self.exiting:
+				break
+			#print polled,len(feeds)
+			if len(self._parse_list) > 0:
+				#print "result"
+				polled+=1
+				feed_id, args, total, parsed = self._parse_list.pop(0)
+				self.polling_callback(self.process_feed(feed_id, args, total, parsed))
+			time.sleep(.1)
 			
 		while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 			if self.exiting:
@@ -598,47 +619,77 @@ class ptvDB:
 		
 	def interrupt_poll_multiple(self):
 		self.cancel_poll_multiple = True
-				
-	def pool_poll_feed(self,args, recurse=0):
+		
+	def _poll_mult_cb(self, args):
+		feed_id, args, total, parsed = args
+		#print "append"
+		self._parse_list.append((feed_id, args, total, parsed))
+		
+	def pool_poll_feed(self, args):
+		#print "JUST polling"
+		feed_id, arguments, total, data = args
+		url,modified,etag=data
+		
+		#print "just poll:", feed_id, arguments, total, data
+		
+		try:
+			feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
+			if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
+				data = feedparser.parse(url)
+			else:
+				data = feedparser.parse(url,etag)
+			#print "made it"
+			return (feed_id, arguments, total, data)
+		except Exception, e:
+			print e
+			return (feed_id, arguments, total, -1)
+
+	def process_feed(self,feed_id, args, total, data, recurse=0):# recurse=0):
 		"""a wrapper function that returns the index along with the result
 		so we can sort.  Each poller needs its own db connection for locking reasons"""
-		try:	
-			db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=20)
-		except:
-			raise DBError,"error connecting to database"
+		#try:	
+		#	db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=20)
+		#except:
+		#	raise DBError,"error connecting to database"
 		
-		feed_id=args[0]
-		total = args[2]
+		#feed_id=args[0]
+		#total = args[2]
+		
+		#print "processing",feed_id, args, total, type(data)
+		
+		db = self.db 
 		
 		poll_arguments = 0
 		result = 0
 		pollfail = False
 		try:
-			poll_arguments = args[1]
+			#poll_arguments = args[1]
 			if self.exiting:
 				return (feed_id,{'pollfail':True}, total)
-			result = self.poll_feed(feed_id,poll_arguments,db)
+			result = self.poll_feed(feed_id, args, preparsed=data)
 			if self.exiting:
 				return (feed_id,{'pollfail':True} ,total)
-		except sqlite.OperationalError:
-			print "Database lock warning..."
-			db.close()
-			del db #delete it to release the lock
+		except sqlite.OperationalError, e:
+			print "Database warning...", e
+			#db.close()
+			#del db #delete it to release the lock
 			if recurse < 2:
 				time.sleep(5)
 				print "trying again..."
-				return self.pool_poll_feed(args, recurse+1) #and reconnect
+				return self.process_feed(feed_id, args, total, data, recurse+1) #and reconnect
 			print "can't get lock, giving up"
 			return (feed_id,{'pollfail':True}, total)
 		except FeedPollError,e:
 			print e
 			pollfail = True
-			db.close()
-			del db
+			#db.close()
+			#del db
+			print "done"
 			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
-			db.close()
-			del db
+			print e
+			#db.close()
+			#del db
 			return (feed_id,{'ioerror':e}, total)
 		except:
 			print "other error polling feed:"
@@ -648,13 +699,14 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			pollfail = True
-			db.close()
-			del db
+			#db.close()
+			#del db
 			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
 		update_data={}
-		c = db.cursor()
+		#c = db.cursor()
+		c = self.c
 		
 		if self.is_feed_filter(feed_id, c):
 			entries = self.get_entrylist(feed_id, c) #reinitialize filtered_entries dict
@@ -665,7 +717,6 @@ class ptvDB:
 			c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
 			list = c.fetchall()
 			update_data['unread_count'] = len([item for item in list if item[0]==0])
-			
 			flag_list = self.get_entry_flags(feed_id,c)
 			
 			if len(self.get_pointer_feeds(feed_id, c)) > 0:
@@ -674,9 +725,10 @@ class ptvDB:
 				
 			update_data['flag_list']=flag_list
 			update_data['pollfail']=pollfail
-		c.close()
-		db.close()
-		del db
+		#c.close()
+		#db.close()
+		#del db
+		#print "done processing",feed_id
 		return (feed_id,update_data, total)
 			
 	def poll_feed_trap_errors(self, feed_id, callback):
@@ -704,35 +756,54 @@ class ptvDB:
 		print "look a callback"
 		print data
 		
-	def poll_feed(self, feed_id, arguments=0, db=None):
-		"""polls a feed and returns the number of new articles"""
+	def poll_feed(self, feed_id, arguments=0, db=None, preparsed=None):
+		"""polls a feed and returns the number of new articles.  Optionally, one can pass
+			a feedparser dictionary in the preparsed argument and avoid network operations"""
 		if db is None:
 			db = self.db
 		c = db.cursor()
 		
-		#feed_id = self.resolve_pointed_feed(feed_id, c)
-		c.execute(u'SELECT feed_pointer FROM feeds WHERE id=?',(feed_id,))
-		result = c.fetchone()[0]
-		if result >= 0:
-			return 0
-			
-		c.execute("""SELECT url,modified,etag FROM feeds WHERE id=?""",(feed_id,))
-		data = c.fetchone()
-		url,modified,etag=data
+		#print "poll:",feed_id, arguments
 		
-		try:
-			feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
-			if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
-				data = feedparser.parse(url)
+		if preparsed is None:
+			#feed_id = self.resolve_pointed_feed(feed_id, c)
+			c.execute(u'SELECT feed_pointer FROM feeds WHERE id=?',(feed_id,))
+			result = c.fetchone()[0]
+			if result >= 0:
+				return 0
+				
+			c.execute("""SELECT url,modified,etag FROM feeds WHERE id=?""",(feed_id,))
+			data = c.fetchone()
+			url,modified,etag=data
+			try:
+				feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
+				if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
+					data = feedparser.parse(url)
+				else:
+					data = feedparser.parse(url,etag)
+			except Exception, e:
+				if arguments & A_AUTOTUNE == A_AUTOTUNE:
+					self.set_new_update_freq(db, c, feed_id, 0)
+				c.execute("""UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
+				db.commit()
+				c.close()
+				print e
+				raise FeedPollError,(feed_id,"feedparser blew a gasket")
+		else:
+			if preparsed == -1:
+				if arguments & A_AUTOTUNE == A_AUTOTUNE:
+					self.set_new_update_freq(db, c, feed_id, 0)
+				c.execute("""UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
+				db.commit()
+				c.close()
+				#print "it's -1"
+				raise FeedPollError,(feed_id,"feedparser blew a gasket")
+			elif preparsed == -2:
+				#print "pointer feed, returning 0"
+				return 0
 			else:
-				data = feedparser.parse(url,etag)
-		except:
-			if arguments & A_AUTOTUNE == A_AUTOTUNE:
-				self.set_new_update_freq(db, c, feed_id, 0)
-			c.execute("""UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
-			db.commit()
-			c.close()
-			raise FeedPollError,(feed_id,"feedparser blew a gasket")
+				#print "data is good"
+				data = preparsed
 			
 		if data.has_key('status'):
 			if data['status'] == 304:  #this means "nothing has changed"
@@ -768,7 +839,7 @@ class ptvDB:
 			
 		#else...
 		if arguments & A_DELETE_ENTRIES == A_DELETE_ENTRIES:
-			print "deleting existing entries"
+			print "deleting existing entries", feed_id, arguments
 			c.execute("""DELETE FROM entries WHERE feed_id=?""",(feed_id,))
 			db.commit()
 	        #to discover the old entries, first we mark everything as old
@@ -828,17 +899,13 @@ class ptvDB:
 			c.close()		 
 			raise FeedPollError,(feed_id,"error updating title and description of feed")
 			
-		try:
-			c.execute(u'SELECT link FROM feeds WHERE id=?',(feed_id,))
-			link = c.fetchone()
-			if link is not None:
-				link = link[0]
-				if link == "":
-					c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
-			db.commit()
-		except Exception, e:
-			print "strange link exception:",link
-			print "has key?",data['feed'].has_key('link')
+		c.execute(u'SELECT link FROM feeds WHERE id=?',(feed_id,))
+		link = c.fetchone()
+		if link is not None:
+			link = link[0]
+			if link == "" and data['feed'].has_key('link'):
+				c.execute(u'UPDATE feeds SET link=? WHERE id=?',(data['feed']['link'],feed_id))
+		db.commit()
 		
 		#populate the entries
 		c.execute("""SELECT id,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate""",(feed_id,)) 
@@ -934,7 +1001,7 @@ class ptvDB:
 			#try disabling this for a while
 			#this may seem weird, but this prevents &amp;amp;	
 			#item['title'] = re.sub('&amp;','&',item['title'])
-			#item['title'] = re.sub('&','&amp;',item['title'])
+			item['title'] = re.sub('& ','&amp; ',item['title'])
 			
 			if type(item['body']) is str:
 				item['body'] = unicode(item['body'],'utf-8')
@@ -1016,16 +1083,11 @@ class ptvDB:
 				self.reindex_entry_list.append(status[1])
 			i+=1
 		db.commit()
-		#loop through old-marked entries...
-		c.execute("""SELECT id FROM entries WHERE feed_id=? AND old=1""",(feed_id,)) 
-		old_entries = c.fetchall()
-		for entry in old_entries:
-			medialist = self.get_entry_media(entry[0],c)
-			if medialist:
-				for medium in medialist:
-					if medium['download_status']==D_DOWNLOADED: 
-						c.execute("""UPDATE entries SET old=0 where id=?""",(entry[0],)) #don't delete this entry
-						db.commit()	
+		#don't call anything old that has media...
+		c.execute("""SELECT entries.id FROM entries INNER JOIN media ON entries.id = media.entry_id WHERE media.download_status>0 AND entries.feed_id=?""",(feed_id,))
+		for id in c.fetchall():
+			c.execute("""UPDATE entries SET old=0 WHERE id=?""",(id[0],))
+		db.commit()
 		#anything not set above as new, mod, or exists is no longer in
 		#the xml and therefore should be deleted
 		
@@ -1731,7 +1793,7 @@ class ptvDB:
 		
 		if len(flaglist)==0:
 			return 0
-		flaglist.sort()
+		flaglist.sort()#lambda x,y:x[1]-y[1])
 		best_flag = flaglist[-1]
 		
 		if best_flag & F_DOWNLOADED == 0 and feed_has_media==1:
