@@ -5816,7 +5816,7 @@ No Feeds (Calm Mode)</property>
 	      <property name="use_underline">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="activate" handler="on_browse_button_activate" last_modification_time="Sun, 10 Sep 2006 17:59:10 GMT"/>
+	      <signal name="clicked" handler="on_browse_button_clicked" last_modification_time="Sun, 10 Sep 2006 23:20:05 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
@@ -6025,7 +6025,7 @@ No Feeds (Calm Mode)</property>
 	  </child>
 	</widget>
 	<packing>
-	  <property name="padding">6</property>
+	  <property name="padding">0</property>
 	  <property name="expand">False</property>
 	  <property name="fill">True</property>
 	</packing>
@@ -6363,7 +6363,7 @@ No Feeds (Calm Mode)</property>
 
       <child>
 	<widget class="GtkHBox" id="hbox45">
-	  <property name="border_width">12</property>
+	  <property name="border_width">6</property>
 	  <property name="visible">True</property>
 	  <property name="homogeneous">False</property>
 	  <property name="spacing">0</property>

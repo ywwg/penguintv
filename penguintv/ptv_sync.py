@@ -4,10 +4,13 @@
 
 import os,os.path,sys
 import string
+import glob
 
 import os.path
 import shutil
 import getopt
+
+import utils
 
 try:
 	import penguintv
@@ -23,7 +26,6 @@ class ptv_sync:
 		self.audio = audio
 		self.delete = delete
 		self.dryrun = dryrun
-		self.db = ptvDB.ptvDB()
 		self.cancel = False
 		
 	def interrupt(self):
@@ -31,18 +33,18 @@ class ptv_sync:
 	
 	def sync_gen(self):
 		"""generator yields cur item number, total, and message.  If total is -1, unmeasured progress"""
-		
-		feedlist = self.db.get_feedlist()
+		db = ptvDB.ptvDB()
+		feedlist = db.get_feedlist()
 		locallist = []
 	
 		for feed in feedlist:
 			if self.cancel:
 				break
-			entrylist = self.db.get_entrylist(feed[0])
+			entrylist = db.get_entrylist(feed[0])
 			for entry in entrylist:
 				if self.cancel:
 					break
-				medialist = self.db.get_entry_media(entry[0])
+				medialist = db.get_entry_media(entry[0])
 				if medialist:
 					for medium in medialist:
 						yield (0,-1,_("Building file list..."))
@@ -56,14 +58,13 @@ class ptv_sync:
 								continue
 							locallist.append([feed[1],medium['file'],source_size])
 					
-		self.db.c.close()
-		self.db.db.close()
+		db.c.close() #ug
+		db.db.close() #yuck
 		
 		if self.delete:
 			for root,dirs,files in os.walk(self.dest_dir):
 				if self.cancel: break
 				i=-1
-				total = len(files)*2 #so that it will 
 				for f in files:
 					if self.cancel: break
 					i+=1
@@ -99,8 +100,20 @@ class ptv_sync:
 			yield (i, len(locallist), _("Copying %(filename)s") % d)
 			if self.dryrun==False:
 				shutil.copyfile(f[1], os.path.join(sub_dir,filename))
+				
+		if self.delete and not self.cancel:
+			for root,dirs,files in os.walk(self.dest_dir):
+				for d in dirs:
+					globlist = glob.glob(os.path.join(self.dest_dir,d,"*"))
+					if len(globlist)==0: #empty dir
+						#print "would delete",os.path.join(self.dest_dir,d)
+						yield (0, -1, _("Removing empty folders..."))
+						if not self.dryrun:
+							utils.deltree(os.path.join(self.dest_dir,d))
+					
+				
 		if self.cancel:
-			yield (100,100,_("Synchornization cancelled"))
+			yield (100,100,_("Synchronization cancelled"))
 		else:
 			yield (100,100,_("Copying Complete"))
 
@@ -161,11 +174,8 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		sys.exit(1)
 
 	s = ptv_sync(dest_dir, delete, audio, dryrun)
-	building_printed = False
+	last_message = ""
 	for item in s.sync_gen():
-		if item[2] == _("Building File List"):
-			if not building_printed:
-				print item[2]
-				building_printed = True
-		else:
+		if item[2] != last_message:
 			print item[2]
+		last_message = item[2]

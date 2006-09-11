@@ -5816,7 +5816,7 @@ No Feeds (Calm Mode)</property>
 	      <property name="use_underline">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="activate" handler="on_browse_button_activate" last_modification_time="Sun, 10 Sep 2006 17:59:10 GMT"/>
+	      <signal name="clicked" handler="on_browse_button_clicked" last_modification_time="Sun, 10 Sep 2006 23:20:05 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
@@ -6187,7 +6187,7 @@ No Feeds (Calm Mode)</property>
 	    <widget class="GtkButton" id="cancel_button">
 	      <property name="visible">True</property>
 	      <property name="can_focus">True</property>
-	      <property name="label">gtk-cancel</property>
+	      <property name="label">gtk-close</property>
 	      <property name="use_stock">True</property>
 	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
