@@ -170,7 +170,7 @@ class EntryList:
 		self.entrylist.clear()
 		
 		i=-1
-		for entry_id,title,date,new in db_entrylist:
+		for entry_id,title,date in db_entrylist:
 			i=i+1	
 			flag = self.db.get_entry_flag(entry_id)
 			icon = self.get_icon(flag)
