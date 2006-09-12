@@ -666,7 +666,7 @@ class ptvDB:
 			#poll_arguments = args[1]
 			if self.exiting:
 				return (feed_id,{'pollfail':True}, total)
-			result = self.poll_feed(feed_id, args, preparsed=data)
+			result,flag_list = self.poll_feed(feed_id, args, preparsed=data)
 			if self.exiting:
 				return (feed_id,{'pollfail':True} ,total)
 		except sqlite.OperationalError, e:
@@ -684,7 +684,6 @@ class ptvDB:
 			pollfail = True
 			#db.close()
 			#del db
-			print "done"
 			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
 			print e
@@ -704,32 +703,36 @@ class ptvDB:
 			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
-		update_data={}
-		#c = db.cursor()
-		c = self.c
 		
-		if self.is_feed_filter(feed_id, c):
-			entries = self.get_entrylist(feed_id, c) #reinitialize filtered_entries dict
-			update_data['unread_count'] = self.get_unread_count(feed_id, c)
-			flag_list = self.get_entry_flags(feed_id,c)
-			update_data['pollfail']=self.get_feed_poll_fail(self.resolve_pointed_feed(feed_id,c),c)
-		else:
-			c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
-			list = c.fetchall()
-			update_data['unread_count'] = len([item for item in list if item[0]==0])
-			flag_list = self.get_entry_flags(feed_id,c)
+		if result>0:
+			update_data={}
+			#c = db.cursor()
+			c = self.c
 			
-			if len(self.get_pointer_feeds(feed_id, c)) > 0:
-				print "have pointers, reindexing now"
-				self.reindex()
+			if self.is_feed_filter(feed_id, c):
+				entries = self.get_entrylist(feed_id, c) #reinitialize filtered_entries dict
+				update_data['unread_count'] = self.get_unread_count(feed_id, c)
+				#flag_list = self.get_entry_flags(feed_id,c)
+				update_data['pollfail']=self.get_feed_poll_fail(self.resolve_pointed_feed(feed_id,c),c)
+			else:
+				c.execute(u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
+				list = c.fetchall()
+				update_data['unread_count'] = len([item for item in list if item[0]==0])
+				#flag_list = self.get_entry_flags(feed_id,c)
 				
-			update_data['flag_list']=flag_list
-			update_data['pollfail']=pollfail
-		#c.close()
-		#db.close()
-		#del db
-		#print "done processing",feed_id
-		return (feed_id,update_data, total)
+				if len(self.get_pointer_feeds(feed_id, c)) > 0:
+					print "have pointers, reindexing now"
+					self.reindex()
+					
+				update_data['flag_list']=flag_list
+				update_data['pollfail']=pollfail
+			#c.close()
+			#db.close()
+			#del db
+			#print "done processing",feed_id
+			return (feed_id,update_data, total)
+		else:
+			return (feed_id,[],total)
 			
 	def poll_feed_trap_errors(self, feed_id, callback):
 		try:
@@ -757,7 +760,7 @@ class ptvDB:
 		print data
 		
 	def poll_feed(self, feed_id, arguments=0, db=None, preparsed=None):
-		"""polls a feed and returns the number of new articles.  Optionally, one can pass
+		"""polls a feed and returns the number of new articles and a flag list.  Optionally, one can pass
 			a feedparser dictionary in the preparsed argument and avoid network operations"""
 		if db is None:
 			db = self.db
@@ -770,7 +773,7 @@ class ptvDB:
 			c.execute(u'SELECT feed_pointer FROM feeds WHERE id=?',(feed_id,))
 			result = c.fetchone()[0]
 			if result >= 0:
-				return 0
+				return (0, [])
 				
 			c.execute("""SELECT url,modified,etag FROM feeds WHERE id=?""",(feed_id,))
 			data = c.fetchone()
@@ -800,7 +803,7 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 			elif preparsed == -2:
 				#print "pointer feed, returning 0"
-				return 0
+				return (0, [])
 			else:
 				#print "data is good"
 				data = preparsed
@@ -813,7 +816,7 @@ class ptvDB:
 				c.execute("""UPDATE entries SET new=0 WHERE feed_id=?""",(feed_id,))
 				db.commit()
 				c.close()
-				return 0
+				return (0, [])
 			if data['status'] == 404: #whoops
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
 					self.set_new_update_freq(db, c, feed_id, 0)
@@ -936,6 +939,9 @@ class ptvDB:
 						pass #I feel dirty.
 		
 		new_items = 0
+		
+		flag_list = []
+		
 		for item in data['items']:
 			#do a lot of normalizing
 			item['body'] = ''
@@ -998,10 +1004,18 @@ class ptvDB:
 			except:
 				pass
 
-			#try disabling this for a while
-			#this may seem weird, but this prevents &amp;amp;	
-			#item['title'] = re.sub('&amp;','&',item['title'])
-			item['title'] = re.sub('& ','&amp; ',item['title'])
+			#let actual entities through, but correct unadorned &s.
+			#thanks to http://www.regular-expressions.info/repeat.html#greedy
+			#<[^>]+> -> &[^;]+;
+			#I wrote: &.+?; which didn't work (matched widest results-- see reference)
+			m = re.compile('&[^;]+;').search(item['title'])
+			if m is not None: #entity found
+				span = m.span()
+				if span[1]-span[0] > 10: #unlikely to be an entity
+					item['title'] = re.sub('&','&amp;',item['title'])
+				#else let it pass
+			else:
+				item['title'] = re.sub('&','&amp;',item['title'])
 			
 			if type(item['body']) is str:
 				item['body'] = unicode(item['body'],'utf-8')
@@ -1035,6 +1049,7 @@ class ptvDB:
 			if item.has_key('date_parsed')==False:
 				item['date_parsed']=(0,0,0,0,0,0,0,0,0)
 				
+				
 			status = self.get_status(item,existing_entries,c)
 			
 			#print item['title']
@@ -1057,8 +1072,10 @@ class ptvDB:
 						c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 						#db.commit()
 				self.reindex_entry_list.append(entry_id)
+				flag_list.append(self.get_entry_flag(entry_id, c))
 			elif status[0]==EXISTS:
 				c.execute("""UPDATE entries SET old=0 where id=?""",(status[1],))
+				flag_list.append(self.get_entry_flag(status[1], c, medialist=status[2]))
 				#db.commit()
 			elif status[0]==MODIFIED:
 #				new_items = new_items+1
@@ -1081,6 +1098,7 @@ class ptvDB:
 							media.setdefault('type', 'application/octet-stream')
 							c.execute(u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				self.reindex_entry_list.append(status[1])
+				flag_list.append(self.get_entry_flag(status[1], c))
 			i+=1
 		db.commit()
 		#don't call anything old that has media...
@@ -1119,7 +1137,7 @@ class ptvDB:
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
 				self.reindex()
-		return new_items
+		return (new_items,flag_list)
 		
 	def set_new_update_freq(self, db,c, feed_id, new_items):
 		"""Based on previous feed history and number of items found, adjust
@@ -1187,6 +1205,7 @@ class ptvDB:
 		db.commit()
 		
 	def get_status(self,item,existing_entries,c):
+		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
 		LINK=2
@@ -1217,27 +1236,34 @@ class ptvDB:
 				break
 
 		if entry_id == -1:
-			return (NEW, entry_id)
+			return (NEW, -1, [])
 
 		if new_hash.hexdigest() == old_hash.hexdigest():
 			#now check enclosures
 			old_media = self.get_entry_media(entry_id,c)
-			
-			if old_media is not None:
-				old_media = [medium['url'] for medium in old_media]
-			else:
+			if old_media is None:
 				old_media = []
-
-			new_media = []
+			
+			#if they are both zero, return
+			if len(old_media) == 0 and item.has_key('enclosures') == False: 
+				return (EXISTS,entry_id, [])
+			
 			if item.has_key('enclosures'):
-				for m in item['enclosures']:
-					new_media.append(m['href'])
-				
-			if len(old_media) != len(new_media):
-				return (MODIFIED,entry_id)
-				
-			if len(old_media) == 0 and len(new_media)==0:
-				return (EXISTS,entry_id)
+				#if lengths are different, return
+				if len(old_media) != len(item['enclosures']): 
+					return (MODIFIED,entry_id, [])
+			else:
+				#if we had some, and now don't, return
+				if len(old_media)>0: 
+					return (MODIFIED,entry_id, [])
+			
+			#we have two lists of the same, non-zero length
+			#only now do we do the loops and sorts -- we need to test individual items
+			
+			existing_media = old_media
+			
+			old_media = [medium['url'] for medium in old_media]
+			new_media = [m['href'] for m in item['enclosures']]
 			
 			old_media = utils.uniquer(old_media)
 			old_media.sort()
@@ -1245,21 +1271,20 @@ class ptvDB:
 			new_media.sort()
 
 			if old_media != new_media:
-				return (MODIFIED,entry_id)
-			return (EXISTS,entry_id)
+				return (MODIFIED,entry_id,[])
+			return (EXISTS,entry_id, existing_media)
 		else:
-			return (MODIFIED,entry_id)
+			return (MODIFIED,entry_id, [])
 			
 	def get_entry_media(self, entry_id, c=None):
 		if c==None:
 			c = self.c
 		c.execute("""SELECT id,entry_id,url,file,download_status,viewed,length,mimetype FROM media WHERE entry_id = ?""",(entry_id,))
-		data=c.fetchall()
+		dataList=c.fetchall()
 		
-		if data: 
-			dataList = [list(row) for row in data]
-		else:
+		if dataList is None:
 			return []
+		
 		media_list=[]
 		for datum in dataList:
 			medium={}
@@ -1683,7 +1708,7 @@ class ptvDB:
 			feed_info['poll_fail'] = True
 		return feed_info
 	
-	def get_entry_flag(self, entry_id, c=None):
+	def get_entry_flag(self, entry_id, c=None, medialist=None):
 		if self.entry_flag_cache.has_key(entry_id):
 			#print "cache hit "+str(entry_id)
 			return self.entry_flag_cache[entry_id]
@@ -1693,27 +1718,44 @@ class ptvDB:
 			c = self.c
 			
 		importance=0
-		status = self.get_entry_download_status(entry_id,c)
+		#status = self.get_entry_download_status(entry_id,c)
 		
 		c.execute(u'SELECT new,read FROM entries WHERE id=?',(entry_id,))
 		temp = c.fetchone()
 		new=temp[0]
 		read=temp[1]
 		
-		medialist = self.get_entry_media(entry_id,c)
+		if medialist is None:
+			medialist = self.get_entry_media(entry_id,c)
 		
-		if status==-1:
+		status = D_NOT_DOWNLOADED
+		if medialist:
+			for medium in medialist:
+				if medium['download_status'] == D_DOWNLOADING:
+					status = D_DOWNLOADING
+					break
+				if medium['download_status'] == D_ERROR:
+					status = D_ERROR
+					break
+				if medium['download_status'] == D_RESUMABLE:
+					status = D_RESUMABLE
+					break
+				if medium['download_status'] == D_DOWNLOADED:
+					status = D_DOWNLOADED
+					break
+		
+		if status==D_ERROR:
 			importance=importance+F_ERROR
-		if status==1:
+		if status==D_DOWNLOADING:
 			importance=importance+F_DOWNLOADING		
 		if new==1:
 			importance=importance+F_NEW
 				
 		if medialist:	
 			importance=importance+F_MEDIA
-			if status==2:
+			if status==D_DOWNLOADED:
 				importance=importance+F_DOWNLOADED
-			elif status==3:
+			elif status==D_RESUMABLE:
 				importance=importance+F_PAUSED
 			for medium in medialist:
 				if medium['viewed']==0:
