@@ -18,9 +18,6 @@ MOZILLA=1
 DEMOCRACY_MOZ=2
 GECKOEMBED=3
 
-
-superglobal=utils.SuperGlobal()
-
 class EntryView:
 	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
 		self._app = app
@@ -168,13 +165,12 @@ class EntryView:
 			return True
 				
 		moz_font = self.conf.get_string('/desktop/gnome/interface/font_name')
-		#take just the beginning for the font name
+		#take just the beginning for the font name.  prepare for dense, unreadable code
 		self.moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
 		self.moz_font = "'"+self.moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self.moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
 		if self.currently_blank == False:
 			self.display_item(self.current_entry)
-		
 
 	def request_url(self, document, url, stream):
 		try:
@@ -189,55 +185,21 @@ class EntryView:
 			stream.close()
 			raise
 	
-	def update_progress(self, d):
-		#print "we are updating progress"
+	def update_if_selected(self, entry_id=None):
+		"""tests to see if this is the currently-displayed entry, 
+		and if so, goes back to the app and asks to redisplay it."""
 		#item, progress, message = data
 		try:
 			if len(self.current_entry) == 0:
 				return
 		except:
 			return
-		if d.media['entry_id'] != self.current_entry['entry_id'] or self.currently_blank==True:
-			return
 			
-		for medium in self.current_entry['media']:
-			if medium['media_id'] == d.media['media_id']:
-				medium['progress']=d.progress
-				medium['progress_message']=d.message
-		
-		if self.updater_timer==0:
-			self.updater_timer=1
-			self.updater_entry_id = d.media['entry_id']
-			gobject.timeout_add(2000, self.update_display)
-    		
-	def update_display(self):
-		#print "updating display"
-		try:
-			if self.updater_entry_id != self.current_entry['entry_id'] or self.currently_blank == True:
-				self.updater_timer=0
-				self.updater_entry_id=-1
-				return False
-		except:
-			self.updater_timer=0
-			return False
-		for medium in self.current_entry['media']:
-			if medium.has_key('download_status'):
-				if medium['download_status']==1:
-					try:							
-						if medium['progress']>=100:
-							self.updater_timer=0
-							self.updater_entry_id=-1
-							continue
-					except:
-						continue	
-					#if anything is not 100% and is downloading, we redraw and return
-					self.display_item(self.current_entry)
-					return True
-		#nothing was < 100% and downloading
-		self.updater_timer=0
-		self.updater_entry_id=-1
-		return False
-		
+		if entry_id != self.current_entry['entry_id'] or self.currently_blank==True:
+			return	
+		#assemble the updated info and display
+		self._app.display_entry(self.current_entry['entry_id'])
+	
 	def get_scroll_vals(self):
 		return (va.get_value(), ha.get_value())
 		
@@ -246,7 +208,7 @@ class EntryView:
 		ha.get_value(info[1])
 			  		
 	def display_item(self, item=None, highlight=""):
-		#print "DISPLAYING ITEM:",item
+		print "DISPLAYING ITEM:"
 		#traceback.print_stack()
 		va = self._scrolled_window.get_vadjustment()
 		ha = self._scrolled_window.get_hadjustment()
@@ -373,13 +335,11 @@ class EntryView:
 		return
 	
 	def do_download_images(self, entry_id, html, images):
-		###print "downloading images",
 		self.document_lock.acquire()
 		for url in images:
 			self.image_cache.get_image(url)
 		#we need to go out to the app so we can queue the load request
 		#in the main gtk thread
-		###print "calling back"
 		self._app._entry_image_download_callback(entry_id, html)
 		self.document_lock.release()
 		
@@ -387,7 +347,6 @@ class EntryView:
 		#if we're changing, nevermind.
 		#also make sure entry is the same and that we shouldn't be blanks
 		if self.main_window.is_changing_layout() == False and entry_id == self.current_entry['entry_id'] and self.currently_blank == False:
-			###print "displaying loaded images"
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			self._document.clear()
@@ -455,11 +414,8 @@ class EntryView:
 						ret.append('<p><i>'+medium['progress_message']+'</i> '+
 						                    utils.html_command('pause:',medium['media_id'])+' '+
 						                    utils.html_command('stop:',medium['media_id'])+'</p>')
-					elif self.mm.has_downloader(medium['media_id']):
+					elif self.mm.has_downloader(medium['media_id']): #we have a downloader object
 						downloader = self.mm.get_downloader(medium['media_id'])
-					#elif superglobal.download_status.has_key(medium['media_id']): #cached information
-					#	status = superglobal.download_status[medium['media_id']]
-					#	if status[0] == penguintv.DOWNLOAD_PROGRESS:
 						if downloader.status == Downloader.DOWNLOADING:
 							d = {'progress':downloader.progress,
 							     'size':utils.format_size(medium['size'])}
@@ -478,26 +434,25 @@ class EntryView:
 						ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
 						            utils.html_command('pause:',medium['media_id'])+' '+
 						            utils.html_command('stop:',medium['media_id'])+'</p>')
-					else:       
+					else:       # we have nothing to go on
 						ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
 																  utils.html_command('stop:',medium['media_id'])+'</p>')
 				elif medium['download_status'] == ptvDB.D_DOWNLOADED:
 					if self.mm.has_downloader(medium['media_id']):	
 						downloader = self.mm.get_downloader(medium['media_id'])
-					#if superglobal.download_status.has_key(medium['media_id']):
 						ret.append('<p>'+ str(downloader.message)+'</p>')
 					filename = medium['file'][medium['file'].rfind("/")+1:]
-					if utils.is_known_media(medium['file']):
+					if utils.is_known_media(medium['file']): #we have a handler
 						if os.path.isdir(medium['file']) and medium['file'][-1]!='/':
 							medium['file']=medium['file']+'/'
 						ret.append('<p>'+utils.html_command('play:',medium['media_id'])+' '+
 										 utils.html_command('redownload',medium['media_id'])+' '+
 										 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
-					elif os.path.isdir(medium['file']):
+					elif os.path.isdir(medium['file']): #it's a folder
 						ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
 									     utils.html_command('redownload',medium['media_id'])+' '+
 									     utils.html_command('delete:',medium['media_id'])+'</p>')
-					else:
+					else:                               #we have no idea what this is
 						ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
 										 utils.html_command('redownload',medium['media_id'])+' '+
 										 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
@@ -509,8 +464,6 @@ class EntryView:
 					if self.mm.has_downloader(medium['media_id']):	
 						downloader = self.mm.get_downloader(medium['media_id'])
 						error_msg = downloader.message
-#					if superglobal.download_status.has_key(medium['media_id']):
-#						error_msg = superglobal.download_status[medium['media_id']][1]
 					else:
 						error_msg = _("There was an error downloading the file.")
 					ret.append('<p>'+medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg)+'  '+

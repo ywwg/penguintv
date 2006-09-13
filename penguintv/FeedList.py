@@ -33,12 +33,9 @@ POLLFAIL=9
 class FeedList:
 	def __init__(self, widget_tree, app, db):
 		self.scrolled_window = widget_tree.get_widget('feed_scrolled_window')
-		#self.scrolled_window = widgets['feed_scrolled_window']
 		self.va = self.scrolled_window.get_vadjustment()
 		self._widget = widget_tree.get_widget('feedlistview')
-		#self._widget = widgets['feedlistview']
 		self.entry_list_widget = widget_tree.get_widget('entrylistview')
-		#self.entry_list_widget = widgets['entrylistview']
 		self._app = app
 		self.feedlist = gtk.ListStore(str, str, int, str, str, int, int, int, bool, bool) #title, markuptitle, feed_id, stock_id, readinfo, unread, total, flag, visible, pollfail
 		self.feed_filter = self.feedlist.filter_new()
@@ -345,26 +342,13 @@ class FeedList:
 				
 			if unviewed == 0 and flag & ptvDB.F_UNVIEWED:
 				print "WARNING: zero unread articles but flag says there should be some"
-				#print "subset: "+str(subset)
-				#print "feed info: ",
-				#print str(unviewed)+" ",
-				#print str(flag)+" ",
-				#print str(pollfail)+" ",
-				#print str(entry_count)+" ",
-				#print str(feed_id)+" ",
-				#print title
-				
-				#traceback.print_stack()
 				flag -= ptvDB.F_UNVIEWED
 			
 			m_title = self._get_markedup_title(title,flag) 
 			m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 			icon = self._get_icon(flag)	
 			
-			#if subset==ACTIVE:
-			#	print "and lo, icon is " +str(icon)
-
- 			if pollfail:
+			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':
  					icon='gtk-dialog-error'
 			visible = self.feedlist[i][VISIBLE]
@@ -375,7 +359,6 @@ class FeedList:
 					self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
 			except:
 				pass
-#			if i % 10==0:
 			yield True
 	
 		if selected:
@@ -439,17 +422,6 @@ class FeedList:
 				return
 			feed_id = self.last_feed
 			
-		#pointed = self.db.resolve_pointed_feed(feed_id)
-
-		#if pointed != feed_id: #this is a pointer
-		#	if recur_ok: 
-		#		self.update_feed_list(pointed, update_what)
-		#		return
-		#	#else continue...
-		#else:
-		#	for f in self.db.get_pointer_feeds(feed_id):
-		#		self.update_feed_list(f, update_what=update_what, recur_ok=False)
-			
 		if update_what is None:
 			update_what = ['readinfo','icon','pollfail','title']
 		if update_data is None:
@@ -457,7 +429,6 @@ class FeedList:
 		
 		try:
 			feed = self.feedlist[self.find_index_of_item(feed_id)]
-			#print "feed is at index",self.find_index_of_item(feed_id)
 		except:
 			print "error getting feed", feed_id, self.find_index_of_item(feed_id)
 			return
@@ -493,19 +464,18 @@ class FeedList:
 		if 'icon' in update_what and 'pollfail' not in update_what:
 			update_what.append('pollfail')	 #we need that data for icon updates
 			
-		if 'pollfail' in update_what:
-			
+		if 'pollfail' in update_what:	
 			if not update_data.has_key('pollfail'):
 				update_data['pollfail'] = self.db.get_feed_poll_fail(feed_id)
 			feed[POLLFAIL] = update_data['pollfail']
 			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 				feed[STOCKID]='gtk-dialog-error'
+				
 		if 'readinfo' in update_what:
 			#db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below
 			if not update_data.has_key('unread_count'):
 				update_data['unread_count'] = self.db.get_unread_count(feed_id)#, db_unread_count)
-			###print "new info: "+"("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))
-			if update_data['unread_count']:
+			if update_data['unread_count'] > 0:
 				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
 					feed[FLAG] = feed[FLAG] + ptvDB.F_UNVIEWED
 			else:
@@ -522,12 +492,14 @@ class FeedList:
 			if self.filter_unread:
 		 		if updated==1 and unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
 					need_filter = True
+					
 		if 'title' in update_what:
 			selected = self.get_selected()
 			if not update_data.has_key('title'):
 				update_data['title'] = self.db.get_feed_title(feed_id)
 			feed[TITLE] = update_data['title']
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
+			#may need to resort the feed list
 			try:
 				old_iter = self.feedlist.get_iter((self.find_index_of_item(feed_id),))
 				new_iter = self.feedlist.get_iter(([f[0] for f in self.db.get_feedlist()].index(feed_id),))
@@ -537,22 +509,19 @@ class FeedList:
 			except:
 				print "Error finding feed for update"
 			need_filter = True
+			
 		if 'icon' in update_what:
 			feed[STOCKID] = self._get_icon(flag)
 			if update_data['pollfail']:
 				if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 					feed[STOCKID]='gtk-dialog-error'
-			#print "icon is:"+str(feed[STOCKID])
 			feed[FLAG] = flag	 
 		 	if self.filter_setting == DOWNLOADED:
 		 		if updated==1 and downloaded==0:
 			 		need_filter = True
 			if self.filter_setting == ACTIVE:
 		 		if updated==1 and active==0:
-			 		need_filter = True
-			#if feed_id == self.last_feed:
-			#	return True
-		
+			 		need_filter = True		
 			
 		if need_filter and not self.showing_search:
 			self.do_filter()

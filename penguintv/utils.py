@@ -374,9 +374,6 @@ class SuperGlobal:
         if __main__.__dict__.has_key(name):
             del  __main__.__dict__[name]
             
-superglobal=SuperGlobal()
-
-
 #thanks http://www.peterbe.com/plog/html-entity-fixer
 #from htmlentitydefs import entitydefs
 #import re

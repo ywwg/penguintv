@@ -157,7 +157,6 @@ class MainWindow:
 		dock_widget.add(self.layout_container)
 		
 		self.feed_list_view = FeedList.FeedList(components,self.app, self.db)
-		self.entry_list_view = EntryList.EntryList(components,self.app, self, self.db)
 		renderrer_str = conf.get_string('/apps/penguintv/renderrer')
 		renderrer = EntryView.GTKHTML
 		
@@ -192,7 +191,7 @@ class MainWindow:
 					self.app.do_quit()
 		
 		load_renderrer(renderrer)
-					
+		self.entry_list_view = EntryList.EntryList(components,self.app, self, self.entry_view, self.db)			
 		
 				
 		for key in dir(self.__class__): #python insaneness
@@ -658,7 +657,7 @@ class MainWindow:
 		self.app.save_settings()
 		self.app.write_feed_cache()
 		self.layout_dock.remove(self.layout_container)
-		self.load_layout(self.layout, self.layout_dock)
+		self.load_layout(self.layout_dock)
 		#self.Hide()
 		#self.Show()
 		self.feed_list_view.populate_feeds(self.app._done_populating)
@@ -803,8 +802,6 @@ class MainWindow:
 		self.disk_usage_widget.set_text(utils.format_size(size))
 
 	def update_download_progress(self):
-		#progresses = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_PROGRESS]
-		#queued = [superglobal.download_status[id] for id in superglobal.download_status.keys() if superglobal.download_status[id][0]==penguintv.DOWNLOAD_QUEUED]
 		progresses = self.mm.get_download_list(Downloader.DOWNLOADING)
 		queued     = self.mm.get_download_list(Downloader.QUEUED)
 		if len(progresses)+len(queued)==0:

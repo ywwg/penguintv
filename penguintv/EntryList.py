@@ -14,11 +14,11 @@ FLAG          = 5
 FEED          = 6
 
 class EntryList:
-	def __init__(self, widget_tree, app, main_window, db):
+	def __init__(self, widget_tree, app, main_window, entry_view, db):
 		self._widget = widget_tree.get_widget("entrylistview")
-		#self._widget = widgets['entrylistview']
 		self._app = app
 		self.main_window = main_window
+		self.entry_view = entry_view
 		self.entrylist = gtk.ListStore(str, str, int, int, str, int, int) #title, markeduptitle, entry_id, index, icon, flag, feed
 		self.db = db
 		self.feed_id=None
@@ -27,8 +27,6 @@ class EntryList:
 		self.search_query = ""
 		self.search_results = []
 		self.presently_selecting = False
-		#self.context_menu_activate=False
-		#self.context_event = None
 		
 		#build list view
 		self._widget.set_model(self.entrylist)
@@ -37,8 +35,6 @@ class EntryList:
 		renderer = gtk.CellRendererText()
 		self.vadjustment = widget_tree.get_widget("entry_scrolled_window").get_vadjustment()
 		self.hadjustment = widget_tree.get_widget("entry_scrolled_window").get_hadjustment()
-		#self.vadjustment = widgets['entry_scrolled_window'].get_vadjustment()
-		#self.hadjustment = widgets['entry_scrolled_window'].get_hadjustment()
 		column = gtk.TreeViewColumn(_('Articles'))
 		column.pack_start(icon_renderer, False)
 		column.pack_start(renderer, True)
@@ -64,83 +60,6 @@ class EntryList:
 		if feed_id == self.feed_id:
 			self.populate_entries(feed_id, -1)
 			
-	def show_search_results(self, entries, query):
-		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
-		self.showing_search = True
-		self.search_query = query
-		if entries is None:
-			entries = []
-		self.search_results = entries
-		self.entrylist.clear()
-		if len(entries) == 0:
-			self._app.display_entry(None)
-			return
-		
-		i=-1
-		for entry_id,title, fakedate, feed_id in entries:	
-			i+=1
-			try:
-				entry = self.db.get_entry(entry_id)
-			except ptvDB.NoEntry:
-				raise ptvDB.BadSearchResults, "Entry not found, possible out of date index"
-			flag = self.db.get_entry_flag(entry_id)
-			icon = self.get_icon(flag)
-			markeduptitle = self.get_markedup_title(entry['title'], flag)
-			self.entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id])
-			
-		self.vadjustment.set_value(0)
-		self.hadjustment.set_value(0)
-		self._widget.columns_autosize()
-		gobject.idle_add(self.auto_pane)
-		
-	def unshow_search(self):
-		self.showing_search = False
-		self.search_query = ""
-		self._widget.get_selection().unselect_all()
-		self.search_results = []
-		self.entrylist.clear()
-		
-	def highlight_results(self, feed_id):
-		selection = self._widget.get_selection()
-		selection.unselect_all()
-		i=-1
-		j=0
-		first=-1
-		first_in_range = -1
-		last_selected = -1
-		for e in self.entrylist:
-			i+=1
-			if e[FEED] == feed_id:
-				j+=1			
-				if first==-1:
-					first = i
-				if first_in_range == -1:
-					first_in_range = i
-					last_selected = i
-					continue
-				if last_selected == i-1:
-					last_selected = i
-				else:
-					if last_selected == first_in_range:
-						selection.select_path((last_selected,))
-					else:
-						selection.select_range((first_in_range,),(last_selected,))
-					last_selected = -1
-					first_in_range = -1
-
-		if first_in_range!=-1:
-			if last_selected == first_in_range:
-				selection.select_path((last_selected,))
-			else:
-				selection.select_range((first_in_range,),(last_selected,))			
-		
-		count = j
-		if count > 1:
-			self._app.display_entry(None)
-		if count > 0:
-			self._widget.scroll_to_cell(first)
-		return count
-
 	def populate_entries(self, feed_id, selected=-1):
 		if self.showing_search:
 			if len(self.search_results) > 0: 
@@ -246,23 +165,87 @@ class EntryList:
 					return
 			except:
 				#we aren't even viewing this feed
-				return #don't need to do any of the below
-		#	if self.last_entry is None:
-		#		return
-		#	entry_id = self.last_entry
-		
-	 	#always update the selected entry, just in case.
-	 	#this means the app updates the feeds and entries, but the 
-	 	#entry list knows best when it comes to entries
-		selection = self._widget.get_selection()
-		try:
-			selected = self.get_selected(selection)['entry_id']
-			self._app.display_entry(selected, 0, self.search_query) #don't change read-state on this display, 
-		except:									#so if someone just marked this unread, it won't change right back
-			pass
-	 
+				return
+				
 		if entry_id == self.last_entry:
 			return True
+			
+	def show_search_results(self, entries, query):
+		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
+		self.showing_search = True
+		self.search_query = query
+		if entries is None:
+			entries = []
+		self.search_results = entries
+		self.entrylist.clear()
+		if len(entries) == 0:
+			self._app.display_entry(None)
+			return
+		
+		i=-1
+		for entry_id,title, fakedate, feed_id in entries:	
+			i+=1
+			try:
+				entry = self.db.get_entry(entry_id)
+			except ptvDB.NoEntry:
+				raise ptvDB.BadSearchResults, "Entry not found, possible out of date index"
+			flag = self.db.get_entry_flag(entry_id)
+			icon = self.get_icon(flag)
+			markeduptitle = self.get_markedup_title(entry['title'], flag)
+			self.entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id])
+			
+		self.vadjustment.set_value(0)
+		self.hadjustment.set_value(0)
+		self._widget.columns_autosize()
+		gobject.idle_add(self.auto_pane)
+		
+	def unshow_search(self):
+		self.showing_search = False
+		self.search_query = ""
+		self._widget.get_selection().unselect_all()
+		self.search_results = []
+		self.entrylist.clear()
+		
+	def highlight_results(self, feed_id):
+		selection = self._widget.get_selection()
+		selection.unselect_all()
+		i=-1
+		j=0
+		first=-1
+		first_in_range = -1
+		last_selected = -1
+		for e in self.entrylist:
+			i+=1
+			if e[FEED] == feed_id:
+				j+=1			
+				if first==-1:
+					first = i
+				if first_in_range == -1:
+					first_in_range = i
+					last_selected = i
+					continue
+				if last_selected == i-1:
+					last_selected = i
+				else:
+					if last_selected == first_in_range:
+						selection.select_path((last_selected,))
+					else:
+						selection.select_range((first_in_range,),(last_selected,))
+					last_selected = -1
+					first_in_range = -1
+
+		if first_in_range!=-1:
+			if last_selected == first_in_range:
+				selection.select_path((last_selected,))
+			else:
+				selection.select_range((first_in_range,),(last_selected,))			
+		
+		count = j
+		if count > 1:
+			self._app.display_entry(None)
+		if count > 0:
+			self._widget.scroll_to_cell(first)
+		return count
 			
 	def item_selection_changed(self, selection):
 		self.presently_selecting = True
@@ -323,7 +306,7 @@ class EntryList:
 	def do_context_menu(self, event):
 		"""pops up a context menu for the item where the mouse is positioned"""
 		
-		#we can't go by the selected item, because that changes after this executes
+		#we can't go by the selected item, because that changes _after_ this executes
 		#so we find out what is selected based on mouse position
 		path = self._widget.get_path_at_pos(int(event.x),int(event.y))
 		if path is None: #nothing selected

@@ -138,9 +138,9 @@ class ptvDB:
 		self._parse_list = []
 		
 	def db_execute(self, c, command, args=()):
-		#print command, args,
-		c.execute(command, args)
-		#print u" ok"
+		#print command, args
+		return c.execute(command, args)
+		#print " ok"
 				
 	def __del__(self):
 		self.finish()
@@ -666,7 +666,7 @@ class ptvDB:
 			#poll_arguments = args[1]
 			if self.exiting:
 				return (feed_id,{'pollfail':True}, total)
-			result,flag_list = self.poll_feed(feed_id, args, preparsed=data)
+			result = self.poll_feed(feed_id, args, preparsed=data)
 			if self.exiting:
 				return (feed_id,{'pollfail':True} ,total)
 		except sqlite.OperationalError, e:
@@ -712,13 +712,14 @@ class ptvDB:
 			if self.is_feed_filter(feed_id, c):
 				entries = self.get_entrylist(feed_id, c) #reinitialize filtered_entries dict
 				update_data['unread_count'] = self.get_unread_count(feed_id, c)
-				#flag_list = self.get_entry_flags(feed_id,c)
+				flag_list = self.get_entry_flags(feed_id,c)
 				update_data['pollfail']=self.get_feed_poll_fail(self.resolve_pointed_feed(feed_id,c),c)
 			else:
 				self.db_execute(c, u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
 				list = c.fetchall()
 				update_data['unread_count'] = len([item for item in list if item[0]==0])
-				#flag_list = self.get_entry_flags(feed_id,c)
+				update_data['entry_count'] = len(list)
+				flag_list = self.get_entry_flags(feed_id,c)
 				
 				if len(self.get_pointer_feeds(feed_id, c)) > 0:
 					print "have pointers, reindexing now"
@@ -773,7 +774,7 @@ class ptvDB:
 			self.db_execute(c, u'SELECT feed_pointer FROM feeds WHERE id=?',(feed_id,))
 			result = c.fetchone()[0]
 			if result >= 0:
-				return (0, [])
+				return 0
 				
 			self.db_execute(c, """SELECT url,modified,etag FROM feeds WHERE id=?""",(feed_id,))
 			data = c.fetchone()
@@ -803,7 +804,7 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 			elif preparsed == -2:
 				#print "pointer feed, returning 0"
-				return (0, [])
+				return 0
 			else:
 				#print "data is good"
 				data = preparsed
@@ -815,7 +816,7 @@ class ptvDB:
 				self.db_execute(c, """UPDATE feeds SET pollfail=0 WHERE id=?""",(feed_id,))
 				db.commit()
 				c.close()
-				return (0, [])
+				return 0
 			if data['status'] == 404: #whoops
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
 					self.set_new_update_freq(db, c, feed_id, 0)
@@ -1070,10 +1071,10 @@ class ptvDB:
 						self.db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 						#db.commit()
 				self.reindex_entry_list.append(entry_id)
-				flag_list.append(self.get_entry_flag(entry_id, c))
+				#flag_list.append(self.get_entry_flag(entry_id, c))
 			elif status[0]==EXISTS:
 				self.db_execute(c, """UPDATE entries SET old=0 where id=?""",(status[1],))
-				flag_list.append(self.get_entry_flag(status[1], c, medialist=status[2]))
+				#flag_list.append(self.get_entry_flag(status[1], c, medialist=status[2]))
 				#db.commit()
 			elif status[0]==MODIFIED:
 #				new_items = new_items+1
@@ -1096,7 +1097,7 @@ class ptvDB:
 							media.setdefault('type', 'application/octet-stream')
 							self.db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				self.reindex_entry_list.append(status[1])
-				flag_list.append(self.get_entry_flag(status[1], c))
+				#flag_list.append(self.get_entry_flag(status[1], c))
 			i+=1
 		db.commit()
 		#don't call anything old that has media...
@@ -1135,7 +1136,7 @@ class ptvDB:
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
 				self.reindex()
-		return (new_items,flag_list)
+		return new_items
 		
 	def set_new_update_freq(self, db,c, feed_id, new_items):
 		"""Based on previous feed history and number of items found, adjust
@@ -1366,7 +1367,7 @@ class ptvDB:
 			#	print i
 			#	print len(entries)
 			#	print len(new_info)
-			self.filtered_entries[feed_index] = ret_val
+			self.filtered_entries[feed_index] = entries
 			return ret_val
 	
 		self.db_execute(c, """SELECT id,title,fakedate FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))

@@ -16,7 +16,6 @@ import HTTPDownloader
 from utils import format_size
 
 import utils
-superglobal=utils.SuperGlobal()
 
 import gnome
 import gnomevfs
@@ -166,8 +165,6 @@ class MediaManager:
 			self.pool.queueTask(downloader.download)
 			
 		self.db.set_media_download_status(media['media_id'],1)
-		#superglobal.download_status[media['media_id']] = (DOWNLOAD_QUEUED,0,media['size'])
-		#self.db.set_media_viewed(media['media_id'],False)
 		self.db.set_media_filename(media['media_id'],media['file'])
 		self.index=self.index+1
 		
