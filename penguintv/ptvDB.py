@@ -131,7 +131,10 @@ class ptvDB:
 			self.polling_callback = polling_callback		
 			
 		self.searcher = Lucene.Lucene()
-		self.blacklist = self.get_feeds_for_tag(NOSEARCH)
+		try:
+			self.blacklist = self.get_feeds_for_tag(NOSEARCH)
+		except:
+			self.blacklist = []
 		self.reindex_entry_list = []
 		self.reindex_feed_list = []
 		self.filtered_entries = {}
@@ -140,7 +143,6 @@ class ptvDB:
 	def db_execute(self, c, command, args=()):
 		#print command, args
 		return c.execute(command, args)
-		#print " ok"
 				
 	def __del__(self):
 		self.finish()
@@ -368,7 +370,7 @@ class ptvDB:
 							(
 							id INTEGER PRIMARY KEY,
 							term,
-							frequency INT""")
+							frequency INT);""")
 							
 		self.db.commit()
 		
@@ -557,8 +559,11 @@ class ptvDB:
 	def poll_multiple(self, arguments=0, feeds=None):
 		"""Polls multiple feeds multithreadedly"""
 		successes=[]
-		self.reindex_entry_list = []
-		self.reindex_feed_list = []
+		#print "prepoll index lists:"
+		#print self.reindex_entry_list
+		#print self.reindex_feed_list
+		#self.reindex_entry_list = []
+		#self.reindex_feed_list = []
 		cur_time = time.time()
 		
 		if feeds is None:
@@ -772,9 +777,10 @@ class ptvDB:
 		if preparsed is None:
 			#feed_id = self.resolve_pointed_feed(feed_id, c)
 			self.db_execute(c, u'SELECT feed_pointer FROM feeds WHERE id=?',(feed_id,))
-			result = c.fetchone()[0]
-			if result >= 0:
-				return 0
+			result = c.fetchone()
+			if result:
+				if result[0] >= 0:
+					return 0
 				
 			self.db_execute(c, """SELECT url,modified,etag FROM feeds WHERE id=?""",(feed_id,))
 			data = c.fetchone()
@@ -807,7 +813,12 @@ class ptvDB:
 				return 0
 			else:
 				#print "data is good"
+				#need to get a url from somewhere
 				data = preparsed
+				try:
+					url = f['feed']['title_detail']['base']
+				except:
+					url = feed_id
 			
 		if data.has_key('status'):
 			if data['status'] == 304:  #this means "nothing has changed"
@@ -823,7 +834,7 @@ class ptvDB:
 				self.db_execute(c, """UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 				db.commit()
 				c.close()
-				raise FeedPollError,(feed_id,"404 not found: "+url)
+				raise FeedPollError,(feed_id,"404 not found: "+str(url))
 
 		if len(data['channel']) == 0 or len(data['items']) == 0:
 			if data.has_key('bozo_exception'):
@@ -1078,7 +1089,7 @@ class ptvDB:
 				#db.commit()
 			elif status[0]==MODIFIED:
 #				new_items = new_items+1
-				self.db_execute(c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, old=? WHERE id=?', (item['title'],item['creator'],item['body'], time.mktime(item['date_parsed']),item['guid'],item['link'],'0',status[1]))
+				self.db_execute(c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, old=?  WHERE id=?', (item['title'],item['creator'],item['body'], time.mktime(item['date_parsed']),item['guid'],item['link'],'0', status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
 					self.db_execute(c, "DELETE FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)",(status[1],D_NOT_DOWNLOADED,D_ERROR)) #delete any not-downloaded or errored enclosures
@@ -1368,7 +1379,7 @@ class ptvDB:
 			#	print len(entries)
 			#	print len(new_info)
 			self.filtered_entries[feed_index] = entries
-			return ret_val
+			return entries
 	
 		self.db_execute(c, """SELECT id,title,fakedate FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
 		result = c.fetchall()
@@ -1844,7 +1855,7 @@ class ptvDB:
 		if result: 
 			dataList = [row[0] for row in result]
 		else:
-			return
+			return []
 		return dataList
 		
 	def get_search_tag(self, tag):
@@ -1993,10 +2004,8 @@ class ptvDB:
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
 		if blacklist is None:
 			blacklist = self.blacklist
-		#print blacklist
 		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
-			#print "no blacklist"
-			return self.searcher.Search("feed_id:"+str(filter_feed)+" AND "+query, since=since)
+			return self.searcher.Search("entry_feed_id:"+str(filter_feed)+" AND "+query, since=since)
 		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):

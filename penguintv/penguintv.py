@@ -515,6 +515,7 @@ class PenguinTVApp:
 			newitem['media_id']=item
 			newitem['entry_id']=self.db.get_entryid_for_media(newitem['media_id'])
 			self.do_cancel_download(newitem)
+			self.entry_view.update_if_selected(newitem['entry_id'])
 			self.feed_list_view.update_feed_list(None,['readinfo','icon'])
 			self.update_entry_list()
 		elif action=="delete":
@@ -658,7 +659,6 @@ class PenguinTVApp:
 		self.do_poll_multiple(None, args)
 			
 	def import_opml(self, f):
-		print "import"
 		def import_gen(f):
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
 			label = gtk.Label(_("Loading the feeds from the OPML file"))
@@ -800,7 +800,7 @@ class PenguinTVApp:
 			#print blacklist
 			result = self.db.search(query, blacklist=blacklist)
 		except Exception, e:
-			print "error with that search term", e
+			print "Error with that search term: ", e
 			result=([],[])
 		return result
 	
@@ -808,6 +808,7 @@ class PenguinTVApp:
 		self.showing_search = True		
 		try:
 			#print result
+			self.entry_view.display_item()
 			self.entry_list_view.show_search_results(result[1], query)
 			self.feed_list_view.show_search_results(result[0])
 		except ptvDB.BadSearchResults, e:
@@ -817,11 +818,12 @@ class PenguinTVApp:
 			return
 		self.main_window.filter_unread_checkbox.set_sensitive(False)
 		
-	def unshow_search(self):
+	def unshow_search(self, gonna_filter=False):
 		self.saved_search = self.main_window.search_entry.get_text()
 		self.showing_search = False
+		self.entry_view.display_item()
 		self.entry_list_view.unshow_search()
-		self.feed_list_view.unshow_search()
+		self.feed_list_view.unshow_search(gonna_filter)
 		#self.entry_view.display_item()
 		self.main_window.search_entry.set_text("")
 		self.main_window.filter_unread_checkbox.set_sensitive(True)
@@ -913,12 +915,12 @@ class PenguinTVApp:
 			if tag_type == ptvDB.T_SEARCH:
 				query = self.db.get_search_tag(current_filter)
 				#self.unshow_search()
-				self.show_search(query, self.search(query,blacklist=[]))			
+				self.show_search(query, self.search(query))			
 			else:
 				if self.showing_search:
-					self.unshow_search()
+					self.unshow_search(True)
+				#for some reason self.feed_list_view doesn't work here
 				self.main_window.feed_list_view.set_filter(filter_id, current_filter)
-				
 				
 	def show_downloads(self):
 		self.mediamanager.generate_playlist()
@@ -1244,7 +1246,7 @@ class PenguinTVApp:
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
 		if self.exiting == 1:
-			self.gui_updater.queue_task(self.do_cancel_download,d, None, True, 1)
+			self.gui_updater.queue_task(self.do_cancel_download,d.media['media_id'], None, True, 1)
 			return 1 #returning one is what interrupts the download
 		
 		if d.media.has_key('size_adjustment'):

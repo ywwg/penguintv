@@ -66,8 +66,6 @@ class FeedPropertiesDialog:
 			self.next_poll_widget.set_text(_("Momentarily"))
 		else:
 			delta = datetime.timedelta(seconds=nextpoll-time.time())
-			print nextpoll-time.time()
-			print delta
 			d = {'hours':int(floor(delta.seconds/3600)),
 				 'mins':int((delta.seconds-(floor(delta.seconds/3600)*3600))/60)}
 			self.next_poll_widget.set_text(_("in approx %(hours)sh %(mins)sm") % d)

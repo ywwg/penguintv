@@ -17,26 +17,26 @@ FLUSH_TIME = 60*10
 
 class UpdateTasksManager:
 	task_list = []
+	id_time = 0
+	time_appendix = 0
 
 	def __init__(self, style=GOBJECT, name=""):
 		self.style = style
 		self.threadSleepTime = 0.5
 		self.updater_running = False
 		self.my_tasks = []
-		self.id_time=0
-		self.time_appendix=0
 		self.name = name
 		
 	def get_task_id(self):
 		cur_time = int(time.time())
 		
-		if self.id_time == cur_time:
-			self.time_appendix = self.time_appendix+1.0
+		if UpdateTasksManager.id_time == cur_time:
+			UpdateTasksManager.time_appendix = UpdateTasksManager.time_appendix+1.0
 		else:
-			self.id_time = cur_time
-			self.time_appendix=0.0
+			UpdateTasksManager.id_time = cur_time
+			UpdateTasksManager.time_appendix=0.0
 		
-		return float(self.id_time)+(self.time_appendix/100)
+		return float(UpdateTasksManager.id_time)+(UpdateTasksManager.time_appendix/100)
 			
 	def queue_task(self, func, arg=None, waitfor=None, clear_completed=True, priority=0):
 		task_id = self.get_task_id()
@@ -92,20 +92,11 @@ class UpdateTasksManager:
 		
 	def updater_gen(self,timed=False):
 		"""Generator that empties that queue and yields on each iteration"""
-		#if self.task_count()==0:
-		#	yield False
-		#	return
 		skipped=0
 		while self.task_count() > 0: #just run forever
-			#print self.name+" updater"
 			var = self.peek_task(skipped)
 			if var is None: #ran out of tasks
 				skipped=0
-				#if self.style == GOBJECT:
-				#	if not timed:#change over to timer
-						#gobject.timeout_add(500, self.updater_timer)
-				#	break
-				#else:
 				yield True
 				continue
 			func, args, task_id, waitfor, clear_completed =  var

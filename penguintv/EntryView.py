@@ -208,8 +208,6 @@ class EntryView:
 		ha.get_value(info[1])
 			  		
 	def display_item(self, item=None, highlight=""):
-		print "DISPLAYING ITEM:"
-		#traceback.print_stack()
 		va = self._scrolled_window.get_vadjustment()
 		ha = self._scrolled_window.get_hadjustment()
 		rescroll=0
@@ -535,36 +533,42 @@ class HTMLimgParser(htmllib.HTMLParser):
 class HTMLHighlightParser(HTMLParser.HTMLParser):
 	def __init__(self, highlight_terms):
 		HTMLParser.HTMLParser.__init__(self)
-		self.terms = [a.upper() for a in highlight_terms.split()]
+		self.terms = [a.upper() for a in highlight_terms.split() if a.upper() not in ["AND","OR","NOT"]]
 		self.new_data = ""
-		self.style_start="""<span style="background-color: #FFFF00">"""
+		self.style_start="""<span style="background-color: #ffff00">"""
 		self.style_end  ="</span>"
+		self.tag_stack = []
 		
 	def handle_starttag(self, tag, attrs):
 		if len(attrs)>0:
 			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+">"
 		else:
 			self.new_data+="<"+str(tag)+">"
+		self.tag_stack.append(tag)
 			
 	def handle_startendtag(self, tag, attrs):
 		if len(attrs)>0:
 			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+"/>"
 		else:
 			self.new_data+="<"+str(tag)+"/>"
+		self.tag_stack.pop(-1)
 			
 	def handle_endtag(self, tag):
 		self.new_data+="</"+str(tag)+">"
 	
 	def handle_data(self, data):
 		data_u = data.upper()
-		for term in self.terms:
-			l = len(term)
-			place = 0
-			while place != -1:
-				place = data_u.find(term, place)
-				if place == -1:
-					break
-				data=data[:place]+self.style_start+data[place:place+l]+self.style_end+data[place+l:]
-				data_u = data.upper()
-				place+=len(self.style_start)+len(term)+len(self.style_end)
+		if self.tag_stack[-1] != "style":
+			for term in self.terms:
+				l = len(term)
+				place = 0
+				while place != -1:
+					#we will never match on the replacement style because the replacement is all 
+					#lowercase and the terms are all uppercase
+					place = data_u.find(term, place)
+					if place == -1:
+						break
+					data=data[:place]+self.style_start+data[place:place+l]+self.style_end+data[place+l:]
+					data_u=data_u[:place]+self.style_start+data_u[place:place+l]+self.style_end+data_u[place+l:]
+					place+=len(self.style_start)+len(term)+len(self.style_end)
 		self.new_data+=data

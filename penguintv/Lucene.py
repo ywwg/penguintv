@@ -5,6 +5,8 @@ from pysqlite2 import dbapi2 as sqlite
 from threading import Lock
 import HTMLParser
 
+import time
+
 """
 This class does the searching for PenguinTV.  It has full access to its own database object.
 """
@@ -63,6 +65,7 @@ class Lucene:
 		for feed_id, title, description in feeds:
 			try:
 				doc = Document()
+				 
 				doc.add(Field("feed_id", str(feed_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))
@@ -70,7 +73,7 @@ class Lucene:
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
 				doc.add(Field("feed_description", description,
-	                                           Field.Store.YES,
+	                                           Field.Store.NO,
 	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
 			except Exception, e:
@@ -87,17 +90,20 @@ class Lucene:
 				doc.add(Field("entry_id", str(entry_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))
-				doc.add(Field("feed_id", str(feed_id), 
+				doc.add(Field("entry_feed_id", str(feed_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))	                                           
-				doc.add(Field("fakedate", str(fakedate), 
+				
+				time = DateTools.timeToString(long(fakedate)*1000, DateTools.Resolution.HOUR)
+				doc.add(Field("date", time, 
 											   Field.Store.YES,
-	                                           Field.Index.UN_TOKENIZED))	                                           
+	                                          Field.Index.UN_TOKENIZED))	                                           
+	            
 				doc.add(Field("entry_title",title,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
 				doc.add(Field("entry_description", description,
-	                                           Field.Store.YES,
+	                                           Field.Store.NO,
 	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
 			except Exception, e:
@@ -117,23 +123,31 @@ class Lucene:
 	def Re_Index(self, feedlist=[], entrylist=[]):
 		if len(feedlist)==0 and len(entrylist)==0:
 			return
+		print "reindexing"
 		self.index_lock.acquire()
 		db = self._get_db()
 		c = db.cursor()
 					
 		analyzer = StandardAnalyzer()
-		indexModifier = IndexModifier(self.storeDir, analyzer, False)
+		try:
+			indexModifier = IndexModifier(self.storeDir, analyzer, False)
+		except Exception, e:
+			print "index modifier error (probably lock)",e,type(e)
+			
 		
 		feed_addition = []
 		entry_addition = []
 	
-		feeds = c.execute(u"""SELECT id FROM feeds""")
-		
 		for feed_id in feedlist:
 			try:
 				c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
 				title, description = c.fetchone()
 				feed_addition.append((feed_id, title, description))
+				#c.execute(u"""SELECT id, title, description, fakedate FROM entries WHERE feed_id=?""",(feed_id,))
+				#results = c.fetchall()
+				#if results:
+				#	for entry_id, title, description, fakedate in results:
+				#		entry_addition.append((entry_id, feed_id, title, description, fakedate))
 			except TypeError:
 				pass #it won't be readded.  Assumption is we have deleted this feed
 
@@ -147,6 +161,8 @@ class Lucene:
 				
 		c.close()
 		db.close()
+		
+		entry_addition = utils.uniquer(entry_addition)
 				
 		#first delete anything deleted or changed
 		for feed_id in feedlist:
@@ -162,6 +178,7 @@ class Lucene:
 				print "Failed deleting entry:", e
 			
 		#now add back the changes
+		#print [f[0] for f in feed_addition]
 		for feed_id, title, description in feed_addition:
 			try:
 				doc = Document()
@@ -172,12 +189,13 @@ class Lucene:
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
 				doc.add(Field("feed_description", description,
-	                                           Field.Store.YES,
+	                                           Field.Store.NO,
 	                                           Field.Index.TOKENIZED))
 				indexModifier.addDocument(doc)
 			except Exception, e:
 				print "Failed adding feed:", e
 		
+		#print [(e[0],e[1]) for e in entry_addition]
 		for entry_id, feed_id, title, description, fakedate in entry_addition:
 			try:
 				doc = Document()
@@ -187,17 +205,19 @@ class Lucene:
 				doc.add(Field("entry_id", str(entry_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))
-				doc.add(Field("feed_id", str(feed_id), 
+				doc.add(Field("entry_feed_id", str(feed_id), 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))	
-				doc.add(Field("fakedate", str(fakedate), 
+	                                           
+				time = DateTools.timeToString(long(fakedate)*1000, DateTools.Resolution.HOUR)
+				doc.add(Field("date", time, 
 											   Field.Store.YES,
 	                                           Field.Index.UN_TOKENIZED))	
 				doc.add(Field("entry_title",title,
 	                                           Field.Store.YES,
 	                                           Field.Index.TOKENIZED))   
 				doc.add(Field("entry_description", description,
-	                                           Field.Store.YES,
+	                                           Field.Store.NO,
 	                                           Field.Index.TOKENIZED))
 				indexModifier.addDocument(doc)
 			except Exception, e:
@@ -206,6 +226,7 @@ class Lucene:
 		indexModifier.flush()
 		indexModifier.close()
 		self.index_lock.release()
+		print "reindex done"
 						
 	def Search(self, command, blacklist=[], include=['feeds','entries'], since=0):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It
@@ -213,6 +234,7 @@ class Lucene:
 		analyzer = StandardAnalyzer()
 		directory = FSDirectory.getDirectory(self.storeDir, False)
 		searcher = IndexSearcher(directory)
+		sort = Sort("date", True) #sort by fake date, reversed
 		
 		feed_results=[]
 		entry_results=[]
@@ -222,19 +244,21 @@ class Lucene:
 		#query = MultiFiendQueryParser.parse(command, ['title','description'], self.analyzer)
 
 		def build_results(hits):
-			"""we use this twice, so save some typing"""
+			"""we use this four times, so save some typing"""
 			for i, doc in hits:
-				feed_id  = int(doc.get("feed_id"))
+				feed_id  = doc.get("feed_id")
+				if feed_id is None:
+					feed_id  = doc.get("entry_feed_id")
+				feed_id = int(feed_id)
 				try:
 					if feed_id not in blacklist:
 						entry_id = doc.get("entry_id")
-						if entry_id is None: #meaning this is actually a feed
+						if entry_id is None: #meaning this is actually a feed (we could know that from above, but eh)
 							feed_results.append(int(feed_id))
 						else: #               meaning "entry"
 							if len(entry_results) < ENTRY_LIMIT:
 								title    = doc.get("entry_title")
-								desc     = doc.get("entry_description")
-								fakedate = float(doc.get("fakedate"))
+								fakedate = DateTools.stringToTime(doc.get("date")) / 1000.0
 								if fakedate > since:
 									entry_results.append((int(entry_id),title, fakedate, feed_id))
 					#else:
@@ -261,13 +285,13 @@ class Lucene:
 			#ENTRY TITLES
 			queryparser = QueryParser("entry_title", analyzer)
 			query = QueryParser.parse(queryparser, command)
-			hits = searcher.search(query)
+			hits = searcher.search(query, sort)
 			build_results(hits)
 				
 			#ENTRY DESCRIPTIONS		
 			queryparser = QueryParser("entry_description", analyzer)
 			query = QueryParser.parse(queryparser, command)
-			hits = searcher.search(query)
+			hits = searcher.search(query, sort)
 			build_results(hits)
 			
 		for entry in entry_results:
@@ -275,8 +299,6 @@ class Lucene:
 			
 		feed_results = utils.uniquer(feed_results)
 		entry_results = utils.uniquer(entry_results)	
-		#sort by date:
-		#entry_results.sort(lambda x,y: int(y[2]-x[2]))
 		searcher.close()    
 		return (feed_results, entry_results)
 		

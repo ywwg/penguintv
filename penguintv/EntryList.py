@@ -87,27 +87,44 @@ class EntryList:
 					print e
 					print "rows: ",rows," item:",item
 		self.entrylist.clear()
+		self._app.display_entry(None)
 		
-		i=-1
-		for entry_id,title,date in db_entrylist:
-			i=i+1	
-			flag = self.db.get_entry_flag(entry_id)
-			icon = self.get_icon(flag)
-			markeduptitle = self.get_markedup_title(title, flag)
-			self.entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id])
+		def populate_gen():
+			i=-1
+			for entry_id,title,date in db_entrylist:
+				i=i+1	
+				flag = self.db.get_entry_flag(entry_id)
+				icon = self.get_icon(flag)
+				markeduptitle = self.get_markedup_title(title, flag)
+				self.entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id])
+				if i % 100 == 99:
+					yield True
+				if i == 25 and not dont_autopane: #ie, DO auto_pane please
+					#this way we don't push the list way out because 
+					#of something we can't even see
+					gobject.idle_add(self.auto_pane)
+					yield True
+			if i<25 and not dont_autopane: #ie, DO auto_pane please
+				gobject.idle_add(self.auto_pane)
+			self.vadjustment.set_value(0)
+			self.hadjustment.set_value(0)
+			if selected>=0:
+				index = self.find_index_of_item(selected)
+				if index is not None:
+					selection.select_path((index),)
+				else:	
+					selection.unselect_all()
+			self._widget.columns_autosize()
 			
-		self.vadjustment.set_value(0)
-		self.hadjustment.set_value(0)
-		if selected>=0:
-			index = self.find_index_of_item(selected)
-			if index is not None:
-				selection.select_path((index),)
-			else:	
-				selection.unselect_all()
-		self._widget.columns_autosize()
-		if not dont_autopane: #ie, DO auto_pane please
-			gobject.idle_add(self.auto_pane)
-			self._app.display_entry(None)
+			#if not dont_autopane:
+			#	self._app.display_entry(None)
+			
+			yield False
+		if len(db_entrylist) > 300: #only use an idler when the list is getting long
+			gobject.idle_add(populate_gen().next)
+		else:
+			for i in populate_gen():
+				pass
 		
 	def auto_pane(self):
 		"""Automatically adjusts the pane width to match the column width"""

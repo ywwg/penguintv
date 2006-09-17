@@ -153,6 +153,8 @@ class AddFeedDialog:
 			if "No such file or directory" in e:
 				return self._correct_url("http://"+url)
 			raise BadFeedURL,"There was an error loading the url."
+		except Exception, e:
+			raise BadFeedURL,"There was an error loading the url."
 		title = url
 		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
 			raise AuthorizationFailed
@@ -193,7 +195,6 @@ class AddFeedDialog:
 				available_versions = p.alt_tags.keys()
 				if len(available_versions)==0: #this might actually be a feed
 					data = feedparser.parse(url)
-					print data
 					if len(data['channel']) == 0 or len(data['items']) == 0: #nope
 						print "warning: no alt mimetypes:"+str(p.alt_tags)
 						raise BadFeedURL

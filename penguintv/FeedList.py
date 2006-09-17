@@ -154,7 +154,7 @@ class FeedList:
 			if highlight_count == 0:
 				self._app.display_feed(showing_feed)
 		
-	def unshow_search(self):
+	def unshow_search(self, gonna_filter=False):
 		showing_feed = self.get_selected()
 		self.showing_search = False
 		id_list = [feed[FEEDID] for feed in self.feedlist]
@@ -175,7 +175,7 @@ class FeedList:
 			if not self.filter_test_feed(showing_feed):
 				self._app.main_window.filter_combo_widget.set_active(ALL)
 			self.set_selected(showing_feed)
-		else:
+		elif not gonna_filter:
 			self._app.main_window.filter_combo_widget.set_active(ALL)
 			self._app.display_entry(None)
 		
