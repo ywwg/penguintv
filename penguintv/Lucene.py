@@ -1,5 +1,5 @@
 from PyLucene import *
-import os
+import os, os.path
 import utils
 from pysqlite2 import dbapi2 as sqlite
 from threading import Lock
@@ -17,25 +17,47 @@ class Lucene:
 	def __init__(self):
 		try:
 			self.home=os.getenv('HOME')
-			os.stat(self.home+"/.penguintv")
+			os.stat(os.path.join(self.home,".penguintv"))
 		except:
 			try:
-				os.mkdir(self.home+"/.penguintv")
+				os.mkdir(os.path.join(self.home, ".penguintv"))
 			except:
-				raise DBError, "error creating directories: "+self.home+"/.penguintv"
-		self.storeDir = self.home+"/.penguintv/search_store"
+				raise DBError, "error creating directories: "+os.path.join(self.home,".penguintv")
+		self._storeDir = os.path.join(self.home,".penguintv","search_store")
+		
 		self.needs_index = False
-		if not os.path.exists(self.storeDir):
-			os.mkdir(self.storeDir)
+		
+		try:
+			os.stat(os.path.join(self._storeDir,"NEEDSREINDEX"))
+			#if that exists, we need to reindex
+			self.needs_index = True
+		except:
+			pass
+		if self.needs_index:
+			try:
+				os.remove(os.path.join(self._storeDir,"NEEDSREINDEX"))
+			except:
+				print "Error removing NEEDSREINDEX... check permisions inside ~/.penguintv"
+		
+		if not os.path.exists(self._storeDir):
+			os.mkdir(self._storeDir)
 			self.needs_index = True
 			
-		self.index_lock = Lock()
+		self._index_lock = Lock()
+		self._quitting = False
+		
+	def finish(self):
+		self._quitting = True
+
+	def _interrupt(self):
+		f = open(os.path.join(self._storeDir,"NEEDSREINDEX"),"w")
+		f.close()
 		
 	def _get_db(self):
 		try:	
-			if os.path.isfile(self.home+"/.penguintv/penguintv3.db") == False:
+			if os.path.isfile(os.path.join(self.home,".penguintv","penguintv3.db")) == False:
 				raise DBError,"database file missing"
-			db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=10	)
+			db=sqlite.connect(os.path.join(self.home,".penguintv","penguintv3.db"), timeout=10	)
 			db.isolation_level="DEFERRED"
 			return db
 		except:
@@ -46,12 +68,21 @@ class Lucene:
 		
 	def Do_Index(self, callback=None):
 		"""loop through all feeds and entries and feed them to the beast"""
-		self.index_lock.acquire()
+		
+		def index_interrupt():
+			writer.close()
+			self._index_lock.release()
+			if callback is not None:
+				callback()
+			self._interrupt()
+			return
+			
+		self._index_lock.acquire()
 		db = self._get_db()
 		c = db.cursor()
 		
 		analyzer = StandardAnalyzer()
-		store = FSDirectory.getDirectory(self.storeDir, True)
+		store = FSDirectory.getDirectory(self._storeDir, True)
 		writer = IndexWriter(store, analyzer, True)
 				
 		c.execute(u"""SELECT id, title, description FROM feeds""")
@@ -63,6 +94,8 @@ class Lucene:
 		
 		print "indexing feeds"
 		for feed_id, title, description in feeds:
+			if self._quitting:
+				return index_interrupt()
 			try:
 				doc = Document()
 				 
@@ -82,6 +115,8 @@ class Lucene:
 		print  "indexing entries"
 		
 		for entry_id, feed_id, title, description, fakedate in entries:
+			if self._quitting:
+				return index_interrupt()
 			try:
 				doc = Document()
 				p = HTMLDataParser()
@@ -113,7 +148,7 @@ class Lucene:
 		writer.optimize()
 		writer.close()
 		print "done indexing"
-		self.index_lock.release()
+		self._index_lock.release()
 		if callback is not None:
 			callback()
 		
@@ -123,14 +158,21 @@ class Lucene:
 	def Re_Index(self, feedlist=[], entrylist=[]):
 		if len(feedlist)==0 and len(entrylist)==0:
 			return
+			
+		def reindex_interrupt():
+			indexModifier.close()
+			self._index_lock.release()
+			self._interrupt()
+			return
+			
 		print "reindexing"
-		self.index_lock.acquire()
+		self._index_lock.acquire()
 		db = self._get_db()
 		c = db.cursor()
 					
 		analyzer = StandardAnalyzer()
 		try:
-			indexModifier = IndexModifier(self.storeDir, analyzer, False)
+			indexModifier = IndexModifier(self._storeDir, analyzer, False)
 		except Exception, e:
 			print "index modifier error (probably lock)",e,type(e)
 			
@@ -139,6 +181,8 @@ class Lucene:
 		entry_addition = []
 	
 		for feed_id in feedlist:
+			if self._quitting:
+				return reindex_interrupt()
 			try:
 				c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
 				title, description = c.fetchone()
@@ -152,6 +196,8 @@ class Lucene:
 				pass #it won't be readded.  Assumption is we have deleted this feed
 
 		for entry_id in entrylist:
+			if self._quitting:
+				return reindex_interrupt()
 			try:
 				c.execute(u"""SELECT feed_id, title, description, fakedate FROM entries WHERE id=?""",(entry_id,))
 				feed_id, title, description, fakedate = c.fetchone()
@@ -164,6 +210,8 @@ class Lucene:
 		
 		entry_addition = utils.uniquer(entry_addition)
 				
+		if self._quitting:
+			return reindex_interrupt()
 		#first delete anything deleted or changed
 		for feed_id in feedlist:
 			try:
@@ -180,6 +228,8 @@ class Lucene:
 		#now add back the changes
 		#print [f[0] for f in feed_addition]
 		for feed_id, title, description in feed_addition:
+			if self._quitting:
+				return reindex_interrupt()
 			try:
 				doc = Document()
 				doc.add(Field("feed_id", str(feed_id), 
@@ -197,6 +247,8 @@ class Lucene:
 		
 		#print [(e[0],e[1]) for e in entry_addition]
 		for entry_id, feed_id, title, description, fakedate in entry_addition:
+			if self._quitting:
+				return reindex_interrupt()
 			try:
 				doc = Document()
 				p = HTMLDataParser()
@@ -225,21 +277,28 @@ class Lucene:
 				
 		indexModifier.flush()
 		indexModifier.close()
-		self.index_lock.release()
+		self._index_lock.release()
 		print "reindex done"
 						
 	def Search(self, command, blacklist=[], include=['feeds','entries'], since=0):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It
 		is sorted so that title results are first, description results are second"""
+		
+		if not self._index_lock.acquire(False):
+			#if we are indexing, don't try to search
+			print "wouldn't get lock"
+			return ([],[])
+		self._index_lock.release()
+		
 		analyzer = StandardAnalyzer()
-		directory = FSDirectory.getDirectory(self.storeDir, False)
+		directory = FSDirectory.getDirectory(self._storeDir, False)
 		searcher = IndexSearcher(directory)
 		sort = Sort("date", True) #sort by fake date, reversed
 		
 		feed_results=[]
 		entry_results=[]
 		
-		#MultiFiendQuery has a bug in 2.0.0... for now don't use
+		#MultiFindQuery has a bug in 2.0.0... for now don't use
 		#queryparser = MultiFieldQueryParser(['title','description'], self.analyzer)
 		#query = MultiFiendQueryParser.parse(command, ['title','description'], self.analyzer)
 
@@ -299,12 +358,16 @@ class Lucene:
 			
 		feed_results = utils.uniquer(feed_results)
 		entry_results = utils.uniquer(entry_results)	
+		#need to resort because we merged two lists together
+		entry_results.sort(lambda x,y: int(y[2] - x[2]))
 		searcher.close()    
+		#for e in entry_results:
+		#	print e[2],e[1]
 		return (feed_results, entry_results)
 		
 	def get_popular_terms(self, max_terms=100, junkWords=[], fields=[]):
 		#ported from http://www.getopt.org/luke/ HighFreqTerms.java
-		self.index_lock.acquire()
+		self._index_lock.acquire()
 		def insert(l, val):
 			#for item in l:
 			#	
@@ -330,7 +393,7 @@ class Lucene:
 				l.append(val)
 			
 		
-		reader = IndexReader.open(self.storeDir)
+		reader = IndexReader.open(self._storeDir)
 		terms = reader.terms()
 		pop_terms = {}
 		#minFreq = 0
@@ -399,10 +462,11 @@ class Lucene:
 		#pop_terms.sort(lambda x,y: y[1]-x[1])
 		if max_terms>0:
 			pop_terms = pop_terms[:max_terms]
-		self.index_lock.release()
+		self._index_lock.release()
 		return pop_terms
 
 	def merge(self, l1, l2):
+		"""merges two sorted lists"""
 		if len(l1)>len(l2):
 			l3 = l1
 			l1 = l2

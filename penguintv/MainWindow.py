@@ -57,14 +57,14 @@ class MainWindow:
 		self.status_owner = U_NOBODY
 		
 		#other WINDOWS we open
-		self.window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_rename_feed",'penguintv'),self.app) #MAGIC
+		self.window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self.app) #MAGIC
 		self.window_rename_feed.hide()
-		self.window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_edit_tags_single",'penguintv'),self.app)
-		self.window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_search_tag",'penguintv'),self.app)
-		self.about_box_widgets = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "aboutdialog1",'penguintv')
+		self.window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_edit_tags_single",'penguintv'),self.app)
+		self.window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self.app)
+		self.about_box_widgets = gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
 		self.about_box = self.about_box_widgets.get_widget('aboutdialog1')
-		self.feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_feed_properties",'penguintv'),self.app)
-		self.feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_filter_properties",'penguintv'),self.app)
+		self.feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self.app)
+		self.feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self.app)
 		self.sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self.glade_prefix,'penguintv.glade'))
 		
 		try:
@@ -265,7 +265,7 @@ class MainWindow:
 				filter_index = [row[0] for row in filter_combo_model].index(val)
 				cur_filter = filter_combo_model[filter_index]
 				if cur_filter[3] != ptvDB.T_SEARCH and filter_index!=FeedList.SEARCH:
-					self.feed_list_view.set_filter(filter_index,val)
+					#self.feed_list_view.set_filter(filter_index,val)
 					self.filter_combo_widget.set_active(filter_index)
 				else:
 					self.filter_combo_widget.set_active(FeedList.ALL)
@@ -502,7 +502,7 @@ class MainWindow:
 		model = self.filter_combo_widget.get_model()
 		current_filter = model[self.filter_combo_widget.get_active()]
 		self.app.change_filter(current_filter[0],current_filter[3])
-			
+		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
                                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
@@ -754,23 +754,22 @@ class MainWindow:
 				model.append([tag,"("+str(self.db.get_count_for_tag(tag))+")",False,ptvDB.T_TAG])
 		
 		#get index for our previously selected tag
-		i = 0
-		found = 0
-		for tag in model:
-			if tag[0]==current_filter:
-				found=1
-				break
-			i=i+1
-		if found:
-			self.filter_combo_widget.set_active(i)
-			self.feed_list_view.set_filter(i,current_filter)
+		index = self.get_index_for_filter(current_filter)
+		if index is not None:
+			self.filter_combo_widget.set_active(index)
 		else:
 			self.filter_combo_widget.set_active(FeedList.ALL)
-			self.feed_list_view.set_filter(FeedList.ALL,current_filter)
 			
 	def get_filter_name(self, filt):
 		model = self.filter_combo_widget.get_model()
 		return model[filt][0]
+		
+	def get_index_for_filter(self, filter_name):
+		model = self.filter_combo_widget.get_model()
+		names = [f[0] for f in model]
+		if filter_name not in names:
+			return None
+		return names.index(filter_name)
 
 	#def populate_and_select(self, feed_id):
 	def select_feed(self, feed_id):

@@ -15,7 +15,7 @@ class EditSearchesDialog:
 	def on_remove_button_clicked(self, event):
 		selection = self.saved_search_list_widget.get_selection()
 		model, iter = selection.get_selected()
-		self.app.db.remove_tag(model[iter][0])
+		
 		if iter is not None:
 			saved_item = model[iter]
 			i=-1
@@ -24,10 +24,11 @@ class EditSearchesDialog:
 				if item[0] == saved_item[0]:
 					break
 			saved_pos = i
+			
+		self.app.remove_search_tag(model[iter][0])
+		
 		self.populate_searches()
-		while gtk.events_pending():
-			gtk.main_iteration()
-		self.app.main_window.update_filters()			
+					
 		if iter is not None:
 			if saved_pos <= len(model):
 				selection = self.saved_search_list_widget.get_selection()
@@ -38,21 +39,21 @@ class EditSearchesDialog:
 		self.add_search()
 	
 	def on_tag_name_entry_activate(self, event):
-		self.save_search()
+		self.app.change_search_tag()
 		
 	def on_query_entry_activate(self, event):
-		self.save_search()
+		self.app.change_search_tag()
 		
 	def on_tag_edit_done(self, renderer, path, new_text):
 		model = self.saved_search_list_widget.get_model()
-		self.save_search(model[path][0], new_tag=new_text)
+		self.app.change_search_tag(model[path][0], new_tag=new_text)
 		model[path][0] = new_text
 		self.saved_search_list_widget.grab_focus()
 		self.saved_search_list_widget.set_cursor(len(model)-1, self.query_column, True)
 		
 	def on_query_edit_done(self, renderer, path, new_text):
 		model = self.saved_search_list_widget.get_model()
-		self.save_search(model[path][0], new_query=new_text)
+		self.app.change_search_tag(model[path][0], new_query=new_text)
 		model[path][1] = new_text
 				
 	def on_close_button_clicked(self,event):
@@ -107,15 +108,7 @@ class EditSearchesDialog:
 		if searches:
 			for search in searches:
 				model.append([search[0],search[1]])
-			
-	def save_search(self, current_tag, new_tag=None, new_query=None):
-		if new_tag is not None:
-			self.app.db.rename_tag(current_tag, new_tag)
-			
-		if new_query is not None:
-			self.app.db.change_query_for_tag(current_tag, new_query)
-		self.app.main_window.update_filters()
-		
+				
 	def add_search(self):
 		current_query=_("New Query")
 		current_tag=_("New Tag")
@@ -123,9 +116,11 @@ class EditSearchesDialog:
 		def try_add_tag(basename, query, i=0):
 			try:
 				if i>0:
-					self.app.db.add_search_tag(query, basename+" "+str(i))
+					#self.app.db.add_search_tag(query, basename+" "+str(i))
+					self.app.add_search_tag(query, basename+" "+str(i))
 					return basename+" "+str(i)
-				self.app.db.add_search_tag(query, basename)
+				#self.app.db.add_search_tag(query, basename)
+				self.app.add_search_tag(query, basename+" "+str(i))
 				return basename
 			except TagAlreadyExists, e:
 				return try_add_tag(basename, query, i+1)

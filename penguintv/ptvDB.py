@@ -13,7 +13,7 @@ import urllib, urllib2
 from types import *
 import threading
 import ThreadPool
-import sys, os, re, traceback, shutil
+import sys, os, os.path, re, traceback, shutil
 import glob
 import locale
 import gettext
@@ -89,26 +89,26 @@ class ptvDB:
 	def __init__(self, polling_callback=None):#,username,password):	
 		try:
 			self.home=os.getenv('HOME')
-			os.stat(self.home+"/.penguintv")
+			os.stat(os.path.join(self.home,".penguintv"))
 		except:
 			try:
-				os.mkdir(self.home+"/.penguintv")
+				os.mkdir(os.path.join(self.home,".penguintv"))
 			except:
-				raise DBError, "error creating directories: "+self.home+"/.penguintv"
+				raise DBError, "error creating directories: "+os.path.join(self.home,".penguintv")
 		try:	
 			#also change db connection in pool poll
-			if os.path.isfile(self.home+"/.penguintv/penguintv3.db") == False:
-				if os.path.isfile(self.home+"/.penguintv/penguintv2.db"):
+			if os.path.isfile(os.path.join(self.home,".penguintv","penguintv3.db")) == False:
+				if os.path.isfile(os.path.join(self.home,".penguintv","penguintv2.db")):
 					try: 
-						shutil.copyfile(self.home+"/.penguintv/penguintv2.db", self.home+"/.penguintv/penguintv3.db")
+						shutil.copyfile(os.path.join(self.home,".penguintv","penguintv2.db"), os.path.join(self.home,".penguintv","penguintv3.db"))
 					except:
 						raise DBError,"couldn't create new database file"
-				elif os.path.isfile(self.home+"/.penguintv/penguintv.db"):
+				elif os.path.isfile(os.path.join(self.home,".penguintv","penguintv.db")):
 					try: 
-						shutil.copyfile(self.home+"/.penguintv/penguintv.db", self.home+"/.penguintv/penguintv3.db")
+						shutil.copyfile(os.path.join(self.home,".penguintv","penguintv.db"), os.path.join(self.home,".penguintv","penguintv3.db"))
 					except:
 						raise DBError,"couldn't create new database file"
-			self.db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=10	)
+			self.db=sqlite.connect(os.path.join(self.home,".penguintv","penguintv3.db"), timeout=10	)
 			self.db.isolation_level="DEFERRED"
 		except:
 			raise DBError,"error connecting to database"
@@ -149,6 +149,7 @@ class ptvDB:
 		
 	def finish(self):
 		self.exiting=True
+		self.searcher.finish()
 		#self.c.close() finish gets called out of thread so this is bad
 		#self.db.close()
 
@@ -190,9 +191,9 @@ class ptvDB:
 			self.migrate_database_two_three()
 			#self.migrate_database_three_four()
 			
-		if self.searcher.needs_index:
-			print "indexing for the first time"
-			self.searcher.Do_Index_Threaded()
+		#if self.searcher.needs_index:
+		#	print "indexing for the first time"
+		#	self.searcher.Do_Index_Threaded()
 			
 		self.fix_tags()
 		return False

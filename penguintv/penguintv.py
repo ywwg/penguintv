@@ -84,20 +84,20 @@ class PenguinTVApp:
 			self.for_import.append(sys.argv[1])
 			
 		try:
-			self.glade_prefix = utils.GetPrefix()+"/share/penguintv"
-			os.stat(self.glade_prefix+"/penguintv.glade")
+			self.glade_prefix = os.path.join(utils.GetPrefix(),"share","penguintv")
+			os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 		except:
 			try:
-				self.glade_prefix = utils.GetPrefix()+"/share"
-				os.stat(self.glade_prefix+"/penguintv.glade")
+				self.glade_prefix = os.path.join(utils.GetPrefix(),"share")
+				os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 			except:
 				try:
-					self.glade_prefix = os.path.split(os.path.abspath(sys.argv[0]))[0]+"/share"
-					os.stat(self.glade_prefix+"/penguintv.glade")
+					self.glade_prefix = os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share")
+					os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 				except:
 					try:
-						self.glade_prefix = utils.GetPrefix()+"/share/sugar/activities/ptv/share"
-						os.stat(self.glade_prefix+"/penguintv.glade")
+						self.glade_prefix = os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")
+						os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 					except:
 						print "error finding glade file."
 						sys.exit()
@@ -187,8 +187,9 @@ class PenguinTVApp:
 		self.entry_view = self.main_window.entry_view
 
 		self.main_window.search_container.set_sensitive(False)
-		if self.db.cache_dirty: #assume index is bad as well
+		if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
 			self.main_window.search_entry.set_text(_("Please wait..."))
+			self.main_window.display_status_message(_("Reindexing Feeds..."))
 			self.db.doindex(self._sensitize_search)
 			self.feed_list_view.populate_feeds(self._done_populating_dont_sensitize)
 		else:
@@ -410,6 +411,29 @@ class PenguinTVApp:
 	def add_search_tag(self, query, tag_name):
 		self.db.add_search_tag(query, tag_name)
 		#could raise ptvDB.TagAlreadyExists, let it go
+		self.saved_search = self.main_window.search_entry.get_text()
+		self.main_window.update_filters()
+		while gtk.events_pending(): #wait for the list to update
+			gtk.main_iteration()
+		index = self.main_window.get_index_for_filter(tag_name)
+		if index is not None:
+			self.main_window.search_entry.set_text("")
+			self.main_window.filter_combo_widget.set_active(index)
+		else:
+			print "WARNING: we just added a search tag but it's not in the list"
+			
+	def remove_search_tag(self, tag_name):
+		self.app.db.remove_tag(tag_name)
+		self.app.main_window.update_filters()
+		while gtk.events_pending():
+			gtk.main_iteration()
+			
+	def change_search_tag(self, current_tag, new_tag=None, new_query=None):
+		if new_tag is not None:
+			self.db.rename_tag(current_tag, new_tag)
+			
+		if new_query is not None:
+			self.db.change_query_for_tag(current_tag, new_query)
 		self.main_window.update_filters()
 			
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
