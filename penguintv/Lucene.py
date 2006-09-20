@@ -171,11 +171,14 @@ class Lucene:
 		c = db.cursor()
 					
 		analyzer = StandardAnalyzer()
-		try:
-			indexModifier = IndexModifier(self._storeDir, analyzer, False)
-		except Exception, e:
-			print "index modifier error (probably lock)",e,type(e)
-			
+		indexModifier = IndexModifier(self._storeDir, analyzer, False)
+		#let it fail
+		#except Exception, e:
+		#	print "index modifier error (probably lock)",e,type(e)
+		#	return
+		
+		feedlist = utils.uniquer(feedlist)
+		entrylist = utils.uniquer(entrylist)
 		
 		feed_addition = []
 		entry_addition = []

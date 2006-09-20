@@ -819,6 +819,9 @@ class PenguinTVApp:
 		#self.gui_updater.queue_task(self.feed_list_view.set_selected,selected, task_id)
 		
 	def search(self, query, blacklist=None):
+		if len(self.main_window.search_entry.get_text()) > 0:
+			print "setting saved query"
+			self.saved_search = query
 		try:
 			query = query.replace("!","")
 			#print blacklist
@@ -841,9 +844,12 @@ class PenguinTVApp:
 			self.show_search(query, self.search(query))
 			return
 		self.main_window.filter_unread_checkbox.set_sensitive(False)
+	
+	def update_search(self):
+		print "weeee updating search"
+		self.search(self.saved_search)
 		
 	def unshow_search(self, gonna_filter=False):
-		self.saved_search = self.main_window.search_entry.get_text()
 		self.showing_search = False
 		self.entry_view.display_item()
 		self.entry_list_view.unshow_search()
@@ -1294,7 +1300,8 @@ class PenguinTVApp:
 					self.gui_updater.queue_task(self.poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
 					self.gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','pollfail'],update_data))
-					self.gui_updater.queue_task(self.entry_list_view.populate_if_selected, feed_id)
+					if not self.showing_search:
+						self.gui_updater.queue_task(self.entry_list_view.populate_if_selected, feed_id)
 				else:
 					self.gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
 		

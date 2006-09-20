@@ -26,35 +26,35 @@ class HTTPDownloader(Downloader):
 	def __init__(self, media, media_dir, params, resume, queue, progress_callback, finished_callback):
 		Downloader.__init__(self, media, media_dir, params, resume, queue, progress_callback, finished_callback)
 		#no params
-		self.resume_from = 0
+		self._resume_from = 0
 		
 	def download(self,args_unused):
 		Downloader.download(self,args_unused)
 		try:
-			os.makedirs(os.path.dirname(self.media['file']))
+			os.makedirs(os.path.dirname(self._media['file']))
 		except OSError:
 			pass
 		try:
-			if self.resume:
+			if self._resume:
 				try:
-					fp = open(self.media['file'], "ab")
+					fp = open(self._media['file'], "ab")
 				except:
-					fp = open(self.media['file'], "wb")
+					fp = open(self._media['file'], "wb")
 			else:
-				fp = open(self.media['file'], "wb")
+				fp = open(self._media['file'], "wb")
 			curl = pycurl.Curl()
-			curl.setopt(pycurl.URL, str(self.media['url'])) #cause it's unicode or some shit which is not a string or some junk
+			curl.setopt(pycurl.URL, str(self._media['url'])) #cause it's unicode or some shit which is not a string or some junk
 			curl.setopt(pycurl.FOLLOWLOCATION, 1)
 			curl.setopt(pycurl.MAXREDIRS, 5)
 			curl.setopt(pycurl.CONNECTTIMEOUT, 30)
 			curl.setopt(pycurl.NOSIGNAL, 1)
 			curl.setopt(pycurl.WRITEDATA, fp)
-			curl.setopt(pycurl.PROGRESSFUNCTION, self.wrap_progress_callback)
+			curl.setopt(pycurl.PROGRESSFUNCTION, self._wrap_progress_callback)
 			curl.setopt(pycurl.NOPROGRESS, 0)
 			curl.setopt(pycurl.USERAGENT,'PenguinTV '+utils.VERSION)
-			if self.resume:
-				self.resume_from = os.stat(self.media['file'])[6]
-				curl.setopt(pycurl.RESUME_FROM_LARGE, self.resume_from)
+			if self._resume:
+				self._resume_from = os.stat(self._media['file'])[6]
+				curl.setopt(pycurl.RESUME_FROM_LARGE, self._resume_from)
 			curl.perform()
 			response = curl.getinfo(pycurl.RESPONSE_CODE)
 			curl.close()
@@ -62,59 +62,59 @@ class HTTPDownloader(Downloader):
 				
 			if response != 200 and response != 206:
 				if response == 404:
-					self.media['errormsg']=_("404: File Not Found")
+					self._media['errormsg']=_("404: File Not Found")
 				else:
 					d = {"response":response}
-					self.media['errormsg']=_("Some HTTP error: %(response)s") % d
-				self.status = FAILURE
-				self.message = self.media['errormsg']
-				self.finished_callback()
+					self._media['errormsg']=_("Some HTTP error: %(response)s") % d
+				self._status = FAILURE
+				self._message = self._media['errormsg']
+				self._finished_callback()
 				return
 			
-			if self.queue:
-				self.status = FINISHED_AND_PLAY
-				self.message = _("finished downloading %s") % self.media['file']
-				self.finished_callback()
+			if self._queue:
+				self._status = FINISHED_AND_PLAY
+				self._message = _("finished downloading %s") % self._media['file']
+				self._finished_callback()
 				return
-			self.status = FINISHED
-			self.message = _("finished downloading %s") % self.media['file']
-			self.finished_callback()
+			self._status = FINISHED
+			self._message = _("finished downloading %s") % self._media['file']
+			self._finished_callback()
 		except Exception, data: #this can happen if we cancelled the download
 			if data[0]==33: #if server doesn't support resuming, retry
-				self.resume=False
-				self.download(None)
+				self._resume=False
+				self._download(None)
 			if data[0]==42:
-				self.status = STOPPED
-				self.message = ""
-				self.finished_callback()
+				self._status = STOPPED
+				self._message = ""
+				self._finished_callback()
 			else:
 				print "some downloading error "+str(data)
-				self.media['errormsg']=data
-				self.status = FAILURE
-				self.message = data
-				self.finished_callback()
+				self._media['errormsg']=data
+				self._status = FAILURE
+				self._message = data
+				self._finished_callback()
 		
 	def wrap_progress_callback(self, dl_total, dl_now, ul_total, ul_now):
-		if self.resume: #adjust sizes so that the percentages are correct
-			dl_total += self.resume_from
-			dl_now   += self.resume_from
+		if self._resume: #adjust sizes so that the percentages are correct
+			dl_total += self._resume_from
+			dl_now   += self._resume_from
 		try:
-			self.progress = int((dl_now*100.0)/dl_total)
+			self._progress = int((dl_now*100.0)/dl_total)
 		except:
-			self.progress = 0	
-		if self.media.has_key('size')==False:
-			self.media['size_adjustment']=True
-		elif self.media['size']!=round(dl_total) and self.resume==False:
-			self.media['size']=round(dl_total)
-			self.media['size_adjustment']=True
+			self._progress = 0	
+		if self._media.has_key('size')==False:
+			self._media['size_adjustment']=True
+		elif self._media['size']!=round(dl_total) and self._resume==False:
+			self._media['size']=round(dl_total)
+			self._media['size_adjustment']=True
 		else:
-			self.media['size_adjustment']=False
-		d = { 'progress': str(self.progress),
-			  'size': utils.format_size(self.media['size'])}
-		self.total_size = self.media['size']
-		if self.total_size == 0:
+			self._media['size_adjustment']=False
+		d = { 'progress': str(self._progress),
+			  'size': utils.format_size(self._media['size'])}
+		self._total_size = self._media['size']
+		if self._total_size == 0:
 			d['dl_now'] = dl_now
-			self.message = _("Downloaded %(dl_now)s...") % d
+			self._message = _("Downloaded %(dl_now)s...") % d
 		else:
-			self.message = _("Downloaded %(progress)s%% of %(size)s") % d
-		return self.progress_callback()
+			self._message = _("Downloaded %(progress)s%% of %(size)s") % d
+		return self._progress_callback()

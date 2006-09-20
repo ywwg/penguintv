@@ -2014,9 +2014,13 @@ class ptvDB:
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self.reindex_feed_list and self.reindex_entry_list as well as anything specified"""
-		feed_list += self.reindex_feed_list
-		entry_list += self.reindex_entry_list
-		self.searcher.Re_Index_Threaded(feed_list, entry_list)
+		self.reindex_feed_list += feed_list
+		self.reindex_entry_list += entry_list
+		try:
+			print "reindexing"
+			self.searcher.Re_Index_Threaded(feed_list, entry_list)
+		except:
+			print "reindex failure.  wait til next time I guess"
 		self.reindex_feed_list = []
 		self.reindex_entry_list = []
 		
