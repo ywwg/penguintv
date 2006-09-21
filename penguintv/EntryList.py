@@ -17,24 +17,24 @@ class EntryList:
 	def __init__(self, widget_tree, app, main_window, entry_view, db):
 		self._widget = widget_tree.get_widget("entrylistview")
 		self._app = app
-		self.main_window = main_window
-		self.entry_view = entry_view
-		self.entrylist = gtk.ListStore(str, str, int, int, str, int, int) #title, markeduptitle, entry_id, index, icon, flag, feed
-		self.db = db
-		self.feed_id=None
-		self.last_entry=None
-		self.showing_search = False
-		self.search_query = ""
-		self.search_results = []
+		self._main_window = main_window
+		self._entry_view = entry_view
+		self._entrylist = gtk.ListStore(str, str, int, int, str, int, int) #title, markeduptitle, entry_id, index, icon, flag, feed
+		self._db = db
+		self._feed_id=None
+		self._last_entry=None
+		self._showing_search = False
+		self._search_query = ""
+		self._search_results = []
 		self.presently_selecting = False
 		
 		#build list view
-		self._widget.set_model(self.entrylist)
+		self._widget.set_model(self._entrylist)
 		
 		icon_renderer = gtk.CellRendererPixbuf()
 		renderer = gtk.CellRendererText()
-		self.vadjustment = widget_tree.get_widget("entry_scrolled_window").get_vadjustment()
-		self.hadjustment = widget_tree.get_widget("entry_scrolled_window").get_hadjustment()
+		self._vadjustment = widget_tree.get_widget("entry_scrolled_window").get_vadjustment()
+		self._hadjustment = widget_tree.get_widget("entry_scrolled_window").get_hadjustment()
 		column = gtk.TreeViewColumn(_('Articles'))
 		column.pack_start(icon_renderer, False)
 		column.pack_start(renderer, True)
@@ -57,24 +57,24 @@ class EntryList:
 		self._widget.connect("row-activated", self.on_row_activated)
 		
 	def populate_if_selected(self, feed_id):
-		if feed_id == self.feed_id:
+		if feed_id == self._feed_id:
 			self.populate_entries(feed_id, -1)
 			
 	def populate_entries(self, feed_id, selected=-1):
-		if self.showing_search:
-			if len(self.search_results) > 0: 
-				if feed_id in [s[1] for s in self.search_results]:
-					self.show_search_results(self.search_results, self.search_query)
+		if self._showing_search:
+			if len(self._search_results) > 0: 
+				if feed_id in [s[1] for s in self._search_results]:
+					self.show_search_results(self._search_results, self._search_query)
 					self.highlight_results(feed_id)
 					return
 	
-		if feed_id == self.feed_id:
+		if feed_id == self._feed_id:
 			dont_autopane = True 
 		else:
 			dont_autopane = False #it's a double negative, but it makes sense to me at the moment.
-		self.feed_id = feed_id
+		self._feed_id = feed_id
 		
-		db_entrylist = self.db.get_entrylist(feed_id)
+		db_entrylist = self._db.get_entrylist(feed_id)
 		selection = self._widget.get_selection()
 		if selected==-1:
 			rows = selection.get_selected_rows()
@@ -86,17 +86,17 @@ class EntryList:
 				except Exception,e:
 					print e
 					print "rows: ",rows," item:",item
-		self.entrylist.clear()
+		self._entrylist.clear()
 		self._app.display_entry(None)
 		
 		def populate_gen():
 			i=-1
 			for entry_id,title,date in db_entrylist:
 				i=i+1	
-				flag = self.db.get_entry_flag(entry_id)
-				icon = self.get_icon(flag)
-				markeduptitle = self.get_markedup_title(title, flag)
-				self.entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id])
+				flag = self._db.get_entry_flag(entry_id)
+				icon = self._get_icon(flag)
+				markeduptitle = self._get_markedup_title(title, flag)
+				self._entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id])
 				if i % 100 == 99:
 					yield True
 				if i == 25 and not dont_autopane: #ie, DO auto_pane please
@@ -106,8 +106,8 @@ class EntryList:
 					yield True
 			if i<25 and not dont_autopane: #ie, DO auto_pane please
 				gobject.idle_add(self.auto_pane)
-			self.vadjustment.set_value(0)
-			self.hadjustment.set_value(0)
+			self._vadjustment.set_value(0)
+			self._hadjustment.set_value(0)
 			if selected>=0:
 				index = self.find_index_of_item(selected)
 				if index is not None:
@@ -130,17 +130,17 @@ class EntryList:
 		"""Automatically adjusts the pane width to match the column width"""
 		#If the second column exists, this cause the first column to shrink,
 		#and then we can set the pane to the same size
-		if self.main_window.layout == "widescreen":			
+		if self._main_window.layout == "widescreen":			
 			column = self._widget.get_column(0)
 			new_width = column.get_width()+10
-			listnview_width = self.main_window.app_window.get_size()[0] - self.main_window.feed_pane.get_position()
+			listnview_width = self._main_window.app_window.get_size()[0] - self._main_window.feed_pane.get_position()
 			if listnview_width - new_width < 400: #ie, entry view will be tiny
-				self.main_window.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
+				self._main_window.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
 			elif new_width > 20: #MAGIC NUMBER
-				self.main_window.entry_pane.set_position(new_width)
+				self._main_window.entry_pane.set_position(new_width)
 		return False
 		
-	def get_icon(self, flag):
+	def _get_icon(self, flag):
 		""" This would be a nice place to drop in custom icons """
 		if flag & ptvDB.F_ERROR:
 			return 'gtk-dialog-error'
@@ -153,7 +153,7 @@ class EntryList:
 		else:
 			return 'gnome-stock-blank'
 	
-	def get_markedup_title(self, title, flag):
+	def _get_markedup_title(self, title, flag):
 		if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 			title="<b>"+title+"</b>"
 		if flag & ptvDB.F_MEDIA == ptvDB.F_MEDIA:
@@ -163,38 +163,38 @@ class EntryList:
 		
 	def update_entry_list(self, entry_id=None):
 		if entry_id is None:
-			if len(self.entrylist) != len(self.db.get_entrylist(self.feed_id)):
-				self.populate_entries(self.feed_id)
+			if len(self._entrylist) != len(self._db.get_entrylist(self._feed_id)):
+				self.populate_entries(self._feed_id)
 				return
-			for entry in self.entrylist:
-				entry[FLAG] = self.db.get_entry_flag(entry[ENTRY_ID])
-		 		entry[MARKEDUPTITLE] = self.get_markedup_title(entry[TITLE],entry[FLAG])
-		 		entry[ICON] = self.get_icon(entry[FLAG]) 
+			for entry in self._entrylist:
+				entry[FLAG] = self._db.get_entry_flag(entry[ENTRY_ID])
+		 		entry[MARKEDUPTITLE] = self._get_markedup_title(entry[TITLE],entry[FLAG])
+		 		entry[ICON] = self._get_icon(entry[FLAG]) 
 		else:
 			try:
 				index = self.find_index_of_item(entry_id)
 				if index is not None:
-					entry = self.entrylist[index]
-					entry[FLAG] = self.db.get_entry_flag(entry_id)
-				 	entry[MARKEDUPTITLE] = self.get_markedup_title(entry[TITLE],entry[FLAG])
-					entry[ICON] = self.get_icon(entry[FLAG]) 
+					entry = self._entrylist[index]
+					entry[FLAG] = self._db.get_entry_flag(entry_id)
+				 	entry[MARKEDUPTITLE] = self._get_markedup_title(entry[TITLE],entry[FLAG])
+					entry[ICON] = self._get_icon(entry[FLAG]) 
 				else:
 					return
 			except:
 				#we aren't even viewing this feed
 				return
 				
-		if entry_id == self.last_entry:
+		if entry_id == self._last_entry:
 			return True
 			
 	def show_search_results(self, entries, query):
 		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
-		self.showing_search = True
-		self.search_query = query
+		self._showing_search = True
+		self._search_query = query
 		if entries is None:
 			entries = []
-		self.search_results = entries
-		self.entrylist.clear()
+		self._search_results = entries
+		self._entrylist.clear()
 		if len(entries) == 0:
 			self._app.display_entry(None)
 			return
@@ -203,25 +203,25 @@ class EntryList:
 		for entry_id,title, fakedate, feed_id in entries:	
 			i+=1
 			try:
-				entry = self.db.get_entry(entry_id)
+				entry = self._db.get_entry(entry_id)
 			except ptvDB.NoEntry:
 				raise ptvDB.BadSearchResults, "Entry not found, possible out of date index"
-			flag = self.db.get_entry_flag(entry_id)
-			icon = self.get_icon(flag)
-			markeduptitle = self.get_markedup_title(entry['title'], flag)
-			self.entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id])
+			flag = self._db.get_entry_flag(entry_id)
+			icon = self._get_icon(flag)
+			markeduptitle = self._get_markedup_title(entry['title'], flag)
+			self._entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id])
 			
-		self.vadjustment.set_value(0)
-		self.hadjustment.set_value(0)
+		self._vadjustment.set_value(0)
+		self._hadjustment.set_value(0)
 		self._widget.columns_autosize()
 		gobject.idle_add(self.auto_pane)
 		
 	def unshow_search(self):
-		self.showing_search = False
-		self.search_query = ""
+		self._showing_search = False
+		self._search_query = ""
 		self._widget.get_selection().unselect_all()
-		self.search_results = []
-		self.entrylist.clear()
+		self._search_results = []
+		self._entrylist.clear()
 		
 	def highlight_results(self, feed_id):
 		selection = self._widget.get_selection()
@@ -231,7 +231,7 @@ class EntryList:
 		first=-1
 		first_in_range = -1
 		last_selected = -1
-		for e in self.entrylist:
+		for e in self._entrylist:
 			i+=1
 			if e[FEED] == feed_id:
 				j+=1			
@@ -274,12 +274,12 @@ class EntryList:
 		if selected is None:
 			self.presently_selecting = False
 			return
-		self.last_entry = selected['entry_id']
+		self._last_entry = selected['entry_id']
 		#print "selected item: "+str(selected) #CONVENIENT
-		if self.showing_search:
+		if self._showing_search:
 			self._app.select_feed(selected['feed_id'])
 		if selection.count_selected_rows()==1:
-			self._app.display_entry(selected['entry_id'], query=self.search_query)
+			self._app.display_entry(selected['entry_id'], query=self._search_query)
 		self.presently_selecting = False
 			
 	def get_selected(self, selection=None):
@@ -305,10 +305,10 @@ class EntryList:
 			self._widget.get_selection().select_path((index,))
 		
 	def clear_entries(self):
-		self.entrylist.clear()
+		self._entrylist.clear()
 		
 	def find_index_of_item(self, entry_id):
-		list = [entry[ENTRY_ID] for entry in self.entrylist]
+		list = [entry[ENTRY_ID] for entry in self._entrylist]
 		try:
 			return list.index(entry_id)
 		except:
@@ -317,7 +317,7 @@ class EntryList:
 	def on_row_activated(self, treeview, path, view_column):
 		index = path[0]
 		model = treeview.get_model()
-		item = self.db.get_entry(model[index][ENTRY_ID])
+		item = self._db.get_entry(model[index][ENTRY_ID])
 		self._app.activate_link(item['link'])
 		
 	def do_context_menu(self, event):
@@ -329,35 +329,35 @@ class EntryList:
 		if path is None: #nothing selected
 			return
 		index = path[0]
-		selected={ 'title': self.entrylist[index][TITLE],
-				   'markeduptitle':self.entrylist[index][MARKEDUPTITLE],
-				   'entry_id': self.entrylist[index][ENTRY_ID],
-				   'index': self.entrylist[index][INDEX],
-				   'icon': self.entrylist[index][ICON],
-				   'flag': self.entrylist[index][FLAG]}
+		selected={ 'title': self._entrylist[index][TITLE],
+				   'markeduptitle':self._entrylist[index][MARKEDUPTITLE],
+				   'entry_id': self._entrylist[index][ENTRY_ID],
+				   'index': self._entrylist[index][INDEX],
+				   'icon': self._entrylist[index][ICON],
+				   'flag': self._entrylist[index][FLAG]}
 		menu = gtk.Menu()   
 		if selected['flag'] & ptvDB.F_MEDIA:
 			item = gtk.ImageMenuItem(_("_Download"))
 			img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
 			item.set_image(img)
-			item.connect('activate',self.main_window.on_download_entry_activate)
+			item.connect('activate',self._main_window.on_download_entry_activate)
 			menu.append(item)
 			
 			item = gtk.ImageMenuItem('gtk-media-play')
-			item.connect('activate',self.main_window.on_play_entry_activate)
+			item.connect('activate',self._main_window.on_play_entry_activate)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Delete"))
-			item.connect('activate',self.main_window.on_delete_entry_media_activate)
+			item.connect('activate',self._main_window.on_delete_entry_media_activate)
 			menu.append(item)
 			
 		if selected['flag'] & ptvDB.F_UNVIEWED:
 			item = gtk.MenuItem(_("Mark as _Viewed"))
-			item.connect('activate',self.main_window.on_mark_entry_as_viewed_activate)
+			item.connect('activate',self._main_window.on_mark_entry_as_viewed_activate)
 			menu.append(item)
 		else:
 			item = gtk.MenuItem(_("Mark as _Unviewed"))
-			item.connect('activate',self.main_window.on_mark_entry_as_unviewed_activate)
+			item.connect('activate',self._main_window.on_mark_entry_as_unviewed_activate)
 			menu.append(item)
 			
 		menu.show_all()

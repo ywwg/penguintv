@@ -45,33 +45,33 @@ class MainWindow:
 	COLUMN_STICKY_FLAG = 3
 
 	def __init__(self, app, glade_prefix):
-		self.app = app
-		self.mm = self.app.mediamanager
-		self.db = self.app.db #this and app are always in the same thread
-		self.glade_prefix = glade_prefix
-		self.widgetTree   = None
+		self._app = app
+		self._mm = self._app.mediamanager
+		self._db = self._app.db #this and app are always in the same thread
+		self._glade_prefix = glade_prefix
+		self._widgetTree   = None
 		self.window_maximized = False
 		self.changing_layout=False
 		self.layout='standard'
-		self.bar_owner = U_NOBODY
-		self.status_owner = U_NOBODY
+		self._bar_owner = U_NOBODY
+		self._status_owner = U_NOBODY
 		
 		#other WINDOWS we open
-		self.window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self.app) #MAGIC
-		self.window_rename_feed.hide()
-		self.window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_edit_tags_single",'penguintv'),self.app)
-		self.window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self.app)
-		self.about_box_widgets = gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
-		self.about_box = self.about_box_widgets.get_widget('aboutdialog1')
-		self.feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self.app)
-		self.feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self.glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self.app)
-		self.sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self.glade_prefix,'penguintv.glade'))
+		self._window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self._app) #MAGIC
+		self._window_rename_feed.hide()
+		self._window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_edit_tags_single",'penguintv'),self._app)
+		self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
+		self._about_box_widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
+		self._about_box = self._about_box_widgets.get_widget('aboutdialog1')
+		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
+		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
+		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'))
 		
 		try:
-			self.about_box.set_version(utils.VERSION)
+			self._about_box.set_version(utils.VERSION)
 		except:
 			pass #fc3 workaround (doesn't have aboutbox class)
-		self.about_box.hide()
+		self._about_box.hide()
 		#most of the initialization is done on Show()
 
 #	def __getitem__(self, key):
@@ -90,21 +90,21 @@ class MainWindow:
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
 		#sys.stderr.write("show,"+str(dock_widget))
-		self.app.log("Show, please")
+		self._app.log("Show, please")
 		
 		if dock_widget is None:
-			self.load_app_window()
+			self._load_app_window()
 		else:
 			self._status_view = None
-			self.disk_usage_widget = None
+			self._disk_usage_widget = None
 			self.app_window = None
 			self.load_layout(dock_widget)
 		
-	def load_app_window(self):
+	def _load_app_window(self):
 		conf = gconf.client_get_default()
-		self.widgetTree = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
-		self.layout_dock = self.widgetTree.get_widget('layout_dock')
-		self.app_window = self.widgetTree.get_widget('app')
+		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
+		self._layout_dock = self._widgetTree.get_widget('layout_dock')
+		self.app_window = self._widgetTree.get_widget('app')
 		
 		try:
 			self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/pixmaps/penguintvicon.png")
@@ -112,18 +112,18 @@ class MainWindow:
 			try:
 				self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/penguintvicon.png") #in case the install is still in the source dirs
 			except:
-				self.app_window.set_icon_from_file(self.glade_prefix+"/penguintvicon.png")
-		self._status_view = self.widgetTree.get_widget("appbar")
-		self.disk_usage_widget = self.widgetTree.get_widget('disk_usage')
+				self.app_window.set_icon_from_file(self._glade_prefix+"/penguintvicon.png")
+		self._status_view = self._widgetTree.get_widget("appbar")
+		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
 		
 		#set up separator between toolbar buttons and free space indicator
-		vseparator = self.widgetTree.get_widget('vseparator1')
-		vseparator_toolitem = self.widgetTree.get_widget('toolitem1')
+		vseparator = self._widgetTree.get_widget('vseparator1')
+		vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
 		vseparator_toolitem.set_expand(True)
 		vseparator.set_draw(False)
 		
 		#load the layout
-		self.load_layout(self.layout_dock)
+		self.load_layout(self._layout_dock)
 		self.app_window.show_all()
 		
 		#final setup for the window comes from gconf
@@ -145,18 +145,18 @@ class MainWindow:
 			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
-				self.widgetTree.signal_connect(key, getattr(self, key))
+				self._widgetTree.signal_connect(key, getattr(self, key))
 		
 	def load_layout(self,dock_widget):
-		self.app.log("load_layout")
+		self._app.log("load_layout")
 		#sys.stderr.write("load_layout")
 		conf = gconf.client_get_default()
-		components = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
-		self.layout_container = components.get_widget(self.layout+'_layout_container')
-		#self.dock_widget.pack_start(self.layout_container)
-		dock_widget.add(self.layout_container)
+		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
+		self._layout_container = components.get_widget(self.layout+'_layout_container')
+		#self.dock_widget.pack_start(self._layout_container)
+		dock_widget.add(self._layout_container)
 		
-		self.feed_list_view = FeedList.FeedList(components,self.app, self.db)
+		self.feed_list_view = FeedList.FeedList(components,self._app, self._db)
 		renderrer_str = conf.get_string('/apps/penguintv/renderrer')
 		renderrer = EntryView.GTKHTML
 		
@@ -176,7 +176,7 @@ class MainWindow:
 				self.do_quit()
 				sys.exit(2)
 			try:
-				self.entry_view = EntryView.EntryView(components, self.app, self, x)
+				self.entry_view = EntryView.EntryView(components, self._app, self, x)
 			except Exception, e:
 				print e
 				if renderrer == EntryView.DEMOCRACY_MOZ:
@@ -188,10 +188,10 @@ class MainWindow:
 						load_renderrer(EntryView.GTKHTML,recur+1)
 				else:
 					print "Error loading renderrer"
-					self.app.do_quit()
+					self._app.do_quit()
 		
 		load_renderrer(renderrer)
-		self.entry_list_view = EntryList.EntryList(components,self.app, self, self.entry_view, self.db)			
+		self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
 		
 				
 		for key in dir(self.__class__): #python insaneness
@@ -200,7 +200,7 @@ class MainWindow:
 				
 		#major WIDGETS
 		self.feed_pane = components.get_widget('feed_pane')
-		self.feedlist = components.get_widget('feedlistview')
+		self._feedlist = components.get_widget('feedlistview')
 		self.entry_pane = components.get_widget('entry_pane')
 		
 		self.filter_combo_widget = components.get_widget('filter_combo')
@@ -219,7 +219,7 @@ class MainWindow:
 		
 		self.filter_unread_checkbox = components.get_widget('unread_filter')
 		
-		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
+		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self._db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
 			filter_combo_model.append([builtin,"",False,ptvDB.T_BUILTIN])
 		filter_combo_model.append(["---","---",True,ptvDB.T_BUILTIN])
@@ -228,21 +228,21 @@ class MainWindow:
 		self.search_entry = components.get_widget('search_entry')
 		self.search_container = components.get_widget('search_container')
 		
-		#button = self.widgetTree.get_widget('search_button')
+		#button = self._widgetTree.get_widget('search_button')
 		#button.set_property("image",gtk.image_new_from_stock('gtk-find',gtk.ICON_SIZE_SMALL_TOOLBAR))
 		#button.set_property("label",None)
 		
-		#button = self.widgetTree.get_widget('clear_search_button')
+		#button = self._widgetTree.get_widget('clear_search_button')
 		#button.set_property("image",gtk.image_new_from_stock('gtk-clear',gtk.ICON_SIZE_SMALL_TOOLBAR))
 		#button.set_property("label",None)
 						
 		#dnd
-		self.TARGET_TYPE_TEXT = 80
-		self.TARGET_TYPE_URL = 81
-		drop_types = [ ('text/x-moz-url',0,self.TARGET_TYPE_URL),
-									 ('text/unicode',0,self.TARGET_TYPE_TEXT),
-									 ('text/plain',0,self.TARGET_TYPE_TEXT)]
-		self.feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
+		self._TARGET_TYPE_TEXT = 80
+		self._TARGET_TYPE_URL = 81
+		drop_types = [ ('text/x-moz-url',0,self._TARGET_TYPE_URL),
+									 ('text/unicode',0,self._TARGET_TYPE_TEXT),
+									 ('text/plain',0,self._TARGET_TYPE_TEXT)]
+		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 		
 		val = conf.get_int('/apps/penguintv/feed_pane_position')
 		if val is None:
@@ -277,37 +277,37 @@ class MainWindow:
 		#sys.stderr.write("done")
 			
 	def Hide(self):
-		self.app.log("hiding")
+		self._app.log("hiding")
 		if self.app_window:
 			self.app_window.hide()
-		del self.widgetTree
+		del self._widgetTree
 		del self.feed_list_view
 		del self.entry_list_view
 		del self.entry_view
 				
 		#some widgets
 		del self.feed_pane
-		del self.feedlist
+		del self._feedlist
 		del self.entry_pane
 		del self.app_window
 		del self._status_view
-		del self.disk_usage_widget
+		del self._disk_usage_widget
 		del self.filter_combo_widget
 
 	def on_about_activate(self,event):
 		try:
-			self.about_box.run()
+			self._about_box.run()
 		except:
 			pass #fc3 workaround
 		
 	def on_about_close(self, event):
-		self.about_box.hide()
+		self._about_box.hide()
 		
 	def on_app_delete_event(self,event,data):
-		self.app.do_quit()
+		self._app.do_quit()
 		
 	def on_app_destroy_event(self,event,data):
-		self.app.do_quit()
+		self._app.do_quit()
 		
 	def on_app_window_state_event(self, client, event):
 		if event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED:
@@ -316,13 +316,13 @@ class MainWindow:
 			self.window_maximized = False
 			
 	def on_add_feed_activate(self, event):
-		self.app.window_add_feed.show() #not modal / blocking
+		self._app.window_add_feed.show() #not modal / blocking
 		
 	def on_add_feed_filter_activate(self,event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			title = self.db.get_feed_title(selected)
-			dialog = FeedFilterDialog.FeedFilterDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_feed_filter",'penguintv'),self.app)
+			title = self._db.get_feed_title(selected)
+			dialog = FeedFilterDialog.FeedFilterDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_feed_filter",'penguintv'),self._app)
 			dialog.show()
 			dialog.set_pointed_feed(selected,title)
 			d = { 'title':title }
@@ -337,7 +337,7 @@ class MainWindow:
 			del dialog
 		
 	def on_feed_add_clicked(self, event):
-		self.app.window_add_feed.show() #not modal / blocking
+		self._app.window_add_feed.show() #not modal / blocking
 	
 	#def on_feed_pane_expose_event(self, widget, event):
 	#	self.feed_list_view.resize_columns(self.feed_pane.get_position())
@@ -346,90 +346,90 @@ class MainWindow:
 		selected = self.feed_list_view.get_selected()
 		if selected:
 			#title, description, url, link
-			feed_info = self.db.get_feed_info(selected)
-			self.feed_properties_dialog.set_feedid(selected)
-			self.feed_properties_dialog.set_title(feed_info['title'])
-			self.feed_properties_dialog.set_rss(feed_info['url'])
-			self.feed_properties_dialog.set_description(feed_info['description'])
-			self.feed_properties_dialog.set_link(feed_info['link'])
-			self.feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
-			if self.app.feed_refresh_method == penguintv.REFRESH_AUTO:
-				self.feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
+			feed_info = self._db.get_feed_info(selected)
+			self._feed_properties_dialog.set_feedid(selected)
+			self._feed_properties_dialog.set_title(feed_info['title'])
+			self._feed_properties_dialog.set_rss(feed_info['url'])
+			self._feed_properties_dialog.set_description(feed_info['description'])
+			self._feed_properties_dialog.set_link(feed_info['link'])
+			self._feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
+			if self._app.feed_refresh_method == penguintv.REFRESH_AUTO:
+				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
 			else:
-				self.feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self.app.polling_frequency)
-			self.feed_properties_dialog.show()
+				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self._app.polling_frequency)
+			self._feed_properties_dialog.show()
 			
 	def on_feed_filter_properties_activate(self, event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
 			#title, description, url, link
-			feed_info = self.db.get_feed_info(selected)
-			self.feed_filter_properties_dialog.set_feed_id(selected)
-			self.feed_filter_properties_dialog.set_pointed_feed_id(feed_info['feed_pointer'])
-			self.feed_filter_properties_dialog.set_filter_name(feed_info['title'])
-			self.feed_filter_properties_dialog.set_query(feed_info['description'])
-			self.feed_filter_properties_dialog.show()
+			feed_info = self._db.get_feed_info(selected)
+			self._feed_filter_properties_dialog.set_feed_id(selected)
+			self._feed_filter_properties_dialog.set_pointed_feed_id(feed_info['feed_pointer'])
+			self._feed_filter_properties_dialog.set_filter_name(feed_info['title'])
+			self._feed_filter_properties_dialog.set_query(feed_info['description'])
+			self._feed_filter_properties_dialog.show()
 		
 	def on_download_entry_activate(self, event):
 		try:
 			entry = self.entry_list_view.get_selected()['entry_id']
-			self.app.download_entry(entry)
+			self._app.download_entry(entry)
 		except:
 			pass
 			
 	def on_download_unviewed_activate(self, event):
-		self.app.download_unviewed()
+		self._app.download_unviewed()
 				
 	def on_download_unviewed_clicked(self,event):
-		self.app.download_unviewed()
+		self._app.download_unviewed()
 			
 	def on_delete_entry_media_activate(self,event):
 		try:
 			selected = self.entry_list_view.get_selected()['entry_id']
-			self.app.delete_entry_media(selected)
+			self._app.delete_entry_media(selected)
 		except:
 			pass
 			
 	def on_delete_feed_media_activate(self,event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			self.app.delete_feed_media(selected)
+			self._app.delete_feed_media(selected)
 			
 	def on_edit_tags_activate(self, event):
-		self.edit_tags()
+		self._edit_tags()
 		
 	def on_edit_tags_for_all_activate(self, event):
 		"""Bring up mass tag creation window"""
-		window_edit_tags_multi = EditTagsMultiDialog.EditTagsMultiDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_edit_tags_multi",'penguintv'),self.app)
+		window_edit_tags_multi = EditTagsMultiDialog.EditTagsMultiDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_edit_tags_multi",'penguintv'),self._app)
 		window_edit_tags_multi.show()
-		window_edit_tags_multi.set_feed_list(self.db.get_feedlist())
+		window_edit_tags_multi.set_feed_list(self._db.get_feedlist())
 			
 	def on_export_opml_activate(self, event):
-		self.app.export_opml()
+		self._app.export_opml()
 		
 	def on_feed_remove_clicked(self,event): 
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			self.app.remove_feed(selected)
+			self._app.remove_feed(selected)
 			
 	def on_feedlistview_drag_data_received(self, widget, context, x, y, selection, targetType, time):
 		widget.emit_stop_by_name('drag-data-received')
-		if targetType == self.TARGET_TYPE_TEXT:
+		if targetType == self._TARGET_TYPE_TEXT:
 			url = ""
 			for c in selection.data:
 				if c != "\0":  #for some reason ever other character is a null.  what gives?
 					url = url+c
 			if url.split(':')[0] == 'feed':
 				url = url[url.find(':')+1:]
-			self.app.add_feed(url)
-		elif targetType == self.TARGET_TYPE_URL:
+			self._app.add_feed(url)
+		elif targetType == self._TARGET_TYPE_URL:
 			url = ""
 			for c in selection.data[0:selection.data.find('\n')]:
 				if c != '\0':
 					url = url+c
 			if url.split(':')[0] == 'feed': #stupid wordpress does 'feed:http://url.com/whatever'
 				url = url[url.find(':')+1:]
-			self.app.add_feed(url)
+			self._app.add_feed(url)
 			
 	def on_feedlistview_button_press_event(self, widget, event):          
 		if event.button==3: #right click                               
@@ -465,7 +465,7 @@ class MainWindow:
 			menu.append(separator)
 			
 			#print "FIXME: need to test if this is already a filtered feed"
-			if not self.db.is_feed_filter(selected):
+			if not self._db.is_feed_filter(selected):
 				item = gtk.MenuItem(_("_Create Feed Filter"))
 				item.connect('activate',self.on_add_feed_filter_activate)
 				menu.append(item)
@@ -493,7 +493,7 @@ class MainWindow:
 	
 	def on_feeds_poll_clicked(self,event):
 		self.set_wait_cursor()
-		self.app.poll_feeds()
+		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 		
 	def on_filter_combo_changed(self, event):
@@ -501,7 +501,7 @@ class MainWindow:
 		#print traceback.print_stack()
 		model = self.filter_combo_widget.get_model()
 		current_filter = model[self.filter_combo_widget.get_active()]
-		self.app.change_filter(current_filter[0],current_filter[3])
+		self._app.change_filter(current_filter[0],current_filter[3])
 		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -523,7 +523,7 @@ class MainWindow:
 			try:
 				f = open(dialog.get_filename(), "r")
 				self.display_status_message(_("Importing Feeds, please wait..."))
-				self.app.import_opml(f)
+				self._app.import_opml(f)
 			except:
 				pass
 		elif response == gtk.RESPONSE_CANCEL:
@@ -533,59 +533,59 @@ class MainWindow:
 	def on_mark_entry_as_viewed_activate(self,event):
 		try:
 			entry = self.entry_list_view.get_selected()['entry_id']
-			self.app.mark_entry_as_viewed(entry)
+			self._app.mark_entry_as_viewed(entry)
 		except:
 			pass
 		
 	def on_mark_entry_as_unviewed_activate(self,event):
 		try:
 			entry = self.entry_list_view.get_selected()['entry_id']
-			self.app.mark_entry_as_unviewed(entry)
+			self._app.mark_entry_as_unviewed(entry)
 		except:
 			pass
 
 	def on_mark_feed_as_viewed_activate(self,event):
 		feed = self.feed_list_view.get_selected()
 		if feed:
-			self.app.mark_feed_as_viewed(feed)
+			self._app.mark_feed_as_viewed(feed)
  
  	def on_play_entry_activate(self, event):
  		try:
 			entry = self.entry_list_view.get_selected()['entry_id']
-			self.app.play_entry(entry)
+			self._app.play_entry(entry)
 		except:
 			pass
 				
 	def on_play_unviewed_activate(self, event):
-		self.app.play_unviewed()
+		self._app.play_unviewed()
 			
 	def on_play_unviewed_clicked(self, event):
-		self.app.play_unviewed()
+		self._app.play_unviewed()
 		
 	def on_preferences_activate(self, event):
-		self.app.window_preferences.show()
+		self._app.window_preferences.show()
 		
 	def on_quit2_activate(self,event):
-		self.app.do_quit() #make the program quit, dumbass
+		self._app.do_quit() #make the program quit, dumbass
 		
 	def on_refresh_activate(self, event):
 		feed = self.feed_list_view.get_selected()
-		self.app.refresh_feed(feed)
+		self._app.refresh_feed(feed)
 		
 	def on_refresh_feeds_activate(self, event):
 		self.set_wait_cursor()
-		self.app.poll_feeds()
+		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 
 	def on_refresh_feeds_with_errors_activate(self, event):
 		self.set_wait_cursor()
-		self.app.poll_feeds(ptvDB.A_ERROR_FEEDS)
+		self._app.poll_feeds(ptvDB.A_ERROR_FEEDS)
 		self.set_wait_cursor(False)
 		
 	def on_reindex_searches_activate(self, event):
 		self.search_container.set_sensitive(False)
 		self.search_entry.set_text(_("Please wait..."))
-		self.app.db.doindex(self.app._done_populating)
+		self._app.db.doindex(self._app._done_populating)
 		
 	def _sensitize_search(self):
 		self.search_entry.set_text("")
@@ -594,75 +594,75 @@ class MainWindow:
 	def on_remove_feed_activate(self, event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			self.app.remove_feed(selected)
+			self._app.remove_feed(selected)
 		
 	def on_rename_feed_activate(self, widget):
 		feed = self.feed_list_view.get_selected()
-		self.window_rename_feed.set_feed_id(feed)
-		self.window_rename_feed.set_feed_name(self.db.get_feed_title(feed))
-		self.window_rename_feed.show()	
+		self._window_rename_feed.set_feed_id(feed)
+		self._window_rename_feed.set_feed_name(self._db.get_feed_title(feed))
+		self._window_rename_feed.show()	
 
 	def on_resume_all_activate(self, event):
-		self.app.resume_resumable()
+		self._app.resume_resumable()
 		
 	def on_save_search_clicked(self, event):
 		query = self.search_entry.get_text()
 		if query=="":
 			return
-		self.window_add_search.show()
-		self.window_add_search.set_query(query)		
+		self._window_add_search.show()
+		self._window_add_search.set_query(query)		
 		
 	def on_search_clear_clicked(self, event):
-		self.app.manual_search("")
+		self._app.manual_search("")
 		
 	def on_saved_searches_activate(self, event):
-		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_edit_search_tags",'penguintv'),self.app)
+		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_edit_search_tags",'penguintv'),self._app)
 		window_edit_saved_searches.show()
 		del window_edit_saved_searches
 		
 	def on_search_entry_activate(self, event):
-		self.app.manual_search(self.search_entry.get_text())
+		self._app.manual_search(self.search_entry.get_text())
 		
 	def on_search_entry_changed(self, widget):
 		if self.search_container.get_property("sensitive"):
-			self.app.threaded_search(self.search_entry.get_text())
+			self._app.threaded_search(self.search_entry.get_text())
 		
 	def on_show_downloads_activate(self, event):
-		self.app.show_downloads()
+		self._app.show_downloads()
 		
 	def on_stop_downloads_clicked(self, widget):
-		self.app.stop_downloads()
+		self._app.stop_downloads()
 		
 	#def on_stop_downloads_toggled(self, widget):
 	#	print "toggled"
-	#	self.app.stop_downloads_toggled(widget.get_active())
+	#	self._app.stop_downloads_toggled(widget.get_active())
 	
 	def on_synchronize_activate(self, event):
-		self.sync_dialog.Show()
+		self._sync_dialog.Show()
 
 	def on_standard_layout_activate(self, event):	
-		self.app.change_layout('standard')
+		self._app.change_layout('standard')
 	
 	def on_horizontal_layout_activate(self, event):
-		self.app.change_layout('widescreen')	
+		self._app.change_layout('widescreen')	
 
 	def on_vertical_layout_activate(self,event):
-		self.app.change_layout('vertical')	
+		self._app.change_layout('vertical')	
 				
 	def activate_layout(self, layout):
 		"""gets called by app when it's ready"""
 		self.changing_layout = True
 		self.layout=layout
 		dic = self.get_selected_items()
-		self.app.save_settings()
-		self.app.write_feed_cache()
-		self.layout_dock.remove(self.layout_container)
-		self.load_layout(self.layout_dock)
+		self._app.save_settings()
+		self._app.write_feed_cache()
+		self._layout_dock.remove(self._layout_container)
+		self.load_layout(self._layout_dock)
 		#self.Hide()
 		#self.Show()
-		self.feed_list_view.populate_feeds(self.app._done_populating)
+		self.feed_list_view.populate_feeds(self._app._done_populating)
 		self.set_selected_items(dic)
-		self.app.update_disk_usage()
+		self._app.update_disk_usage()
 		
 	def is_changing_layout(self):
 		return self.changing_layout
@@ -679,22 +679,22 @@ class MainWindow:
 		current_text = self._status_view.get_status().get_text()
 		
 		if current_text == "":
-			self.status_owner = update_category
+			self._status_owner = update_category
 			self._status_view.set_status(m)
 		else:
-			if update_category >= self.status_owner:
+			if update_category >= self._status_owner:
 				self._status_view.set_status(m)
 				if m == "":
-					self.status_owner = U_NOBODY
+					self._status_owner = U_NOBODY
 				else:
-					self.status_owner = update_category
+					self._status_owner = update_category
 			#if update_category==U_STANDARD:  #only overwrite if this is not a poll or download
-			#	self.status_owner = update_category
+			#	self._status_owner = update_category
 			#	self._status_view.set_status(m)
-			#elif update_category == U_POLL and self.status_owner != U_STANDARD:
-			#	self.status_owner = update_category
+			#elif update_category == U_POLL and self._status_owner != U_STANDARD:
+			#	self._status_owner = update_category
 			#	self._status_view.set_status(m)				
-			#elif update_category == U_DOWNLOAD and self.status_owner == U_DOWNLOAD:
+			#elif update_category == U_DOWNLOAD and self._status_owner == U_DOWNLOAD:
 			#	self._status_view.set_status(m)
 			
 		return False #in case of timeouts
@@ -702,30 +702,30 @@ class MainWindow:
 	def update_progress_bar(self, p, update_category=U_STANDARD):
 		"""Update the progress bar.  if both downloading and polling, polling wins"""
 		if p==-1:
-			self.bar_owner = U_NOBODY
+			self._bar_owner = U_NOBODY
 			self._status_view.set_progress_percentage(0)
 		else:
-			if update_category >= self.bar_owner:
-				self.bar_owner = update_category
+			if update_category >= self._bar_owner:
+				self._bar_owner = update_category
 				self._status_view.set_progress_percentage(p)		
 		#if update_category == U_STANDARD:
 		#	raise ShouldntHappenError, "only polls and downloads should update the bar"
 		#elif update_category == U_DOWNLOAD:
-		#	if self.bar_owner != U_POLL:
-		#		self.bar_owner = U_DOWNLOAD
+		#	if self._bar_owner != U_POLL:
+		#		self._bar_owner = U_DOWNLOAD
 		#		self._status_view.set_progress_percentage(p)
 		#	#else tough luck
 		#elif update_category == U_POLL:
-		#	self.bar_owner = U_POLL
+		#	self._bar_owner = U_POLL
 		#	self._status_view.set_progress_percentage(p)
 		
 		
-	def edit_tags(self):
+	def _edit_tags(self):
 		"""Edit Tags clicked, bring up tag editing dialog"""
 		selected = self.feed_list_view.get_selected()
-		self.window_edit_tags_single.set_feed_id(selected)
-		self.window_edit_tags_single.set_tags(self.db.get_tags_for_feed(selected))
-		self.window_edit_tags_single.show()
+		self._window_edit_tags_single.set_feed_id(selected)
+		self._window_edit_tags_single.set_tags(self._db.get_tags_for_feed(selected))
+		self._window_edit_tags_single.show()
 
 	def update_filters(self):
 		"""update the filter combo box with the current list of filters"""
@@ -733,25 +733,25 @@ class MainWindow:
 		model = self.filter_combo_widget.get_model()
 		current_filter = model[self.filter_combo_widget.get_active()][0]
 		#if current_filter not in BUILTIN_TAGS:	
-		#	if current_filter not in self.db.get_all_tags():
+		#	if current_filter not in self._db.get_all_tags():
 		#		current_filter = ALL  #in case the current filter is an out of date tag
 		model.clear()
 
-		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self.db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
+		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self._db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
 			model.append([builtin,"",False,ptvDB.T_BUILTIN])
 
 		model.append(["---","---",True,ptvDB.T_BUILTIN])			
-		tags = self.db.get_all_tags(ptvDB.T_SEARCH)	
+		tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 		if tags:
 			for tag in tags:
 				model.append([tag,"",False,ptvDB.T_SEARCH])
 		
 		model.append(["---","---",True,ptvDB.T_BUILTIN])
-		tags = self.db.get_all_tags(ptvDB.T_TAG)	
+		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
 			for tag in tags:
-				model.append([tag,"("+str(self.db.get_count_for_tag(tag))+")",False,ptvDB.T_TAG])
+				model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,ptvDB.T_TAG])
 		
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
@@ -796,13 +796,13 @@ class MainWindow:
 		self.entry_list_view.populate_entries(dic['feed'],dic['entry'])
 
 	def update_disk_usage(self, size):
-		if self.disk_usage_widget is None:
+		if self._disk_usage_widget is None:
 			return
-		self.disk_usage_widget.set_text(utils.format_size(size))
+		self._disk_usage_widget.set_text(utils.format_size(size))
 
 	def update_download_progress(self):
-		progresses = self.mm.get_download_list(Downloader.DOWNLOADING)
-		queued     = self.mm.get_download_list(Downloader.QUEUED)
+		progresses = self._mm.get_download_list(Downloader.DOWNLOADING)
+		queued     = self._mm.get_download_list(Downloader.QUEUED)
 		if len(progresses)+len(queued)==0:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)
@@ -833,7 +833,7 @@ class MainWindow:
 		if self.app_window:
 			self.app_window.set_sensitive(False)
 		else:
-			self.layout_container.set_sensitive(False)
+			self._layout_container.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
 	

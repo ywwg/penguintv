@@ -32,44 +32,44 @@ POLLFAIL=9
 
 class FeedList:
 	def __init__(self, widget_tree, app, db):
-		self.scrolled_window = widget_tree.get_widget('feed_scrolled_window')
-		self.va = self.scrolled_window.get_vadjustment()
+		self._scrolled_window = widget_tree.get_widget('feed_scrolled_window')
+		self._va = self._scrolled_window.get_vadjustment()
 		self._widget = widget_tree.get_widget('feedlistview')
-		self.entry_list_widget = widget_tree.get_widget('entrylistview')
+		self._entry_list_widget = widget_tree.get_widget('entrylistview')
 		self._app = app
-		self.feedlist = gtk.ListStore(str, str, int, str, str, int, int, int, bool, bool) #title, markuptitle, feed_id, stock_id, readinfo, unread, total, flag, visible, pollfail
-		self.feed_filter = self.feedlist.filter_new()
-		self.feed_filter.set_visible_column(VISIBLE)
-		self.db = db
-		self.last_selected=None
-		self.last_feed=None
+		self._feedlist = gtk.ListStore(str, str, int, str, str, int, int, int, bool, bool) #title, markuptitle, feed_id, stock_id, readinfo, unread, total, flag, visible, pollfail
+		self._feed_filter = self._feedlist.filter_new()
+		self._feed_filter.set_visible_column(VISIBLE)
+		self._db = db
+		self._last_selected=None
+		self._last_feed=None
 		self.filter_setting=ALL
 		self.filter_name = _("All Feeds")
-		self.selecting_misfiltered=False
-		self.filter_unread = False
-		self.cancel_load = False
-		self.showing_search = False
+		self._selecting_misfiltered=False
+		self._filter_unread = False
+		self._cancel_load = False
+		self._showing_search = False
 		
 		#build list view
-		self._widget.set_model(self.feed_filter)
+		self._widget.set_model(self._feed_filter)
 		renderer = gtk.CellRendererText()
 		icon_renderer = gtk.CellRendererPixbuf()
-		self.feed_column = gtk.TreeViewColumn(_('Feeds'))
-		self.feed_column.set_resizable(True)
-		self.feed_column.pack_start(icon_renderer, False)
-		self.feed_column.pack_start(renderer, True)
-		self.feed_column.set_attributes(renderer, markup=MARKUPTITLE)
-		self.feed_column.set_attributes(icon_renderer, stock_id=STOCKID)
-		#self.feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._widget.append_column(self.feed_column)
+		self._feed_column = gtk.TreeViewColumn(_('Feeds'))
+		self._feed_column.set_resizable(True)
+		self._feed_column.pack_start(icon_renderer, False)
+		self._feed_column.pack_start(renderer, True)
+		self._feed_column.set_attributes(renderer, markup=MARKUPTITLE)
+		self._feed_column.set_attributes(icon_renderer, stock_id=STOCKID)
+		#self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._widget.append_column(self._feed_column)
 			
 		renderer = gtk.CellRendererText()
-		self.articles_column = gtk.TreeViewColumn(_(''))
-		self.articles_column.set_resizable(True)
-		self.articles_column.pack_start(renderer, True)
-		self.articles_column.set_attributes(renderer, markup=READINFO)		
-		#self.articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._widget.append_column(self.articles_column)
+		self._articles_column = gtk.TreeViewColumn(_(''))
+		self._articles_column.set_resizable(True)
+		self._articles_column.pack_start(renderer, True)
+		self._articles_column.set_attributes(renderer, markup=READINFO)		
+		#self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._widget.append_column(self._articles_column)
 		
 		self._widget.columns_autosize()
 		
@@ -80,7 +80,7 @@ class FeedList:
 	def on_row_activated(self, treeview, path, view_column):
 		index = path[0]
 		model = treeview.get_model()
-		link = self.db.get_feed_info(model[index][FEEDID])['link']
+		link = self._db.get_feed_info(model[index][FEEDID])['link']
 		if len(link) == 0:
 			dialog = gtk.Dialog(title=_("No Homepage"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("There is no homepage associated with this feed.  You can set one in the feed properties"))
@@ -95,38 +95,38 @@ class FeedList:
 		self._widget.columns_autosize()
 	#	if pane_size>0:
 	#		print "resize"
-	#		self.feed_column.set_fixed_width(pane_size - (self.articles_column.get_width()))
+	#		self._feed_column.set_fixed_width(pane_size - (self._articles_column.get_width()))
 			
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
 		self.filter_name = name
 		
-		if new_filter != SEARCH and self.showing_search:
+		if new_filter != SEARCH and self._showing_search:
 			self.unshow_search()
 			
 		self.do_filter(False)
-		self.va.set_value(0)
+		self._va.set_value(0)
 		self.resize_columns()
 		
 	def show_search_results(self, results=[]):
 		"""shows the feeds in the list 'results'"""
-		self.showing_search = True
+		self._showing_search = True
 		if results is None:
 			results = []
 		#print results[0]
 		if len(results) == 0:
-			for feed in self.feedlist:
+			for feed in self._feedlist:
 				feed[VISIBLE] = 0
-			self.feed_filter.refilter()
+			self._feed_filter.refilter()
 			return
 		
-		for feed in self.feedlist:
+		for feed in self._feedlist:
 			if feed[FEEDID] in results:
 				feed[VISIBLE] = 1
 			else:
 				feed[VISIBLE] = 0
 							
-		id_list = [feed[FEEDID] for feed in self.feedlist]
+		id_list = [feed[FEEDID] for feed in self._feedlist]
 						
 		def sorter(a, b):
 			if a[VISIBLE] != b[VISIBLE]:
@@ -137,7 +137,7 @@ class FeedList:
 				return id_list.index(a[FEEDID]) - id_list.index(b[FEEDID])
 		
 		#convert to list
-		f_list = list(self.feedlist)
+		f_list = list(self._feedlist)
 		#we sort the new feed list as is
 		f_list.sort(sorter)
 		#we go through the new feed list, and for each id find its old index
@@ -145,9 +145,9 @@ class FeedList:
 		for f in f_list:
 			i_list.append(id_list.index(f[FEEDID]))
 		#we now have a list of old indexes in the new order		
-		self.feedlist.reorder(i_list)
-		self.feed_filter.refilter()
-		self.va.set_value(0)
+		self._feedlist.reorder(i_list)
+		self._feed_filter.refilter()
+		self._va.set_value(0)
 		showing_feed = self.get_selected()
 		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
 			highlight_count = self._app.highlight_entry_results(showing_feed)
@@ -156,9 +156,9 @@ class FeedList:
 		
 	def unshow_search(self, gonna_filter=False):
 		showing_feed = self.get_selected()
-		self.showing_search = False
-		id_list = [feed[FEEDID] for feed in self.feedlist]
-		f_list = list(self.feedlist)
+		self._showing_search = False
+		id_list = [feed[FEEDID] for feed in self._feedlist]
+		f_list = list(self._feedlist)
 		def alpha_sorter(x,y):
 			if x[TITLE].upper()>y[TITLE].upper():
 				return 1
@@ -169,7 +169,7 @@ class FeedList:
 		i_list = []
 		for f in f_list:
 			i_list.append(id_list.index(f[FEEDID]))
-		self.feedlist.reorder(i_list)
+		self._feedlist.reorder(i_list)
 		if showing_feed is not None:
 			self._app.display_feed(showing_feed)
 			if not self.filter_test_feed(showing_feed):
@@ -180,11 +180,11 @@ class FeedList:
 			self._app.display_entry(None)
 		
 	def set_unread_toggle(self, active):
-		if self.showing_search:
+		if self._showing_search:
 			return
-		self.filter_unread = active
+		self._filter_unread = active
 		self.do_filter(False)
-		self.va.set_value(0)
+		self._va.set_value(0)
 		
 	def do_filter(self,keep_misfiltered=True):
 		if self.filter_setting == SEARCH:
@@ -196,10 +196,10 @@ class FeedList:
 		index = self.find_index_of_item(selected)
 			
 		#else:
-		#	selected = self.feed_filter[index][FEEDID]
+		#	selected = self._feed_filter[index][FEEDID]
 			
 		i=-1
-		for feed in self.feedlist:
+		for feed in self._feedlist:
 			i=i+1
 			flag = feed[FLAG]
 			passed_filter = False
@@ -213,7 +213,7 @@ class FeedList:
 			elif self.filter_setting == ALL:
 				passed_filter = True
 			else:
-				tags = self.db.get_tags_for_feed(feed[2])
+				tags = self._db.get_tags_for_feed(feed[2])
 				if tags:
 					if self.filter_name in tags:
 						passed_filter = True
@@ -223,18 +223,18 @@ class FeedList:
 				if self.filter_setting != NONE:
 					if keep_misfiltered==True: 
 						#some cases when we want to keep the current feed visible
-						if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
+						if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
 							passed_filter = True  #keep it
-							self.selecting_misfiltered=True
+							self._selecting_misfiltered=True
 						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
 							passed_filter = True
-							self.selecting_misfiltered=True
+							self._selecting_misfiltered=True
 						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
 							passed_filter = True
-							self.selecting_misfiltered=True
+							self._selecting_misfiltered=True
 						elif self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
 							passed_filter = True
-							self.selecting_misfiltered=True
+							self._selecting_misfiltered=True
 					#else: leave the filter result alone
 				else:
 					#if filter is NONE, no one is getting past.
@@ -243,21 +243,21 @@ class FeedList:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 					self._app.display_feed(-1)
 			else: #if it's not the selected feed
-				if self.filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
+				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
 					passed_filter = False #see ya
 			feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 			
 		if self.filter_setting == NONE:
 			self._app.display_feed(-1)
-			self.last_selected = None
-			self.selecting_misfiltered=False
-		self.feed_filter.refilter()
+			self._last_selected = None
+			self._selecting_misfiltered=False
+		self._feed_filter.refilter()
 		
 	def filter_test_feed(self, feed_id):
 		"""Tests a feed against the filters (although _not_ unviewed status testing)"""
 		passed_filter = False
 		try:
-			flag = self.feedlist[self.find_index_of_item(feed_id)][FLAG]
+			flag = self._feedlist[self.find_index_of_item(feed_id)][FLAG]
 		except:
 			return False
 		
@@ -270,25 +270,25 @@ class FeedList:
 		elif self.filter_setting == ALL:
 			passed_filter = True
 		else:
-			tags = self.db.get_tags_for_feed(feed_id)
+			tags = self._db.get_tags_for_feed(feed_id)
 			if tags:
 				if self.filter_name in tags:
 					passed_filter = True
 		return passed_filter
 		
 	def clear_list(self):
-		self.feedlist.clear()
+		self._feedlist.clear()
 		
 	def populate_feeds(self,subset=ALL, callback=None):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
 		#FIXME:  better way to get to the status display?
 		#DON'T gtk.iteration in this func! Causes endless loops!
-		if len(self.feedlist)==0:
+		if len(self._feedlist)==0:
 			self._app.main_window.display_status_message(_("Loading Feeds..."))
 			#first fill out rough feedlist
-			db_feedlist = self.db.get_feedlist()
+			db_feedlist = self._db.get_feedlist()
 			for feed_id,title in db_feedlist:
-				self.feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", 0, 0, 0, False, False]) #assume invisible
+				self._feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", 0, 0, 0, False, False]) #assume invisible
 		else:
 			self._app.main_window.display_status_message(_("Reloading Feeds..."))
 		gobject.idle_add(self._update_feeds_generator(subset,callback).next)
@@ -300,22 +300,22 @@ class FeedList:
 			
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
-		feed_cache = self.db.get_feed_cache()
-		db_feedlist = self.db.get_feedlist()
+		feed_cache = self._db.get_feed_cache()
+		db_feedlist = self._db.get_feedlist()
 		i=-1
 		downloaded=0
 		for feed_id,title in db_feedlist:
-			if self.cancel_load:
-				self.cancel_load = False
+			if self._cancel_load:
+				self._cancel_load = False
 				yield False
 			i=i+1
 			
 			if subset==DOWNLOADED:
-				flag = self.feedlist[i][FLAG]
+				flag = self._feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADED==0 and flag & ptvDB.F_PAUSED==0:
 					continue
 			if subset==ACTIVE:
-				flag = self.feedlist[i][FLAG]
+				flag = self._feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADING==0:
 					continue
 			if feed_cache is not None:
@@ -325,20 +325,20 @@ class FeedList:
 				pollfail   = cached[4]
 				entry_count= cached[3]
 			else:
-				feed_info   = self.db.get_feed_verbose(feed_id)
+				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
 			if entry_count==0: #this is a good indication that the cache is bad
-				feed_info   = self.db.get_feed_verbose(feed_id)
+				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
 				
-			if self.feedlist[i][FLAG]!=0:
-				flag = self.feedlist[i][FLAG] #don't overwrite flag (race condition)
+			if self._feedlist[i][FLAG]!=0:
+				flag = self._feedlist[i][FLAG] #don't overwrite flag (race condition)
 				
 			if unviewed == 0 and flag & ptvDB.F_UNVIEWED:
 				print "WARNING: zero unread articles but flag says there should be some"
@@ -351,8 +351,8 @@ class FeedList:
 			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':
  					icon='gtk-dialog-error'
-			visible = self.feedlist[i][VISIBLE]
-			self.feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, unviewed, entry_count, flag, visible, pollfail]
+			visible = self._feedlist[i][VISIBLE]
+			self._feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, unviewed, entry_count, flag, visible, pollfail]
 			try:
 				if i % (len(db_feedlist)/20) == 0:
 					self.do_filter()
@@ -364,7 +364,7 @@ class FeedList:
 		if selected:
 			index = self.find_index_of_item(selected)
 			if index is None:
-				self.va.set_value(self.va.lower)
+				self._va.set_value(self._va.lower)
 			else:
 				selection.select_path((index,))
 		self.do_filter()
@@ -373,15 +373,15 @@ class FeedList:
 		yield False
 		
 	def add_feed(self, feed_id):
-		newlist = self.db.get_feedlist()
+		newlist = self._db.get_feedlist()
 		index = [f[0] for f in newlist].index(feed_id)
 		feed = newlist[index]
-		self.feedlist.insert(index,[feed[1], feed[1], feed[0], 'gnome-stock-blank', "", 1, 1, 0, True, False])
+		self._feedlist.insert(index,[feed[1], feed[1], feed[0], 'gnome-stock-blank', "", 1, 1, 0, True, False])
 		self.update_feed_list(feed_id)
 		
 	def remove_feed(self, feed_id):
 		try:
-			self.feedlist.remove(self.feedlist.get_iter((self.find_index_of_item(feed_id),)))
+			self._feedlist.remove(self._feedlist.get_iter((self.find_index_of_item(feed_id),)))
 		except:
 			print "Error: feed not in list"
 				
@@ -418,9 +418,9 @@ class FeedList:
 		db for info unless the value is already in update_data"""
 		
 		if feed_id is None:
-			if self.last_feed is None:
+			if self._last_feed is None:
 				return
-			feed_id = self.last_feed
+			feed_id = self._last_feed
 			
 		if update_what is None:
 			update_what = ['readinfo','icon','pollfail','title']
@@ -428,7 +428,7 @@ class FeedList:
 			update_data = {}
 		
 		try:
-			feed = self.feedlist[self.find_index_of_item(feed_id)]
+			feed = self._feedlist[self.find_index_of_item(feed_id)]
 		except:
 			print "error getting feed", feed_id, self.find_index_of_item(feed_id)
 			return
@@ -439,9 +439,9 @@ class FeedList:
 			#or in the converse, if pollfail in what and len is one, we don't need to do this
 			
 			if update_data.has_key('flag_list')==False:
-				entrylist = self.db.get_entrylist(feed_id)
+				entrylist = self._db.get_entrylist(feed_id)
 				if entrylist:
-					update_data['flag_list'] = self.db.get_entry_flags(feed_id)
+					update_data['flag_list'] = self._db.get_entry_flags(feed_id)
 				else:
 					update_data['flag_list'] = []
 						
@@ -466,15 +466,15 @@ class FeedList:
 			
 		if 'pollfail' in update_what:	
 			if not update_data.has_key('pollfail'):
-				update_data['pollfail'] = self.db.get_feed_poll_fail(feed_id)
+				update_data['pollfail'] = self._db.get_feed_poll_fail(feed_id)
 			feed[POLLFAIL] = update_data['pollfail']
 			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 				feed[STOCKID]='gtk-dialog-error'
 				
 		if 'readinfo' in update_what:
-			#db_unread_count = self.db.get_unread_count(feed_id) #need it always for FIXME below
+			#db_unread_count = self._db.get_unread_count(feed_id) #need it always for FIXME below
 			if not update_data.has_key('unread_count'):
-				update_data['unread_count'] = self.db.get_unread_count(feed_id)#, db_unread_count)
+				update_data['unread_count'] = self._db.get_unread_count(feed_id)#, db_unread_count)
 			if update_data['unread_count'] > 0:
 				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
 					feed[FLAG] = feed[FLAG] + ptvDB.F_UNVIEWED
@@ -487,23 +487,23 @@ class FeedList:
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
 			#if unviewed != db_unread_count:
 			#	print "correcting unread count"
-			#	self.db.correct_unread_count(feed_id) #FIXME this shouldn't be necessary
+			#	self._db.correct_unread_count(feed_id) #FIXME this shouldn't be necessary
 			#	print "done"
-			if self.filter_unread:
+			if self._filter_unread:
 		 		if updated==1 and unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
 					need_filter = True
 					
 		if 'title' in update_what:
 			selected = self.get_selected()
 			if not update_data.has_key('title'):
-				update_data['title'] = self.db.get_feed_title(feed_id)
+				update_data['title'] = self._db.get_feed_title(feed_id)
 			feed[TITLE] = update_data['title']
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
 			#may need to resort the feed list
 			try:
-				old_iter = self.feedlist.get_iter((self.find_index_of_item(feed_id),))
-				new_iter = self.feedlist.get_iter(([f[0] for f in self.db.get_feedlist()].index(feed_id),))
-				self.feedlist.move_after(old_iter,new_iter)
+				old_iter = self._feedlist.get_iter((self.find_index_of_item(feed_id),))
+				new_iter = self._feedlist.get_iter(([f[0] for f in self._db.get_feedlist()].index(feed_id),))
+				self._feedlist.move_after(old_iter,new_iter)
 				if selected == feed_id:
 					self._widget.scroll_to_cell((self.find_index_of_item(feed_id),))
 			except:
@@ -523,7 +523,7 @@ class FeedList:
 		 		if updated==1 and active==0:
 			 		need_filter = True		
 			
-		if need_filter and not self.showing_search:
+		if need_filter and not self._showing_search:
 			self.do_filter()
 		
 	def _pick_important_flag(self, feed_id, flag_list):
@@ -548,27 +548,27 @@ class FeedList:
 			
 	def _item_selection_changed(self, selection):
 		item = self.get_selected(selection)
-		self.last_feed=item
+		self._last_feed=item
 		if item:
-			if self.showing_search:
-				if item == self.last_selected:
+			if self._showing_search:
+				if item == self._last_selected:
 					return
-				self.last_selected = item
+				self._last_selected = item
 				if not self._app.entrylist_selecting_right_now():
 					highlight_count = self._app.highlight_entry_results(item)
 					if highlight_count == 0:
 						self._app.display_feed(item)
 				return
-			if item == self.last_selected:
+			if item == self._last_selected:
 				self._app.display_feed(item)
 			else:
-				self.last_selected = item
+				self._last_selected = item
 				self._app.display_feed(item, -2)
-				if self.selecting_misfiltered == True and item!=None:
-					self.selecting_misfiltered = False
+				if self._selecting_misfiltered == True and item!=None:
+					self._selecting_misfiltered = False
 					gobject.timeout_add(250, self.do_filter)
 			try:
-				if self.feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
+				if self._feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
 					self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
 					return
 			except:
@@ -602,10 +602,10 @@ class FeedList:
 			self._widget.get_selection().unselect_all()
 			
 	def find_index_of_item(self, feed_id):
-		#list = [feed[FEEDID] for feed in self.feedlist]
+		#list = [feed[FEEDID] for feed in self._feedlist]
 		try:
 			i=-1
-			for feed in self.feedlist:
+			for feed in self._feedlist:
 				i+=1
 				if feed_id == feed[FEEDID]:
 					return i
@@ -615,8 +615,8 @@ class FeedList:
 			return None
 			
 	def get_feed_cache(self):
-		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL]] for f in self.feedlist]
+		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL]] for f in self._feedlist]
 		
 	def interrupt(self):
-		self.cancel_load = True
+		self._cancel_load = True
 		

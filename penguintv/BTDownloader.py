@@ -37,41 +37,41 @@ class BTDownloader(Downloader):
 				
 	def download(self,args_unused):
 		Downloader.download(self,args_unused)
-		params = ['--url' ,self._media['url']]+self._bt_params
+		params = ['--url' ,self.media['url']]+self._bt_params
 		
 		try:
 			download.download(params,  self._chooseFile, self._display, self._normalize_finished, self._error, self._done, 80, self._newpath)
 		except timeoutsocket.Timeout, detail:
-			self._media['errormsg'] = str(detail)
-			self._status = FAILURE
-			self._message = detail
+			self.media['errormsg'] = str(detail)
+			self.status = FAILURE
+			self.message = detail
 			self._finished_callback()	
 			return	
 		except Exception, e:
 			print e
-			self._media['errormsg'] = _("There was an error downloading the torrent")
-			self._status = FAILURE
-			self._message = _("There was an error downloading the torrent")
+			self.media['errormsg'] = _("There was an error downloading the torrent")
+			self.status = FAILURE
+			self.message = _("There was an error downloading the torrent")
 			self._finished_callback()
 			return
-		self._status = STOPPED
-		self._message = ""
+		self.status = STOPPED
+		self.message = ""
 		self._finished_callback()
 
 	def _chooseFile(self, default, size, saveas, dir):
 		self._totalsize=size
 		dated_dir = utils.get_dated_dir()
 		change=0
-		if self._media['size']!=self._totalsize:
-			self._media['size']=self._totalsize
+		if self.media['size']!=self._totalsize:
+			self.media['size']=self._totalsize
 			change = 1
-		if self._media['file']!=self._media_dir+"/"+dated_dir+"/"+str(default):
-			self._media['file']=self._media_dir+"/"+dated_dir+"/"+str(default)
+		if self.media['file']!=self._media_dir+"/"+dated_dir+"/"+str(default):
+			self.media['file']=self._media_dir+"/"+dated_dir+"/"+str(default)
 			change = 1
 		if change:
 			db = ptvDB.ptvDB()
-			db.set_media_filename(self._media['media_id'],self._media['file'])
-			db.set_media_size(self._media['media_id'],self._media['size'])
+			db.set_media_filename(self.media['media_id'],self.media['file'])
+			db.set_media_size(self.media['media_id'],self.media['size'])
 			db.finish()
 			del db
 		return self._media_dir+"/"+dated_dir+"/"+str(default)
@@ -81,22 +81,22 @@ class BTDownloader(Downloader):
 			self._downTotal = dict['downTotal']
 		
 		if dict.has_key('fractionDone'):
-			self._progress = int(dict['fractionDone']*100.0)
-			d = {'progress':str(self._progress),
+			self.progress = int(dict['fractionDone']*100.0)
+			d = {'progress':str(self.progress),
 				 'size':utils.format_size(self._totalsize)
 				 }
 			if dict.has_key('timeEst'):
 				d['time']=utils.hours(dict['timeEst'])
-				self._message = _("Downloaded %(progress)s%% of %(size)s, %(time)s remaining.") % d
+				self.message = _("Downloaded %(progress)s%% of %(size)s, %(time)s remaining.") % d
 			else:
-				self._message = _("Downloaded %(progress)s%% of %(size)s") % d
+				self.message = _("Downloaded %(progress)s%% of %(size)s") % d
 			
 			if self._progress_callback() == 1:
 				self._done.set() 
 				
 		else:
-			self._progress = 0
-			self._message = ""
+			self.progress = 0
+			self.message = ""
 			if self._progress_callback() == 1:
 				self._done.set()
 		
@@ -109,11 +109,11 @@ class BTDownloader(Downloader):
 		
 	def _normalize_finished(self):
 		if self.queue==True:
-			self._status = FINISHED_AND_PLAY
+			self.status = FINISHED_AND_PLAY
 		else:
-			self._status = FINISHED
-		d = {'filename':self._media['file']}
-		self._message = _("Finished downloading %(filename)s") % d
+			self.status = FINISHED
+		d = {'filename':self.media['file']}
+		self.message = _("Finished downloading %(filename)s") % d
 		self._finished_callback()			
 		self._done_downloading = True
 		#don't stop uploading, we keep going until 1:1 or one hour
@@ -126,9 +126,9 @@ class BTDownloader(Downloader):
 			print "getting blogtorrent 'rejected by tracker' error, ignoring"
 		else:
 			print "error: "+errormsg
-			self._media['errormsg']=errormsg
-			self._message = errormsg
-			self._status = FAILURE
+			self.media['errormsg']=errormsg
+			self.message = errormsg
+			self.status = FAILURE
 			self._finished_callback()		
 			self._done.set()
 		

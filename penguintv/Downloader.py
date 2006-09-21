@@ -19,19 +19,20 @@ class Downloader:
 			self._app_finished_callback = self._basic_finished_callback
 		self._resume = resume
 		self._queue = queue
-		self._progress = 0
-		self._total_size = 1
-		self._media = media
 		self._media_dir = media_dir
-		self._status = QUEUED
-		self._message = ""
 		self._stop_download = False
+		
+		self.media = media
+		self.status = QUEUED
+		self.message = ""
+		self.progress = 0
+		self.total_size = 1
 			
 	def download(self,args):
 		"""args is set by ThreadPool, and is unused"""
 		#print "The Downloader base class does not implement this method"
 		self.running = True
-		self._status = DOWNLOADING
+		self.status = DOWNLOADING
 		
 	def _progress_callback(self):
 		if self._stop_download:

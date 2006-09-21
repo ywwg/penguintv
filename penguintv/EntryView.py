@@ -21,38 +21,38 @@ GECKOEMBED=3
 class EntryView:
 	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
 		self._app = app
-		self.mm = self._app.mediamanager
-		self.main_window = main_window
-		self.RENDERRER = renderrer
+		self._mm = self._app.mediamanager
+		self._main_window = main_window
+		self._RENDERRER = renderrer
 		scrolled_window = widget_tree.get_widget('html_scrolled_window')
 		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		
-		if self.RENDERRER == GTKHTML:
+		if self._RENDERRER == GTKHTML:
 			import SimpleImageCache
 			import gtkhtml2
-		elif self.RENDERRER == MOZILLA:
+		elif self._RENDERRER == MOZILLA:
 			import gtkmozembed
-		elif self.RENDERRER == DEMOCRACY_MOZ:
+		elif self._RENDERRER == DEMOCRACY_MOZ:
 			from democracy_moz import MozillaBrowser
-		elif self.RENDERRER == GECKOEMBED:
+		elif self._RENDERRER == GECKOEMBED:
 			import geckoembed
 				
 		#thanks to straw, again
 		style = scrolled_window.get_style().copy()
-		self.currently_blank=True
+		self._currently_blank=True
 		self._scrolled_window = scrolled_window
-		self.current_entry={}
-		self.current_scroll_v = scrolled_window.get_vadjustment().get_value()
-		self.current_scroll_h = scrolled_window.get_hadjustment().get_value()
-		self.updater_timer=0
-		self.custom_entry = False
-		self.background_color = "#%.2x%.2x%.2x;" % (
+		self._current_entry={}
+		self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
+		self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
+		self._updater_timer=0
+		self._custom_entry = False
+		self._background_color = "#%.2x%.2x%.2x;" % (
                 style.base[gtk.STATE_NORMAL].red / 256,
                 style.base[gtk.STATE_NORMAL].blue / 256,
                 style.base[gtk.STATE_NORMAL].green / 256)
                 
-		self.foreground_color = "#%.2x%.2x%.2x;" % (
+		self._foreground_color = "#%.2x%.2x%.2x;" % (
                 style.text[gtk.STATE_NORMAL].red / 256,
                 style.text[gtk.STATE_NORMAL].blue / 256,
                 style.text[gtk.STATE_NORMAL].green / 256)
@@ -63,13 +63,13 @@ class EntryView:
 		#	print "==========="
         
         #const found in __init__        
-		if self.RENDERRER==GTKHTML:
+		if self._RENDERRER==GTKHTML:
 			scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
 			htmlview = gtkhtml2.View()
 			self._document = gtkhtml2.Document()
-			self._document.connect("link-clicked", self.link_clicked)
+			self._document.connect("link-clicked", self._link_clicked)
 			htmlview.connect("on_url", self.on_url)
-			self._document.connect("request-url", self.request_url)
+			self._document.connect("request-url", self._request_url)
 			htmlview.get_vadjustment().set_value(0)
 			htmlview.get_hadjustment().set_value(0)
 			scrolled_window.set_hadjustment(htmlview.get_hadjustment())
@@ -79,42 +79,42 @@ class EntryView:
 			htmlview.set_document(self._document)		
 			scrolled_window.add(htmlview)
 			self._htmlview = htmlview
-			self.document_lock = threading.Lock()
-			self.image_cache = SimpleImageCache.SimpleImageCache()
-		elif self.RENDERRER==MOZILLA:
-			self.moz = gtkmozembed.MozEmbed()
-			self.moz.connect("open-uri", self.moz_link_clicked)
-			#self.moz.connect("link-messsage", self.moz_link_message)
-			self.moz.load_url("about:blank")
-			self.moz.get_location()
-			scrolled_window.add_with_viewport(self.moz)
+			self._document_lock = threading.Lock()
+			self._image_cache = SimpleImageCache.SimpleImageCache()
+		elif self._RENDERRER==MOZILLA:
+			self._moz = gtkmozembed.MozEmbed()
+			self._moz.connect("open-uri", self._moz_link_clicked)
+			#self._moz.connect("link-messsage", self._moz_link_message)
+			self._moz.load_url("about:blank")
+			self._moz.get_location()
+			scrolled_window.add_with_viewport(self._moz)
 			import gconf
-			self.conf = gconf.client_get_default()
-			self.conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self.reset_moz_font()
-		elif self.RENDERRER==DEMOCRACY_MOZ:
-			self.mb = MozillaBrowser.MozillaBrowser()
-			self.moz = self.mb.getWidget()
-			self.moz.connect("link-message", self.moz_link_message)
-			self.mb.setURICallBack(self.dmoz_link_clicked)
-			self.moz.load_url("about:blank")
-			self.moz.get_location()
-			scrolled_window.add_with_viewport(self.moz)
+			self._conf = gconf.client_get_default()
+			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			self._reset_moz_font()
+		elif self._RENDERRER==DEMOCRACY_MOZ:
+			self._mb = MozillaBrowser.MozillaBrowser()
+			self._moz = self._mb.getWidget()
+			self._moz.connect("link-message", self._moz_link_message)
+			self._mb.setURICallBack(self._dmoz_link_clicked)
+			self._moz.load_url("about:blank")
+			self._moz.get_location()
+			scrolled_window.add_with_viewport(self._moz)
 			import gconf
-			self.conf = gconf.client_get_default()
-			self.conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self.reset_moz_font()
-		elif self.RENDERRER == GECKOEMBED:
+			self._conf = gconf.client_get_default()
+			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			self._reset_moz_font()
+		elif self._RENDERRER == GECKOEMBED:
 			path = os.path.join(os.getenv('HOME'), '.penguintv','gecko')
 			geckoembed.set_profile_path(path)
-			self.moz = geckoembed.Browser()
-			self.moz.load_address('about:blank')
-			self.moz.connect("open-uri", self.moz_link_clicked)
-			scrolled_window.add_with_viewport(self.moz)
+			self._moz = geckoembed.Browser()
+			self._moz.load_address('about:blank')
+			self._moz.connect("open-uri", self._moz_link_clicked)
+			scrolled_window.add_with_viewport(self._moz)
 			import gconf
-			self.conf = gconf.client_get_default()
-			self.conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self.reset_moz_font()
+			self._conf = gconf.client_get_default()
+			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			self._reset_moz_font()
 			
 		scrolled_window.show_all()
 		#self.display_custom_entry("<html></html>")
@@ -122,19 +122,19 @@ class EntryView:
 	def on_url(self, view, url):
 		if url == None:
 			url = ""
-		self.main_window.display_status_message(url)
+		self._main_window.display_status_message(url)
 		return
 		
-	def moz_link_message(self, data):
+	def _moz_link_message(self, data):
 		print "boink"
-		print self.moz.get_link_message()
+		print self._moz.get_link_message()
 
-	def link_clicked(self, document, link):
+	def _link_clicked(self, document, link):
 		link = link.strip()
 		self._app.activate_link(link)
 		return
 		
-	def moz_link_clicked(self, mozembed, uri):
+	def _moz_link_clicked(self, mozembed, uri):
 		#WAIT:  gtkmozembed is returning the wrong type -- coming out as a pointer, should be string
 		#wait for fixes
 		print "when this stops being a pointer, we can use MOZ"
@@ -143,15 +143,15 @@ class EntryView:
 		#self._app.activate_link(link)
 		return True #don't load url please
 		 
-	def dmoz_link_clicked(self, link):
+	def _dmoz_link_clicked(self, link):
 		link = link.strip()
 		self._app.activate_link(link)
 		return False #don't load url please (different from regular moz!)
 		
 	def _gconf_reset_moz_font(self, client, *args, **kwargs):
-		self.reset_moz_font()
+		self._reset_moz_font()
 	
-	def reset_moz_font(self):
+	def _reset_moz_font(self):
 		def isNumber(x):
 			try:
 				float(x)
@@ -164,22 +164,22 @@ class EntryView:
 				return False
 			return True
 				
-		moz_font = self.conf.get_string('/desktop/gnome/interface/font_name')
+		moz_font = self._conf.get_string('/desktop/gnome/interface/font_name')
 		#take just the beginning for the font name.  prepare for dense, unreadable code
-		self.moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
-		self.moz_font = "'"+self.moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
-		self.moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
-		if self.currently_blank == False:
-			self.display_item(self.current_entry)
+		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
+		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
+		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
+		if self._currently_blank == False:
+			self.display_item(self._current_entry)
 
-	def request_url(self, document, url, stream):
+	def _request_url(self, document, url, stream):
 		try:
 			#this was an experiment in threaded image loading.  What happened is the stream would be closed
 			#when this function exited, so by the time the image downloaded the stream was invalid
-			#self.image_cache.get_image(self.current_entry['entry_id'], url, stream)
-			#also the request_url func is called by a gtk signal, and that really has to be
+			#self._image_cache.get_image(self._current_entry['entry_id'], url, stream)
+			#also the _request_url func is called by a gtk signal, and that really has to be
 			#in the main thread
-			stream.write(self.image_cache.get_image(url))
+			stream.write(self._image_cache.get_image(url))
 			stream.close()
 		except Exception, ex:
 			stream.close()
@@ -190,23 +190,16 @@ class EntryView:
 		and if so, goes back to the app and asks to redisplay it."""
 		#item, progress, message = data
 		try:
-			if len(self.current_entry) == 0:
+			if len(self._current_entry) == 0:
 				return
 		except:
 			return
 			
-		if entry_id != self.current_entry['entry_id'] or self.currently_blank==True:
+		if entry_id != self._current_entry['entry_id'] or self._currently_blank==True:
 			return	
 		#assemble the updated info and display
-		self._app.display_entry(self.current_entry['entry_id'])
+		self._app.display_entry(self._current_entry['entry_id'])
 	
-	def get_scroll_vals(self):
-		return (va.get_value(), ha.get_value())
-		
-	def set_scroll_vals(self, info):
-		va.set_value(info[0])
-		ha.get_value(info[1])
-			  		
 	def display_item(self, item=None, highlight=""):
 		va = self._scrolled_window.get_vadjustment()
 		ha = self._scrolled_window.get_hadjustment()
@@ -220,25 +213,25 @@ class EntryView:
 		#save its scroll values.
 		if item:
 			try:
-				if item['entry_id'] == self.current_entry['entry_id']:
-					if self.currently_blank == False:
-						self.current_scroll_v = va.get_value()
-						self.current_scroll_h = ha.get_value()
+				if item['entry_id'] == self._current_entry['entry_id']:
+					if self._currently_blank == False:
+						self._current_scroll_v = va.get_value()
+						self._current_scroll_h = ha.get_value()
 					rescroll=1
 			except:
 				pass
-			self.current_entry = item	
-			self.currently_blank = False
+			self._current_entry = item	
+			self._currently_blank = False
 		else:
 			#traceback.print_stack()
-			self.currently_blank = True
-			self.current_scroll_v = va.get_value()
-			self.current_scroll_h = ha.get_value()	
+			self._currently_blank = True
+			self._current_scroll_v = va.get_value()
+			self._current_scroll_h = ha.get_value()	
 		
 		enc = None
 		
 		style_adjustments=""
-		if self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
+		if self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
 			if item is not None:
 				html = (
 	            """<html><head>
@@ -262,10 +255,10 @@ class EntryView:
 	            .content {padding-left:20pt;margin-top:12pt;}
 	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
 	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.foreground_color,self.moz_font, self.moz_size, self.htmlify_item(item))
+	            <title>title</title></head><body>%s</body></html>""") % (self._background_color,self._foreground_color,self._moz_font, self._moz_size, self._htmlify_item(item))
 			else:
 				html="""<html><style type="text/css">
-	            body { background-color: %s;}</style><body></body></html>""" % (self.background_color,)
+	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
 		else:
 			if item is not None:
 				html = (
@@ -282,13 +275,13 @@ class EntryView:
 	            .content {padding-left:20pt;margin-top:12pt;}
 	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
 	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self.background_color,self.foreground_color,self.htmlify_item(item))
+	            <title>title</title></head><body>%s</body></html>""") % (self._background_color,self._foreground_color,self._htmlify_item(item))
 			else:
 				html="""<html><style type="text/css">
-	            body { background-color: %s; }</style><body></body></html>""" % (self.background_color,)
+	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
 		#print html
 		html = html.encode('utf-8')
-		if self.RENDERRER == GTKHTML:
+		if self._RENDERRER == GTKHTML:
 			if len(highlight)>0:
 				try:
 					highlight = highlight.replace("*","")
@@ -301,17 +294,17 @@ class EntryView:
 			p.feed(html)
 			uncached=0
 			for url in p.images:
-				if self.image_cache.is_cached(url)==False:
+				if self._image_cache.is_cached(url)==False:
 					uncached+=1
 			if uncached>0:
 				self._document.clear()
 				self._document.open_stream("text/html")
-				d = { 	"background_color": self.background_color,
+				d = { 	"background_color": self._background_color,
 						"loading": _("Loading images...")}
 				self._document.write_stream("""<html><style type="text/css">
             body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
 				self._document.close_stream()
-				image_loader_thread = threading.Thread(None, self.do_download_images, None, (self.current_entry['entry_id'], html, p.images))
+				image_loader_thread = threading.Thread(None, self._do_download_images, None, (self._current_entry['entry_id'], html, p.images))
 				image_loader_thread.start()
 				return #so we don't bother rescrolling, below
 			else:
@@ -319,32 +312,32 @@ class EntryView:
 				self._document.open_stream("text/html")
 				self._document.write_stream(html)
 				self._document.close_stream()
-		elif self.RENDERRER == MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
-			self.moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
-			self.moz.append_data(html, long(len(html)))
-			self.moz.close_stream()
+		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+			self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
+			self._moz.append_data(html, long(len(html)))
+			self._moz.close_stream()
 		
 		if rescroll==1:
-			va.set_value(self.current_scroll_v)
-			ha.set_value(self.current_scroll_h)
+			va.set_value(self._current_scroll_v)
+			ha.set_value(self._current_scroll_h)
 		else:
 			va.set_value(va.lower)
 			ha.set_value(ha.lower)
 		return
 	
-	def do_download_images(self, entry_id, html, images):
-		self.document_lock.acquire()
+	def _do_download_images(self, entry_id, html, images):
+		self._document_lock.acquire()
 		for url in images:
-			self.image_cache.get_image(url)
+			self._image_cache.get_image(url)
 		#we need to go out to the app so we can queue the load request
 		#in the main gtk thread
 		self._app._entry_image_download_callback(entry_id, html)
-		self.document_lock.release()
+		self._document_lock.release()
 		
 	def _images_loaded(self, entry_id, html):
 		#if we're changing, nevermind.
 		#also make sure entry is the same and that we shouldn't be blanks
-		if self.main_window.is_changing_layout() == False and entry_id == self.current_entry['entry_id'] and self.currently_blank == False:
+		if self._main_window.is_changing_layout() == False and entry_id == self._current_entry['entry_id'] and self._currently_blank == False:
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			self._document.clear()
@@ -353,39 +346,39 @@ class EntryView:
 			self._document.close_stream()
 		
 	def display_custom_entry(self, message):
-		if self.RENDERRER==GTKHTML:
-			self.document_lock.acquire()
+		if self._RENDERRER==GTKHTML:
+			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
 			self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %s; }</style><body>%s</body></html>""" % (self.background_color,message))
+            body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
 			self._document.close_stream()
-			self.document_lock.release()
-		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
-			self.moz.open_stream("http://ywwg.com","text/html")
-			self.moz.append_data(message, long(len(message)))
-			self.moz.close_stream()		
+			self._document_lock.release()
+		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+			self._moz.open_stream("http://ywwg.com","text/html")
+			self._moz.append_data(message, long(len(message)))
+			self._moz.close_stream()		
 		#self.scrolled_window.hide()
-		self.custom_entry = True
+		self._custom_entry = True
 		return
 		
 	def undisplay_custom_entry(self):
-		if self.custom_entry:
+		if self._custom_entry:
 			message = "<html></html>"
-			if self.RENDERRER==GTKHTML:
-				self.document_lock.acquire()
+			if self._RENDERRER==GTKHTML:
+				self._document_lock.acquire()
 				self._document.clear()
 				self._document.open_stream("text/html")
 				self._document.write_stream(message)
 				self._document.close_stream()
-				self.document_lock.release()
-			elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
-				self.moz.open_stream("http://ywwg.com","text/html")
-				self.moz.append_data(message, long(len(message)))
-				self.moz.close_stream()	
-			self.custom_entry = False
+				self._document_lock.release()
+			elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+				self._moz.open_stream("http://ywwg.com","text/html")
+				self._moz.append_data(message, long(len(message)))
+				self._moz.close_stream()	
+			self._custom_entry = False
 
-	def htmlify_item(self, item):
+	def _htmlify_item(self, item):
 		""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
 		    but there are lots of alternate designs depending on the status of media. """
 	
@@ -412,8 +405,8 @@ class EntryView:
 						ret.append('<p><i>'+medium['progress_message']+'</i> '+
 						                    utils.html_command('pause:',medium['media_id'])+' '+
 						                    utils.html_command('stop:',medium['media_id'])+'</p>')
-					elif self.mm.has_downloader(medium['media_id']): #we have a downloader object
-						downloader = self.mm.get_downloader(medium['media_id'])
+					elif self._mm.has_downloader(medium['media_id']): #we have a downloader object
+						downloader = self._mm.get_downloader(medium['media_id'])
 						if downloader.status == Downloader.DOWNLOADING:
 							d = {'progress':downloader.progress,
 							     'size':utils.format_size(medium['size'])}
@@ -436,8 +429,8 @@ class EntryView:
 						ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
 																  utils.html_command('stop:',medium['media_id'])+'</p>')
 				elif medium['download_status'] == ptvDB.D_DOWNLOADED:
-					if self.mm.has_downloader(medium['media_id']):	
-						downloader = self.mm.get_downloader(medium['media_id'])
+					if self._mm.has_downloader(medium['media_id']):	
+						downloader = self._mm.get_downloader(medium['media_id'])
 						ret.append('<p>'+ str(downloader.message)+'</p>')
 					filename = medium['file'][medium['file'].rfind("/")+1:]
 					if utils.is_known_media(medium['file']): #we have a handler
@@ -459,8 +452,8 @@ class EntryView:
 									 utils.html_command('redownload',medium['media_id'])+' '+
 									 utils.html_command('delete:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))	
 				elif medium['download_status'] == ptvDB.D_ERROR:
-					if self.mm.has_downloader(medium['media_id']):	
-						downloader = self.mm.get_downloader(medium['media_id'])
+					if self._mm.has_downloader(medium['media_id']):	
+						downloader = self._mm.get_downloader(medium['media_id'])
 						error_msg = downloader.message
 					else:
 						error_msg = _("There was an error downloading the file.")
@@ -496,22 +489,22 @@ class EntryView:
                 style.base[gtk.STATE_INSENSITIVE].red / 256,
                 style.base[gtk.STATE_INSENSITIVE].blue / 256,
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
-		if self.RENDERRER==GTKHTML:
-			self.document_lock.acquire()
+		if self._RENDERRER==GTKHTML:
+			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
 			self._document.write_stream("""<html><style type="text/css">
             body { background-color: %s; }</style><body></body></html>""" % (GRAY,))
 			self._document.close_stream()
-			self.document_lock.release()
-		elif self.RENDERRER==MOZILLA or self.RENDERRER == DEMOCRACY_MOZ or self.RENDERRER == GECKOEMBED:
-			self.moz.open_stream("http://ywwg.com","text/html")
+			self._document_lock.release()
+		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+			self._moz.open_stream("http://ywwg.com","text/html")
 			message = """<html><style type="text/css">
             body { background-color: %s; }</style><body></body></html>""" % (GRAY,)
-			self.moz.append_data(message, long(len(message)))
-			self.moz.close_stream()		
+			self._moz.append_data(message, long(len(message)))
+			self._moz.close_stream()		
 		#self.scrolled_window.hide()
-		self.custom_entry = True
+		self._custom_entry = True
 		return
 		
 #class EntryDownloaderThread(threading.Thread):

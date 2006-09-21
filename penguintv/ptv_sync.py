@@ -58,8 +58,8 @@ class ptv_sync:
 								continue
 							locallist.append([feed[1],medium['file'],source_size])
 					
-		db.c.close() #ug
-		db.db.close() #yuck
+		db._c.close() #ug
+		db._db.close() #yuck
 		
 		if self.delete:
 			for root,dirs,files in os.walk(self.dest_dir):
