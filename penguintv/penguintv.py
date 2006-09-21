@@ -15,7 +15,7 @@
 
 import urlparse
 import threading
-import sys,os, os.path
+import sys, os, os.path
 import traceback
 import urllib
 import time
@@ -23,6 +23,8 @@ import sets
 import string
 import timeoutsocket
 
+import pygtk
+pygtk.require('2.0')
 import gtk
 import gnome.ui
 import gtk.glade
@@ -34,6 +36,8 @@ import HTMLParser
 import feedparser
 
 import PyLucene
+
+import gtkmozembed
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -49,11 +53,11 @@ DOWNLOAD_PROGRESS=1
 DOWNLOAD_WARNING=2
 DOWNLOAD_QUEUED=3
 
+import utils
 import ptvDB
 import MediaManager
 import Player
 import UpdateTasksManager
-import utils
 import Downloader
 import PTVAppSocket
 
@@ -185,13 +189,16 @@ class PenguinTVApp:
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
 		self._entry_view = self.main_window.entry_view
-
+		
 		self.main_window.search_container.set_sensitive(False)
-		if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
-			self.main_window.search_entry.set_text(_("Please wait..."))
-			self.main_window.display_status_message(_("Reindexing Feeds..."))
-			self.db.doindex(self._sensitize_search)
-			self.feed_list_view.populate_feeds(self._done_populating_dont_sensitize)
+		if ptvDB.LUCENE:
+			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
+				self.main_window.search_entry.set_text(_("Please wait..."))
+				self.main_window.display_status_message(_("Reindexing Feeds..."))
+				self.db.doindex(self._sensitize_search)
+				self.feed_list_view.populate_feeds(self._done_populating_dont_sensitize)
+			else:
+				self.feed_list_view.populate_feeds(self._done_populating)
 		else:
 			self.feed_list_view.populate_feeds(self._done_populating)
 		if self._autoresume:
@@ -880,8 +887,10 @@ class PenguinTVApp:
 			self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
 		
 	class _threaded_searcher(PyLucene.PythonThread):
+	#class _threaded_searcher(threading.Thread):
 		def __init__(self, query, callback, done_callback):
 			PyLucene.PythonThread.__init__(self)
+			#threading.Thread.__init__(self)
 			self.query = query
 			self.callback = callback
 			self.done_callback = done_callback
@@ -1346,8 +1355,10 @@ class PenguinTVApp:
 				
 			
 	class DBUpdaterThread(PyLucene.PythonThread):
+	#class DBUpdaterThread(threading.Thread):
 		def __init__(self, polling_callback=None):
 			PyLucene.PythonThread.__init__(self)
+			#threading.Thread.__init__(self)
 			self.__isDying = False
 			self.db = None
 			self.updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.MANUAL, "db updater")
@@ -1384,6 +1395,56 @@ class PenguinTVApp:
 			""" Exit the run loop next time through."""
 	        
 			self.__isDying = True
+			
+class app1:
+	def __init__(self):
+		pass
+		
+	def moz_window(self):
+		window = gtk.Window(gtk.WINDOW_TOPLEVEL)
+		
+		
+	    
+	    # When the window is given the "delete_event" signal (this is given
+	    # by the window manager, usually by the "close" option, or on the
+	    # titlebar), we ask it to call the delete_event () function
+	    # as defined above. The data passed to the callback
+	    # function is NULL and is ignored in the callback function.
+	    
+	    # Here we connect the "destroy" event to a signal handler.  
+	    # This event occurs when we call gtk_widget_destroy() on the window,
+	    # or if we return FALSE in the "delete_event" callback.
+	    
+	    # Sets the border width of the window.
+		window.set_border_width(10)
+
+	    # Creates a new button with the label "Hello World".
+	    
+	    # The final step is to display this newly created widget.
+	    #self.button.show()
+		self.__embed = gtkmozembed.MozEmbed()
+	    #self._embed.connect("title", self.__title_cb)
+	    #embed.connect("open-uri", self.__open_uri)
+		window.add(self.__embed)		
+		self.__embed.show()
+		self.__embed.load_url('http://www.google.com')
+		#embed.load_url('http://www.google.com')
+		window.show()
+		
+	def moz2(self):
+		html = """<html><head></head><body>
+			
+			
+			<img src="http://boasas.com/boasas/700.gif"/>
+			<img src="/images/eileen_parking.jpg"/>
+			<img src="http://www.boingboing.net/images/_catalog_covers_0596101538_cat.jpg"></body></html>"""
+			
+		self.__embed.open_stream("http://www.boingboing.net/","text/html")
+		self.__embed.append_data(html, long(len(html)))
+		self.__embed.close_stream()
+
+		return False
+		
 		
 def main():
 	gnome.init("PenguinTV", utils.VERSION)
@@ -1392,7 +1453,7 @@ def main():
 		sys.exit(0)
 	app.main_window.Show() 
 	gobject.idle_add(app.post_show_init) #lets window appear first)
-	gtk.threads_init()
+	gtk.gdk.threads_init()
 	if utils.is_kde():
 		try:
 			from kdecore import KApplication, KCmdLineArgs, KAboutData
@@ -1419,10 +1480,11 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		sys.exit(0)
 	app.main_window.Show() 
 	gobject.idle_add(app.post_show_init) #lets window appear first)
-	gtk.threads_init()
+	gtk.gdk.threads_init()
 #	import profile
 #	profile.run('gtk.main()', 'pengprof')
 	if utils.is_kde():
+	#if False:
 		try:
 			from kdecore import KApplication, KCmdLineArgs, KAboutData
 			from kdeui import KMainWindow
@@ -1438,5 +1500,17 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 			
 		except:
 			print "Unable to initialize KDE"
-			sys.exit(1)	
+			sys.exit(1)
+			
+	#from test import HelloWorld
+	#app = HelloWorld()
+	#app.main()	
+	#path = os.path.join(".",'penguintv.glade')
+	#print path
+	#gtk.glade.XML(path, "window_rename_feed",'penguintv')
+	#app = app1()
+	#app.moz_window()	
+	#gobject.timeout_add(1000, app.moz2)	
 	gtk.main()
+	
+

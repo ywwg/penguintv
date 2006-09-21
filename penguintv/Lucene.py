@@ -4,8 +4,7 @@ import utils
 from pysqlite2 import dbapi2 as sqlite
 from threading import Lock
 import HTMLParser
-
-import time
+from time import sleep
 
 """
 This class does the searching for PenguinTV.  It has full access to its own database object.
@@ -15,6 +14,7 @@ ENTRY_LIMIT=100
 
 class Lucene:
 	def __init__(self):
+		print "AN OBJECT IS BORN"
 		try:
 			self.home=os.getenv('HOME')
 			os.stat(os.path.join(self.home,".penguintv"))
@@ -110,7 +110,8 @@ class Lucene:
 	                                           Field.Index.TOKENIZED))       
 				writer.addDocument(doc)  
 			except Exception, e:
-				print "Failed in indexDocs:", e                      
+				print "Failed in indexDocs:", e      
+			sleep(0)   #http://twistedmatrix.com/pipermail/twisted-python/2005-July/011052.html           
 		
 		print  "indexing entries"
 		
@@ -143,6 +144,7 @@ class Lucene:
 				writer.addDocument(doc)  
 			except Exception, e:
 				print "Failed in indexDocs:", e    
+			sleep(0)
 				
 		print "optimizing"
 		writer.optimize()

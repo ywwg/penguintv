@@ -56,7 +56,7 @@ class MainWindow:
 		self._bar_owner = U_NOBODY
 		self._status_owner = U_NOBODY
 		
-		#other WINDOWS we open
+		##other WINDOWS we open
 		self._window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self._app) #MAGIC
 		self._window_rename_feed.hide()
 		self._window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_edit_tags_single",'penguintv'),self._app)
@@ -192,8 +192,7 @@ class MainWindow:
 		
 		load_renderrer(renderrer)
 		self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
-		
-				
+			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				components.signal_connect(key, getattr(self, key))

@@ -21,6 +21,7 @@ import sets
 import pickle
 
 import Lucene
+LUCENE = False
 
 import timeoutsocket
 import smtplib
@@ -33,6 +34,7 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 import utils
+
 
 
 NEW = 0
@@ -130,7 +132,8 @@ class ptvDB:
 		else:
 			self.polling_callback = polling_callback		
 			
-		self.searcher = Lucene.Lucene()
+		if LUCENE:
+			self.searcher = Lucene.Lucene()
 		try:
 			self._blacklist = self.get_feeds_for_tag(NOSEARCH)
 		except:
@@ -149,7 +152,8 @@ class ptvDB:
 		
 	def finish(self):
 		self._exiting=True
-		self.searcher.finish()
+		if LUCENE:
+			self.searcher.finish()
 		#self._c.close() finish gets called out of thread so this is bad
 		#self._db.close()
 
@@ -581,7 +585,8 @@ class ptvDB:
 			else:
 				return
 		
-		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
+		#pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
+		pool = ThreadPool.ThreadPool(6,"ptvDB")
 		self._parse_list = []
 		for feed in feeds:
 			if self._cancel_poll_multiple or self._exiting:
@@ -1231,19 +1236,19 @@ class ptvDB:
 			if str(item['guid'])!='0':
 				if str(entry_item[GUID]) == str(item['guid']):# and entry_item[TITLE] == item['title']:
 					entry_id = entry_item[ID]
-					old_hash.update(self.self._ascii(entry_item[GUID])+self.self._ascii(entry_item[BODY]))
-					new_hash.update(self.self._ascii(item['guid'])+self.self._ascii(item['body']))
+					old_hash.update(self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY]))
+					new_hash.update(self._ascii(item['guid'])+self._ascii(item['body']))
 					break
 			elif item['link']!='':
 				if entry_item[LINK] == item['link'] and entry_item[TITLE] == item['title']:
 					entry_id = entry_item[ID]
-					old_hash.update(self.self._ascii(entry_item[LINK])+self.self._ascii(entry_item[BODY]))
-					new_hash.update(self.self._ascii(item['link'])+self.self._ascii(item['body']))
+					old_hash.update(self._ascii(entry_item[LINK])+self._ascii(entry_item[BODY]))
+					new_hash.update(self._ascii(item['link'])+self._ascii(item['body']))
 					break
 			elif entry_item[TITLE] == item['title']:
 				entry_id = entry_item[ID]
-				old_hash.update(self.self._ascii(entry_item[TITLE])+self.self._ascii(entry_item[BODY]))
-				new_hash.update(self.self._ascii(item['title'])+self.self._ascii(item['body']))
+				old_hash.update(self._ascii(entry_item[TITLE])+self._ascii(entry_item[BODY]))
+				new_hash.update(self._ascii(item['title'])+self._ascii(item['body']))
 				break
 
 		if entry_id == -1:
@@ -1960,9 +1965,9 @@ class ptvDB:
 		o['title']='All'
 		for feed in result:
 			item = OPML.Outline()
-			item['title']=self.self._ascii(feed[0])
-			item['text']=self.self._ascii(feed[0])
-			item['description']=self.self._ascii(feed[1])
+			item['title']=self._ascii(feed[0])
+			item['text']=self._ascii(feed[0])
+			item['description']=self._ascii(feed[1])
 			item['xmlUrl']=feed[2]
 			o.outlines.append(item)
 		o.output(stream)
@@ -2003,6 +2008,8 @@ class ptvDB:
 		yield (-1,0)
 		
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
+		if not LUCENE:
+			return ([],[])
 		if blacklist is None:
 			blacklist = self._blacklist
 		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
@@ -2010,10 +2017,13 @@ class ptvDB:
 		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):
-		self.searcher.Do_Index_Threaded(callback)
+		if LUCENE:
+			self.searcher.Do_Index_Threaded(callback)
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
+		if not LUCENE:
+			return
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list
 		try:
@@ -2178,7 +2188,7 @@ class ptvDB:
 	
 	def _ascii(self, text):
 		try:
-			return text.encode('self._ascii','replace')
+			return text.encode('ascii','replace')
 		except UnicodeDecodeError:
 			return u''
 
@@ -2201,9 +2211,9 @@ class ptvDB:
 		for item in a:
 			try:
 			#item2=(str(item[0]),item[1]/(60),time.asctime(time.localtime(item[2])))
-				print self.self._ascii(item[0])+" "*(max_len-len(str(item[0])))+" "+str(item[1]/60)+"       "+time.asctime(time.localtime(item[2]))+" "+str(item[3])
+				print self._ascii(item[0])+" "*(max_len-len(str(item[0])))+" "+str(item[1]/60)+"       "+time.asctime(time.localtime(item[2]))+" "+str(item[3])
 			except:
-				print "whoops: "+ self.self._ascii(item[0]) 
+				print "whoops: "+ self._ascii(item[0]) 
 
 			#print item2
 		print "-"*80
@@ -2216,9 +2226,9 @@ class ptvDB:
 		for item in a:
 			try:
 			#item2=(str(item[0]),item[1]/(60),time.asctime(time.localtime(item[2])))
-				print self.self._ascii(item[0])+" "*(max_len-len(str(item[0])))+" "+str(item[1]/60)+"       "+time.asctime(time.localtime(item[2]))+" "+ str(item[3])
+				print self._ascii(item[0])+" "*(max_len-len(str(item[0])))+" "+str(item[1]/60)+"       "+time.asctime(time.localtime(item[2]))+" "+ str(item[3])
 			except:
-				print "whoops: "+ self.self._ascii(item[0])
+				print "whoops: "+ self._ascii(item[0])
 			#print item2
 			
 		print "-"*80
@@ -2232,9 +2242,9 @@ class ptvDB:
 		for item in a:
 			try:
 			#item2=(str(item[0]),item[1]/(60),time.asctime(time.localtime(item[2])))
-				print self.self._ascii(item[0])+" "*(max_len-len(self.self._ascii(item[0])))+" "+str(item[1]/60)+"       "+time.asctime(time.localtime(item[2]))+" "+ str(item[3])
+				print self._ascii(item[0])+" "*(max_len-len(self._ascii(item[0])))+" "+str(item[1]/60)+"       "+time.asctime(time.localtime(item[2]))+" "+ str(item[3])
 			except:
-				print "whoops: "+ self.self._ascii(item[0])
+				print "whoops: "+ self._ascii(item[0])
 			#print item2
 			
 	def DEBUG_delete_all_media(self):		

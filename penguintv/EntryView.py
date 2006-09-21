@@ -13,6 +13,13 @@ import re
 
 #import traceback
 
+try:
+	#not good enough to load it below.  need to load it module-wide
+	#or else random images don't load
+	import gtkmozembed
+except:
+	pass
+
 GTKHTML=0
 MOZILLA=1
 DEMOCRACY_MOZ=2
@@ -82,12 +89,14 @@ class EntryView:
 			self._document_lock = threading.Lock()
 			self._image_cache = SimpleImageCache.SimpleImageCache()
 		elif self._RENDERRER==MOZILLA:
+			gtkmozembed.set_profile_path(os.path.join(os.getenv('HOME'),".penguintv"), 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)
-			#self._moz.connect("link-messsage", self._moz_link_message)
+			self._moz.connect("link-message", self._moz_link_message)
 			self._moz.load_url("about:blank")
-			self._moz.get_location()
 			scrolled_window.add_with_viewport(self._moz)
+			#scrolled_window.add(self._moz)
+			self._moz.show()
 			import gconf
 			self._conf = gconf.client_get_default()
 			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
@@ -98,7 +107,6 @@ class EntryView:
 			self._moz.connect("link-message", self._moz_link_message)
 			self._mb.setURICallBack(self._dmoz_link_clicked)
 			self._moz.load_url("about:blank")
-			self._moz.get_location()
 			scrolled_window.add_with_viewport(self._moz)
 			import gconf
 			self._conf = gconf.client_get_default()
@@ -118,7 +126,7 @@ class EntryView:
 			
 		scrolled_window.show_all()
 		#self.display_custom_entry("<html></html>")
-		
+			
 	def on_url(self, view, url):
 		if url == None:
 			url = ""
@@ -126,21 +134,16 @@ class EntryView:
 		return
 		
 	def _moz_link_message(self, data):
-		print "boink"
-		print self._moz.get_link_message()
+		self._main_window.display_status_message(self._moz.get_link_message())
 
 	def _link_clicked(self, document, link):
 		link = link.strip()
 		self._app.activate_link(link)
 		return
 		
-	def _moz_link_clicked(self, mozembed, uri):
-		#WAIT:  gtkmozembed is returning the wrong type -- coming out as a pointer, should be string
-		#wait for fixes
-		print "when this stops being a pointer, we can use MOZ"
-		print uri
-		#link = link.strip()
-		#self._app.activate_link(link)
+	def _moz_link_clicked(self, mozembed, link):
+		link = link.strip()
+		self._app.activate_link(link)
 		return True #don't load url please
 		 
 	def _dmoz_link_clicked(self, link):
@@ -312,7 +315,7 @@ class EntryView:
 				self._document.open_stream("text/html")
 				self._document.write_stream(html)
 				self._document.close_stream()
-		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:	
 			self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 			self._moz.append_data(html, long(len(html)))
 			self._moz.close_stream()
@@ -324,7 +327,7 @@ class EntryView:
 			va.set_value(va.lower)
 			ha.set_value(ha.lower)
 		return
-	
+		
 	def _do_download_images(self, entry_id, html, images):
 		self._document_lock.acquire()
 		for url in images:
@@ -346,6 +349,7 @@ class EntryView:
 			self._document.close_stream()
 		
 	def display_custom_entry(self, message):
+		return
 		if self._RENDERRER==GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
@@ -363,6 +367,7 @@ class EntryView:
 		return
 		
 	def undisplay_custom_entry(self):
+		return
 		if self._custom_entry:
 			message = "<html></html>"
 			if self._RENDERRER==GTKHTML:
@@ -561,7 +566,7 @@ class HTMLHighlightParser(HTMLParser.HTMLParser):
 					place = data_u.find(term, place)
 					if place == -1:
 						break
-					data=data[:place]+self.style_start+data[place:place+l]+self.style_end+data[place+l:]
-					data_u=data_u[:place]+self.style_start+data_u[place:place+l]+self.style_end+data_u[place+l:]
+					data   = data  [:place] + self.style_start + data  [place:place+l] + self.style_end + data  [place+l:]
+					data_u = data_u[:place] + self.style_start + data_u[place:place+l] + self.style_end + data_u[place+l:]
 					place+=len(self.style_start)+len(term)+len(self.style_end)
 		self.new_data+=data
