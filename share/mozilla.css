@@ -1,0 +1,50 @@
+dd { 
+	padding-left: 20pt; 
+}  <!-- for eschaton -->
+
+q { font-style: italic;}
+
+.heading { 
+	background-color: #f0f0ff; 
+	border-width:1px; 
+	border-style: solid; 
+	padding:12pt; 
+	margin:12pt; 
+}
+
+blockquote { 
+	display: block; 
+	color: #444444; 
+	background-color:#EEEEFF; 
+	border-color:#DDDDDD; 
+	border-width:2px; 
+	border-style: solid; 
+	padding:12pt; 
+	margin:12pt;
+}
+
+.stitle {
+	font-size:14pt; 
+	font-weight:bold; 
+	font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; 
+	padding-bottom:20pt;
+}
+
+.sdate {
+	font-size:8pt; 
+	color: #777777
+}
+
+.content {
+	padding-left:20pt;
+	margin-top:12pt;
+}
+
+.media {
+	background-color:#EEEEEE; 
+	border-color:#000000; 
+	border-width:2px; 
+	border-style: solid; 
+	padding:8pt; 
+	margin:8pt; 
+}

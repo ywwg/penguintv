@@ -15,7 +15,7 @@ import re
 
 try:
 	#not good enough to load it below.  need to load it module-wide
-	#or else random images don't load
+	#or else random images don't load.  gtkmozembed is VERY picky!
 	import gtkmozembed
 except:
 	pass
@@ -27,6 +27,7 @@ DEMOCRACY_MOZ=2
 class EntryView:
 	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
 		self._app = app
+		self._db = self._app.db
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
 		self._RENDERRER = renderrer
@@ -73,8 +74,13 @@ class EntryView:
 		#		print "#%.2x%.2x%.2x;" % (style[category].red / 256, style[category].blue / 256,style[category].green / 256)
 		#	print "==========="
         
-        #const found in __init__        
+        #const found in __init__   
+        
+		self._css = ""
 		if self._RENDERRER==GTKHTML:
+			f = open (os.path.join(self._app.glade_prefix,"gtkhtml.css"))
+			for l in f.readlines(): self._css += l
+			f.close()
 			scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
 			htmlview = gtkhtml2.View()
 			self._document = gtkhtml2.Document()
@@ -93,28 +99,40 @@ class EntryView:
 			self._document_lock = threading.Lock()
 			self._image_cache = SimpleImageCache.SimpleImageCache()
 		elif self._RENDERRER==MOZILLA:
+			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
+			for l in f.readlines(): self._css += l
+			f.close()
 			gtkmozembed.set_profile_path(os.path.join(os.getenv('HOME'),".penguintv"), 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)
+			self._moz.connect("realize", self._moz_realize, True)
+			self._moz.connect("unrealize", self._moz_realize, False)
 			self._moz.load_url("about:blank")
 			html_dock.add(self._moz)
 			#scrolled_window.add(self._moz)
 			self._moz.show()
-			import gconf
-			self._conf = gconf.client_get_default()
-			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			if ptvDB.HAS_GCONF:
+				import gconf
+				self._conf = gconf.client_get_default()
+				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
 		elif self._RENDERRER==DEMOCRACY_MOZ:
+			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
+			for l in f.readlines(): self._css += l
+			f.close()
 			self._mb = MozillaBrowser.MozillaBrowser()
 			self._moz = self._mb.getWidget()
 			self._moz.connect("link-message", self._moz_link_message)
+			self._moz.connect("realize", self._moz_realize, True)
+			self._moz.connect("unrealize", self._moz_realize, False)
 			self._mb.setURICallBack(self._dmoz_link_clicked)
 			self._moz.load_url("about:blank")
 			html_dock.add_with_viewport(self._moz)
-			import gconf
-			self._conf = gconf.client_get_default()
-			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			if ptvDB.HAS_GCONF:
+				import gconf
+				self._conf = gconf.client_get_default()
+				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
 			
 		html_dock.show_all()
@@ -138,6 +156,9 @@ class EntryView:
 		link = link.strip()
 		self._app.activate_link(link)
 		return True #don't load url please
+	
+	def _moz_realize(self, widget, realized):
+		self._moz_realized = realized
 		 
 	def _dmoz_link_clicked(self, link):
 		link = link.strip()
@@ -160,7 +181,7 @@ class EntryView:
 				return False
 			return True
 				
-		moz_font = self._conf.get_string('/desktop/gnome/interface/font_name')
+		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name')
 		#take just the beginning for the font name.  prepare for dense, unreadable code
 		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
@@ -195,6 +216,41 @@ class EntryView:
 			return	
 		#assemble the updated info and display
 		self._app.display_entry(self._current_entry['entry_id'])
+		
+	def display_custom_entry(self, message):
+		if self._RENDERRER==GTKHTML:
+			self._document_lock.acquire()
+			self._document.clear()
+			self._document.open_stream("text/html")
+			self._document.write_stream("""<html><style type="text/css">
+            body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
+			self._document.close_stream()
+			self._document_lock.release()
+		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+			if self._moz_realized:
+				self._moz.open_stream("http://ywwg.com","text/html")
+				self._moz.append_data(message, long(len(message)))
+				self._moz.close_stream()		
+		#self.scrolled_window.hide()
+		self._custom_entry = True
+		return
+		
+	def undisplay_custom_entry(self):
+		if self._custom_entry:
+			message = "<html></html>"
+			if self._RENDERRER==GTKHTML:
+				self._document_lock.acquire()
+				self._document.clear()
+				self._document.open_stream("text/html")
+				self._document.write_stream(message)
+				self._document.close_stream()
+				self._document_lock.release()
+			elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+				if self._moz_realized:
+					self._moz.open_stream("http://ywwg.com","text/html")
+					self._moz.append_data(message, long(len(message)))
+					self._moz.close_stream()	
+			self._custom_entry = False
 	
 	def display_item(self, item=None, highlight=""):
 		if self._RENDERRER == GTKHTML:
@@ -230,29 +286,21 @@ class EntryView:
 		style_adjustments=""
 		if self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
 			if item is not None:
+				#no comments in css { } please!
+				#FIXME windows: os.path.join... wrong direction slashes?  does moz care?
 				html = (
 	            """<html><head>
 	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	            <style type="text/css">
-	            body { background-color: %s;
-	            	   color: %s;
-	                   font-family: %s;
-	                   font-size: %s;
-	                   <!--  Why doesn't background-image work?
-	                   background-image:  url('file:///home/owen/src/penguintv/cvs/trunk/penguintv/share/penguintvicon.png');
-					   background-repeat: no-repeat;
-					   background-attachment: fixed-->
-			    }
-	            dd { padding-left: 20pt; }  <!-- for eschaton -->
-	            q { font-style: italic;}
-	            .heading { background-color: #f0f0ff; border-width:1px; border-style: solid; padding:12pt; margin:12pt; }
-	            blockquote { display: block; color: #444444; background-color:#EEEEFF; border-color:#DDDDDD; border-width:2px; border-style: solid; padding:12pt; margin:12pt;}
-	            .stitle {font-size:14pt; font-weight:bold; font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; padding-bottom:20pt;}
-	            .sdate {font-size:8pt; color: #777777}
-	            .content {padding-left:20pt;margin-top:12pt;}
-	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
+				<style type="text/css">
+	            body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
+	            %s
 	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self._background_color,self._foreground_color,self._moz_font, self._moz_size, self._htmlify_item(item))
+	            <title>title</title></head><body>%s</body></html>""") % (self._background_color,
+	            														 self._foreground_color,
+	            														 self._moz_font, 
+	            														 self._moz_size, 
+	            														 self._css, 
+	            														 self._htmlify_item(item))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
@@ -262,31 +310,31 @@ class EntryView:
 	            """<html><head>
 	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 	            <style type="text/css">
-	            body { background-color: %s;color: %s;}
-	            dd { padding-left: 20pt; }  <!-- for eschaton -->
-	            q { font-style: italic;}
-	            .heading { background-color: #f0f0ff; border-width:1px; border-style: solid; padding:12pt; margin:12pt; }
-	            blockquote { display: block; color: #444444; background-color:#EEEEFF; border-color:#DDDDDD; border-width:2px; border-style: solid; padding:12pt; margin:12pt;}
-	            .stitle {font-size:14pt; font-weight:bold; font-family: 'Lucida Grande', Verdana, Arial, Sans-Serif; padding-bottom:20pt;}
-	            .sdate {font-size:8pt; color: #777777}
-	            .content {padding-left:20pt;margin-top:12pt;}
-	            .media {background-color:#EEEEEE; border-color:#000000; border-width:2px; border-style: solid; padding:8pt; margin:8pt; }
+	            body { background-color: %s; color: %s; }
+	            %s
 	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self._background_color,self._foreground_color,self._htmlify_item(item))
+	            <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
+	            														 self._foreground_color,
+	            														 self._css,
+	            														 self._htmlify_item(item))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
-		#print html
+		
+		#do highlighting for search mode
 		html = html.encode('utf-8')
+		if len(highlight)>0:
+			try:
+				highlight = highlight.replace("*","")
+				p = HTMLHighlightParser(highlight)
+				p.feed(html)
+				html = p.new_data
+			except:
+				pass
+			
+		#print html
+			
 		if self._RENDERRER == GTKHTML:
-			if len(highlight)>0:
-				try:
-					highlight = highlight.replace("*","")
-					p = HTMLHighlightParser(highlight)
-					p.feed(html)
-					html = p.new_data
-				except:
-					pass
 			p = HTMLimgParser()
 			p.feed(html)
 			uncached=0
@@ -317,64 +365,12 @@ class EntryView:
 				va.set_value(va.lower)
 				ha.set_value(ha.lower)
 		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:	
-			self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
-			self._moz.append_data(html, long(len(html)))
-			self._moz.close_stream()
+			if self._moz_realized:
+				self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
+				self._moz.append_data(html, long(len(html)))
+				self._moz.close_stream()
 		return
 		
-	def _do_download_images(self, entry_id, html, images):
-		self._document_lock.acquire()
-		for url in images:
-			self._image_cache.get_image(url)
-		#we need to go out to the app so we can queue the load request
-		#in the main gtk thread
-		self._app._entry_image_download_callback(entry_id, html)
-		self._document_lock.release()
-		
-	def _images_loaded(self, entry_id, html):
-		#if we're changing, nevermind.
-		#also make sure entry is the same and that we shouldn't be blanks
-		if self._main_window.is_changing_layout() == False and entry_id == self._current_entry['entry_id'] and self._currently_blank == False:
-			va = self._scrolled_window.get_vadjustment()
-			ha = self._scrolled_window.get_hadjustment()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream(html)
-			self._document.close_stream()
-		
-	def display_custom_entry(self, message):
-		if self._RENDERRER==GTKHTML:
-			self._document_lock.acquire()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
-			self._document.close_stream()
-			self._document_lock.release()
-		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
-			self._moz.open_stream("http://ywwg.com","text/html")
-			self._moz.append_data(message, long(len(message)))
-			self._moz.close_stream()		
-		#self.scrolled_window.hide()
-		self._custom_entry = True
-		return
-		
-	def undisplay_custom_entry(self):
-		if self._custom_entry:
-			message = "<html></html>"
-			if self._RENDERRER==GTKHTML:
-				self._document_lock.acquire()
-				self._document.clear()
-				self._document.open_stream("text/html")
-				self._document.write_stream(message)
-				self._document.close_stream()
-				self._document_lock.release()
-			elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
-				self._moz.open_stream("http://ywwg.com","text/html")
-				self._moz.append_data(message, long(len(message)))
-				self._moz.close_stream()	
-			self._custom_entry = False
-
 	def _htmlify_item(self, item):
 		""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
 		    but there are lots of alternate designs depending on the status of media. """
@@ -467,6 +463,26 @@ class EntryView:
 			ret.append('<br/><a href="'+item['link']+'">'+_("Full Entry...")+'</a><br />' )
 		ret.append('</p>')
 		return "".join(ret)
+		
+	def _do_download_images(self, entry_id, html, images):
+		self._document_lock.acquire()
+		for url in images:
+			self._image_cache.get_image(url)
+		#we need to go out to the app so we can queue the load request
+		#in the main gtk thread
+		self._app._entry_image_download_callback(entry_id, html)
+		self._document_lock.release()
+		
+	def _images_loaded(self, entry_id, html):
+		#if we're changing, nevermind.
+		#also make sure entry is the same and that we shouldn't be blanks
+		if self._main_window.is_changing_layout() == False and entry_id == self._current_entry['entry_id'] and self._currently_blank == False:
+			va = self._scrolled_window.get_vadjustment()
+			ha = self._scrolled_window.get_hadjustment()
+			self._document.clear()
+			self._document.open_stream("text/html")
+			self._document.write_stream(html)
+			self._document.close_stream()
 
 	def scroll_down(self):
 		""" Old straw function, _still_ not used.  One day I might have "space reading" """
@@ -481,7 +497,6 @@ class EntryView:
 		
 	def finish(self):
 		#just make it gray for quitting
-		
 		if self._RENDERRER==GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()

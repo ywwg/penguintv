@@ -1,13 +1,6 @@
 import gtk
-#import gnome.ui
 import gtk.glade
 import gobject
-#import pango
-#import pycurl
-#import locale
-#import gettext
-import gconf
-#import time
 import sys, os, os.path
 
 import traceback
@@ -65,7 +58,7 @@ class MainWindow:
 		self._about_box = self._about_box_widgets.get_widget('aboutdialog1')
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
 		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
-		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'))
+		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
 		
 		try:
 			self._about_box.set_version(utils.VERSION)
@@ -101,7 +94,6 @@ class MainWindow:
 			self.load_layout(dock_widget)
 		
 	def _load_app_window(self):
-		conf = gconf.client_get_default()
 		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
 		self._layout_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
@@ -125,17 +117,19 @@ class MainWindow:
 		#load the layout
 		self.load_layout(self._layout_dock)
 		self.app_window.show_all()
+		if not ptvDB.HAS_LUCENE:
+			self.search_container.hide_all()
 		
 		#final setup for the window comes from gconf
-		x = conf.get_int('/apps/penguintv/app_window_position_x')
-		y = conf.get_int('/apps/penguintv/app_window_position_y')
-		if x is None:
-			x=40
-		if y is None:
-			y=40
+		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x')
+		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y')
+		if x is None: x=40
+		if y is None: y=40
 		self.app_window.move(x,y)
-		w = conf.get_int('/apps/penguintv/app_window_size_x')
-		h = conf.get_int('/apps/penguintv/app_window_size_y')
+		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x')
+		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y')
+		if w is None: w = 500
+		if h is None: h = 500
 		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
 			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
 			self.app_window.maximize()
@@ -150,13 +144,12 @@ class MainWindow:
 	def load_layout(self,dock_widget):
 		self._app.log("load_layout")
 		#sys.stderr.write("load_layout")
-		conf = gconf.client_get_default()
 		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		dock_widget.add(self._layout_container)
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db)
-		renderrer_str = conf.get_string('/apps/penguintv/renderrer')
+		renderrer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer')
 		renderrer = EntryView.GTKHTML
 		
 		if renderrer_str == "GTKHTML":
@@ -167,6 +160,8 @@ class MainWindow:
 			renderrer = EntryView.MOZILLA
 		elif renderrer_str == "GECKOEMBED":
 			renderrer = EntryView.GECKOEMBED
+		else:
+			renderrer = EntryView.GTKHTML
 		
 		def load_renderrer(x,recur=0):
 			"""little function I define so I can recur"""
@@ -174,20 +169,20 @@ class MainWindow:
 				print "too many tries"
 				self.do_quit()
 				sys.exit(2)
-			try:
-				self.entry_view = EntryView.EntryView(components, self._app, self, x)
-			except Exception, e:
-				print e
-				if renderrer == EntryView.DEMOCRACY_MOZ:
-					if  _FORCE_DEMOCRACY_MOZ:
-						load_renderrer(EntryView.DEMOCRACY_MOZ,recur+1)
-					else:
-						print "Error instantiating Democracy Mozilla renderrer, falling back to GTKHTML"
-						print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
-						load_renderrer(EntryView.GTKHTML,recur+1)
-				else:
-					print "Error loading renderrer"
-					self._app.do_quit()
+			#try:
+			self.entry_view = EntryView.EntryView(components, self._app, self, x)
+			#except Exception, e:
+			#	print e
+			#	if renderrer == EntryView.DEMOCRACY_MOZ:
+			#		if  _FORCE_DEMOCRACY_MOZ:
+			#			load_renderrer(EntryView.DEMOCRACY_MOZ,recur+1)
+			#		else:
+			#			print "Error instantiating Democracy Mozilla renderrer, falling back to GTKHTML"
+			#			print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
+			#			load_renderrer(EntryView.GTKHTML,recur+1)
+			#	else:
+			#		print "Error loading renderrer"
+			#		self._app.do_quit()
 		
 		load_renderrer(renderrer)
 		self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
@@ -242,22 +237,18 @@ class MainWindow:
 									 ('text/plain',0,self._TARGET_TYPE_TEXT)]
 		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 		
-		val = conf.get_int('/apps/penguintv/feed_pane_position')
-		if val is None:
-			val=132
-		if val < 10:
-			val=50
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position')
+		if val is None: val=132
+		if val < 10: val=50
 		self.feed_pane.set_position(val)
-		val = conf.get_int('/apps/penguintv/entry_pane_position')
-		if val is None:
-			val=309
-		if val < 10:
-			val = 50
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position')
+		if val is None: val=309
+		if val < 10: val = 50
 		#self.app_window.show_all()
 		dock_widget.show_all()
 		self.entry_pane.set_position(val)
 		
-		val = conf.get_string('/apps/penguintv/default_filter')
+		val = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/default_filter')
 		if val is not None:
 			try:
 				filter_index = [row[0] for row in filter_combo_model].index(val)
@@ -495,6 +486,10 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def on_filter_combo_changed(self, event):
+		try: #this gets called when we are initially populating the combo list
+			text = self.search_entry.get_text()
+		except:
+			return
 		#print "changed"
 		#print traceback.print_stack()
 		model = self.filter_combo_widget.get_model()
@@ -656,6 +651,8 @@ class MainWindow:
 		self._app.write_feed_cache()
 		self._layout_dock.remove(self._layout_container)
 		self.load_layout(self._layout_dock)
+		if not ptvDB.HAS_LUCENE:
+			self.search_container.hide_all()
 		#self.Hide()
 		#self.Show()
 		self.feed_list_view.populate_feeds(self._app._done_populating)
@@ -705,18 +702,7 @@ class MainWindow:
 		else:
 			if update_category >= self._bar_owner:
 				self._bar_owner = update_category
-				self._status_view.set_progress_percentage(p)		
-		#if update_category == U_STANDARD:
-		#	raise ShouldntHappenError, "only polls and downloads should update the bar"
-		#elif update_category == U_DOWNLOAD:
-		#	if self._bar_owner != U_POLL:
-		#		self._bar_owner = U_DOWNLOAD
-		#		self._status_view.set_progress_percentage(p)
-		#	#else tough luck
-		#elif update_category == U_POLL:
-		#	self._bar_owner = U_POLL
-		#	self._status_view.set_progress_percentage(p)
-		
+				self._status_view.set_progress_percentage(p)
 		
 	def _edit_tags(self):
 		"""Edit Tags clicked, bring up tag editing dialog"""
@@ -737,13 +723,16 @@ class MainWindow:
 
 		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self._db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
+			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
+				continue
 			model.append([builtin,"",False,ptvDB.T_BUILTIN])
 
-		model.append(["---","---",True,ptvDB.T_BUILTIN])			
-		tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
-		if tags:
-			for tag in tags:
-				model.append([tag,"",False,ptvDB.T_SEARCH])
+		if ptvDB.HAS_LUCENE:
+			model.append(["---","---",True,ptvDB.T_BUILTIN])			
+			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
+			if tags:
+				for tag in tags:
+					model.append([tag,"",False,ptvDB.T_SEARCH])
 		
 		model.append(["---","---",True,ptvDB.T_BUILTIN])
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
@@ -753,10 +742,11 @@ class MainWindow:
 		
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
-		if index is not None:
-			self.filter_combo_widget.set_active(index)
-		else:
-			self.filter_combo_widget.set_active(FeedList.ALL)
+		if not self.changing_layout:
+			if index is not None:
+				self.filter_combo_widget.set_active(index)
+			else:
+				self.filter_combo_widget.set_active(FeedList.ALL)
 			
 	def get_filter_name(self, filt):
 		model = self.filter_combo_widget.get_model()
@@ -769,7 +759,6 @@ class MainWindow:
 			return None
 		return names.index(filter_name)
 
-	#def populate_and_select(self, feed_id):
 	def select_feed(self, feed_id):
 		#self.feed_list_view.populate_feeds()
 		self.filter_combo_widget.set_active(FeedList.ALL)

@@ -20,8 +20,17 @@ import gettext
 import sets
 import pickle
 
-import Lucene
-LUCENE = True
+try:
+	import Lucene
+	HAS_LUCENE = True
+except:
+	HAS_LUCENE = False
+	
+try:
+	#import gconf
+	HAS_GCONF = False
+except:
+	HAS_GCONF = False
 
 import timeoutsocket
 import smtplib
@@ -35,12 +44,14 @@ _=gettext.gettext
 
 import utils
 
-
-
 NEW = 0
 EXISTS = 1
 MODIFIED = 2
 DELETED = 3
+
+BOOL    = 1
+INT     = 2
+STRING  = 3
 
 MAX_ARTICLES = 1000
 
@@ -132,8 +143,12 @@ class ptvDB:
 		else:
 			self.polling_callback = polling_callback		
 			
-		if LUCENE:
+		if HAS_LUCENE:
 			self.searcher = Lucene.Lucene()
+			
+		if HAS_GCONF:
+			self._conf = gconf.client_get_default()
+			
 		try:
 			self._blacklist = self.get_feeds_for_tag(NOSEARCH)
 		except:
@@ -152,7 +167,7 @@ class ptvDB:
 		
 	def finish(self):
 		self._exiting=True
-		if LUCENE:
+		if HAS_LUCENE:
 			self.searcher.finish()
 		#self._c.close() finish gets called out of thread so this is bad
 		#self._db.close()
@@ -418,7 +433,48 @@ class ptvDB:
 				elif len(files) == 0:
 					print "deleting "+root
 					utils.deltree(root)
-		
+					
+	def get_setting(self, type, datum):
+		if HAS_GCONF:
+			if   type == BOOL:
+				return self._conf.get_bool(datum)
+			elif type == INT:
+				return self._conf.get_int(datum)
+			elif type == STRING:
+				return self._conf.get_string(datum)
+		else:
+			self._db_execute(self._c, u'SELECT value FROM settings WHERE data=?',(datum,))
+			retval = self._c.fetchone()
+			if retval is not None:
+				return retval[0]
+			return None
+			#else:
+			#	if type == BOOL:
+			#		return False
+			#	elif type == INT:
+			#		return -1
+			#	elif type == STRING:
+			#		return ""
+				
+	def set_setting(self, type, datum, value):
+		if HAS_GCONF:
+			if   type == BOOL:
+				self._conf.set_bool(datum, value)
+			elif type == INT:
+				self._conf.set_int(datum, value)
+			elif type == STRING:
+				self._conf.set_string(datum, value)
+		else:
+			print "set",datum,"to",value,
+			current_val = self.get_setting(type, datum)
+			if current_val is None:
+				print "insert"
+				self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES (?,?)', (datum, value))
+			else:
+				print "update"
+				self._db_execute(self._c, u'UPDATE settings SET value=? WHERE data=?', (value,datum))
+			self._db.commit()
+			
 	def set_feed_cache(self, cachelist):
 		"""Cachelist format:
 		   id, flag, unread, total"""
@@ -586,7 +642,7 @@ class ptvDB:
 				return
 		
 		#pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
-		pool = ThreadPool.ThreadPool(6,"ptvDB")
+		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
 			if self._cancel_poll_multiple or self._exiting:
@@ -1066,11 +1122,12 @@ class ptvDB:
 				item['date_parsed']=(0,0,0,0,0,0,0,0,0)
 				
 				
-			status = self._get_status(item,existing_entries,c)
+			status = self._get_status(item,existing_entries,c, feed_id) #FIXME: remove feedid when done debugging!
 			
-			#print item['title']
+			if feed_id == 351: print item['title']
 			
 			if status[0]==NEW:
+				if feed_id == 351: print "new"
 				new_items = new_items+1
 				#finally insert the entry with fake time
 				#try:
@@ -1090,10 +1147,12 @@ class ptvDB:
 				self._reindex_entry_list.append(entry_id)
 				#flag_list.append(self.get_entry_flag(entry_id, c))
 			elif status[0]==EXISTS:
+				if feed_id == 351: print "exists"
 				self._db_execute(c, """UPDATE entries SET old=0 where id=?""",(status[1],))
 				#flag_list.append(self.get_entry_flag(status[1], c, medialist=status[2]))
 				#db.commit()
 			elif status[0]==MODIFIED:
+				if feed_id == 351: print "modified"
 #				new_items = new_items+1
 				self._db_execute(c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, old=?  WHERE id=?', (item['title'],item['creator'],item['body'], time.mktime(item['date_parsed']),item['guid'],item['link'],'0', status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
@@ -1107,11 +1166,13 @@ class ptvDB:
 							if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
+								if feed_id == 351: print "new media"
 								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				#db.commit()
 						else:
 							media.setdefault('length', 0)
 							media.setdefault('type', 'application/octet-stream')
+							if feed_id == 351: print "new media2"
 							self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				self._reindex_entry_list.append(status[1])
 				#flag_list.append(self.get_entry_flag(status[1], c))
@@ -1220,7 +1281,7 @@ class ptvDB:
 		self._db_execute(c, 'UPDATE feeds SET pollfreq=? WHERE id=?',(poll_freq,feed_id))
 		db.commit()
 		
-	def _get_status(self,item,existing_entries,c):
+	def _get_status(self,item,existing_entries,c, feed_id):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
@@ -1238,17 +1299,20 @@ class ptvDB:
 					entry_id = entry_item[ID]
 					old_hash.update(self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY]))
 					new_hash.update(self._ascii(item['guid'])+self._ascii(item['body']))
+					if feed_id == 351: print "matched on guid"
 					break
 			elif item['link']!='':
 				if entry_item[LINK] == item['link'] and entry_item[TITLE] == item['title']:
 					entry_id = entry_item[ID]
 					old_hash.update(self._ascii(entry_item[LINK])+self._ascii(entry_item[BODY]))
 					new_hash.update(self._ascii(item['link'])+self._ascii(item['body']))
+					if feed_id == 351: print "matched on link"
 					break
 			elif entry_item[TITLE] == item['title']:
 				entry_id = entry_item[ID]
 				old_hash.update(self._ascii(entry_item[TITLE])+self._ascii(entry_item[BODY]))
 				new_hash.update(self._ascii(item['title'])+self._ascii(item['body']))
+				if feed_id == 351: print "matched on title"
 				break
 
 		if entry_id == -1:
@@ -1262,15 +1326,18 @@ class ptvDB:
 			
 			#if they are both zero, return
 			if len(old_media) == 0 and item.has_key('enclosures') == False: 
+				if feed_id == 351: print "no encs"
 				return (EXISTS,entry_id, [])
 			
 			if item.has_key('enclosures'):
 				#if lengths are different, return
 				if len(old_media) != len(item['enclosures']): 
+					if feed_id == 351: print "diff num encs"
 					return (MODIFIED,entry_id, [])
 			else:
 				#if we had some, and now don't, return
 				if len(old_media)>0: 
+					if feed_id == 351: print "diff num encs2"
 					return (MODIFIED,entry_id, [])
 			
 			#we have two lists of the same, non-zero length
@@ -1287,9 +1354,12 @@ class ptvDB:
 			new_media.sort()
 
 			if old_media != new_media:
+				if feed_id == 351: print "diff encs"
 				return (MODIFIED,entry_id,[])
+			if feed_id == 351: print "same encs"
 			return (EXISTS,entry_id, existing_media)
 		else:
+			if feed_id == 351: print "diff"
 			return (MODIFIED,entry_id, [])
 			
 	def get_entry_media(self, entry_id, c=None):
@@ -2008,7 +2078,7 @@ class ptvDB:
 		yield (-1,0)
 		
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
-		if not LUCENE:
+		if not HAS_LUCENE:
 			return ([],[])
 		if blacklist is None:
 			blacklist = self._blacklist
@@ -2017,12 +2087,12 @@ class ptvDB:
 		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):
-		if LUCENE:
+		if HAS_LUCENE:
 			self.searcher.Do_Index_Threaded(callback)
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
-		if not LUCENE:
+		if not HAS_LUCENE:
 			return
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list

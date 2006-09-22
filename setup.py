@@ -164,7 +164,7 @@ if BUILD_MOZ:
 			url              = 'http://penguintv.sourceforge.net',
 			license          = 'GPL',
 			scripts          = ['PenguinTV'],
-			data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png']),
+			data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css']),
 								('share/pixmaps',		['share/penguintvicon.png']),
 								('share/applications',	['penguintv.desktop'])]+locales,
 			packages = ["penguintv", "penguintv/ptvbittorrent", "penguintv/democracy_moz"],
@@ -193,7 +193,7 @@ if BUILD_MOZ==False:
 	url              = 'http://penguintv.sourceforge.net',
 	license          = 'GPL',
 	scripts          = ['PenguinTV'],
-	data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png']),
+	data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css']),
 						('share/pixmaps',		['share/penguintvicon.png']),
 						('share/applications',	['penguintv.desktop'])]+locales,
 	packages = ["penguintv", "penguintv/ptvbittorrent"])

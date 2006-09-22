@@ -87,7 +87,7 @@ class EntryList:
 					print e
 					print "rows: ",rows," item:",item
 		self._entrylist.clear()
-		self._app.display_entry(None)
+		self._app.display_custom_entry("")
 		
 		def populate_gen():
 			i=-1
@@ -130,7 +130,7 @@ class EntryList:
 		"""Automatically adjusts the pane width to match the column width"""
 		#If the second column exists, this cause the first column to shrink,
 		#and then we can set the pane to the same size
-		if self._main_window.layout == "widescreen":			
+		if self._main_window.layout == "widescreen" and self._main_window.app_window is not None:			
 			column = self._widget.get_column(0)
 			new_width = column.get_width()+10
 			listnview_width = self._main_window.app_window.get_size()[0] - self._main_window.feed_pane.get_position()

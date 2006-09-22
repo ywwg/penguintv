@@ -31,11 +31,9 @@ import gtk.glade
 import gobject
 import locale
 import gettext
-import gconf
+	
 import HTMLParser
 import feedparser
-
-import PyLucene
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -86,20 +84,20 @@ class PenguinTVApp:
 			self._for_import.append(sys.argv[1])
 			
 		try:
-			self._glade_prefix = os.path.join(utils.GetPrefix(),"share","penguintv")
-			os.stat(os.path.join(self._glade_prefix,"penguintv.glade"))
+			self.glade_prefix = os.path.join(utils.GetPrefix(),"share","penguintv")
+			os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 		except:
 			try:
-				self._glade_prefix = os.path.join(utils.GetPrefix(),"share")
-				os.stat(os.path.join(self._glade_prefix,"penguintv.glade"))
+				self.glade_prefix = os.path.join(utils.GetPrefix(),"share")
+				os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 			except:
 				try:
-					self._glade_prefix = os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share")
-					os.stat(os.path.join(self._glade_prefix,"penguintv.glade"))
+					self.glade_prefix = os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share")
+					os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 				except:
 					try:
-						self._glade_prefix = os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")
-						os.stat(os.path.join(self._glade_prefix,"penguintv.glade"))
+						self.glade_prefix = os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")
+						os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
 					except:
 						print "error finding glade file."
 						sys.exit()
@@ -119,7 +117,6 @@ class PenguinTVApp:
 		#self.db.maybe_write_term_frequency_table()
 		self.db.clean_media_status()
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
-		self._conf = gconf.client_get_default()
 		self._player = Player.Player()
 		self._updater_db = None
 		self._polled=0      #Used for updating the polling progress bar
@@ -136,11 +133,10 @@ class PenguinTVApp:
 		self._threaded_searcher = None
 		self._waiting_for_search = False
 		
-		window_layout = self._conf.get_string('/apps/penguintv/app_window_layout')
-		if window_layout is None:
-			window_layout='standard'
+		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout')
+		if window_layout is None: window_layout='standard'
 		
-		self.main_window = MainWindow.MainWindow(self,self._glade_prefix) 
+		self.main_window = MainWindow.MainWindow(self,self.glade_prefix) 
 		self.main_window.layout=window_layout
 		
 	def log(self, message):
@@ -161,27 +157,30 @@ class PenguinTVApp:
 			time.sleep(.1)
 
 		#WINDOWS
-		self.window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self) #MAGIC
+		self.window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self) #MAGIC
 		self.window_add_feed.hide()
-		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
+		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
-		#self.layout_changing_dialog = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_changing_layout",'penguintv').get_widget("window_changing_layout")
+		#self.layout_changing_dialog = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_changing_layout",'penguintv').get_widget("window_changing_layout")
 		#self.layout_changing_dialog.connect("delete-event",self.on_window_changing_layout_delete_event)
 		#self.layout_changing_dialog.hide()
 					
 		#gconf
-		self._conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
-		self._conf.notify_add('/apps/penguintv/auto_resume',self.set_auto_resume)
-		self._conf.notify_add('/apps/penguintv/poll_on_startup',self.set_poll_on_startup)
-		self._conf.notify_add('/apps/penguintv/bt_max_port',self.set_bt_maxport)
-		self._conf.notify_add('/apps/penguintv/bt_min_port',self.set_bt_minport)
-		self._conf.notify_add('/apps/penguintv/ul_limit',self.set_bt_ullimit)
-		self._conf.notify_add('/apps/penguintv/feed_refresh_frequency',self.set_polling_frequency)
-		self._conf.notify_add('/apps/penguintv/app_window_layout',self.set_app_window_layout)
-		self._conf.notify_add('/apps/penguintv/feed_refresh_method',self.set_feed_refresh_method)
-		self._conf.notify_add('/apps/penguintv/auto_download',self.set_auto_download)
-		self._conf.notify_add('/apps/penguintv/auto_download_limiter',self.set_auto_download_limiter)
-		self._conf.notify_add('/apps/penguintv/auto_download_limit',self.set_auto_download_limit)
+		if ptvDB.HAS_GCONF:
+			import gconf
+			conf = gconf.client_get_default()
+			conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
+			conf.notify_add('/apps/penguintv/auto_resume',self._gconf_set_auto_resume)
+			conf.notify_add('/apps/penguintv/poll_on_startup',self._gconf_set_poll_on_startup)
+			conf.notify_add('/apps/penguintv/bt_max_port',self._gconf_set_bt_maxport)
+			conf.notify_add('/apps/penguintv/bt_min_port',self._gconf_set_bt_minport)
+			conf.notify_add('/apps/penguintv/ul_limit',self._gconf_set_bt_ullimit)
+			conf.notify_add('/apps/penguintv/feed_refresh_frequency',self._gconf_set_polling_frequency)
+			conf.notify_add('/apps/penguintv/app_window_layout',self._gconf_set_app_window_layout)
+			conf.notify_add('/apps/penguintv/feed_refresh_method',self._gconf_set_feed_refresh_method)
+			conf.notify_add('/apps/penguintv/auto_download',self._gconf_set_auto_download)
+			conf.notify_add('/apps/penguintv/auto_download_limiter',self._gconf_set_auto_download_limiter)
+			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
 		self._load_settings()
 		
 		self.feed_list_view = self.main_window.feed_list_view
@@ -189,7 +188,7 @@ class PenguinTVApp:
 		self._entry_view = self.main_window.entry_view
 		
 		self.main_window.search_container.set_sensitive(False)
-		if ptvDB.LUCENE:
+		if ptvDB.HAS_LUCENE:
 			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
 				self.main_window.search_entry.set_text(_("Please wait..."))
 				self.main_window.display_status_message(_("Reindexing Feeds..."))
@@ -219,14 +218,13 @@ class PenguinTVApp:
 		return False #for idler	
 		
 	def _load_settings(self):
-		val = self._conf.get_int('/apps/penguintv/feed_refresh_frequency')
-		if val is None:
-			val=60
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency')
+		if val is None: val=60
 		self.polling_frequency = val*60*1000
 		self.window_preferences.set_feed_refresh_frequency(self.polling_frequency/(60*1000))
 			
-		val = self._conf.get_string('/apps/penguintv/feed_refresh_method')
-		if val is None:
+		val = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method')
+		if val is None: 
 			self.feed_refresh_method=REFRESH_AUTO
 		else:
 			if val == 'auto':
@@ -241,48 +239,40 @@ class PenguinTVApp:
 		else:
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
 				
-		val = self._conf.get_int('/apps/penguintv/bt_min_port')
-		if val is None:
-			val=6881
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/bt_min_port')
+		if val is None: val=6881
 		self._bt_settings['min_port']=val
-		val = self._conf.get_int('/apps/penguintv/bt_max_port')
-		if val is None:
-			val=6999
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/bt_max_port')
+		if val is None: val=6999
 		self._bt_settings['max_port']=val
-		val = self._conf.get_int('/apps/penguintv/bt_ul_limit')
-		if val is None:
-			val=0
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit')
+		if val is None: val=0
 		self._bt_settings['ul_limit']=val
 		self.window_preferences.set_bt_settings(self._bt_settings)
 		self.mediamanager.set_bt_settings(self._bt_settings)
 		
-		val = self._conf.get_bool('/apps/penguintv/auto_resume')
-		if val is None:
-			val=True
+		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_resume')
+		if val is None: val=True
 		self._autoresume = val
 		self.window_preferences.set_auto_resume(val)
 		
-		val = self._conf.get_bool('/apps/penguintv/poll_on_startup')
-		if val is None:
-			val=True
+		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup')
+		if val is None: val=True
 		self.poll_on_startup = val
 		self.window_preferences.set_poll_on_startup(val)
 		
-		val = self._conf.get_bool('/apps/penguintv/auto_download')
-		if val is None:
-			val=False
+		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_download')
+		if val is None: val=False
 		self._auto_download = val
 		self.window_preferences.set_auto_download(val)
 		
-		val = self._conf.get_bool('/apps/penguintv/auto_download_limiter')
-		if val is None:
-			val=False
+		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_download_limiter')
+		if val is None: val=False
 		self._auto_download_limiter = val
 		self.window_preferences.set_auto_download_limiter(val)
 		
-		val = self._conf.get_int('/apps/penguintv/auto_download_limit')
-		if val is None:
-			val=1024*1024
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit')
+		if val is None: val=1024*1024
 		self._auto_download_limit = val
 		self.window_preferences.set_auto_download_limit(val)
 		
@@ -291,39 +281,41 @@ class PenguinTVApp:
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
 	def save_settings(self):
-		self._conf.set_int('/apps/penguintv/feed_pane_position',self.main_window.feed_pane.get_position())
-		self._conf.set_int('/apps/penguintv/entry_pane_position',self.main_window.entry_pane.get_position())
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position',self.main_window.feed_pane.get_position())
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position',self.main_window.entry_pane.get_position())
 		if self.main_window.app_window is not None:
 			x,y=self.main_window.app_window.get_position()
-			self._conf.set_int('/apps/penguintv/app_window_position_x',x)
-			self._conf.set_int('/apps/penguintv/app_window_position_y',y)
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x',x)
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y',y)
 			if self.main_window.window_maximized == False:
 				x,y=self.main_window.app_window.get_size()
 			else: #grabbing the size when we are maximized is pointless, so just go by the old resized size
-				x = self._conf.get_int('/apps/penguintv/app_window_size_x')
-				y = self._conf.get_int('/apps/penguintv/app_window_size_y')
+				x = self.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x')
+				y = self.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y')
+				if x is None: x = 500
+				if y is None: y = 500
 				x,y=(-abs(x),-abs(y))
-			self._conf.set_int('/apps/penguintv/app_window_size_x',x)
-			self._conf.set_int('/apps/penguintv/app_window_size_y',y)
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x',x)
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y',y)
 		
-		self._conf.set_string('/apps/penguintv/app_window_layout',self.main_window.layout)
+		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout',self.main_window.layout)
 		if self.feed_refresh_method==REFRESH_AUTO:
-			self._conf.set_string('/apps/penguintv/feed_refresh_method','auto')
+			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','auto')
 		else:
-			self._conf.set_int('/apps/penguintv/feed_refresh_frequency',self.polling_frequency/(60*1000))
-			self._conf.set_string('/apps/penguintv/feed_refresh_method','specified')	
-		self._conf.set_int('/apps/penguintv/bt_max_port',self._bt_settings['max_port'])
-		self._conf.set_int('/apps/penguintv/bt_min_port',self._bt_settings['min_port'])
-		self._conf.set_int('/apps/penguintv/bt_ul_limit',self._bt_settings['ul_limit'])
-		self._conf.set_bool('/apps/penguintv/auto_resume',self._autoresume)
-		self._conf.set_bool('/apps/penguintv/poll_on_startup',self.poll_on_startup)
-		self._conf.set_bool('/apps/penguintv/auto_download',self._auto_download)
-		self._conf.set_bool('/apps/penguintv/auto_download_limiter',self._auto_download_limiter)
-		self._conf.set_int('/apps/penguintv/auto_download_limit',self._auto_download_limit)
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency',self.polling_frequency/(60*1000))
+			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','specified')	
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_max_port',self._bt_settings['max_port'])
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_min_port',self._bt_settings['min_port'])
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit',self._bt_settings['ul_limit'])
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_resume',self._autoresume)
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup',self.poll_on_startup)
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download',self._auto_download)
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download_limiter',self._auto_download_limiter)
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit',self._auto_download_limit)
 		if self.feed_list_view.filter_setting > FeedList.NONE:
-			self._conf.set_string('/apps/penguintv/default_filter',self.feed_list_view.filter_name)
+			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',self.feed_list_view.filter_name)
 		else:
-			self._conf.set_string('/apps/penguintv/default_filter',"")
+			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',"")
 	
 	def resume_resumable(self):
 		list = self.db.get_resumable_media()
@@ -863,7 +855,7 @@ class PenguinTVApp:
 		self.main_window.search_entry.set_text("")
 		self.main_window.filter_unread_checkbox.set_sensitive(True)
 		
-	def _threaded_search(self, query):
+	def threaded_search(self, query):
 		if query != "":
 			if self._threaded_searcher is None:
 				self._threaded_searcher = PenguinTVApp._threaded_searcher(query, self.__got_search, self._searcher_done)
@@ -884,11 +876,14 @@ class PenguinTVApp:
 			self._saved_filter = self.main_window.filter_combo_widget.get_active()
 			self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
 		
-	class _threaded_searcher(PyLucene.PythonThread):
-	#class _threaded_searcher(threading.Thread):
+	if ptvDB.HAS_LUCENE:
+		import PyLucene
+		threadclass = PyLucene.PythonThread
+	else:
+		threadclass = threading.Thread
+	class _threaded_searcher(threadclass):
 		def __init__(self, query, callback, done_callback):
-			PyLucene.PythonThread.__init__(self)
-			#threading.Thread.__init__(self)
+			PenguinTVApp.threadclass.__init__(self)
 			self.query = query
 			self.callback = callback
 			self.done_callback = done_callback
@@ -988,23 +983,36 @@ class PenguinTVApp:
 		self.main_window.changing_layout = False
 		return widget.hide_on_delete()
 
-	def set_bt_maxport(self, client, *args, **kwargs):
+	def _gconf_set_bt_maxport(self, client, *args, **kwargs):
 		maxport = client.get_int('/apps/penguintv/bt_max_port')
+		self.set_bt_maxport(maxport)
+		self.window_preferences.set_bt_settings(self._bt_settings)
+		
+	def set_bt_maxport(self, maxport):
 		self._bt_settings['max_port']=maxport
-		self.window_preferences.set_bt_settings(self._bt_settings)
 		
-	def set_bt_minport(self, client, *args, **kwargs):
+	def _gconf_set_bt_minport(self, client, *args, **kwargs):
 		minport = client.get_int('/apps/penguintv/bt_min_port')
-		self._bt_settings['min_port']=minport
+		self.set_bt_minport(minport)
 		self.window_preferences.set_bt_settings(self._bt_settings)
 		
-	def set_bt_ullimit(self, client, *args, **kwargs):
+	def set_bt_minport(self, minport):
+		self._bt_settings['min_port']=minport
+		
+	def _gconf_set_bt_ullimit(self, client, *args, **kwargs):
 		ullimit = client.get_int('/apps/penguintv/bt_ul_limit')
-		self._bt_settings['ul_limit']=ullimit
+		self.set_bt_ullimit(ullimit)
 		self.window_preferences.set_bt_settings(self._bt_settings)
+		
+	def set_bt_ullimit(self, ullimit):
+		self._bt_settings['ullimit']=ullimit
+		
 			
-	def set_polling_frequency(self, client, *args, **kwargs):
+	def _gconf_set_polling_frequency(self, client, *args, **kwargs):
 		freq = client.get_int('/apps/penguintv/feed_refresh_frequency')
+		self._set_polling_frequency(freq)
+			
+	def set_polling_frequency(self, freq):
 		if self.polling_frequency != freq*60*1000:
 			self.polling_frequency = freq*60*1000	
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
@@ -1013,15 +1021,21 @@ class PenguinTVApp:
 	def get_feed_refresh_method(self):
 		return self.feed_refresh_method
 			
-	def set_feed_refresh_method(self, client, *args, **kwargs):
-		refresh = self._conf.get_string('/apps/penguintv/feed_refresh_method')
+	def _gconf_set_feed_refresh_method(self, client, *args, **kwargs):
+		refresh = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method')
+		self.set_feed_refresh_method(refresh)
+		
+	def set_feed_refresh_method(self, refresh):
 		if refresh == 'auto':
 			self.feed_refresh_method=REFRESH_AUTO
 			self.polling_frequency = AUTO_REFRESH_FREQUENCY	
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
 		else:
 			self.feed_refresh_method=REFRESH_SPECIFIED
-			self.set_polling_frequency(client,None,None)
+			if ptvDB.HAS_GCONF:
+				self._gconf_set_polling_frequency(client,None,None)
+			else:
+				self.set_polling_frequency(self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency'))
 			
 	def add_feed(self, url, title):
 		"""Inserts the url and starts the polling process"""
@@ -1217,33 +1231,51 @@ class PenguinTVApp:
 		#self.filter_combo_widget.set_active(FeedList.ALL)
 		#self.filter_unread_checkbox.set_active(False)
 		
-	def set_auto_resume(self, client, *args, **kwargs):
+	def _gconf_set_auto_resume(self, client, *args, **kwargs):
 		autoresume = client.get_bool('/apps/penguintv/auto_resume')
-		self.window_preferences.set_auto_resume(autoresume)	
+		self.set_auto_resume(auto_resume)
+		
+	def set_auto_resume(self, autoresume):
+		self.window_preferences.set_auto_resume(autoresume)
 		self._autoresume = autoresume
 		
-	def set_poll_on_startup(self, client, *args, **kwargs):
+	def _gconf_set_poll_on_startup(self, client, *args, **kwargs):
 		poll_on_startup = client.get_bool('/apps/penguintv/poll_on_startup')
-		self.window_preferences.set_poll_on_startup(poll_on_startup)	
+		self.set_poll_on_startup(poll_on_startup)
+		self.window_preferences.set_poll_on_startup(poll_on_startup)
+	
+	def set_poll_on_startup(self, poll_on_startup):
 		self.poll_on_startup = poll_on_startup
 		
-	def set_auto_download(self, client, *args, **kwargs):
+	def _gconf_set_auto_download(self, client, *args, **kwargs):
 		auto_download = client.get_bool('/apps/penguintv/auto_download')
-		self.window_preferences.set_auto_download(auto_download)	
+		self.set_auto_download(auto_download)
+		self.window_preferences.set_auto_download(auto_download)
+		
+	def set_auto_download(self, auto_download):
 		self._auto_download = auto_download
 		
-	def set_auto_download_limiter(self, client, *args, **kwargs):
+	def _gconf_set_auto_download_limiter(self, client, *args, **kwargs):
 		auto_download_limiter = client.get_bool('/apps/penguintv/auto_download_limiter')
-		self.window_preferences.set_auto_download_limiter(auto_download_limiter)	
+		self.set_auto_download_limiter(auto_download_limiter)
+		self.window_preferences.set_auto_download_limiter(auto_download_limiter)
+		
+	def set_auto_download_limiter(self, auto_download_limiter):
 		self._auto_download_limiter = auto_download_limiter
 
-	def set_auto_download_limit(self, client, *args, **kwargs):
+	def _gconf_set_auto_download_limit(self, client, *args, **kwargs):
 		auto_download_limit = client.get_int('/apps/penguintv/auto_download_limit')
-		self.window_preferences.set_auto_download_limit(auto_download_limit)	
+		self.set_auto_download_limit(auto_download_limit)
+		self.window_preferences.set_auto_download_limit(auto_download_limit)
+		
+	def set_auto_download_limit(self, auto_download_limit):
 		self._auto_download_limit = auto_download_limit
 		
-	def set_app_window_layout(self, client, *args, **kwargs):
-		layout = self._conf.get_string('/apps/penguintv/app_window_layout')
+	def _gconf_set_app_window_layout(self, client, *args, **kwargs):
+		layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout')
+		self.set_app_window_layout(layout)
+		
+	def set_app_window_layout(self, layout):
 		self.main_window.layout=layout
 		
 	#def update_feed_list(self, feed_id=None):
@@ -1297,17 +1329,19 @@ class PenguinTVApp:
 		self._gui_updater.queue_task(self._download_finished, downloader)
 		
 	def _polling_callback(self, args):
-		#print "callback", args
 		if not self._exiting:
 			feed_id,update_data,total = args
+			if feed_id == 351: print args
 			self._gui_updater.queue_task(self._poll_update_progress,total)
 			if len(update_data)>0: #else don't need to update, nothing changed
 				if update_data.has_key('ioerror'):
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._gui_updater.queue_task(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
+					if feed_id == 351: print "no error"
 					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','pollfail'],update_data))
 					if not self._showing_search:
+						if feed_id == 351: print "popif"
 						self._gui_updater.queue_task(self._entry_list_view.populate_if_selected, feed_id)
 				else:
 					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
@@ -1352,11 +1386,9 @@ class PenguinTVApp:
 				print "not a valid file: ",e
 				
 			
-	class DBUpdaterThread(PyLucene.PythonThread):
-	#class DBUpdaterThread(threading.Thread):
+	class DBUpdaterThread(threadclass):
 		def __init__(self, polling_callback=None):
-			PyLucene.PythonThread.__init__(self)
-			#threading.Thread.__init__(self)
+			PenguinTVApp.threadclass.__init__(self)
 			self.__isDying = False
 			self.db = None
 			self.updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.MANUAL, "db updater")
