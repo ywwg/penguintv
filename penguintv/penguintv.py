@@ -190,6 +190,7 @@ class PenguinTVApp:
 		self.main_window.search_container.set_sensitive(False)
 		if ptvDB.HAS_LUCENE:
 			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
+				print self.db.cache_dirty,self.db.searcher.needs_index
 				self.main_window.search_entry.set_text(_("Please wait..."))
 				self.main_window.display_status_message(_("Reindexing Feeds..."))
 				self.db.doindex(self._sensitize_search)
@@ -1010,7 +1011,7 @@ class PenguinTVApp:
 			
 	def _gconf_set_polling_frequency(self, client, *args, **kwargs):
 		freq = client.get_int('/apps/penguintv/feed_refresh_frequency')
-		self._set_polling_frequency(freq)
+		self.set_polling_frequency(freq)
 			
 	def set_polling_frequency(self, freq):
 		if self.polling_frequency != freq*60*1000:
@@ -1023,9 +1024,9 @@ class PenguinTVApp:
 			
 	def _gconf_set_feed_refresh_method(self, client, *args, **kwargs):
 		refresh = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method')
-		self.set_feed_refresh_method(refresh)
+		self.set_feed_refresh_method(refresh, client)
 		
-	def set_feed_refresh_method(self, refresh):
+	def set_feed_refresh_method(self, refresh, client=None):
 		if refresh == 'auto':
 			self.feed_refresh_method=REFRESH_AUTO
 			self.polling_frequency = AUTO_REFRESH_FREQUENCY	
@@ -1233,7 +1234,7 @@ class PenguinTVApp:
 		
 	def _gconf_set_auto_resume(self, client, *args, **kwargs):
 		autoresume = client.get_bool('/apps/penguintv/auto_resume')
-		self.set_auto_resume(auto_resume)
+		self.set_auto_resume(autoresume)
 		
 	def set_auto_resume(self, autoresume):
 		self.window_preferences.set_auto_resume(autoresume)

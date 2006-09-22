@@ -20,6 +20,9 @@ import gettext
 import sets
 import pickle
 
+
+import traceback
+
 try:
 	import Lucene
 	HAS_LUCENE = True
@@ -27,8 +30,8 @@ except:
 	HAS_LUCENE = False
 	
 try:
-	#import gconf
-	HAS_GCONF = False
+	import gconf
+	HAS_GCONF = True
 except:
 	HAS_GCONF = False
 
@@ -129,9 +132,10 @@ class ptvDB:
 		self._c = self._db.cursor()
 		self.cache_dirty = True
 		try:
-			self._db_execute(self._c, u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
-			if self._c.fetchone()[0] == 0:
-				self.cache_dirty = False
+			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
+			#if self._c.fetchone()[0] == 0:
+			#	self.cache_dirty = False
+			self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty")
 		except:
 			pass
 			
@@ -180,9 +184,10 @@ class ptvDB:
 			return True	
 			
 		try:
-			self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
-			db_ver = self._c.fetchone()
-			db_ver = db_ver[0]
+			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
+			#db_ver = self._c.fetchone()
+			#db_ver = db_ver[0]
+			db_ver = self.get_setting(INT, "db_ver")
 			#print "current database version is",db_ver
 			if db_ver is None:
 				self._migrate_database_one_two()
@@ -435,7 +440,7 @@ class ptvDB:
 					utils.deltree(root)
 					
 	def get_setting(self, type, datum):
-		if HAS_GCONF:
+		if HAS_GCONF and datum[0] == '/':
 			if   type == BOOL:
 				return self._conf.get_bool(datum)
 			elif type == INT:
@@ -448,16 +453,9 @@ class ptvDB:
 			if retval is not None:
 				return retval[0]
 			return None
-			#else:
-			#	if type == BOOL:
-			#		return False
-			#	elif type == INT:
-			#		return -1
-			#	elif type == STRING:
-			#		return ""
 				
 	def set_setting(self, type, datum, value):
-		if HAS_GCONF:
+		if HAS_GCONF and datum[0] == '/':
 			if   type == BOOL:
 				self._conf.set_bool(datum, value)
 			elif type == INT:
@@ -465,13 +463,13 @@ class ptvDB:
 			elif type == STRING:
 				self._conf.set_string(datum, value)
 		else:
-			print "set",datum,"to",value,
+			#print "set",datum,"to",value,
 			current_val = self.get_setting(type, datum)
 			if current_val is None:
-				print "insert"
+				#print "insert"
 				self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES (?,?)', (datum, value))
 			else:
-				print "update"
+				#print "update"
 				self._db_execute(self._c, u'UPDATE settings SET value=? WHERE data=?', (value,datum))
 			self._db.commit()
 			
@@ -484,8 +482,9 @@ class ptvDB:
 			self._db_execute(self._c, u'UPDATE feeds SET entry_count_cache=? WHERE id=?',(cache[3],cache[0]))
 		self._db.commit()
 		#and only then...
-		self._db_execute(self._c, u'UPDATE settings SET value=0 WHERE data="feed_cache_dirty"')
-		self._db.commit()
+		self.set_setting(BOOL, "feed_cache_dirty", False)
+		#self._db_execute(self._c, u'UPDATE settings SET value=0 WHERE data="feed_cache_dirty"')
+		#self._db.commit()
 		self.cache_dirty = False
 		
 	def get_feed_cache(self):
@@ -493,8 +492,9 @@ class ptvDB:
 			return None
 		self._db_execute(self._c, u'SELECT id, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(TITLE)')
 		cache = self._c.fetchall()
-		self._db_execute(self._c, u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
-		self._db.commit()
+		self.set_setting(BOOL, "feed_cache_dirty", True)
+		#self._db_execute(self._c, u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
+		#self._db.commit()
 		self.cache_dirty=True
 		return cache
 		
@@ -2092,6 +2092,8 @@ class ptvDB:
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
+		
+		print traceback.print_stack()
 		if not HAS_LUCENE:
 			return
 		self._reindex_feed_list += feed_list
