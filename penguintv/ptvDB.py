@@ -21,7 +21,7 @@ import sets
 import pickle
 
 import Lucene
-LUCENE = False
+LUCENE = True
 
 import timeoutsocket
 import smtplib

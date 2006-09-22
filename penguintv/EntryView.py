@@ -23,7 +23,6 @@ except:
 GTKHTML=0
 MOZILLA=1
 DEMOCRACY_MOZ=2
-GECKOEMBED=3
 
 class EntryView:
 	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
@@ -31,27 +30,27 @@ class EntryView:
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
 		self._RENDERRER = renderrer
-		scrolled_window = widget_tree.get_widget('html_scrolled_window')
-		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
-		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		html_dock = widget_tree.get_widget('html_dock')
 		
 		if self._RENDERRER == GTKHTML:
 			import SimpleImageCache
 			import gtkhtml2
+			scrolled_window = gtk.ScrolledWindow()
+			html_dock.add(scrolled_window)
+			scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
+			scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
+			self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
+			self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
+			self._scrolled_window = scrolled_window
 		elif self._RENDERRER == MOZILLA:
 			import gtkmozembed
 		elif self._RENDERRER == DEMOCRACY_MOZ:
 			from democracy_moz import MozillaBrowser
-		elif self._RENDERRER == GECKOEMBED:
-			import geckoembed
 				
 		#thanks to straw, again
-		style = scrolled_window.get_style().copy()
+		style = html_dock.get_style().copy()
 		self._currently_blank=True
-		self._scrolled_window = scrolled_window
 		self._current_entry={}
-		self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
-		self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
 		self._updater_timer=0
 		self._custom_entry = False
 		self._background_color = "#%.2x%.2x%.2x;" % (
@@ -63,6 +62,11 @@ class EntryView:
                 style.text[gtk.STATE_NORMAL].red / 256,
                 style.text[gtk.STATE_NORMAL].blue / 256,
                 style.text[gtk.STATE_NORMAL].green / 256)
+                
+		self._insensitive_color = "#%.2x%.2x%.2x;" % (
+                style.base[gtk.STATE_INSENSITIVE].red / 256,
+                style.base[gtk.STATE_INSENSITIVE].blue / 256,
+                style.base[gtk.STATE_INSENSITIVE].green / 256)
                 
 		#for style in [style.fg, style.bg, style.base, style.text, style.mid, style.light, style.dark]:
 		#	for category in [gtk.STATE_NORMAL, gtk.STATE_PRELIGHT, gtk.STATE_SELECTED, gtk.STATE_ACTIVE, gtk.STATE_INSENSITIVE]:
@@ -94,7 +98,7 @@ class EntryView:
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)
 			self._moz.load_url("about:blank")
-			scrolled_window.add_with_viewport(self._moz)
+			html_dock.add(self._moz)
 			#scrolled_window.add(self._moz)
 			self._moz.show()
 			import gconf
@@ -107,24 +111,13 @@ class EntryView:
 			self._moz.connect("link-message", self._moz_link_message)
 			self._mb.setURICallBack(self._dmoz_link_clicked)
 			self._moz.load_url("about:blank")
-			scrolled_window.add_with_viewport(self._moz)
-			import gconf
-			self._conf = gconf.client_get_default()
-			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self._reset_moz_font()
-		elif self._RENDERRER == GECKOEMBED:
-			path = os.path.join(os.getenv('HOME'), '.penguintv','gecko')
-			geckoembed.set_profile_path(path)
-			self._moz = geckoembed.Browser()
-			self._moz.load_address('about:blank')
-			self._moz.connect("open-uri", self._moz_link_clicked)
-			scrolled_window.add_with_viewport(self._moz)
+			html_dock.add_with_viewport(self._moz)
 			import gconf
 			self._conf = gconf.client_get_default()
 			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
 			
-		scrolled_window.show_all()
+		html_dock.show_all()
 		#self.display_custom_entry("<html></html>")
 			
 	def on_url(self, view, url):
@@ -204,37 +197,38 @@ class EntryView:
 		self._app.display_entry(self._current_entry['entry_id'])
 	
 	def display_item(self, item=None, highlight=""):
-		va = self._scrolled_window.get_vadjustment()
-		ha = self._scrolled_window.get_hadjustment()
-		rescroll=0
+		if self._RENDERRER == GTKHTML:
+			va = self._scrolled_window.get_vadjustment()
+			ha = self._scrolled_window.get_hadjustment()
+			rescroll=0
 		
-		#when a feed is refreshed, the item selection changes from an entry,
-		#to blank, and to the entry again.  We used to lose scroll position because of this.
-		#Now, scroll position is saved when a blank entry is displayed, and if the next
-		#entry is the same id as before the blank, we restore those old values.
-		#we have a bool to figure out if the current page is blank, in which case we shouldn't
-		#save its scroll values.
-		if item:
-			try:
-				if item['entry_id'] == self._current_entry['entry_id']:
-					if self._currently_blank == False:
-						self._current_scroll_v = va.get_value()
-						self._current_scroll_h = ha.get_value()
-					rescroll=1
-			except:
-				pass
-			self._current_entry = item	
-			self._currently_blank = False
-		else:
-			#traceback.print_stack()
-			self._currently_blank = True
-			self._current_scroll_v = va.get_value()
-			self._current_scroll_h = ha.get_value()	
+			#when a feed is refreshed, the item selection changes from an entry,
+			#to blank, and to the entry again.  We used to lose scroll position because of this.
+			#Now, scroll position is saved when a blank entry is displayed, and if the next
+			#entry is the same id as before the blank, we restore those old values.
+			#we have a bool to figure out if the current page is blank, in which case we shouldn't
+			#save its scroll values.
+			if item:
+				try:
+					if item['entry_id'] == self._current_entry['entry_id']:
+						if self._currently_blank == False:
+							self._current_scroll_v = va.get_value()
+							self._current_scroll_h = ha.get_value()
+						rescroll=1
+				except:
+					pass
+				self._current_entry = item	
+				self._currently_blank = False
+			else:
+				#traceback.print_stack()
+				self._currently_blank = True
+				self._current_scroll_v = va.get_value()
+				self._current_scroll_h = ha.get_value()	
 		
 		enc = None
 		
 		style_adjustments=""
-		if self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+		if self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
 			if item is not None:
 				html = (
 	            """<html><head>
@@ -315,17 +309,17 @@ class EntryView:
 				self._document.open_stream("text/html")
 				self._document.write_stream(html)
 				self._document.close_stream()
-		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:	
+				
+			if rescroll==1:
+				va.set_value(self._current_scroll_v)
+				ha.set_value(self._current_scroll_h)
+			else:
+				va.set_value(va.lower)
+				ha.set_value(ha.lower)
+		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:	
 			self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 			self._moz.append_data(html, long(len(html)))
 			self._moz.close_stream()
-		
-		if rescroll==1:
-			va.set_value(self._current_scroll_v)
-			ha.set_value(self._current_scroll_h)
-		else:
-			va.set_value(va.lower)
-			ha.set_value(ha.lower)
 		return
 		
 	def _do_download_images(self, entry_id, html, images):
@@ -349,7 +343,6 @@ class EntryView:
 			self._document.close_stream()
 		
 	def display_custom_entry(self, message):
-		return
 		if self._RENDERRER==GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
@@ -358,7 +351,7 @@ class EntryView:
             body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
 			self._moz.open_stream("http://ywwg.com","text/html")
 			self._moz.append_data(message, long(len(message)))
 			self._moz.close_stream()		
@@ -367,7 +360,6 @@ class EntryView:
 		return
 		
 	def undisplay_custom_entry(self):
-		return
 		if self._custom_entry:
 			message = "<html></html>"
 			if self._RENDERRER==GTKHTML:
@@ -377,7 +369,7 @@ class EntryView:
 				self._document.write_stream(message)
 				self._document.close_stream()
 				self._document_lock.release()
-			elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
+			elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
 				self._moz.open_stream("http://ywwg.com","text/html")
 				self._moz.append_data(message, long(len(message)))
 				self._moz.close_stream()	
@@ -489,25 +481,20 @@ class EntryView:
 		
 	def finish(self):
 		#just make it gray for quitting
-		style = self._scrolled_window.get_style()
-		GRAY = "#%.2x%.2x%.2x;" % (
-                style.base[gtk.STATE_INSENSITIVE].red / 256,
-                style.base[gtk.STATE_INSENSITIVE].blue / 256,
-                style.base[gtk.STATE_INSENSITIVE].green / 256)
+		
 		if self._RENDERRER==GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
 			self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %s; }</style><body></body></html>""" % (GRAY,))
+            body { background-color: %s; }</style><body></body></html>""" % (self._insensitive_color,))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ or self._RENDERRER == GECKOEMBED:
-			self._moz.open_stream("http://ywwg.com","text/html")
-			message = """<html><style type="text/css">
-            body { background-color: %s; }</style><body></body></html>""" % (GRAY,)
-			self._moz.append_data(message, long(len(message)))
-			self._moz.close_stream()		
+		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+			#FIXME: this doesn't work!
+			message = """<html><head><style type="text/css">
+            body { background-color: %s; }</style></head><body>WHEEEEEEEEEEEEEEE</body></html>""" % (self._insensitive_color,)
+			self.display_custom_entry(message)
 		#self.scrolled_window.hide()
 		self._custom_entry = True
 		return

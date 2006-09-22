@@ -153,7 +153,6 @@ class MainWindow:
 		conf = gconf.client_get_default()
 		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
-		#self.dock_widget.pack_start(self._layout_container)
 		dock_widget.add(self._layout_container)
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db)

@@ -37,8 +37,6 @@ import feedparser
 
 import PyLucene
 
-import gtkmozembed
-
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -347,10 +345,10 @@ class PenguinTVApp:
 	def do_quit(self):
 		"""save and shut down all our threads"""
 		self._exiting=1
+		self._entry_view.finish()
 		self.feed_list_view.interrupt()
 		self._update_thread.goAway()
 		self._updater_thread_db.finish()
-		self._entry_view.finish()
 		self.main_window.desensitize()
 		self.stop_downloads()
 		self.save_settings()
@@ -430,8 +428,8 @@ class PenguinTVApp:
 			print "WARNING: we just added a search tag but it's not in the list"
 			
 	def remove_search_tag(self, tag_name):
-		self.app.db.remove_tag(tag_name)
-		self.app.main_window.update_filters()
+		self.db.remove_tag(tag_name)
+		self.main_window.update_filters()
 		while gtk.events_pending():
 			gtk.main_iteration()
 			
@@ -1395,57 +1393,7 @@ class PenguinTVApp:
 			""" Exit the run loop next time through."""
 	        
 			self.__isDying = True
-			
-class app1:
-	def __init__(self):
-		pass
-		
-	def moz_window(self):
-		window = gtk.Window(gtk.WINDOW_TOPLEVEL)
-		
-		
-	    
-	    # When the window is given the "delete_event" signal (this is given
-	    # by the window manager, usually by the "close" option, or on the
-	    # titlebar), we ask it to call the delete_event () function
-	    # as defined above. The data passed to the callback
-	    # function is NULL and is ignored in the callback function.
-	    
-	    # Here we connect the "destroy" event to a signal handler.  
-	    # This event occurs when we call gtk_widget_destroy() on the window,
-	    # or if we return FALSE in the "delete_event" callback.
-	    
-	    # Sets the border width of the window.
-		window.set_border_width(10)
-
-	    # Creates a new button with the label "Hello World".
-	    
-	    # The final step is to display this newly created widget.
-	    #self.button.show()
-		self.__embed = gtkmozembed.MozEmbed()
-	    #self._embed.connect("title", self.__title_cb)
-	    #embed.connect("open-uri", self.__open_uri)
-		window.add(self.__embed)		
-		self.__embed.show()
-		self.__embed.load_url('http://www.google.com')
-		#embed.load_url('http://www.google.com')
-		window.show()
-		
-	def moz2(self):
-		html = """<html><head></head><body>
-			
-			
-			<img src="http://boasas.com/boasas/700.gif"/>
-			<img src="/images/eileen_parking.jpg"/>
-			<img src="http://www.boingboing.net/images/_catalog_covers_0596101538_cat.jpg"></body></html>"""
-			
-		self.__embed.open_stream("http://www.boingboing.net/","text/html")
-		self.__embed.append_data(html, long(len(html)))
-		self.__embed.close_stream()
-
-		return False
-		
-		
+				
 def main():
 	gnome.init("PenguinTV", utils.VERSION)
 	app = PenguinTVApp()    # Instancing of the GUI
@@ -1484,7 +1432,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 #	import profile
 #	profile.run('gtk.main()', 'pengprof')
 	if utils.is_kde():
-	#if False:
 		try:
 			from kdecore import KApplication, KCmdLineArgs, KAboutData
 			from kdeui import KMainWindow
@@ -1501,16 +1448,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		except:
 			print "Unable to initialize KDE"
 			sys.exit(1)
-			
-	#from test import HelloWorld
-	#app = HelloWorld()
-	#app.main()	
-	#path = os.path.join(".",'penguintv.glade')
-	#print path
-	#gtk.glade.XML(path, "window_rename_feed",'penguintv')
-	#app = app1()
-	#app.moz_window()	
-	#gobject.timeout_add(1000, app.moz2)	
 	gtk.main()
 	
 

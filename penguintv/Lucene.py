@@ -14,7 +14,6 @@ ENTRY_LIMIT=100
 
 class Lucene:
 	def __init__(self):
-		print "AN OBJECT IS BORN"
 		try:
 			self.home=os.getenv('HOME')
 			os.stat(os.path.join(self.home,".penguintv"))
