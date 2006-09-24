@@ -190,7 +190,6 @@ class PenguinTVApp:
 		self.main_window.search_container.set_sensitive(False)
 		if ptvDB.HAS_LUCENE:
 			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
-				print self.db.cache_dirty,self.db.searcher.needs_index
 				self.main_window.search_entry.set_text(_("Please wait..."))
 				self.main_window.display_status_message(_("Reindexing Feeds..."))
 				self.db.doindex(self._sensitize_search)

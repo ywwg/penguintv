@@ -24,11 +24,14 @@ MARKUPTITLE=1
 FEEDID=2
 STOCKID=3
 READINFO=4
-UNREAD=5
-TOTAL=6
-FLAG=7
-VISIBLE=8
-POLLFAIL=9
+PIXBUF=5
+UNREAD=6
+TOTAL=7
+FLAG=8
+VISIBLE=9
+POLLFAIL=10
+
+FANCY=False
 
 class FeedList:
 	def __init__(self, widget_tree, app, db):
@@ -37,7 +40,7 @@ class FeedList:
 		self._widget = widget_tree.get_widget('feedlistview')
 		self._entry_list_widget = widget_tree.get_widget('entrylistview')
 		self._app = app
-		self._feedlist = gtk.ListStore(str, str, int, str, str, int, int, int, bool, bool) #title, markuptitle, feed_id, stock_id, readinfo, unread, total, flag, visible, pollfail
+		self._feedlist = gtk.ListStore(str, str, int, str, str, gtk.gdk.Pixbuf, int, int, int, bool, bool) #see enum above
 		self._feed_filter = self._feedlist.filter_new()
 		self._feed_filter.set_visible_column(VISIBLE)
 		self._db = db
@@ -54,12 +57,19 @@ class FeedList:
 		self._widget.set_model(self._feed_filter)
 		renderer = gtk.CellRendererText()
 		icon_renderer = gtk.CellRendererPixbuf()
+		if FANCY:
+			icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
+		feed_image_renderer = gtk.CellRendererPixbuf()
 		self._feed_column = gtk.TreeViewColumn(_('Feeds'))
 		self._feed_column.set_resizable(True)
 		self._feed_column.pack_start(icon_renderer, False)
 		self._feed_column.pack_start(renderer, True)
+		self._feed_column.pack_start(feed_image_renderer, False)
+		
 		self._feed_column.set_attributes(renderer, markup=MARKUPTITLE)
 		self._feed_column.set_attributes(icon_renderer, stock_id=STOCKID)
+		self._feed_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
+		
 		#self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._widget.append_column(self._feed_column)
 			
@@ -287,14 +297,17 @@ class FeedList:
 			self._app.main_window.display_status_message(_("Loading Feeds..."))
 			#first fill out rough feedlist
 			db_feedlist = self._db.get_feedlist()
+			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+			p.fill(0xffffff00)			
 			for feed_id,title in db_feedlist:
-				self._feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", 0, 0, 0, False, False]) #assume invisible
+				self._feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", p, 0, 0, 0, False, False]) #assume invisible
 		else:
 			self._app.main_window.display_status_message(_("Reloading Feeds..."))
+		
 		gobject.idle_add(self._update_feeds_generator(subset,callback).next)
 		#self._update_feeds_generator(subset)
 		return False #in case this was called by the timeout below
-	
+		
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
 			
@@ -302,8 +315,14 @@ class FeedList:
 		selected = self.get_selected()
 		feed_cache = self._db.get_feed_cache()
 		db_feedlist = self._db.get_feedlist()
+		
 		i=-1
 		downloaded=0
+		
+		if not FANCY:
+			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+			blank_pixbuf.fill(0xffffff00)
+		
 		for feed_id,title in db_feedlist:
 			if self._cancel_load:
 				self._cancel_load = False
@@ -344,15 +363,21 @@ class FeedList:
 				print "WARNING: zero unread articles but flag says there should be some"
 				flag -= ptvDB.F_UNVIEWED
 			
-			m_title = self._get_markedup_title(title,flag) 
-			m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
+			if not FANCY:
+				m_title = self._get_markedup_title(title,flag) 
+				m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
+				m_pixbuf = blank_pixbuf
+			else:
+				m_title = self._get_fancy_markedup_title(title,unviewed,entry_count,flag) 
+				m_pixbuf = self._get_pixbuf(feed_id)
+				m_readinfo = ""
 			icon = self._get_icon(flag)	
 			
 			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':
  					icon='gtk-dialog-error'
 			visible = self._feedlist[i][VISIBLE]
-			self._feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, unviewed, entry_count, flag, visible, pollfail]
+			self._feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, m_pixbuf, unviewed, entry_count, flag, visible, pollfail]
 			try:
 				if i % (len(db_feedlist)/20) == 0:
 					self.do_filter()
@@ -370,6 +395,7 @@ class FeedList:
 		self.do_filter()
 		if callback is not None:
 			callback()
+	
 		yield False
 		
 	def add_feed(self, feed_id):
@@ -402,6 +428,57 @@ class FeedList:
 		try:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					title="<b>"+utils.my_quote(title)+"</b>"
+		except:
+			return title
+		return title
+		
+	def _get_pixbuf(self, feed_id):
+		import feedparser,urllib, glob
+		filename = '~/.penguintv/icons/'+str(feed_id)+'.*'
+		result = glob.glob(filename)
+		if len(result)==0:
+			#return gtk.gdk.pixbuf_new_from_file_at_size("/usr/share/pixmaps/penguintvicon.png", 32,32)
+			url = self._db.get_feed_info(feed_id)['url']
+			print url
+			f = feedparser.parse(url)
+			try:
+				href = f['channel']['image']['href']
+			except Exception, e:
+				print e
+				print "nope"
+			href=""
+			if href!="":
+				filename = '~/.penguintv/icons/'+str(feed_id)+'.'+href.split('.')[-1]
+				try:
+					os.stat(filename)
+				except:
+					print "fetching",filename
+					urllib.urlretrieve(href, filename)
+					return self._get_pixbuf(feed_id)
+			else:
+				p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+				p.fill(0xffffff00)
+				return p
+	
+		p = gtk.gdk.pixbuf_new_from_file(result[0])
+		height = p.get_height()
+		width = p.get_width()
+		if height > 64:
+			height = 64
+			width = p.get_width() * height / p.get_height()
+		if width > 80:
+			width = 80
+			height = p.get_height() * width / p.get_width()
+		if height != p.get_height() or width != p.get_width():
+			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
+		
+	def _get_fancy_markedup_title(self, title, unread, total, flag):
+		if not title:
+			return _("Please wait...")
+		try:
+			title = utils.my_quote(title)+'\n<span color="#777777" size="smaller"><i>('+str(unread)+'/'+str(total)+')</i></span>'
+			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
+				title="<b>"+title+'</b>'
 		except:
 			return title
 		return title
@@ -483,8 +560,13 @@ class FeedList:
 					feed[FLAG] = feed[FLAG]-ptvDB.F_UNVIEWED
 			feed[UNREAD]   = update_data['unread_count']
 			feed[TOTAL]    = len(update_data['flag_list'])
-			feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
-			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
+			if not FANCY:
+				feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
+				feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
+			else:
+				feed[READINFO] = ""
+				feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],update_data['unread_count'], len(update_data['flag_list']), flag)
+				feed[PIXBUF] = self._get_pixbuf(feed_id)
 			#if unviewed != db_unread_count:
 			#	print "correcting unread count"
 			#	self._db.correct_unread_count(feed_id) #FIXME this shouldn't be necessary
@@ -498,7 +580,8 @@ class FeedList:
 			if not update_data.has_key('title'):
 				update_data['title'] = self._db.get_feed_title(feed_id)
 			feed[TITLE] = update_data['title']
-			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE],flag)
+			feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[UNREAD], feed[TOTAL], flag)
+			feed[PIXBUF] = self._get_pixbuf(feed_id)
 			#may need to resort the feed list
 			try:
 				old_iter = self._feedlist.get_iter((self.find_index_of_item(feed_id),))

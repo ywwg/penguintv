@@ -87,12 +87,63 @@ class MainWindow:
 		
 		if dock_widget is None:
 			self._load_app_window()
+			if not ptvDB.HAS_LUCENE:
+				#remove UI elements that don't apply without search
+				self.search_container.hide_all()
+				self._widgetTree.get_widget('saved_searches').hide()
+				self._widgetTree.get_widget('separator11').hide()
+				self._widgetTree.get_widget('reindex_searches').hide()
 		else:
 			self._status_view = None
 			self._disk_usage_widget = None
 			self.app_window = None
-			self.load_layout(dock_widget)
+			
+			vbox = gtk.VBox()
+			
+			vbox.pack_start(self._load_toolbar(), False, False)
+			vbox.pack_start(self.load_layout())
+			self._status_view = MainWindow._my_status_view()
+			vbox.pack_start(self._status_view, False, False)
+			dock_widget.add(vbox)
+			dock_widget.show_all()
+			if not ptvDB.HAS_LUCENE:
+				#remove UI elements that don't apply without search
+				self.search_container.hide_all()
+				
+	def _load_toolbar(self, widgetTree=None):
+		if widgetTree is None:
+			widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar1','penguintv')
+		toolbar = widgetTree.get_widget('toolbar1')
 		
+		#set up separator (see below)
+		vseparator = widgetTree.get_widget('vseparator1')
+		vseparator_toolitem = widgetTree.get_widget('toolitem1')
+		vseparator_toolitem.set_expand(True)
+		vseparator.set_draw(False)
+		self._disk_usage_widget = widgetTree.get_widget('disk_usage')
+	
+		return toolbar
+		
+	class _my_status_view(gtk.HBox):
+		def __init__(self, homogeneous=False, spacing=0):
+			gtk.HBox.__init__(self, homogeneous=False, spacing=0)
+			self._progress = gtk.ProgressBar()
+			sep = gtk.VSeparator()
+			self._status = gtk.Label()
+			
+			self.pack_start(self._progress, False, False)
+			self.pack_start(sep, False, False)
+			self.pack_start(self._status, False, False)
+								
+		def get_status(self):
+			return self._status
+			
+		def set_status(self, m):
+			self._status.set_text(m)
+			
+		def set_progress_percentage(self, p):
+			self._progress.set_fraction(p)
+			
 	def _load_app_window(self):
 		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
 		self._layout_dock = self._widgetTree.get_widget('layout_dock')
@@ -106,20 +157,19 @@ class MainWindow:
 			except:
 				self.app_window.set_icon_from_file(self._glade_prefix+"/penguintvicon.png")
 		self._status_view = self._widgetTree.get_widget("appbar")
-		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
 		
-		#set up separator between toolbar buttons and free space indicator
-		vseparator = self._widgetTree.get_widget('vseparator1')
-		vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
-		vseparator_toolitem.set_expand(True)
-		vseparator.set_draw(False)
+		self._load_toolbar(self._widgetTree)
 		
 		#load the layout
-		self.load_layout(self._layout_dock)
+		#vbox = gtk.VBox()
+		#vbox.pack_start(self.load_layout())
+		#self._status_view = MainWindow._my_status_view()
+		#vbox.pack_start(self._status_view, False, False)
+		#self._layout_dock.add(vbox)
+		self._layout_dock.add(self.load_layout())
 		self.app_window.show_all()
-		if not ptvDB.HAS_LUCENE:
-			self.search_container.hide_all()
 		
+				
 		#final setup for the window comes from gconf
 		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x')
 		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y')
@@ -141,12 +191,12 @@ class MainWindow:
 			if key[:3] == 'on_':
 				self._widgetTree.signal_connect(key, getattr(self, key))
 		
-	def load_layout(self,dock_widget):
+	def load_layout(self):
 		self._app.log("load_layout")
 		#sys.stderr.write("load_layout")
 		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
-		dock_widget.add(self._layout_container)
+		#dock_widget.add(self._layout_container)
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db)
 		renderrer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer')
@@ -245,7 +295,7 @@ class MainWindow:
 		if val is None: val=309
 		if val < 10: val = 50
 		#self.app_window.show_all()
-		dock_widget.show_all()
+		#dock_widget.show_all()
 		self.entry_pane.set_position(val)
 		
 		val = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/default_filter')
@@ -262,8 +312,8 @@ class MainWindow:
 				self.filter_combo_widget.set_active(FeedList.ALL)
 		else:
 			self.filter_combo_widget.set_active(FeedList.ALL)
-			
 		#sys.stderr.write("done")
+		return self._layout_container
 			
 	def Hide(self):
 		self._app.log("hiding")
@@ -421,7 +471,7 @@ class MainWindow:
 			self._app.add_feed(url)
 			
 	def on_feedlistview_button_press_event(self, widget, event):          
-		if event.button==3: #right click                               
+		if event.button==3: #right click     
 			menu = gtk.Menu()   
 			
 			path = widget.get_path_at_pos(int(event.x),int(event.y))
@@ -429,6 +479,14 @@ class MainWindow:
 			if path is None: #nothing selected
 				return
 			selected = model[path[0]][FeedList.FEEDID]
+			is_filter = self._db.is_feed_filter(selected)  
+			
+			if is_filter and not ptvDB.HAS_LUCENE:
+				item = gtk.MenuItem(_("Lucene required for feed filters"))
+				item.set_sensitive(False)
+				menu.append(item)
+				separator = gtk.SeparatorMenuItem()
+				menu.append(separator)
 
 			item = gtk.MenuItem(_("Re_name"))
 			item.connect('activate',self.on_rename_feed_activate)
@@ -440,31 +498,39 @@ class MainWindow:
 			
 			item = gtk.ImageMenuItem('gtk-refresh')
 			item.connect('activate',self.on_refresh_activate)
+			if is_filter and not ptvDB.HAS_LUCENE:
+				item.set_sensitive(False)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Mark as _Viewed"))
 			item.connect('activate',self.on_mark_feed_as_viewed_activate)
+			if is_filter and not ptvDB.HAS_LUCENE:
+				item.set_sensitive(False)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("_Delete All Media"))
 			item.connect('activate',self.on_delete_feed_media_activate)
+			if is_filter and not ptvDB.HAS_LUCENE:
+				item.set_sensitive(False)
 			menu.append(item)
 			
 			separator = gtk.SeparatorMenuItem()
 			menu.append(separator)
 			
-			#print "FIXME: need to test if this is already a filtered feed"
-			if not self._db.is_feed_filter(selected):
-				item = gtk.MenuItem(_("_Create Feed Filter"))
-				item.connect('activate',self.on_add_feed_filter_activate)
-				menu.append(item)
-					
+			if not is_filter:
+				if ptvDB.HAS_LUCENE:
+					item = gtk.MenuItem(_("_Create Feed Filter"))
+					item.connect('activate',self.on_add_feed_filter_activate)
+					menu.append(item)
+				
 				item = gtk.ImageMenuItem('gtk-properties')
 				item.connect('activate',self.on_feed_properties_activate)
 				menu.append(item)
 			else:
 				item = gtk.ImageMenuItem('gtk-properties')
 				item.connect('activate',self.on_feed_filter_properties_activate)
+				if not ptvDB.HAS_LUCENE:
+					item.set_sensitive(False)
 				menu.append(item)
 
 			menu.show_all()
@@ -672,7 +738,7 @@ class MainWindow:
 			return
 			
 		current_text = self._status_view.get_status().get_text()
-		
+	
 		if current_text == "":
 			self._status_owner = update_category
 			self._status_view.set_status(m)

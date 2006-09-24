@@ -31,6 +31,7 @@ class EntryView:
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
 		self._RENDERRER = renderrer
+		self._moz_realized = False
 		html_dock = widget_tree.get_widget('html_dock')
 		
 		if self._RENDERRER == GTKHTML:

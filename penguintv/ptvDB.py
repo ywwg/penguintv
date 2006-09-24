@@ -20,20 +20,26 @@ import gettext
 import sets
 import pickle
 
+RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None and True or False #ternary operator
+#RUNNING_SUGAR = True
 
-import traceback
-
-try:
-	import Lucene
-	HAS_LUCENE = True
-except:
+if RUNNING_SUGAR:
+	#I do this in case we're running in a python environment that has lucene
+	#and/or gconf but we want to pretend they aren't there
 	HAS_LUCENE = False
-	
-try:
-	import gconf
-	HAS_GCONF = True
-except:
 	HAS_GCONF = False
+else:
+	try:
+		import Lucene
+		HAS_LUCENE = True
+	except:
+		HAS_LUCENE = False
+		
+	try:
+		import gconf
+		HAS_GCONF = True
+	except:
+		HAS_GCONF = False
 
 import timeoutsocket
 import smtplib
@@ -2092,8 +2098,6 @@ class ptvDB:
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
-		
-		print traceback.print_stack()
 		if not HAS_LUCENE:
 			return
 		self._reindex_feed_list += feed_list
