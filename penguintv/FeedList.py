@@ -59,6 +59,7 @@ class FeedList:
 		icon_renderer = gtk.CellRendererPixbuf()
 		if FANCY:
 			icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
+			self._widget.set_property('rules-hint', True)
 		feed_image_renderer = gtk.CellRendererPixbuf()
 		self._feed_column = gtk.TreeViewColumn(_('Feeds'))
 		self._feed_column.set_resizable(True)
@@ -433,22 +434,25 @@ class FeedList:
 		return title
 		
 	def _get_pixbuf(self, feed_id):
+		"""right now this is a proof-of-concept horrible hack.  Most of this code will be
+		moved to ptvDB"""
 		import feedparser,urllib, glob
-		filename = '~/.penguintv/icons/'+str(feed_id)+'.*'
+		filename = '/home/owen/.penguintv/icons/'+str(feed_id)+'.*'
 		result = glob.glob(filename)
 		if len(result)==0:
 			#return gtk.gdk.pixbuf_new_from_file_at_size("/usr/share/pixmaps/penguintvicon.png", 32,32)
 			url = self._db.get_feed_info(feed_id)['url']
 			print url
 			f = feedparser.parse(url)
+			href=""
 			try:
 				href = f['channel']['image']['href']
 			except Exception, e:
 				print e
 				print "nope"
-			href=""
 			if href!="":
-				filename = '~/.penguintv/icons/'+str(feed_id)+'.'+href.split('.')[-1]
+				filename = '/home/owen/.penguintv/icons/'+str(feed_id)+'.'+href.split('.')[-1]
+				print filename,'?'
 				try:
 					os.stat(filename)
 				except:
@@ -456,11 +460,22 @@ class FeedList:
 					urllib.urlretrieve(href, filename)
 					return self._get_pixbuf(feed_id)
 			else:
+				print "returning blank"
+				f = open('/home/owen/.penguintv/icons/'+str(feed_id)+'.none','w')
+				f.write("")
+				f.close()
 				p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 				p.fill(0xffffff00)
 				return p
 	
-		p = gtk.gdk.pixbuf_new_from_file(result[0])
+		print "loading ",result[0]
+		try:
+			p = gtk.gdk.pixbuf_new_from_file(result[0])
+		except:
+			print "none I guess"
+			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+			p.fill(0xffffff00)
+			return p
 		height = p.get_height()
 		width = p.get_width()
 		if height > 64:
@@ -471,6 +486,7 @@ class FeedList:
 			height = p.get_height() * width / p.get_width()
 		if height != p.get_height() or width != p.get_width():
 			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
+		return p
 		
 	def _get_fancy_markedup_title(self, title, unread, total, flag):
 		if not title:

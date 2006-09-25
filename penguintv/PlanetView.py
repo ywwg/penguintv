@@ -14,8 +14,7 @@ import SocketServer
 import SimpleHTTPServer
 import urllib
 import threading
-
-import gobject
+import random
 
 try:
 	import gtkmozembed
@@ -111,9 +110,10 @@ class PlanetView:
 		pass
 		
 	def populate_entries(self, feed_id=None, selected=-1):
+		"""selected is unused in planet mode"""
 		if feed_id is None:
 			feed_id = self._current_feed_id
-		html = ""
+
 		db_entrylist = self._db.get_entrylist(feed_id)
 		
 		if feed_id != self._current_feed_id:
@@ -121,52 +121,10 @@ class PlanetView:
 			self._first_entry = 0
 			last_entry = ENTRIES_PER_PAGE
 			self._entry_store={}
-			self._entrylist = [e[0] for e in db_entrylist]
-			
-		else:
-			if self._first_entry < 0:
-				self._first_entry = 0
-			
-		if len(db_entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
-			last_entry = self._first_entry+ENTRIES_PER_PAGE
-		else:
-			last_entry = len(db_entrylist)
-				
-		html = self._build_header()
 		
-		html += """<table
-					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
- 					border="0" cellpadding="2" cellspacing="0">
-					<tbody>
-					<tr><td>"""
-
-		if self._first_entry > 0:
-			html += '<a href="planet:up">Newer Entries</a>'
-		html += '</td><td style="text-align: right;">'
-		if last_entry < len(db_entrylist):
-			html += '<a href="planet:down">Older Entries</a>'
-		html += "</td></tr></tbody></table>"
+		self._entrylist = [e[0] for e in db_entrylist]
+		self._render_entries()
 		
-		for entry_id,title,date in db_entrylist[self._first_entry:last_entry]:
-		#for entry_id,title,date in db_entrylist[0:10]:
-			html += self._load_entry(entry_id)[0]
-			html += "<hr>\n"
-			
-		html += """<table
-					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
-					border="0" cellpadding="2" cellspacing="0">
-					<tbody>
-					<tr><td>"""
-
-		if self._first_entry > 0:
-			html += '<a href="planet:up">Newer Entries</a>'
-		html += '</td><td style="text-align: right;">'
-		if last_entry < len(db_entrylist):
-			html += '<a href="planet:down">Older Entries</a>'
-		html += "</td></tr></tbody></table>"
-		html += "</body></html>"
-		
-		self._render(html)
 		
 	def auto_pane(self):
 		pass
@@ -185,12 +143,17 @@ class PlanetView:
 			return
 		
 	def show_search_results(self, entries, query):
-		pass
+		if entries is None:
+			self.display_custom_entry(_("No entries match those search criteria"))
+			
+		self._entrylist = [e[0] for e in entries]
+		self._render_entries()
 		
 	def unshow_search(self):
-		pass
+		self._render("<html><body></body></html")
 		
 	def highlight_results(self, feed_id):
+		"""doesn't apply in planet mode"""
 		pass
 		
 	def clear_entries(self):
@@ -222,7 +185,9 @@ class PlanetView:
 			print "why is display_item being called?"
 		
 	def finish(self):
-		pass
+		self._update_server.finish()
+		urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
+		self._render("<html><body></body></html")
 		
 	#protected functions
 	def _load_entry(self, entry_id, force = False):
@@ -242,23 +207,72 @@ class PlanetView:
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
 			if not entry.has_key('media'):
-				return
+				return self._entry_store[entry_id]
 			ret = []
 			ret.append(str(entry_id)+" ")
 			for medium in entry['media']:
 				ret += htmlify_media(medium, self._mm)
 			ret = "".join(ret)
-			self._update_server.updates.append(ret)
+			self._update_server.push_update(ret)
 		
 		return self._entry_store[entry_id]
-	
-	def _render(self, html):
-		if self._moz_realized:
-			print "rendering"
-			self._moz.render_data(html, long(len(html)), "http://localhost:"+str(PlanetView.PORT),"text/html")
-			print "done"
 		
-	def _build_header(self):
+	def _render_entries(self):
+		"""Takes a block on entry_ids and throws up a page"""
+		if self._first_entry < 0:
+			self._first_entry = 0
+			
+		if len(self._entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
+			last_entry = self._first_entry+ENTRIES_PER_PAGE
+		else:
+			last_entry = len(self._entrylist)
+			
+		media_exists = False
+		entries = ""
+		html = ""
+		for entry_id in self._entrylist[self._first_entry:last_entry]:
+			entry_html, item = self._load_entry(entry_id)
+			if item.has_key('media'):
+				media_exists = True
+			entries += entry_html
+			entries += "<hr>\n"
+			
+		#######build HTML#######	
+				
+		html = self._build_header(media_exists)
+		
+		html += """<table
+					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
+ 					border="0" cellpadding="2" cellspacing="0">
+					<tbody>
+					<tr><td>"""
+		if self._first_entry > 0:
+			html += '<a href="planet:up">Newer Entries</a>'
+		html += '</td><td style="text-align: right;">'
+		if last_entry < len(self._entrylist):
+			html += '<a href="planet:down">Older Entries</a>'
+		html += "</td></tr></tbody></table>"
+		
+		html += entries
+			
+		html += """<table
+					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
+					border="0" cellpadding="2" cellspacing="0">
+					<tbody>
+					<tr><td>"""
+		if self._first_entry > 0:
+			html += '<a href="planet:up">Newer Entries</a>'
+		html += '</td><td style="text-align: right;">'
+		if last_entry < len(self._entrylist):
+			html += '<a href="planet:down">Older Entries</a>'
+		html += "</td></tr></tbody></table>"
+		html += "</body></html>"
+		
+		print html
+		
+		self._render(html)
+	
+	def _build_header(self, media_exists):
 		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			html = (
             """<html><head>
@@ -267,80 +281,88 @@ class PlanetView:
             body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
             %s
             </style>
-            <title>title</title>
-            <script type="text/javascript">
-            <!--
-            var xmlHttp
+            <title>title</title>""") % (self._background_color,
+									   self._foreground_color,
+									   self._moz_font, 
+									   self._moz_size, 
+									   self._css)
+			if media_exists:
+				html += """
+	            <script type="text/javascript">
+	            <!--
+	            var xmlHttp
 
-			function refresh_entries(timed)
-			{
-				xmlHttp=GetXmlHttpObject()
-				if (xmlHttp==null)
+				function refresh_entries(timed)
 				{
-					alert ("Browser does not support HTTP Request")
-					return
-				}        
-				xmlHttp.onreadystatechange=stateChanged 
-				try
-				{
-					xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"""/updates",true)
-					xmlHttp.send(null)
-				} 
-				catch (error) 
-				{
-					document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
-				}
-				if (timed == 1)
-				{
-					SetTimer()
-				}
-			} 
-
-			function stateChanged() 
-			{ 
-				if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
-			    { 
-			    	if (xmlHttp.responseText.length > 0)
-			    	{
-				    	response_array = xmlHttp.responseText.split(" ")
-				    	entry_id = response_array[0]
-				    	split_point = xmlHttp.responseText.indexOf(" ")
-						document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
-						//keep refreshing
-						refresh_entries(0) //don't queue timer
+					xmlHttp=GetXmlHttpObject()
+					if (xmlHttp==null)
+					{
+						alert ("Browser does not support HTTP Request")
+						return
+					}        
+					xmlHttp.onreadystatechange=stateChanged 
+					try
+					{
+						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.generate_key()+"""",true)
+						xmlHttp.send(null)
+					} 
+					catch (error) 
+					{
+						document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
+					}
+					if (timed == 1)
+					{
+						SetTimer()
 					}
 				} 
-			} 
 
-			function GetXmlHttpObject()
-			{ 
-				var objXMLHttp=null
-				if (window.XMLHttpRequest)
+				function stateChanged() 
+				{ 
+					if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
+				    { 
+				    	if (xmlHttp.responseText.length > 0)
+				    	{
+					    	response_array = xmlHttp.responseText.split(" ")
+					    	entry_id = response_array[0]
+					    	split_point = xmlHttp.responseText.indexOf(" ")
+							document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
+							//keep refreshing
+							refresh_entries(0) //don't queue timer
+						}
+					} 
+				} 
+
+				function GetXmlHttpObject()
+				{ 
+					var objXMLHttp=null
+					if (window.XMLHttpRequest)
+					{
+						objXMLHttp=new XMLHttpRequest()
+					}
+					else if (window.ActiveXObject)
+					{
+						objXMLHttp=new ActiveXObject("Microsoft.XMLHTTP")
+					}
+					return objXMLHttp
+				} 
+				
+				var timerObj;
+				function SetTimer()
 				{
-					objXMLHttp=new XMLHttpRequest()
+	  				timerObj = setTimeout("refresh_entries(1)",2000);
 				}
-				else if (window.ActiveXObject)
-				{
-					objXMLHttp=new ActiveXObject("Microsoft.XMLHTTP")
-				}
-				return objXMLHttp
-			} 
-			
-			var timerObj;
-			function SetTimer()
-			{
-  				timerObj = setTimeout("refresh_entries(1)",1000);
-			}
-			refresh_entries(1)
-			-->
-            </script>
-            </head><body><span id="errorMsg"></span><br>""") % (self._background_color,
-            														 self._foreground_color,
-            														 self._moz_font, 
-            														 self._moz_size, 
-            														 self._css)
+				refresh_entries(1)
+				-->
+	            </script>"""
+			html += """</head><body><span id="errorMsg"></span><br>"""
 			
 		return html
+		
+	def _render(self, html):
+		if self._moz_realized:
+			print "rendering"
+			self._moz.render_data(html, long(len(html)), "http://localhost:"+str(PlanetView.PORT),"text/html")
+			print "done"
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
@@ -391,23 +413,52 @@ class PlanetView:
 			self.socket = socket._no_timeoutsocket(self.address_family, self.socket_type)
 			self.server_bind()
 			self.server_activate()
-			self.updates = []
+			self._key = ""
+			self.generate_key()
+			
+			self._updates = []
+			self._quitting = False
 			
 		def serve_forever(self):
 			while 1:
 				self.handle_request()
-				if len(self.updates)>0:
+				if self._quitting:
+					return
+				if len(self._updates)>0:
 					#We must have posted an update.  So pop it (unlike in the request handler,
 					#changes actually have an effect here!)
-					self.updates.pop(0)
+					self._updates.pop(0)
+					
+		def finish(self):
+			self._quitting = True
+					
+		def generate_key(self):
+			self._key = str(random.randint(1,10000))
+			return self._key
+			
+		def get_key(self):
+			return self._key
+			
+		def push_update(self, update):
+			self._updates.append(update)
+			
+		def peek_update(self):
+			return self._updates[0]
+			
+		def update_count(self):
+			return len(self._updates)
 					
 	class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):	
 		"""for some reason, any variable I change in this class changes RIGHT FUCKING BACK
 		as soon as it exits.  So we don't actually pop the value here"""
 		def do_GET(self):
-			if len(self.server.updates)==0:
+			key = self.path[1:] #strip leading /
+			if key != self.server.get_key():
+				self.wfile.write("PenguinTV Unauthorized")
+				return
+			if self.server.update_count()==0:
 				self.wfile.write("")
 			else:
-				update = self.server.updates[0]
+				update = self.server.peek_update()
 				self.wfile.write(update)
 				
