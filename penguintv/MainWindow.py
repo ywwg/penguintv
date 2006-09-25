@@ -22,7 +22,7 @@ import FeedFilterDialog
 import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
 import SynchronizeDialog
-import MainWindow, FeedList, EntryList, EntryView
+import MainWindow, FeedList, EntryList, EntryView, PlanetView
 
 #status of the main window progress bar
 U_NOBODY=0
@@ -192,50 +192,54 @@ class MainWindow:
 				self._widgetTree.signal_connect(key, getattr(self, key))
 		
 	def load_layout(self):
-		self._app.log("load_layout")
-		#sys.stderr.write("load_layout")
+		#self._app.log("load_layout")
 		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db)
-		renderrer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer')
-		renderrer = EntryView.GTKHTML
-		
-		if renderrer_str == "GTKHTML":
-			renderrer = EntryView.GTKHTML
-		elif renderrer_str == "DEMOCRACY_MOZ":
-			renderrer = EntryView.DEMOCRACY_MOZ
-		elif renderrer_str == "MOZILLA":
-			renderrer = EntryView.MOZILLA
-		elif renderrer_str == "GECKOEMBED":
-			renderrer = EntryView.GECKOEMBED
+		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer') #stupid misspelling (renderrer != renderer)
+		renderer = EntryView.GTKHTML
+
+		if renderer_str == "GTKHTML":
+			renderer = EntryView.GTKHTML
+		elif renderer_str == "DEMOCRACY_MOZ":
+			renderer = EntryView.DEMOCRACY_MOZ
+		elif renderer_str == "MOZILLA":
+			renderer = EntryView.MOZILLA
+		elif renderer_str == "GECKOEMBED":
+			renderer = EntryView.GECKOEMBED
 		else:
-			renderrer = EntryView.GTKHTML
+			renderer = EntryView.GTKHTML
 		
-		def load_renderrer(x,recur=0):
+		def load_renderer(x,recur=0):
 			"""little function I define so I can recur"""
 			if recur==2:
 				print "too many tries"
 				self.do_quit()
 				sys.exit(2)
 			#try:
-			self.entry_view = EntryView.EntryView(components, self._app, self, x)
+			if self.layout != "planet":
+				self.entry_view = EntryView.EntryView(components, self._app, self, x)
+			else:
+				self.entry_view = PlanetView.PlanetView(components, self._app, self, self._db, x)
 			#except Exception, e:
 			#	print e
-			#	if renderrer == EntryView.DEMOCRACY_MOZ:
+			#	if renderer == EntryView.DEMOCRACY_MOZ:
 			#		if  _FORCE_DEMOCRACY_MOZ:
-			#			load_renderrer(EntryView.DEMOCRACY_MOZ,recur+1)
+			#			load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
 			#		else:
-			#			print "Error instantiating Democracy Mozilla renderrer, falling back to GTKHTML"
+			#			print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
 			#			print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
-			#			load_renderrer(EntryView.GTKHTML,recur+1)
+			#			load_renderer(EntryView.GTKHTML,recur+1)
 			#	else:
-			#		print "Error loading renderrer"
+			#		print "Error loading renderer"
 			#		self._app.do_quit()
-		
-		load_renderrer(renderrer)
-		self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
+		load_renderer(renderer)
+		if self.layout != "planet":
+			self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
+		else:
+			self.entry_list_view = self.entry_view
 			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
@@ -244,7 +248,10 @@ class MainWindow:
 		#major WIDGETS
 		self.feed_pane = components.get_widget('feed_pane')
 		self._feedlist = components.get_widget('feedlistview')
-		self.entry_pane = components.get_widget('entry_pane')
+		if self.layout != "planet":
+			self.entry_pane = components.get_widget('entry_pane')
+		else:
+			self.entry_pane = self.feed_pane #cheat
 		
 		self.filter_combo_widget = components.get_widget('filter_combo')
 		filter_combo_model = gtk.ListStore(str,str,bool,int) #text to display, name of filter, separator-or-not, type
@@ -327,7 +334,8 @@ class MainWindow:
 		#some widgets
 		del self.feed_pane
 		del self._feedlist
-		del self.entry_pane
+		if self.layout != "planet":
+			del self.entry_pane
 		del self.app_window
 		del self._status_view
 		del self._disk_usage_widget

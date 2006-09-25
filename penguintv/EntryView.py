@@ -25,16 +25,16 @@ MOZILLA=1
 DEMOCRACY_MOZ=2
 
 class EntryView:
-	def __init__(self, widget_tree, app, main_window, renderrer=GTKHTML):
+	def __init__(self, widget_tree, app, main_window, renderer=GTKHTML):
 		self._app = app
 		self._db = self._app.db
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
-		self._RENDERRER = renderrer
+		self._renderer = renderer
 		self._moz_realized = False
 		html_dock = widget_tree.get_widget('html_dock')
 		
-		if self._RENDERRER == GTKHTML:
+		if self._renderer == GTKHTML:
 			import SimpleImageCache
 			import gtkhtml2
 			scrolled_window = gtk.ScrolledWindow()
@@ -44,9 +44,9 @@ class EntryView:
 			self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
 			self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
 			self._scrolled_window = scrolled_window
-		elif self._RENDERRER == MOZILLA:
+		elif self._renderer == MOZILLA:
 			import gtkmozembed
-		elif self._RENDERRER == DEMOCRACY_MOZ:
+		elif self._renderer == DEMOCRACY_MOZ:
 			from democracy_moz import MozillaBrowser
 				
 		#thanks to straw, again
@@ -78,7 +78,7 @@ class EntryView:
         #const found in __init__   
         
 		self._css = ""
-		if self._RENDERRER==GTKHTML:
+		if self._renderer==GTKHTML:
 			f = open (os.path.join(self._app.glade_prefix,"gtkhtml.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
@@ -99,7 +99,7 @@ class EntryView:
 			self._htmlview = htmlview
 			self._document_lock = threading.Lock()
 			self._image_cache = SimpleImageCache.SimpleImageCache()
-		elif self._RENDERRER==MOZILLA:
+		elif self._renderer==MOZILLA:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
@@ -118,7 +118,7 @@ class EntryView:
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
-		elif self._RENDERRER==DEMOCRACY_MOZ:
+		elif self._renderer==DEMOCRACY_MOZ:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
@@ -219,7 +219,7 @@ class EntryView:
 		self._app.display_entry(self._current_entry['entry_id'])
 		
 	def display_custom_entry(self, message):
-		if self._RENDERRER==GTKHTML:
+		if self._renderer==GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
@@ -227,7 +227,7 @@ class EntryView:
             body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+		elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html")
 				self._moz.append_data(message, long(len(message)))
@@ -239,14 +239,14 @@ class EntryView:
 	def undisplay_custom_entry(self):
 		if self._custom_entry:
 			message = "<html></html>"
-			if self._RENDERRER==GTKHTML:
+			if self._renderer==GTKHTML:
 				self._document_lock.acquire()
 				self._document.clear()
 				self._document.open_stream("text/html")
 				self._document.write_stream(message)
 				self._document.close_stream()
 				self._document_lock.release()
-			elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+			elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
 				if self._moz_realized:
 					self._moz.open_stream("http://ywwg.com","text/html")
 					self._moz.append_data(message, long(len(message)))
@@ -254,7 +254,7 @@ class EntryView:
 			self._custom_entry = False
 	
 	def display_item(self, item=None, highlight=""):
-		if self._RENDERRER == GTKHTML:
+		if self._renderer == GTKHTML:
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			rescroll=0
@@ -285,7 +285,7 @@ class EntryView:
 		enc = None
 		
 		style_adjustments=""
-		if self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			if item is not None:
 				#no comments in css { } please!
 				#FIXME windows: os.path.join... wrong direction slashes?  does moz care?
@@ -301,7 +301,7 @@ class EntryView:
 	            														 self._moz_font, 
 	            														 self._moz_size, 
 	            														 self._css, 
-	            														 self._htmlify_item(item))
+	            														 htmlify_item(item, self._mm))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
@@ -317,7 +317,7 @@ class EntryView:
 	            <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
 	            														 self._foreground_color,
 	            														 self._css,
-	            														 self._htmlify_item(item))
+	            														 htmlify_item(item, self._mm))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
@@ -335,7 +335,7 @@ class EntryView:
 			
 		#print html
 			
-		if self._RENDERRER == GTKHTML:
+		if self._renderer == GTKHTML:
 			p = HTMLimgParser()
 			p.feed(html)
 			uncached=0
@@ -365,105 +365,12 @@ class EntryView:
 			else:
 				va.set_value(va.lower)
 				ha.set_value(ha.lower)
-		elif self._RENDERRER == MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:	
+		elif self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:	
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 				self._moz.append_data(html, long(len(html)))
 				self._moz.close_stream()
 		return
-		
-	def _htmlify_item(self, item):
-		""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
-		    but there are lots of alternate designs depending on the status of media. """
-	
-		#global download_status
-		ret = []
-		#ret.append('<div class="heading">')
-		if item.has_key('title'):
-			ret.append('<div class="stitle">%s</div>' % item['title'])
-		if item.has_key('creator'):
-			if item['creator']!="" and item['creator'] is not None:
-				ret.append('By %s<br/>' % (item['creator'],))			
-		if item['date'] != (0,0,0,0,0,0,0,0,0):
-			ret.append('<div class="sdate">%s</div><br/>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
-   		#ret.append('</div>')
-		if item.has_key('media'):
-			ret.append('<div class="media">')
-			for medium in item['media']:
-				if medium['download_status']==ptvDB.D_NOT_DOWNLOADED:    
-					ret.append('<p>'+utils.html_command('download:',medium['media_id'])+' '+
-									 utils.html_command('downloadqueue:',medium['media_id'])+
-							         ' (%s)</p>' % (utils.format_size(medium['size'],)))
-				elif medium['download_status'] == ptvDB.D_DOWNLOADING: 
-					if medium.has_key('progress_message'): #downloading and we have a custom message
-						ret.append('<p><i>'+medium['progress_message']+'</i> '+
-						                    utils.html_command('pause:',medium['media_id'])+' '+
-						                    utils.html_command('stop:',medium['media_id'])+'</p>')
-					elif self._mm.has_downloader(medium['media_id']): #we have a downloader object
-						downloader = self._mm.get_downloader(medium['media_id'])
-						if downloader.status == Downloader.DOWNLOADING:
-							d = {'progress':downloader.progress,
-							     'size':utils.format_size(medium['size'])}
-							ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
-							            utils.html_command('pause:',medium['media_id'])+' '+
-							            utils.html_command('stop:',medium['media_id'])+'</p>')
-						elif downloader.status == Downloader.QUEUED:
-							ret.append('<p><i>'+_("Download queued") +'</i> '+
-							            utils.html_command('pause:',medium['media_id'])+' '+
-							            utils.html_command('stop:',medium['media_id'])+'</p>')
-						elif downloader.status == Downloader.STOPPED:
-							ret.append("STOPPPPPPPPPED")
-					elif medium.has_key('progress'):       #no custom message, but we have a progress value
-						d = {'progress':medium['progress'],
-						     'size':utils.format_size(medium['size'])}
-						ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
-						            utils.html_command('pause:',medium['media_id'])+' '+
-						            utils.html_command('stop:',medium['media_id'])+'</p>')
-					else:       # we have nothing to go on
-						ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
-																  utils.html_command('stop:',medium['media_id'])+'</p>')
-				elif medium['download_status'] == ptvDB.D_DOWNLOADED:
-					if self._mm.has_downloader(medium['media_id']):	
-						downloader = self._mm.get_downloader(medium['media_id'])
-						ret.append('<p>'+ str(downloader.message)+'</p>')
-					filename = medium['file'][medium['file'].rfind("/")+1:]
-					if utils.is_known_media(medium['file']): #we have a handler
-						if os.path.isdir(medium['file']) and medium['file'][-1]!='/':
-							medium['file']=medium['file']+'/'
-						ret.append('<p>'+utils.html_command('play:',medium['media_id'])+' '+
-										 utils.html_command('redownload',medium['media_id'])+' '+
-										 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
-					elif os.path.isdir(medium['file']): #it's a folder
-						ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
-									     utils.html_command('redownload',medium['media_id'])+' '+
-									     utils.html_command('delete:',medium['media_id'])+'</p>')
-					else:                               #we have no idea what this is
-						ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
-										 utils.html_command('redownload',medium['media_id'])+' '+
-										 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
-				elif medium['download_status'] == ptvDB.D_RESUMABLE:
-					ret.append('<p>'+utils.html_command('resume:',medium['media_id'])+' '+
-									 utils.html_command('redownload',medium['media_id'])+' '+
-									 utils.html_command('delete:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))	
-				elif medium['download_status'] == ptvDB.D_ERROR:
-					if self._mm.has_downloader(medium['media_id']):	
-						downloader = self._mm.get_downloader(medium['media_id'])
-						error_msg = downloader.message
-					else:
-						error_msg = _("There was an error downloading the file.")
-					ret.append('<p>'+medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg)+'  '+
-											 utils.html_command('retry',medium['media_id'])+' '+
-											 utils.html_command('tryresume:',medium['media_id'])+' '+
-											 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
-			ret.append('</div>')
-		ret.append('<div class="content">')
-		if item.has_key('description'):
-			ret.append('<br/>%s ' % item['description'])
-		ret.append('</div>')
-		if item.has_key('link'):
-			ret.append('<br/><a href="'+item['link']+'">'+_("Full Entry...")+'</a><br />' )
-		ret.append('</p>')
-		return "".join(ret)
 		
 	def _do_download_images(self, entry_id, html, images):
 		self._document_lock.acquire()
@@ -498,7 +405,7 @@ class EntryView:
 		
 	def finish(self):
 		#just make it gray for quitting
-		if self._RENDERRER==GTKHTML:
+		if self._renderer==GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
@@ -506,7 +413,7 @@ class EntryView:
             body { background-color: %s; }</style><body></body></html>""" % (self._insensitive_color,))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._RENDERRER==MOZILLA or self._RENDERRER == DEMOCRACY_MOZ:
+		elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			#FIXME: this doesn't work!
 			message = """<html><head><style type="text/css">
             body { background-color: %s; }</style></head><body>WHEEEEEEEEEEEEEEE</body></html>""" % (self._insensitive_color,)
@@ -515,6 +422,106 @@ class EntryView:
 		self._custom_entry = True
 		return
 		
+def htmlify_item(item, mm=None, ajax=False):
+	""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
+	    but there are lots of alternate designs depending on the status of media. """
+
+	#global download_status
+	ret = []
+	#ret.append('<div class="heading">')
+	if item.has_key('title'):
+		ret.append('<div class="stitle">%s</div>' % item['title'])
+	if item.has_key('creator'):
+		if item['creator']!="" and item['creator'] is not None:
+			ret.append('By %s<br/>' % (item['creator'],))			
+	if item['date'] != (0,0,0,0,0,0,0,0,0):
+		ret.append('<div class="sdate">%s</div><br/>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
+		#ret.append('</div>')
+	if item.has_key('media'):
+		ret.append('<div class="media">')
+		if mm is not None and not ajax:
+			for medium in item['media']:
+				ret += htmlify_media(medium, mm)
+		else:
+			ret += '<span id="' + str(item['entry_id']) + '"></span>'
+		ret.append('</div>')
+	ret.append('<div class="content">')
+	if item.has_key('description'):
+		ret.append('<br/>%s ' % item['description'])
+	ret.append('</div>')
+	if item.has_key('link'):
+		ret.append('<br/><a href="'+item['link']+'">'+_("Full Entry...")+'</a><br />' )
+	ret.append('</p>')
+	return "".join(ret)
+	
+def htmlify_media(medium, mm):
+	ret = []
+	if medium['download_status']==ptvDB.D_NOT_DOWNLOADED:    
+		ret.append('<p>'+utils.html_command('download:',medium['media_id'])+' '+
+						 utils.html_command('downloadqueue:',medium['media_id'])+
+				         ' (%s)</p>' % (utils.format_size(medium['size'],)))
+	elif medium['download_status'] == ptvDB.D_DOWNLOADING: 
+		if medium.has_key('progress_message'): #downloading and we have a custom message
+			ret.append('<p><i>'+medium['progress_message']+'</i> '+
+			                    utils.html_command('pause:',medium['media_id'])+' '+
+			                    utils.html_command('stop:',medium['media_id'])+'</p>')
+		elif mm.has_downloader(medium['media_id']): #we have a downloader object
+			downloader = mm.get_downloader(medium['media_id'])
+			if downloader.status == Downloader.DOWNLOADING:
+				d = {'progress':downloader.progress,
+				     'size':utils.format_size(medium['size'])}
+				ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
+				            utils.html_command('pause:',medium['media_id'])+' '+
+				            utils.html_command('stop:',medium['media_id'])+'</p>')
+			elif downloader.status == Downloader.QUEUED:
+				ret.append('<p><i>'+_("Download queued") +'</i> '+
+				            utils.html_command('pause:',medium['media_id'])+' '+
+				            utils.html_command('stop:',medium['media_id'])+'</p>')
+			elif downloader.status == Downloader.STOPPED:
+				ret.append("STOPPPPPPPPPED")
+		elif medium.has_key('progress'):       #no custom message, but we have a progress value
+			d = {'progress':medium['progress'],
+			     'size':utils.format_size(medium['size'])}
+			ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
+			            utils.html_command('pause:',medium['media_id'])+' '+
+			            utils.html_command('stop:',medium['media_id'])+'</p>')
+		else:       # we have nothing to go on
+			ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
+													  utils.html_command('stop:',medium['media_id'])+'</p>')
+	elif medium['download_status'] == ptvDB.D_DOWNLOADED:
+		if mm.has_downloader(medium['media_id']):	
+			downloader = mm.get_downloader(medium['media_id'])
+			ret.append('<p>'+ str(downloader.message)+'</p>')
+		filename = medium['file'][medium['file'].rfind("/")+1:]
+		if utils.is_known_media(medium['file']): #we have a handler
+			if os.path.isdir(medium['file']) and medium['file'][-1]!='/':
+				medium['file']=medium['file']+'/'
+			ret.append('<p>'+utils.html_command('play:',medium['media_id'])+' '+
+							 utils.html_command('redownload',medium['media_id'])+' '+
+							 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
+		elif os.path.isdir(medium['file']): #it's a folder
+			ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
+						     utils.html_command('redownload',medium['media_id'])+' '+
+						     utils.html_command('delete:',medium['media_id'])+'</p>')
+		else:                               #we have no idea what this is
+			ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
+							 utils.html_command('redownload',medium['media_id'])+' '+
+							 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
+	elif medium['download_status'] == ptvDB.D_RESUMABLE:
+		ret.append('<p>'+utils.html_command('resume:',medium['media_id'])+' '+
+						 utils.html_command('redownload',medium['media_id'])+' '+
+						 utils.html_command('delete:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))	
+	elif medium['download_status'] == ptvDB.D_ERROR:
+		if mm.has_downloader(medium['media_id']):	
+			downloader = mm.get_downloader(medium['media_id'])
+			error_msg = downloader.message
+		else:
+			error_msg = _("There was an error downloading the file.")
+		ret.append('<p>'+medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg)+'  '+
+								 utils.html_command('retry',medium['media_id'])+' '+
+								 utils.html_command('tryresume:',medium['media_id'])+' '+
+								 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
+	return ret
 #class EntryDownloaderThread(threading.Thread):
 #	def __init__(self):
 #		threading.Thread.__init__(self)

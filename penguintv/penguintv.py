@@ -22,6 +22,7 @@ import time
 import sets
 import string
 import timeoutsocket
+timeoutsocket.setDefaultSocketTimeout(30)
 
 import pygtk
 pygtk.require('2.0')
@@ -134,6 +135,7 @@ class PenguinTVApp:
 		self._waiting_for_search = False
 		
 		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout')
+		if ptvDB.RUNNING_SUGAR: window_layout='planet' #always use planet on sugar platform
 		if window_layout is None: window_layout='standard'
 		
 		self.main_window = MainWindow.MainWindow(self,self.glade_prefix) 
@@ -349,10 +351,10 @@ class PenguinTVApp:
 		self.db.set_feed_cache(adjusted_cache)
 		self.db.finish()	
 		self.mediamanager.finish()
-		while threading.activeCount()>1:
-			###print threading.enumerate()
-			###print str(threading.activeCount())+" threads active..."
-			time.sleep(1)
+		#while threading.activeCount()>1:
+		#	print threading.enumerate()
+		#	print str(threading.activeCount())+" threads active..."
+		#	time.sleep(1)
 		self._socket.close()
 		gtk.main_quit()
 		
