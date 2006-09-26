@@ -50,7 +50,7 @@ class AddSearchTagDialog:
 			label = gtk.Label(_("That tag name is already in use.  Please choose a different name."))
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
-			response = dialog.run()
+			dialog.run()
 			dialog.hide()
 			del dialog
 			self._tag_name_widget.grab_focus()

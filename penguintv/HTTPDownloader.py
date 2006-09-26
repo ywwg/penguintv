@@ -82,7 +82,7 @@ class HTTPDownloader(Downloader):
 		except Exception, data: #this can happen if we cancelled the download
 			if data[0]==33: #if server doesn't support resuming, retry
 				self._resume=False
-				self._download(None)
+				self.download(None)
 			if data[0]==42:
 				self.status = STOPPED
 				self.message = ""
@@ -102,9 +102,9 @@ class HTTPDownloader(Downloader):
 			self.progress = int((dl_now*100.0)/dl_total)
 		except:
 			self.progress = 0	
-		if self.media.has_key('size')==False:
+		if not self.media.has_key('size'):
 			self.media['size_adjustment']=True
-		elif self.media['size']!=round(dl_total) and self._resume==False:
+		elif self.media['size']!=round(dl_total) and not self._resume:
 			self.media['size']=round(dl_total)
 			self.media['size_adjustment']=True
 		else:

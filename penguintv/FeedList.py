@@ -125,14 +125,12 @@ class FeedList:
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
 			
-		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self._db.get_feed_cache()
 		db_feedlist = self._db.get_feedlist()
 		
 		i=-1
-		downloaded=0
-		
+	
 		if not self._fancy:
 			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 			blank_pixbuf.fill(0xffffff00)
@@ -248,7 +246,7 @@ class FeedList:
 		if 'pollfail' not in update_what or len(update_what)>1:
 			#or in the converse, if pollfail in what and len is one, we don't need to do this
 			
-			if update_data.has_key('flag_list')==False:
+			if not update_data.has_key('flag_list'):
 				entrylist = self._db.get_entrylist(feed_id)
 				if entrylist:
 					update_data['flag_list'] = self._db.get_entry_flags(feed_id)
@@ -446,7 +444,7 @@ class FeedList:
 			#also, we still need to test for unviewed
 			if i == index and selected is not None:  #if it's the selected feed, we have to be careful
 				if self.filter_setting != NONE:
-					if keep_misfiltered==True: 
+					if keep_misfiltered: 
 						#some cases when we want to keep the current feed visible
 						if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
 							passed_filter = True  #keep it
@@ -464,7 +462,7 @@ class FeedList:
 				else:
 					#if filter is NONE, no one is getting past.
 					passed_filter = False
-				if passed_filter == False:
+				if not passed_filter:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 					self._app.display_feed(-1)
 			else: #if it's not the selected feed
@@ -510,7 +508,7 @@ class FeedList:
 			label = gtk.Label(_("There is no homepage associated with this feed.  You can set one in the feed properties"))
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
-			response = dialog.run()
+			dialog.run()
 			dialog.hide()
 			del dialog
 		self._app.activate_link(link)
@@ -697,11 +695,11 @@ class FeedList:
 			else:
 				self._last_selected = item
 				self._app.display_feed(item, -2)
-				if self._selecting_misfiltered == True and item!=None:
+				if self._selecting_misfiltered and item!=None:
 					self._selecting_misfiltered = False
 					gobject.timeout_add(250, self.do_filter)
 			try:
-				if self._feedlist[self.find_index_of_item(item)][POLLFAIL] == True:
+				if self._feedlist[self.find_index_of_item(item)][POLLFAIL]:
 					self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
 					return
 			except:

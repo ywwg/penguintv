@@ -189,10 +189,10 @@ class EntryView:
 				
 		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
 		#take just the beginning for the font name.  prepare for dense, unreadable code
-		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
+		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
-		if self._currently_blank == False:
+		if not self._currently_blank:
 			self.display_item(self._current_entry)
 
 	def _request_url(self, document, url, stream):
@@ -218,7 +218,7 @@ class EntryView:
 		except:
 			return
 			
-		if entry_id != self._current_entry['entry_id'] or self._currently_blank==True:
+		if entry_id != self._current_entry['entry_id'] or self._currently_blank:
 			return	
 		#assemble the updated info and display
 		self._app.display_entry(self._current_entry['entry_id'])
@@ -277,7 +277,7 @@ class EntryView:
 			if item:
 				try:
 					if item['entry_id'] == self._current_entry['entry_id']:
-						if self._currently_blank == False:
+						if not self._currently_blank:
 							self._current_scroll_v = va.get_value()
 							self._current_scroll_h = ha.get_value()
 						rescroll=1
@@ -291,9 +291,6 @@ class EntryView:
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
 		
-		enc = None
-		
-		style_adjustments=""
 		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			if item is not None:
 				#no comments in css { } please!

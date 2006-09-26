@@ -103,7 +103,6 @@ class MediaManager:
 	   use btlaunchmany code to write our own downloader
 		 just need to change init funcs, hijack status funcs, add cancelling"""
 		media_list = self.db.get_entry_media(entry_id)
-		files=""
 		if len(media_list)==0:
 			return
 		for media in media_list:
@@ -134,7 +133,7 @@ class MediaManager:
 				except:
 					pass #we're ok
 			
-			if resume==False:
+			if not resume:
 				self.db.delete_media(media_id)
 			#else:
 			#	print "resuming using existing filename: "+str(media['file'])
@@ -223,7 +222,7 @@ class MediaManager:
 				#if not download.status == Downloader.DOWNLOADING: #send signal for all queued downloads
 				#	self.finished_callback(download, (download.media,MediaManager.STOPPED,None)) 
 			self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
-			if self.quitting == False:
+			if not self.quitting:
 				self.pool.setThreadCount(5)
 			#reset
 			self.downloads = []

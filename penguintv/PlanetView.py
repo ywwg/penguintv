@@ -130,7 +130,6 @@ class PlanetView:
 		if feed_id != self._current_feed_id:
 			self._current_feed_id = feed_id
 			self._first_entry = 0
-			last_entry = ENTRIES_PER_PAGE
 			self._entry_store={}
 			self._feed_title = self._db.get_feed_title(feed_id)
 		
@@ -148,11 +147,11 @@ class PlanetView:
 			self._entry_store = {}
 			self._render_entries()
 		self._load_entry(entry_id, True)
-		try:
-			index = self._entrylist.index(entry_id)
-		except:
-			print "can't find index???"
-			return
+		#try:
+		#	index = self._entrylist.index(entry_id)
+		#except:
+		#	print "can't find index???"
+		#	return
 		
 	def show_search_results(self, entries, query):
 		if entries is None:
@@ -172,7 +171,6 @@ class PlanetView:
 		
 	def clear_entries(self):
 		self._first_entry = 0
-		last_entry = ENTRIES_PER_PAGE
 		self._entry_store={}
 		self._entrylist = []
 		self._render("<html><body></body></html")
@@ -438,7 +436,7 @@ class PlanetView:
 				
 		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
 		#take just the beginning for the font name.  prepare for dense, unreadable code
-		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
+		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
 		

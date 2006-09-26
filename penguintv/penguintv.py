@@ -769,7 +769,7 @@ class PenguinTVApp:
 		self.db.set_entrylist_read(entrylist,True)
 		for e in entrylist:
 			if update_entrylist: #hack for PlanetView
-				self.update_entry_list(entry)
+				self.update_entry_list(e)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
 			
 	def mark_entry_as_unviewed(self,entry):

@@ -35,7 +35,7 @@ class FeedFilterPropertiesDialog:
 				label = gtk.Label(_("A filter already exists for that feed and query.  Please choose a different query."))
 				dialog.vbox.pack_start(label, True, True, 0)
 				label.show()
-				response = dialog.run()
+				dialog.run()
 				dialog.hide()
 				del dialog
 				self._query_entry.grab_focus()

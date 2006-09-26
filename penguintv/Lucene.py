@@ -329,7 +329,7 @@ class Lucene:
 				except Exception, e:
 					print e
 					print feed_id
-					print self.blacklist
+					print blacklist
 
 		#query FEED TITLES
 		if 'feeds' in include:

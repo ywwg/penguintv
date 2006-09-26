@@ -101,14 +101,14 @@ class BTDownloader(Downloader):
 				self._done.set()
 		
 		if dict.has_key('upTotal'): #check to see if we should stop
-			if self._done_downloading == True:
+			if self._done_downloading:
 				if dict['upTotal'] >= self._downTotal: #if ratio is one, quit
 					self._done.set()
 				if time.time() - 60*60 >= self._start_time: #if it's been an hour, quit
 					self._done.set()
 		
 	def _normalize_finished(self):
-		if self.queue==True:
+		if self._queue:
 			self.status = FINISHED_AND_PLAY
 		else:
 			self.status = FINISHED

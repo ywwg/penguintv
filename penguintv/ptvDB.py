@@ -204,19 +204,19 @@ class ptvDB:
 				self._migrate_database_one_two()
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				self._clean_database_media()
+				#self._clean_database_media()
 			elif db_ver < 2:
 				self._migrate_database_one_two()
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				self._clean_database_media()
+				#self._clean_database_media()
 			elif db_ver < 3:
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				self._clean_database_media()
+				#self._clean_database_media()
 			elif db_ver < 4:
 				self._migrate_database_three_four()
-				self._clean_database_media()
+				#self._clean_database_media()
 			elif db_ver > 4:
 				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
 				raise DBError, "db_ver is "+str(db_ver)+" instead of 4"
@@ -877,7 +877,7 @@ class ptvDB:
 				#need to get a url from somewhere
 				data = preparsed
 				try:
-					url = f['feed']['title_detail']['base']
+					url = data['feed']['title_detail']['base']
 				except:
 					url = feed_id
 			
@@ -1668,7 +1668,7 @@ class ptvDB:
 			except ValueError:
 				#try _this_!
 				try:
-					size = int(''.join([b for b in a if b.isdigit()]))
+					size = int(''.join([b for b in item[1] if b.isdigit()]))
 				except:
 					size = 0
 			new_item = (item[0],size,item[2], item[3])

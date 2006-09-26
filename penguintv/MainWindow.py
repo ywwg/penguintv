@@ -222,8 +222,6 @@ class MainWindow:
 			renderer = EntryView.DEMOCRACY_MOZ
 		elif renderer_str == "MOZILLA":
 			renderer = EntryView.MOZILLA
-		elif renderer_str == "GECKOEMBED":
-			renderer = EntryView.GECKOEMBED
 		else:
 			renderer = EntryView.GTKHTML
 			
@@ -233,25 +231,25 @@ class MainWindow:
 			"""little function I define so I can recur"""
 			if recur==2:
 				print "too many tries"
-				self.do_quit()
+				self._app.do_quit()
 				sys.exit(2)
-			#try:
-			if self.layout != "planet":
-				self.entry_view = EntryView.EntryView(components, self._app, self, x)
-			else:
-				self.entry_view = PlanetView.PlanetView(components, self._app, self, self._db, x)
-			#except Exception, e:
+			try:
+				if self.layout != "planet":
+					self.entry_view = EntryView.EntryView(components, self._app, self, x)
+				else:
+					self.entry_view = PlanetView.PlanetView(components, self._app, self, self._db, x)
+			except Exception, e:
 			#	print e
-			#	if renderer == EntryView.DEMOCRACY_MOZ:
-			#		if  _FORCE_DEMOCRACY_MOZ:
-			#			load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
-			#		else:
-			#			print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
-			#			print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
-			#			load_renderer(EntryView.GTKHTML,recur+1)
-			#	else:
-			#		print "Error loading renderer"
-			#		self._app.do_quit()
+				if renderer == EntryView.DEMOCRACY_MOZ:
+					if  _FORCE_DEMOCRACY_MOZ:
+						load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
+					else:
+						print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
+						print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
+						load_renderer(EntryView.GTKHTML,recur+1)
+				else:
+					print "Error loading renderer"
+					self._app.do_quit()
 		load_renderer(renderer)
 		if self.layout != "planet":
 			self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
@@ -576,7 +574,7 @@ class MainWindow:
 		
 	def on_filter_combo_changed(self, event):
 		try: #this gets called when we are initially populating the combo list
-			text = self.search_entry.get_text()
+			self.search_entry.get_text()
 		except:
 			return
 		#print "changed"
