@@ -21,7 +21,7 @@ import sets
 import pickle
 
 RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None #imagine a question mark
-#RUNNING_SUGAR = True
+RUNNING_SUGAR = True
 
 if RUNNING_SUGAR:
 	#I do this in case we're running in a python environment that has lucene
@@ -145,7 +145,7 @@ class ptvDB:
 			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
 			#if self._c.fetchone()[0] == 0:
 			#	self.cache_dirty = False
-			self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty")
+			self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty", True)
 		except:
 			pass
 			
@@ -452,20 +452,23 @@ class ptvDB:
 					print "deleting "+root
 					utils.deltree(root)
 					
-	def get_setting(self, type, datum):
+	def get_setting(self, type, datum, default=None):
 		if HAS_GCONF and datum[0] == '/':
 			if   type == BOOL:
-				return self._conf.get_bool(datum)
+				retval = self._conf.get_bool(datum)
 			elif type == INT:
-				return self._conf.get_int(datum)
+				retval = self._conf.get_int(datum)
 			elif type == STRING:
-				return self._conf.get_string(datum)
+				retval =  self._conf.get_string(datum)
+			if retval is not None:
+				return retval
+			return default
 		else:
 			self._db_execute(self._c, u'SELECT value FROM settings WHERE data=?',(datum,))
 			retval = self._c.fetchone()
 			if retval is not None:
 				return retval[0]
-			return None
+			return default
 				
 	def set_setting(self, type, datum, value):
 		if HAS_GCONF and datum[0] == '/':
@@ -1158,10 +1161,10 @@ class ptvDB:
 				
 			status = self._get_status(item,existing_entries,c, feed_id) #FIXME: remove feedid when done debugging!
 			
-			if feed_id == 351: print item['title']
+			if feed_id == 335: print item['title']
 			
 			if status[0]==NEW:
-				if feed_id == 351: print "new"
+				if feed_id == 335: print "new"
 				new_items = new_items+1
 				#finally insert the entry with fake time
 				#try:
@@ -1181,12 +1184,12 @@ class ptvDB:
 				self._reindex_entry_list.append(entry_id)
 				#flag_list.append(self.get_entry_flag(entry_id, c))
 			elif status[0]==EXISTS:
-				if feed_id == 351: print "exists"
+				if feed_id == 335: print "exists"
 				self._db_execute(c, """UPDATE entries SET old=0 where id=?""",(status[1],))
 				#flag_list.append(self.get_entry_flag(status[1], c, medialist=status[2]))
 				#db.commit()
 			elif status[0]==MODIFIED:
-				if feed_id == 351: print "modified"
+				if feed_id == 335: print "modified"
 #				new_items = new_items+1
 				self._db_execute(c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, old=?  WHERE id=?', (item['title'],item['creator'],item['body'], time.mktime(item['date_parsed']),item['guid'],item['link'],'0', status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
@@ -1200,13 +1203,13 @@ class ptvDB:
 							if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
-								if feed_id == 351: print "new media"
+								if feed_id == 335: print "new media"
 								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				#db.commit()
 						else:
 							media.setdefault('length', 0)
 							media.setdefault('type', 'application/octet-stream')
-							if feed_id == 351: print "new media2"
+							if feed_id == 335: print "new media2"
 							self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 				self._reindex_entry_list.append(status[1])
 				#flag_list.append(self.get_entry_flag(status[1], c))
@@ -1333,20 +1336,20 @@ class ptvDB:
 					entry_id = entry_item[ID]
 					old_hash.update(self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY]))
 					new_hash.update(self._ascii(item['guid'])+self._ascii(item['body']))
-					if feed_id == 351: print "matched on guid"
+					if feed_id == 335: print "matched on guid"
 					break
 			elif item['link']!='':
 				if entry_item[LINK] == item['link'] and entry_item[TITLE] == item['title']:
 					entry_id = entry_item[ID]
 					old_hash.update(self._ascii(entry_item[LINK])+self._ascii(entry_item[BODY]))
 					new_hash.update(self._ascii(item['link'])+self._ascii(item['body']))
-					if feed_id == 351: print "matched on link"
+					if feed_id == 335: print "matched on link"
 					break
 			elif entry_item[TITLE] == item['title']:
 				entry_id = entry_item[ID]
 				old_hash.update(self._ascii(entry_item[TITLE])+self._ascii(entry_item[BODY]))
 				new_hash.update(self._ascii(item['title'])+self._ascii(item['body']))
-				if feed_id == 351: print "matched on title"
+				if feed_id == 335: print "matched on title"
 				break
 
 		if entry_id == -1:
@@ -1360,18 +1363,18 @@ class ptvDB:
 			
 			#if they are both zero, return
 			if len(old_media) == 0 and item.has_key('enclosures') == False: 
-				if feed_id == 351: print "no encs"
+				if feed_id == 335: print "no encs"
 				return (EXISTS,entry_id, [])
 			
 			if item.has_key('enclosures'):
 				#if lengths are different, return
 				if len(old_media) != len(item['enclosures']): 
-					if feed_id == 351: print "diff num encs"
+					if feed_id == 335: print "diff num encs"
 					return (MODIFIED,entry_id, [])
 			else:
 				#if we had some, and now don't, return
 				if len(old_media)>0: 
-					if feed_id == 351: print "diff num encs2"
+					if feed_id == 335: print "diff num encs2"
 					return (MODIFIED,entry_id, [])
 			
 			#we have two lists of the same, non-zero length
@@ -1388,12 +1391,12 @@ class ptvDB:
 			new_media.sort()
 
 			if old_media != new_media:
-				if feed_id == 351: print "diff encs"
+				if feed_id == 335: print "diff encs"
 				return (MODIFIED,entry_id,[])
-			if feed_id == 351: print "same encs"
+			if feed_id == 335: print "same encs"
 			return (EXISTS,entry_id, existing_media)
 		else:
-			if feed_id == 351: print "diff"
+			if feed_id == 335: print "diff"
 			return (MODIFIED,entry_id, [])
 			
 	def get_entry_media(self, entry_id, c=None):

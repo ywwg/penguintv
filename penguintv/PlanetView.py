@@ -34,6 +34,7 @@ class PlanetView:
 		
 		#protected
 		self._app = app
+		
 		self._mm = self._app.mediamanager
 		self._widget_tree = widget_tree
 		self._main_window = main_window
@@ -71,9 +72,8 @@ class PlanetView:
                 style.base[gtk.STATE_INSENSITIVE].blue / 256,
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
-		
-		
 		if self._renderer == GTKHTML:
+			self._app.log("not supported (need AJAX, believe it or not)")
 			print "not supported (need AJAX, believe it or not)"
 			return
 		elif self._renderer == MOZILLA:
@@ -96,16 +96,16 @@ class PlanetView:
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
 		html_dock.show_all()
-		
 		while True:
 			try:
 				if PlanetView.PORT == 8050:
 					break
-				self._update_server = PlanetView.MyForkingTCPServer(('', PlanetView.PORT), PlanetView.EntryInfoServer)
+				self._update_server = PlanetView.MyTCPServer(('', PlanetView.PORT), PlanetView.EntryInfoServer)
 				break
 			except:
 				PlanetView.PORT += 1
 		if PlanetView.PORT==8050:
+			self._app.log("tried a lot of ports without success.  Problem?")
 			print "tried a lot of ports without success.  Problem?"
 		t = threading.Thread(None, self._update_server.serve_forever)
 		t.setDaemon(True)
@@ -113,7 +113,8 @@ class PlanetView:
 		
 	#entrylist functions
 	def populate_if_selected(self, feed_id):
-		pass
+		if feed_id == self._current_feed_id:
+			self.populate_entries(feed_id)
 		
 	def populate_entries(self, feed_id=None, selected=-1):
 		"""selected is unused in planet mode"""
@@ -435,13 +436,13 @@ class PlanetView:
 				return False
 			return True
 				
-		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name')
+		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
 		#take just the beginning for the font name.  prepare for dense, unreadable code
 		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
 		
-	class MyForkingTCPServer(SocketServer.ForkingTCPServer):
+	class MyTCPServer(SocketServer.TCPServer):
 		def __init__(self, server_address, RequestHandlerClass):
 			#SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
 			#going against comments and overriding :)  We have to get around timeoutsocket manually

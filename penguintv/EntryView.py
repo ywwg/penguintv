@@ -187,7 +187,7 @@ class EntryView:
 				return False
 			return True
 				
-		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name')
+		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
 		#take just the beginning for the font name.  prepare for dense, unreadable code
 		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if isNumber(x)==False]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
@@ -442,7 +442,13 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 	#global download_status
 	ret = []
 	#ret.append('<div class="heading">')
-	ret.append('<div class="entry">')
+	if indicate_new:
+		if not item['read']:
+			ret.append('<div class="entry_new">')
+		else:
+			ret.append('<div class="entry_old">')
+	else:
+		ret.append('<div class="entry">')
 	if with_feed_titles:
 		if item.has_key('title') and item.has_key('feed_title'):
 			ret.append('<div class="stitle">%s<br/>%s</div>' % (item['feed_title'],item['title']))

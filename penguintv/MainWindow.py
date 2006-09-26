@@ -83,7 +83,7 @@ class MainWindow:
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
 		#sys.stderr.write("show,"+str(dock_widget))
-		self._app.log("Show, please")
+		self._app.log("Show, please...")
 		
 		if dock_widget is None:
 			self._load_app_window()
@@ -101,6 +101,7 @@ class MainWindow:
 			vbox = gtk.VBox()
 			
 			vbox.pack_start(self._load_toolbar(), False, False)
+			self._app.log("loading layout "+self.layout)
 			vbox.pack_start(self.load_layout())
 			self._status_view = MainWindow._my_status_view()
 			vbox.pack_start(self._status_view, False, False)
@@ -120,6 +121,14 @@ class MainWindow:
 		vseparator_toolitem = widgetTree.get_widget('toolitem1')
 		vseparator_toolitem.set_expand(True)
 		vseparator.set_draw(False)
+		
+		if ptvDB.RUNNING_SUGAR:
+			vsep2 = widgetTree.get_widget('vseparator2')
+			vseparator.set_property('visible',True)
+			pref_button = widgetTree.get_widget('preferences_toolbutton')
+			print "doing"
+			pref_button.set_property('visible',True)
+			pref_button.set_property('label',_("Preferences"))
 		self._disk_usage_widget = widgetTree.get_widget('disk_usage')
 	
 		return toolbar
@@ -150,7 +159,8 @@ class MainWindow:
 		self.app_window = self._widgetTree.get_widget('app')
 		
 		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
-		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist'))
+		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True))
+		self._app.log(self.layout+"_layout")
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
 		
 		try:
@@ -175,15 +185,11 @@ class MainWindow:
 		
 				
 		#final setup for the window comes from gconf
-		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x')
-		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y')
-		if x is None: x=40
-		if y is None: y=40
+		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
+		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y', 40)
 		self.app_window.move(x,y)
-		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x')
-		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y')
-		if w is None: w = 500
-		if h is None: h = 500
+		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 500)
+		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
 		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
 			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
 			self.app_window.maximize()
@@ -201,14 +207,15 @@ class MainWindow:
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
 		
-		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist')
-		if ptvDB.RUNNING_SUGAR and fancy is None:
+		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
+		if ptvDB.RUNNING_SUGAR:
 			fancy = True
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
-		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer') #stupid misspelling (renderrer != renderer)
-		renderer = EntryView.GTKHTML
-
+		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "MOZILLA") #stupid misspelling (renderrer != renderer)
+		
+		self._app.log(renderer_str)
+		
 		if renderer_str == "GTKHTML":
 			renderer = EntryView.GTKHTML
 		elif renderer_str == "DEMOCRACY_MOZ":
@@ -219,6 +226,8 @@ class MainWindow:
 			renderer = EntryView.GECKOEMBED
 		else:
 			renderer = EntryView.GTKHTML
+			
+		self._app.log(str(renderer))
 		
 		def load_renderer(x,recur=0):
 			"""little function I define so I can recur"""
@@ -302,12 +311,10 @@ class MainWindow:
 									 ('text/plain',0,self._TARGET_TYPE_TEXT)]
 		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 		
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position')
-		if val is None: val=132
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 132)
 		if val < 10: val=50
 		self.feed_pane.set_position(val)
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position')
-		if val is None: val=309
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 309)
 		if val < 10: val = 50
 		#self.app_window.show_all()
 		#dock_widget.show_all()
@@ -735,18 +742,13 @@ class MainWindow:
 		"""gets called by app when it's ready"""
 		self.changing_layout = True
 		self.layout=layout
-		dic = self.get_selected_items()
 		self._app.save_settings()
 		self._app.write_feed_cache()
 		self._layout_dock.remove(self._layout_container)
 		self._layout_dock.add(self.load_layout())
 		if not ptvDB.HAS_LUCENE:
 			self.search_container.hide_all()
-		#self.Hide()
-		#self.Show()
-		self.feed_list_view.populate_feeds(self._app._done_populating)
-		self.set_selected_items(dic)
-		self._app.update_disk_usage()
+		#can't reset changing_layout because app hasn't updated pointers yet
 		
 	def is_changing_layout(self):
 		return self.changing_layout
@@ -854,22 +856,6 @@ class MainWindow:
 		self.filter_unread_checkbox.set_active(False)
 		self.feed_list_view.set_selected(feed_id)
 		self.feed_list_view.resize_columns()
-
-	def get_selected_items(self):
-		selected_feed = self.feed_list_view.get_selected()
-		filter_setting = self.feed_list_view.filter_setting
-		try:
-			selected_entry = self.entry_list_view.get_selected()['entry_id']
-		except:
-			selected_entry = 0
-		return {'feed':selected_feed,
-				'filter':filter_setting,
-				'entry':selected_entry}
-
-	def set_selected_items(self, dic):
-		#self.feed_list_view.set_filter(dic['filter'])
-		self.feed_list_view.set_selected(dic['feed'])
-		self.entry_list_view.populate_entries(dic['feed'],dic['entry'])
 
 	def update_disk_usage(self, size):
 		if self._disk_usage_widget is None:
