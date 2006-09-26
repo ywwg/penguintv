@@ -34,13 +34,18 @@ class EntryView:
 		self._moz_realized = False
 		html_dock = widget_tree.get_widget('html_dock')
 		
+		scrolled_window = gtk.ScrolledWindow()
+		html_dock.add(scrolled_window)
+		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		
 		if self._renderer == GTKHTML:
 			import SimpleImageCache
 			import gtkhtml2
-			scrolled_window = gtk.ScrolledWindow()
-			html_dock.add(scrolled_window)
-			scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
-			scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
+			#scrolled_window = gtk.ScrolledWindow()
+			#html_dock.add(scrolled_window)
+			#scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
+			#scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 			self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
 			self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
 			self._scrolled_window = scrolled_window
@@ -110,8 +115,8 @@ class EntryView:
 			self._moz.connect("realize", self._moz_realize, True)
 			self._moz.connect("unrealize", self._moz_realize, False)
 			self._moz.load_url("about:blank")
-			html_dock.add(self._moz)
-			#scrolled_window.add(self._moz)
+			#html_dock.add(self._moz)
+			scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
 			if ptvDB.HAS_GCONF:
 				import gconf
@@ -129,7 +134,7 @@ class EntryView:
 			self._moz.connect("unrealize", self._moz_realize, False)
 			self._mb.setURICallBack(self._dmoz_link_clicked)
 			self._moz.load_url("about:blank")
-			html_dock.add_with_viewport(self._moz)
+			scrolled_window.add_with_viewport(self._moz)
 			if ptvDB.HAS_GCONF:
 				import gconf
 				self._conf = gconf.client_get_default()
@@ -437,16 +442,16 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 	#global download_status
 	ret = []
 	#ret.append('<div class="heading">')
+	ret.append('<div class="entry">')
 	if with_feed_titles:
 		if item.has_key('title') and item.has_key('feed_title'):
 			ret.append('<div class="stitle">%s<br/>%s</div>' % (item['feed_title'],item['title']))
 	else:
 		if item.has_key('title'):
-			ret.append('<div class="stitle">%s</div>' % item['title'])
-			
-	if indicate_new:
-		if item['read'] == 0:
-			ret.append('<h3>NEW!</h3>')
+			if indicate_new and not item['read']:
+				ret.append('<div class="stitle">&#10036;%s</div>' % item['title'])
+			else:
+				ret.append('<div class="stitle">%s</div>' % item['title'])
 			
 	if item.has_key('creator'):
 		if item['creator']!="" and item['creator'] is not None:
@@ -455,24 +460,24 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 		ret.append('<div class="sdate">%s</div><br/>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
 		#ret.append('</div>')
 	if item.has_key('media'):
-		ret.append('<div class="media">')
+		
 		if mm is not None and not ajax:
 			for medium in item['media']:
 				ret += htmlify_media(medium, mm)
 		else:
 			ret += '<span id="' + str(item['entry_id']) + '"></span>'
-		ret.append('</div>')
 	ret.append('<div class="content">')
 	if item.has_key('description'):
 		ret.append('<br/>%s ' % item['description'])
 	ret.append('</div>')
 	if item.has_key('link'):
 		ret.append('<br/><a href="'+item['link']+'">'+_("Full Entry...")+'</a><br />' )
-	ret.append('</p>')
+	ret.append('</p></div>')
 	return "".join(ret)
 	
 def htmlify_media(medium, mm):
 	ret = []
+	ret.append('<div class="media">')
 	if medium['download_status']==ptvDB.D_NOT_DOWNLOADED:    
 		ret.append('<p>'+utils.html_command('download:',medium['media_id'])+' '+
 						 utils.html_command('downloadqueue:',medium['media_id'])+
@@ -538,6 +543,7 @@ def htmlify_media(medium, mm):
 								 utils.html_command('retry',medium['media_id'])+' '+
 								 utils.html_command('tryresume:',medium['media_id'])+' '+
 								 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
+	ret.append('</div>')								 
 	return ret
 #class EntryDownloaderThread(threading.Thread):
 #	def __init__(self):

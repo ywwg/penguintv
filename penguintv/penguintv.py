@@ -1087,7 +1087,7 @@ class PenguinTVApp:
 			self._gui_updater.queue_task(self._add_feed_success, feed['feed_id'])
 			self._gui_updater.queue_task(self._first_poll_marking, feed['feed_id'])
 			self._gui_updater.queue_task(self._entry_list_view.populate_entries, feed['feed_id'])
-			self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed['feed_id'],['readinfo','icon','title']))
+			self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed['feed_id'],['readinfo','icon','title','image']))
 			if self._auto_download:
 				self._gui_updater.queue_task(self._auto_download_unviewed)
 			self._gui_updater.queue_task(gobject.idle_add, self._entry_list_view.auto_pane) #oh yeah, queue an idler
@@ -1353,6 +1353,7 @@ class PenguinTVApp:
 				elif update_data['pollfail']==False:
 					if feed_id == 351: print "no error"
 					if update_data.has_key('feed_image'):
+						print "updating image"
 						update_what = ['readinfo','icon','pollfail','image']
 					else:
 						update_what = ['readinfo','icon','pollfail']

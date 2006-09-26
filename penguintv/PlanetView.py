@@ -27,7 +27,6 @@ class PlanetView:
 	"""PlanetView implementes the api for entrylist and entryview, so that the main program doesn't
 	need to know that the two objects are actually the same"""
 	
-	#look at all these class-wide variables!  I'm so bad
 	PORT = 8000
 	def __init__(self, widget_tree, app, main_window, db, renderer=GTKHTML):
 		#public
@@ -52,6 +51,10 @@ class PlanetView:
 		self._first_entry = 0 #first entry visible
 		
 		html_dock = widget_tree.get_widget('html_dock')
+		scrolled_window = gtk.ScrolledWindow()
+		html_dock.add(scrolled_window)
+		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		style = html_dock.get_style().copy()
 		self._background_color = "#%.2x%.2x%.2x;" % (
                 style.base[gtk.STATE_NORMAL].red / 256,
@@ -74,7 +77,7 @@ class PlanetView:
 			print "not supported (need AJAX, believe it or not)"
 			return
 		elif self._renderer == MOZILLA:
-			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
+			f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
 			gtkmozembed.set_profile_path(os.path.join(os.getenv('HOME'),".penguintv"), 'gecko')
@@ -84,7 +87,7 @@ class PlanetView:
 			self._moz.connect("realize", self._moz_realize, True)
 			self._moz.connect("unrealize", self._moz_realize, False)
 			self._moz.load_url("about:blank")
-			html_dock.add(self._moz)
+			scrolled_window.add_with_viewport(self._moz)
 			#scrolled_window.add(self._moz)
 			self._moz.show()
 			if ptvDB.HAS_GCONF:
@@ -250,7 +253,6 @@ class PlanetView:
 			if item['read'] == 0 and not item.has_key('media'):
 				unreads.append(entry_id)
 			entries += entry_html
-			entries += "<hr>\n"
 			
 		self._app.mark_entrylist_as_viewed(unreads, False)
 		for e in unreads:
@@ -260,7 +262,7 @@ class PlanetView:
 				
 		html = self._build_header(media_exists)
 		
-		html += """<table
+		html += """<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
  					border="0" cellpadding="2" cellspacing="0">
 					<tbody>
@@ -270,13 +272,13 @@ class PlanetView:
 		html += '</td><td style="text-align: right;">'
 		if last_entry < len(self._entrylist):
 			html += '<a href="planet:down">Older Entries</a>'
-		html += "</td></tr></tbody></table>"
+		html += "</td></tr></tbody></table></div>"
 		
 		if not self._showing_search: 
-			html += '<div align="center"><h1>'+self._feed_title+"</h1></div>"
+			html += '<div class="feed_title">'+self._feed_title+"</div>"
 		html += entries
 			
-		html += """<table
+		html += """<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
 					border="0" cellpadding="2" cellspacing="0">
 					<tbody>
@@ -286,10 +288,9 @@ class PlanetView:
 		html += '</td><td style="text-align: right;">'
 		if last_entry < len(self._entrylist):
 			html += '<a href="planet:down">Older Entries</a>'
-		html += "</td></tr></tbody></table>"
+		html += "</td></tr></tbody></table></div>"
 		html += "</body></html>"
 		
-		#print html
 		if highlight is not None:
 			html = html.encode('utf-8')
 			try:
@@ -300,7 +301,7 @@ class PlanetView:
 				print "highlighted"
 			except:
 				pass
-		
+				
 		self._render(html)
 	
 	def _build_header(self, media_exists):
@@ -392,6 +393,7 @@ class PlanetView:
 	def _render(self, html):
 		if self._moz_realized:
 			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+			#self._moz.open_stream("file:///","text/html")
 			while len(html)>60000:
 					part = html[0:60000]
 					html = html[60000:]

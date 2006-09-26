@@ -193,7 +193,7 @@ if BUILD_MOZ==False:
 	url              = 'http://penguintv.sourceforge.net',
 	license          = 'GPL',
 	scripts          = ['PenguinTV'],
-	data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css']),
+	data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css','share/mozilla-planet.css']),
 						('share/pixmaps',		['share/penguintvicon.png']),
 						('share/applications',	['penguintv.desktop'])]+locales,
 	packages = ["penguintv", "penguintv/ptvbittorrent"])

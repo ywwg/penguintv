@@ -1,8 +1,8 @@
-/*body {
+body {
         margin-left: 24px;
         margin-right: 24px;
        // background-color: #fffe92;
-}*/
+}
 
 .heading { 
 	background-color: #f0f0ff; 
@@ -24,14 +24,14 @@
         padding: 12pt;
 }
 
-/*.entry {
+.entry {
       border-width: 2px;
       border-style: solid;
       border-color: #777;
       background-color: #edf0f5;
-      //margin-top: 12pt;
-      padding: 3px;
-}*/
+      margin-top: 12pt;
+      padding: 6pt;
+}
 
 .stitle {
 	font-size: large; 
@@ -52,7 +52,7 @@
 }
 
 .media {
-	background-color:#EEEEEE; 
+	background-color:#ddd; 
 	border-color:#000000; 
 	border-width:2px; 
 	border-style: solid; 

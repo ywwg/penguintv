@@ -483,6 +483,9 @@ class FeedList:
 		if width > 80:
 			width = 80
 			height = p.get_height() * width / p.get_width()
+		if width < 32 and height < 32:
+			height = 32
+			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
 			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
 		return p

@@ -582,6 +582,13 @@ class ptvDB:
 		self._db.commit()
 		#result = self._c.fetchone()
 		#print(result)
+		
+		filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.*')
+		result = glob.glob(filename)
+		for r in result:
+			print "deleting icon:",r
+			os.remove(r)
+		
 		self._db_execute(self._c, 'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
 		data=self._c.fetchall()
 		if data: 
@@ -633,11 +640,6 @@ class ptvDB:
 	def poll_multiple(self, arguments=0, feeds=None):
 		"""Polls multiple feeds multithreadedly"""
 		successes=[]
-		#print "prepoll index lists:"
-		#print self._reindex_entry_list
-		#print self._reindex_feed_list
-		#self._reindex_entry_list = []
-		#self._reindex_feed_list = []
 		cur_time = time.time()
 		
 		if feeds is None:
@@ -654,7 +656,6 @@ class ptvDB:
 			else:
 				return
 		
-		#pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat=True)
 		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
@@ -668,17 +669,13 @@ class ptvDB:
 				
 			self._db_execute(self._c, """SELECT url,modified,etag FROM feeds WHERE id=?""",(feed,))
 			data = self._c.fetchone()
-			#url,modified,etag=data
 			pool.queueTask(self._pool_poll_feed,(feed,arguments,len(feeds), data),self._poll_mult_cb)
-			#time.sleep(.1) #maybe this will help stagger things a bit?
 			
 		polled = 0
 		while polled < len(feeds):
 			if self._exiting:
 				break
-			#print polled,len(feeds)
 			if len(self._parse_list) > 0:
-				#print "result"
 				polled+=1
 				feed_id, args, total, parsed = self._parse_list.pop(0)
 				self.polling_callback(self._process_feed(feed_id, args, total, parsed))
@@ -706,11 +703,8 @@ class ptvDB:
 		self._parse_list.append((feed_id, args, total, parsed))
 		
 	def _pool_poll_feed(self, args):
-		#print "JUST polling"
 		feed_id, arguments, total, data = args
 		url,modified,etag=data
-		
-		#print "just poll:", feed_id, arguments, total, data
 		
 		try:
 			feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
@@ -718,7 +712,6 @@ class ptvDB:
 				data = feedparser.parse(url)
 			else:
 				data = feedparser.parse(url,etag)
-			#print "made it"
 			return (feed_id, arguments, total, data)
 		except Exception, e:
 			print e
@@ -727,15 +720,6 @@ class ptvDB:
 	def _process_feed(self,feed_id, args, total, data, recurse=0):# recurse=0):
 		"""a wrapper function that returns the index along with the result
 		so we can sort.  Each poller needs its own db connection for locking reasons"""
-		#try:	
-		#	db=sqlite.connect(self.home+"/.penguintv/penguintv3.db", timeout=20)
-		#except:
-		#	raise DBError,"error connecting to database"
-		
-		#feed_id=args[0]
-		#total = args[2]
-		
-		#print "processing",feed_id, args, total, type(data)
 		
 		db = self._db 
 		
@@ -747,13 +731,13 @@ class ptvDB:
 			#poll_arguments = args[1]
 			if self._exiting:
 				return (feed_id,{'pollfail':True}, total)
+				
 			result = self.poll_feed(feed_id, args, preparsed=data)
+
 			if self._exiting:
 				return (feed_id,{'pollfail':True} ,total)
 		except sqlite.OperationalError, e:
 			print "Database warning...", e
-			#db.close()
-			#del db #delete it to release the lock
 			if recurse < 2:
 				time.sleep(5)
 				print "trying again..."
@@ -763,13 +747,9 @@ class ptvDB:
 		except FeedPollError,e:
 			print e
 			pollfail = True
-			#db.close()
-			#del db
 			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
 			print e
-			#db.close()
-			#del db
 			return (feed_id,{'ioerror':e}, total)
 		except:
 			print "other error polling feed:"
@@ -779,22 +759,22 @@ class ptvDB:
 				error_msg += s
 			print error_msg
 			pollfail = True
-			#db.close()
-			#del db
 			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
 		update_data={}
-		try:
-			new_image = data['channel']['image']['href']
+		new_image = None
+		try: new_image = data['channel']['image']['href']
+		except:
+			try: new_image = data['channel']['link']+'/favicon.ico'
+			except: pass
+			
+		if new_image is not None:
 			if old_image != new_image:
-				update_data['image'] = new_image 
+				update_data['feed_image'] = new_image 
 				update_data['pollfail'] = False
-		except Exception, e:
-			pass 
 		
 		if result>0:
-			#c = db.cursor()
 			c = self._c
 			
 			if self.is_feed_filter(feed_id, c):
@@ -816,10 +796,6 @@ class ptvDB:
 				update_data['flag_list']=flag_list
 				update_data['pollfail']=pollfail
 				
-			#c.close()
-			#db.close()
-			#del db
-			#print "done processing",feed_id
 		return (feed_id,update_data, total)
 			
 	def poll_feed_trap_errors(self, feed_id, callback):
@@ -938,12 +914,13 @@ class ptvDB:
 		#see if we need to get an image
 		filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.*')
 		result = glob.glob(filename)
+		result = [r for r in result if r[-4:].upper()!="NONE"]
 		if len(result)==0:
 			href=""
-			try:
-				href = data['channel']['image']['href']
-			except Exception, e:
-				pass
+			try: href = data['channel']['image']['href']
+			except:
+				try: href = data['channel']['link']+'/favicon.ico'
+				except: pass
 			if href!="":
 				filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.'+href.split('.')[-1])
 				try:
@@ -963,8 +940,7 @@ class ptvDB:
 			try:
 				href = data['channel']['image']['href']
 				if href != old_img and href != "":
-					print "updating image"
-					print "remove",result[0]
+					print "removing old icon",result[0]
 					os.remove(result[0])
 					urllib.urlretrieve(href, filename)
 					self._db_execute(c, u"""UPDATE feeds SET image=? WHERE id=?""",(href,feed_id))
@@ -976,7 +952,7 @@ class ptvDB:
 			print "deleting existing entries", feed_id, arguments
 			self._db_execute(c, """DELETE FROM entries WHERE feed_id=?""",(feed_id,))
 			db.commit()
-	        #to discover the old entries, first we mark everything as old
+		#to discover the old entries, first we mark everything as old
 		#later, we well unset this flag for everything that is NEW,
 		#MODIFIED, and EXISTS. anything still flagged should be deleted  
 		self._db_execute(c, """UPDATE entries SET old=1 WHERE feed_id=?""",(feed_id,)) 
