@@ -765,9 +765,19 @@ class PenguinTVApp:
 	def _reset_auto_download(self):
 		self._auto_download = True
 			
-	def mark_entry_as_viewed(self,entry):
+	def mark_entry_as_viewed(self,entry, update_entrylist=True):
 		self.db.set_entry_read(entry,True)
-		self.update_entry_list(entry)
+		if update_entrylist: #hack for PlanetView
+			self.update_entry_list(entry)
+		self.feed_list_view.update_feed_list(None,['readinfo'])
+		
+	def mark_entrylist_as_viewed(self, entrylist, update_entrylist=True):
+		if len(entrylist) == 0:
+			return
+		self.db.set_entrylist_read(entrylist,True)
+		for e in entrylist:
+			if update_entrylist: #hack for PlanetView
+				self.update_entry_list(entry)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
 			
 	def mark_entry_as_unviewed(self,entry):
@@ -972,6 +982,8 @@ class PenguinTVApp:
 		if self.main_window.layout != layout:
 			#self.layout_changing_dialog.show_all()
 			self.feed_list_view.interrupt()
+			self.feed_list_view.set_selected(None)
+			self._entry_view.finish()
 			while gtk.events_pending(): #make sure everything gets shown
 				gtk.main_iteration()
 			self.main_window.activate_layout(layout)
@@ -1008,7 +1020,6 @@ class PenguinTVApp:
 		
 	def set_bt_ullimit(self, ullimit):
 		self._bt_settings['ullimit']=ullimit
-		
 			
 	def _gconf_set_polling_frequency(self, client, *args, **kwargs):
 		freq = client.get_int('/apps/penguintv/feed_refresh_frequency')
@@ -1341,7 +1352,12 @@ class PenguinTVApp:
 					self._gui_updater.queue_task(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
 					if feed_id == 351: print "no error"
-					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','pollfail'],update_data))
+					if update_data.has_key('feed_image'):
+						update_what = ['readinfo','icon','pollfail','image']
+					else:
+						update_what = ['readinfo','icon','pollfail']
+					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,update_what,update_data))
+					
 					if not self._showing_search:
 						if feed_id == 351: print "popif"
 						self._gui_updater.queue_task(self._entry_list_view.populate_if_selected, feed_id)

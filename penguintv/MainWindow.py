@@ -149,6 +149,10 @@ class MainWindow:
 		self._layout_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
 		
+		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
+		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist'))
+		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
+		
 		try:
 			self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/pixmaps/penguintvicon.png")
 		except:
@@ -197,7 +201,11 @@ class MainWindow:
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
 		
-		self.feed_list_view = FeedList.FeedList(components,self._app, self._db)
+		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist')
+		if ptvDB.RUNNING_SUGAR and fancy is None:
+			fancy = True
+		
+		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
 		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer') #stupid misspelling (renderrer != renderer)
 		renderer = EntryView.GTKHTML
 
@@ -715,6 +723,13 @@ class MainWindow:
 
 	def on_vertical_layout_activate(self,event):
 		self._app.change_layout('vertical')	
+		
+	def on_planet_layout_activate(self, event):
+		self._app.change_layout('planet')
+		
+	def on_fancy_feed_display_activate(self, menuitem):
+		self.feed_list_view.set_fancy(menuitem.get_active())
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', menuitem.get_active())
 				
 	def activate_layout(self, layout):
 		"""gets called by app when it's ready"""
@@ -724,7 +739,7 @@ class MainWindow:
 		self._app.save_settings()
 		self._app.write_feed_cache()
 		self._layout_dock.remove(self._layout_container)
-		self.load_layout(self._layout_dock)
+		self._layout_dock.add(self.load_layout())
 		if not ptvDB.HAS_LUCENE:
 			self.search_container.hide_all()
 		#self.Hide()

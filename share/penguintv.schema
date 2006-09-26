@@ -255,7 +255,19 @@
      <default>GTKHTML</default>
      <locale name="C">
 	<short>HTML renderrer</short>
-	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or DEMOCRACY_MOZ</long>
+	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or MOZILLA or DEMOCRACY_MOZ</long>
+     </locale>
+   </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/fancy_feedlist</key>
+     <applyto>/apps/penguintv/fancy_feedlist</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>False</default>
+     <locale name="C">
+	<short>HTML renderrer</short>
+	<long>If enabled, the feedlist will be fancier and take up more space per row.  Default False</long>
      </locale>
    </schema>
 

@@ -43,8 +43,11 @@ class PlanetView:
 		self._css = ""
 		self._current_feed_id = -1
 		self._moz_realized = False
+		self._showing_search = False
+		self._feed_title=""
 		
 		self._entrylist = []
+		self._entry_store = {}
 		
 		self._first_entry = 0 #first entry visible
 		
@@ -113,6 +116,10 @@ class PlanetView:
 		"""selected is unused in planet mode"""
 		if feed_id is None:
 			feed_id = self._current_feed_id
+			
+		if feed_id==-1:
+			self.clear_entries()
+			return
 
 		db_entrylist = self._db.get_entrylist(feed_id)
 		
@@ -121,6 +128,7 @@ class PlanetView:
 			self._first_entry = 0
 			last_entry = ENTRIES_PER_PAGE
 			self._entry_store={}
+			self._feed_title = self._db.get_feed_title(feed_id)
 		
 		self._entrylist = [e[0] for e in db_entrylist]
 		self._render_entries()
@@ -134,7 +142,7 @@ class PlanetView:
 			return
 		if entry_id is None:
 			self._entry_store = {}
-			self.populate_entries()
+			self._render_entries()
 		self._load_entry(entry_id, True)
 		try:
 			index = self._entrylist.index(entry_id)
@@ -146,10 +154,12 @@ class PlanetView:
 		if entries is None:
 			self.display_custom_entry(_("No entries match those search criteria"))
 			
+		self._showing_search = True
 		self._entrylist = [e[0] for e in entries]
-		self._render_entries()
+		self._render_entries(query)
 		
 	def unshow_search(self):
+		self._showing_search = False
 		self._render("<html><body></body></html")
 		
 	def highlight_results(self, feed_id):
@@ -169,20 +179,18 @@ class PlanetView:
 		
 	def display_custom_entry(self, message):
 		self._custom_message = message
-		print "custom: ",message
+		#print "custom: ",message
 		#self.populate_entries()
 		
 	def undisplay_custom_entry(self):
 		self._custom_message = ""
-		print "custom: blank (undisplay)"
+		#print "custom: blank (undisplay)"
 		
 	def display_item(self, item=None, highlight=""):
 		if item is None:
 			self._render("<html><body></body></html")
 		else:
-			import traceback
-			print traceback.print_stack()
-			print "why is display_item being called?"
+			pass
 		
 	def finish(self):
 		self._update_server.finish()
@@ -200,8 +208,11 @@ class PlanetView:
 		if media:
 			item['media']=media
 		item['read'] = read
-		
-		self._entry_store[entry_id] = (htmlify_item(item, ajax=True),item)
+		if self._showing_search:
+			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
+		else:
+			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, indicate_new=True),item)
 		
 		index = self._entrylist.index(entry_id)
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
@@ -217,8 +228,9 @@ class PlanetView:
 		
 		return self._entry_store[entry_id]
 		
-	def _render_entries(self):
-		"""Takes a block on entry_ids and throws up a page"""
+	def _render_entries(self, highlight=None):
+		"""Takes a block on entry_ids and throws up a page.  also calls penguintv so that entries
+		are marked as read"""
 		if self._first_entry < 0:
 			self._first_entry = 0
 			
@@ -230,12 +242,19 @@ class PlanetView:
 		media_exists = False
 		entries = ""
 		html = ""
+		unreads = []
 		for entry_id in self._entrylist[self._first_entry:last_entry]:
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
 				media_exists = True
+			if item['read'] == 0 and not item.has_key('media'):
+				unreads.append(entry_id)
 			entries += entry_html
 			entries += "<hr>\n"
+			
+		self._app.mark_entrylist_as_viewed(unreads, False)
+		for e in unreads:
+			del self._entry_store[e] #need to regen because it's not new anymore
 			
 		#######build HTML#######	
 				
@@ -253,6 +272,8 @@ class PlanetView:
 			html += '<a href="planet:down">Older Entries</a>'
 		html += "</td></tr></tbody></table>"
 		
+		if not self._showing_search: 
+			html += '<div align="center"><h1>'+self._feed_title+"</h1></div>"
 		html += entries
 			
 		html += """<table
@@ -268,7 +289,17 @@ class PlanetView:
 		html += "</td></tr></tbody></table>"
 		html += "</body></html>"
 		
-		print html
+		#print html
+		if highlight is not None:
+			html = html.encode('utf-8')
+			try:
+				highlight = highlight.replace("*","")
+				p = HTMLHighlightParser(highlight)
+				p.feed(html)
+				html = p.new_data
+				print "highlighted"
+			except:
+				pass
 		
 		self._render(html)
 	
@@ -360,18 +391,22 @@ class PlanetView:
 		
 	def _render(self, html):
 		if self._moz_realized:
-			print "rendering"
-			self._moz.render_data(html, long(len(html)), "http://localhost:"+str(PlanetView.PORT),"text/html")
-			print "done"
+			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+			while len(html)>60000:
+					part = html[0:60000]
+					html = html[60000:]
+					self._moz.append_data(part, long(len(part)))
+			self._moz.append_data(html, long(len(html)))
+			self._moz.close_stream()
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE
-			self.populate_entries(self._current_feed_id)
+			self._render_entries()
 		elif link == "planet:down":
 			self._first_entry += ENTRIES_PER_PAGE
-			self.populate_entries(self._current_feed_id)
+			self._render_entries()
 		else:
 			self._app.activate_link(link)
 		return True #don't load url please
@@ -433,7 +468,7 @@ class PlanetView:
 			self._quitting = True
 					
 		def generate_key(self):
-			self._key = str(random.randint(1,10000))
+			self._key = str(random.randint(1,1000000))
 			return self._key
 			
 		def get_key(self):

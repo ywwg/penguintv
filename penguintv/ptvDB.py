@@ -20,7 +20,7 @@ import gettext
 import sets
 import pickle
 
-RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None and True or False #ternary operator
+RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None #imagine a question mark
 #RUNNING_SUGAR = True
 
 if RUNNING_SUGAR:
@@ -117,6 +117,10 @@ class ptvDB:
 				os.mkdir(os.path.join(self.home,".penguintv"))
 			except:
 				raise DBError, "error creating directories: "+os.path.join(self.home,".penguintv")
+		try:
+			os.stat(os.path.join(self.home,".penguintv",'icons'))
+		except:
+			os.mkdir(os.path.join(self.home,".penguintv",'icons'))
 		try:	
 			#also change db connection in pool poll
 			if os.path.isfile(os.path.join(self.home,".penguintv","penguintv3.db")) == False:
@@ -169,7 +173,8 @@ class ptvDB:
 		self._parse_list = []
 		
 	def _db_execute(self, c, command, args=()):
-		#print command, args
+		#if command[0:6].upper() == "UPDATE":
+		#	print command, args
 		return c.execute(command, args)
 				
 	def __del__(self):
@@ -293,6 +298,7 @@ class ptvDB:
 		self._db_execute(self._c, u'UPDATE settings SET value=4 WHERE data="db_ver"')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN feed_pointer INT')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN link')
+		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN image')
 		self._db_execute(self._c, u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
 		self._db_execute(self._c, u'UPDATE feeds SET link=""')
 		self._db_execute(self._c, u"""CREATE TABLE terms
@@ -355,6 +361,7 @@ class ptvDB:
 							    entry_count_cache INT,
 							    unread_count_cache INT,
 							    feed_pointer INT,
+							    image,
 							    UNIQUE(url)
 							);""")
 							
@@ -511,9 +518,9 @@ class ptvDB:
 		#on success, fetch will return the url itself
 		if self._c.fetchone() != (url,):
 			if title is not None:
-				self._db_execute(self._c, u"""INSERT INTO feeds (id,title,url,polled,pollfail,modified,pollfreq,lastpoll,newatlast,feed_pointer) VALUES (NULL,?, ?,0,0, 0,1800,0,0,-1)""", (title,url)) #default 30 minute polling
+				self._db_execute(self._c, u"""INSERT INTO feeds (id,title,url,polled,pollfail,modified,pollfreq,lastpoll,newatlast,feed_pointer,image) VALUES (NULL,?, ?,0,0, 0,1800,0,0,-1,"")""", (title,url)) #default 30 minute polling
 			else:
-				self._db_execute(self._c, u"""INSERT INTO feeds (id,title,url,polled,pollfail,modified,pollfreq,lastpoll,newatlast,feed_pointer) VALUES (NULL,?, ?,0,0, 0,1800,0,0,-1)""", (url,url)) #default 30 minute polling
+				self._db_execute(self._c, u"""INSERT INTO feeds (id,title,url,polled,pollfail,modified,pollfreq,lastpoll,newatlast,feed_pointer,image) VALUES (NULL,?, ?,0,0, 0,1800,0,0,-1,"")""", (url,url)) #default 30 minute polling
 			self._db.commit()
 			self._db_execute(self._c, u"""SELECT id,url FROM feeds WHERE url=?""",(url,))
 			feed_id = self._c.fetchone()
@@ -735,6 +742,7 @@ class ptvDB:
 		poll_arguments = 0
 		result = 0
 		pollfail = False
+		old_image = self.get_feed_image(feed_id)
 		try:
 			#poll_arguments = args[1]
 			if self._exiting:
@@ -776,9 +784,16 @@ class ptvDB:
 			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
+		update_data={}
+		try:
+			new_image = data['channel']['image']['href']
+			if old_image != new_image:
+				update_data['image'] = new_image 
+				update_data['pollfail'] = False
+		except Exception, e:
+			pass 
 		
 		if result>0:
-			update_data={}
 			#c = db.cursor()
 			c = self._c
 			
@@ -800,13 +815,12 @@ class ptvDB:
 					
 				update_data['flag_list']=flag_list
 				update_data['pollfail']=pollfail
+				
 			#c.close()
 			#db.close()
 			#del db
 			#print "done processing",feed_id
-			return (feed_id,update_data, total)
-		else:
-			return (feed_id,[],total)
+		return (feed_id,update_data, total)
 			
 	def poll_feed_trap_errors(self, feed_id, callback):
 		try:
@@ -920,6 +934,44 @@ class ptvDB:
 			raise FeedPollError,(feed_id,"empty feed")
 			
 		#else...
+		
+		#see if we need to get an image
+		filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.*')
+		result = glob.glob(filename)
+		if len(result)==0:
+			href=""
+			try:
+				href = data['channel']['image']['href']
+			except Exception, e:
+				pass
+			if href!="":
+				filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.'+href.split('.')[-1])
+				try:
+					os.stat(filename)
+				except:
+					urllib.urlretrieve(href, filename)
+					self._db_execute(c, u"""UPDATE feeds SET image=? WHERE id=?""",(href,feed_id))
+					db.commit()
+			else:
+				f = open(os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.none'),'w')
+				f.write("")
+				f.close()
+		else:
+			self._db_execute(c, u"""SELECT image FROM feeds WHERE id=?""",(feed_id,))
+			try: old_img = c.fetchone()[0]
+			except: old_img = ""
+			try:
+				href = data['channel']['image']['href']
+				if href != old_img and href != "":
+					print "updating image"
+					print "remove",result[0]
+					os.remove(result[0])
+					urllib.urlretrieve(href, filename)
+					self._db_execute(c, u"""UPDATE feeds SET image=? WHERE id=?""",(href,feed_id))
+					db.commit()					
+			except Exception, e:
+				pass
+		
 		if arguments & A_DELETE_ENTRIES == A_DELETE_ENTRIES:
 			print "deleting existing entries", feed_id, arguments
 			self._db_execute(c, """DELETE FROM entries WHERE feed_id=?""",(feed_id,))
@@ -1490,6 +1542,11 @@ class ptvDB:
 		#don't return a tuple
 		return result #self.decode_text(result)
 		
+	def get_feed_image(self, feed_id):
+		self._db_execute(self._c, u'SELECT image FROM feeds WHERE id=?', (feed_id,))
+		try: return self._c.fetchone()[0]
+		except: return None
+		
 	def get_feed_info(self, feed_id):
 		self._db_execute(self._c, """SELECT title, description, url, link, feed_pointer, lastpoll, pollfreq FROM feeds WHERE id=?""",(feed_id,))
 		try:
@@ -1592,6 +1649,17 @@ class ptvDB:
 		self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE entry_id=?',(int(read),entry_id))
 		self._db.commit()
 		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
+		
+	def set_entrylist_read(self, entrylist, read):
+		if len(entrylist) == 0:
+			return
+		l = [str(e) for e in entrylist]
+		qmarks = "?,"*(len(l)-1)+"?"
+		self._db_execute(self._c, u'UPDATE entries SET read=? WHERE id IN ('+qmarks+')', (int(read),)+tuple(l))
+		self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE entry_id IN ('+qmarks+')',(int(read),)+tuple(l))
+		self._db.commit()
+		for e in entrylist:
+			if self.entry_flag_cache.has_key(e): del self.entry_flag_cache[e]
 		
 	def get_entry_read(self, entry_id):
 		self._db_execute(self._c, u'SELECT read FROM entries WHERE id=?',(entry_id,))

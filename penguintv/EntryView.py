@@ -230,6 +230,10 @@ class EntryView:
 		elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html")
+				while len(message)>60000:
+					part = message[0:60000]
+					message = message[60000:]
+					self._moz.append_data(part, long(len(part)))
 				self._moz.append_data(message, long(len(message)))
 				self._moz.close_stream()		
 		#self.scrolled_window.hide()
@@ -368,6 +372,10 @@ class EntryView:
 		elif self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:	
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
+				while len(html)>60000:
+					part = html[0:60000]
+					html = html[60000:]
+					self._moz.append_data(part, long(len(part)))
 				self._moz.append_data(html, long(len(html)))
 				self._moz.close_stream()
 		return
@@ -422,15 +430,24 @@ class EntryView:
 		self._custom_entry = True
 		return
 		
-def htmlify_item(item, mm=None, ajax=False):
+def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new=False):
 	""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
 	    but there are lots of alternate designs depending on the status of media. """
 
 	#global download_status
 	ret = []
 	#ret.append('<div class="heading">')
-	if item.has_key('title'):
-		ret.append('<div class="stitle">%s</div>' % item['title'])
+	if with_feed_titles:
+		if item.has_key('title') and item.has_key('feed_title'):
+			ret.append('<div class="stitle">%s<br/>%s</div>' % (item['feed_title'],item['title']))
+	else:
+		if item.has_key('title'):
+			ret.append('<div class="stitle">%s</div>' % item['title'])
+			
+	if indicate_new:
+		if item['read'] == 0:
+			ret.append('<h3>NEW!</h3>')
+			
 	if item.has_key('creator'):
 		if item['creator']!="" and item['creator'] is not None:
 			ret.append('By %s<br/>' % (item['creator'],))			
