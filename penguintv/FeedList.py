@@ -309,7 +309,7 @@ class FeedList:
 			feed[UNREAD]   = update_data['unread_count']
 			feed[TOTAL]    = len(update_data['flag_list'])
 			if self._fancy:
-				feed[READINFO] = self._get_markedup_title("\n("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
+				feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")\n",flag)
 			else:
 				feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
 				
