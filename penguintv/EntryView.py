@@ -212,10 +212,12 @@ class EntryView:
 		"""tests to see if this is the currently-displayed entry, 
 		and if so, goes back to the app and asks to redisplay it."""
 		#item, progress, message = data
+		print "update if selected"
 		try:
 			if len(self._current_entry) == 0:
 				return
 		except:
+			print "exception"
 			return
 			
 		if entry_id != self._current_entry['entry_id'] or self._currently_blank:
@@ -263,18 +265,19 @@ class EntryView:
 			self._custom_entry = False
 	
 	def display_item(self, item=None, highlight=""):
+		#when a feed is refreshed, the item selection changes from an entry,
+		#to blank, and to the entry again.  We used to lose scroll position because of this.
+		#Now, scroll position is saved when a blank entry is displayed, and if the next
+		#entry is the same id as before the blank, we restore those old values.
+		#we have a bool to figure out if the current page is blank, in which case we shouldn't
+		#save its scroll values.
 		if self._renderer == GTKHTML:
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			rescroll=0
-		
-			#when a feed is refreshed, the item selection changes from an entry,
-			#to blank, and to the entry again.  We used to lose scroll position because of this.
-			#Now, scroll position is saved when a blank entry is displayed, and if the next
-			#entry is the same id as before the blank, we restore those old values.
-			#we have a bool to figure out if the current page is blank, in which case we shouldn't
-			#save its scroll values.
-			if item:
+			
+		if item:
+			if self._renderer == GTKHTML:
 				try:
 					if item['entry_id'] == self._current_entry['entry_id']:
 						if not self._currently_blank:
@@ -283,10 +286,10 @@ class EntryView:
 						rescroll=1
 				except:
 					pass
-				self._current_entry = item	
-				self._currently_blank = False
-			else:
-				#traceback.print_stack()
+			self._current_entry = item	
+			self._currently_blank = False
+		else:
+			if self._renderer == GTKHTML:
 				self._currently_blank = True
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
@@ -424,9 +427,9 @@ class EntryView:
 			self._document.close_stream()
 			self._document_lock.release()
 		elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
-			#FIXME: this doesn't work!
+			#FIXME: this doesn't work, we quit before it renders
 			message = """<html><head><style type="text/css">
-            body { background-color: %s; }</style></head><body>WHEEEEEEEEEEEEEEE</body></html>""" % (self._insensitive_color,)
+            body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)
 			self.display_custom_entry(message)
 		#self.scrolled_window.hide()
 		self._custom_entry = True

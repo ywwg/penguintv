@@ -141,17 +141,12 @@ class PlanetView:
 		pass
 		
 	def update_entry_list(self, entry_id=None):
-		if entry_id not in self._entrylist: #not this feed
-			return
 		if entry_id is None:
 			self._entry_store = {}
 			self._render_entries()
+		if entry_id not in self._entrylist: #not this feed
+			return
 		self._load_entry(entry_id, True)
-		#try:
-		#	index = self._entrylist.index(entry_id)
-		#except:
-		#	print "can't find index???"
-		#	return
 		
 	def show_search_results(self, entries, query):
 		if entries is None:
@@ -249,7 +244,7 @@ class PlanetView:
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
 				media_exists = True
-			if item['read'] == 0 and not item.has_key('media'):
+			if not item.has_key('media'):
 				unreads.append(entry_id)
 			entries += entry_html
 			

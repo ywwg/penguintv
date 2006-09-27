@@ -2023,7 +2023,6 @@ j@v2v.cc
 
 	      <child>
 		<widget class="GtkToolButton" id="preferences_toolbutton">
-		  <property name="sensitive">False</property>
 		  <property name="tooltip" translatable="yes">Play Unviewed Media</property>
 		  <property name="stock_id">gtk-preferences</property>
 		  <property name="visible_horizontal">True</property>

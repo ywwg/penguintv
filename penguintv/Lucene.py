@@ -45,8 +45,11 @@ class Lucene:
 		self._index_lock = Lock()
 		self._quitting = False
 		
-	def finish(self):
+	def finish(self, needs_index=False):
+		if needs_index:
+			self._interrupt()
 		self._quitting = True
+		
 
 	def _interrupt(self):
 		f = open(os.path.join(self._storeDir,"NEEDSREINDEX"),"w")
@@ -290,7 +293,7 @@ class Lucene:
 		
 		if not self._index_lock.acquire(False):
 			#if we are indexing, don't try to search
-			print "wouldn't get lock"
+			#print "wouldn't get lock"
 			return ([],[])
 		self._index_lock.release()
 		
