@@ -22,7 +22,7 @@ import FeedFilterDialog
 import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
 import SynchronizeDialog
-import MainWindow, FeedList, EntryList, EntryView, PlanetView
+import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
 #status of the main window progress bar
 U_NOBODY=0
@@ -30,6 +30,12 @@ U_DOWNLOAD=1
 U_LOADING=2
 U_POLL=3
 U_STANDARD=4
+
+#states
+S_DEFAULT       = 0
+S_MANUAL_SEARCH = 1
+S_TAG_SEARCH    = 2
+S_LOADING_FEEDS = 3
 
 class MainWindow:
 	COLUMN_TITLE = 0
@@ -48,6 +54,7 @@ class MainWindow:
 		self.layout='standard'
 		self._bar_owner = U_NOBODY
 		self._status_owner = U_NOBODY
+		self._state = S_DEFAULT
 		
 		##other WINDOWS we open
 		self._window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self._app) #MAGIC
@@ -85,7 +92,7 @@ class MainWindow:
 		#sys.stderr.write("show,"+str(dock_widget))
 		self._app.log("Show, please...")
 		
-		if dock_widget is None:
+		if dock_widget is None:  #if we are loading in a regular window...
 			self._load_app_window()
 			if not ptvDB.HAS_LUCENE:
 				#remove UI elements that don't apply without search
@@ -93,7 +100,7 @@ class MainWindow:
 				self._widgetTree.get_widget('saved_searches').hide()
 				self._widgetTree.get_widget('separator11').hide()
 				self._widgetTree.get_widget('reindex_searches').hide()
-		else:
+		else:  #if we are in OLPC mode and just have to supply a widget...
 			self._status_view = None
 			self._disk_usage_widget = None
 			self.app_window = None
@@ -102,6 +109,7 @@ class MainWindow:
 			
 			vbox.pack_start(self._load_toolbar(), False, False)
 			self._app.log("loading layout "+self.layout)
+			self.load_notebook()
 			vbox.pack_start(self.load_layout())
 			self._status_view = MainWindow._my_status_view()
 			vbox.pack_start(self._status_view, False, False)
@@ -126,7 +134,6 @@ class MainWindow:
 			vsep2 = widgetTree.get_widget('vseparator2')
 			vseparator.set_property('visible',True)
 			pref_button = widgetTree.get_widget('preferences_toolbutton')
-			print "doing"
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
 		self._disk_usage_widget = widgetTree.get_widget('disk_usage')
@@ -180,6 +187,7 @@ class MainWindow:
 		#self._status_view = MainWindow._my_status_view()
 		#vbox.pack_start(self._status_view, False, False)
 		#self._layout_dock.add(vbox)
+		self.load_notebook()
 		self._layout_dock.add(self.load_layout())
 		self.app_window.show_all()
 		
@@ -200,6 +208,22 @@ class MainWindow:
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				self._widgetTree.signal_connect(key, getattr(self, key))
+				
+	def load_notebook(self):
+		notebook = gtk.Notebook()
+		notebook.set_property('tab-border',0)
+		label = gtk.Label(_('<span size="small">Feeds</span>'))
+		label.set_property('use-markup',True)
+		vbox = gtk.VBox()
+		notebook.append_page(vbox, label)
+		
+		label = gtk.Label(_('<span size="small">Downloads</span>'))
+		label.set_property('use-markup',True)
+		self._download_view = DownloadView.DownloadView(self._mm, self._db, self._glade_prefix+'/penguintv.glade')
+		notebook.append_page(self._download_view.get_widget(), label)
+		
+		self._layout_dock.add(notebook)
+		self._layout_dock = vbox
 		
 	def load_layout(self):
 		#self._app.log("load_layout")
@@ -376,6 +400,9 @@ class MainWindow:
 			self.window_maximized = False
 			
 	def on_add_feed_activate(self, event):
+		if self._state == S_LOADING_FEEDS:
+			print "Please wait until feeds have loaded before adding a new one"
+			return 
 		self._app.window_add_feed.show() #not modal / blocking
 		
 	def on_add_feed_filter_activate(self,event):
@@ -397,6 +424,9 @@ class MainWindow:
 			del dialog
 		
 	def on_feed_add_clicked(self, event):
+		if self._state == S_LOADING_FEEDS:
+			print "Please wait until feeds have loaded before adding a new one" 
+			return 
 		self._app.window_add_feed.show() #not modal / blocking
 	
 	#def on_feed_pane_expose_event(self, widget, event):
@@ -470,6 +500,9 @@ class MainWindow:
 	def on_feed_remove_clicked(self,event): 
 		selected = self.feed_list_view.get_selected()
 		if selected:
+			if self._state == S_LOADING_FEEDS:
+				print "Please wait the program has loaded before removing a feed."
+				return 
 			self._app.remove_feed(selected)
 			
 	def on_feedlistview_drag_data_received(self, widget, context, x, y, selection, targetType, time):
@@ -511,6 +544,9 @@ class MainWindow:
 
 			item = gtk.MenuItem(_("Re_name"))
 			item.connect('activate',self.on_rename_feed_activate)
+			if self._state == S_LOADING_FEEDS:
+				item.set_sensitive(False)
+				
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Edit _Tags"))
@@ -542,6 +578,8 @@ class MainWindow:
 				if ptvDB.HAS_LUCENE:
 					item = gtk.MenuItem(_("_Create Feed Filter"))
 					item.connect('activate',self.on_add_feed_filter_activate)
+					if self._state == S_LOADING_FEEDS:
+						item.set_sensitive(False)
 					menu.append(item)
 				
 				item = gtk.ImageMenuItem('gtk-properties')
@@ -581,6 +619,9 @@ class MainWindow:
 		#print traceback.print_stack()
 		model = self.filter_combo_widget.get_model()
 		current_filter = model[self.filter_combo_widget.get_active()]
+		if current_filter[3] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
+			self.filter_combo_widget.set_active(FeedList.ALL)
+			return
 		self._app.change_filter(current_filter[0],current_filter[3])
 		
 	def on_import_opml_activate(self, event):
@@ -674,6 +715,9 @@ class MainWindow:
 	def on_remove_feed_activate(self, event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
+			if self._state == S_LOADING_FEEDS:
+				print "Please wait the program has loaded before removing a feed."
+				return 
 			self._app.remove_feed(selected)
 		
 	def on_rename_feed_activate(self, widget):
@@ -799,6 +843,57 @@ class MainWindow:
 		self._window_edit_tags_single.set_feed_id(selected)
 		self._window_edit_tags_single.set_tags(self._db.get_tags_for_feed(selected))
 		self._window_edit_tags_single.show()
+		
+	def _unset_state(self):
+		"""gets app ready to display new state by unloading current state"""
+		#bring state back to default
+		
+		if self._state == S_MANUAL_SEARCH:
+			self.search_entry.set_text("")
+		if self._state == S_MANUAL_SEARCH or self._state == S_TAG_SEARCH:
+			self.filter_unread_checkbox.set_sensitive(True)
+		if self._state == S_LOADING_FEEDS:
+			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
+			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
+			self._widgetTree.get_widget("add_feed").set_sensitive(True)
+			self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
+			self._widgetTree.get_widget("remove_feed").set_sensitive(True)
+			self._widgetTree.get_widget("rename_feed").set_sensitive(True)
+			self.display_status_message("")	
+			self.update_progress_bar(-1,U_LOADING)
+			
+			
+	def set_state(self, new_state, data=None):
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_MANUAL_SEARCH,
+			 penguintv.TAG_SEARCH: S_TAG_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
+			 penguintv.LOADING_FEEDS: S_LOADING_FEEDS}
+			 
+		new_state = d[new_state]
+		
+		if self._state == new_state:
+			return	
+			
+		self._unset_state()
+			 
+		if new_state == S_MANUAL_SEARCH:
+			if self.filter_combo_widget.get_active() != FeedList.SEARCH:	
+				self.filter_combo_widget.set_active(FeedList.SEARCH)
+			self.filter_unread_checkbox.set_sensitive(False)
+		if new_state == S_TAG_SEARCH:
+			self.search_entry.set_text("")
+			self.filter_unread_checkbox.set_sensitive(False)
+		
+		if new_state == S_LOADING_FEEDS:
+			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
+			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
+			self._widgetTree.get_widget("add_feed").set_sensitive(False)
+			self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
+			self._widgetTree.get_widget("remove_feed").set_sensitive(False)
+			self._widgetTree.get_widget("rename_feed").set_sensitive(False)
+			
+		self._state = new_state
 
 	def update_filters(self):
 		"""update the filter combo box with the current list of filters"""
@@ -888,6 +983,11 @@ class MainWindow:
 			message = _("Downloaded %(percent)d%% of %(files)d file%(s)s %(total)s") % dict
 		self.display_status_message(message , U_DOWNLOAD) 
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
+		
+		self._download_view.update_downloads()
+		
+	def download_finished(self, d):
+		self._download_view.update_unplayed_media()
 				
 	def desensitize(self):
 		if self.app_window:

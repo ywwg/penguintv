@@ -8,6 +8,7 @@ import ThreadPool
 import time
 import os,os.path
 import glob
+import copy
 
 import Downloader
 import BTDownloader
@@ -181,12 +182,11 @@ class MediaManager:
 		
 	def get_download_list(self, status=None):
 		list = []
-		for d in self.downloads:
-			if status is not None:
-				if d.status == status:
-					list.append(d)
-			else:
-				list.append(d)
+		
+		if status is not None:
+			list = [d for d in self.downloads if d.status == status]
+		else:
+			list = copy.copy(self.downloads)
 		return list
 		
 	def _basic_finished_callback(self, data):

@@ -70,6 +70,13 @@ REFRESH_AUTO=1
 
 AUTO_REFRESH_FREQUENCY=5*60*1000
 
+#states:
+DEFAULT            = 1
+MANUAL_SEARCH      = 2
+TAG_SEARCH         = 3
+LOADING_FEEDS      = 4
+DONE_LOADING_FEEDS = 5
+
 class PenguinTVApp:
 	def __init__(self, logfile=None):
 		self._socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
@@ -133,6 +140,7 @@ class PenguinTVApp:
 		self._showing_search = False
 		self._threaded_searcher = None
 		self._waiting_for_search = False
+		self._state = DEFAULT
 		
 		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout', 'standard')
 		if ptvDB.RUNNING_SUGAR: window_layout='planet' #always use planet on sugar platform
@@ -438,6 +446,7 @@ class PenguinTVApp:
 		self.main_window.update_filters()
 		
 	def _populate_feeds(self, callback=None, subset=FeedList.ALL):
+		self.set_state(LOADING_FEEDS)
 		self.main_window.display_status_message(_("Loading Feeds..."))
 		self.feed_list_view.populate_feeds(callback, subset)
 					
@@ -802,7 +811,8 @@ class PenguinTVApp:
 		self.update_entry_list(entry)
 		
 	def play_unviewed(self):
-		playlist = self.db.get_unplayed_media_set_viewed()
+		playlist = self.db.get_unplayed_media(True) #set viewed
+		playlist = [item[3] for item in playlist]
 		playlist.reverse()
 		self._player.play(playlist)
 		for item in playlist:
@@ -819,13 +829,70 @@ class PenguinTVApp:
 		self._gui_updater.queue_task(gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
 		#self._gui_updater.queue_task(self.feed_list_view.set_selected,selected, task_id)
 		
+	def _unset_state(self, authorize=False):
+		"""gets app ready to display new state by unloading current state.
+		Also checks if we are loading feeds, in which case state can not change.
+		
+		To unset loading_feeds, we take a "manual override" argument"""
+		#bring state back to default
+		if self._state == LOADING_FEEDS:
+			if not authorize:
+				raise CantChangeState("can't interrupt feed loading")
+			else:
+				self._state = DONE_LOADING_FEEDS
+				return
+		
+		if self._state == DEFAULT:
+			return
+		
+		if self._state != MANUAL_SEARCH:
+			#save filter for later
+			self._saved_filter = self.main_window.filter_combo_widget.get_active()
+		if self._state == MANUAL_SEARCH:
+			self._saved_search = self.main_window.search_entry.get_text()
+			selected = self.feed_list_view.get_selected()
+			if selected is not None:
+				name = self.main_window.get_filter_name(self._saved_filter)
+				if name not in self.db.get_tags_for_feed(selected):
+					self.main_window.filter_combo_widget.set_active(FeedList.ALL)
+				else:
+					self.main_window.filter_combo_widget.set_active(self._saved_filter)
+			else:
+				self.main_window.filter_combo_widget.set_active(self._saved_filter)
+		#if self._state == ACTIVE_DOWNLOADS:
+		#	pass #future
+			
+	def set_state(self, new_state, data=None):
+		if self._state == new_state:
+			return	
+			
+		try:
+			self._unset_state()
+		except:
+			return
+			
+		if new_state == MANUAL_SEARCH:
+			pass
+		elif new_state == TAG_SEARCH:
+			pass
+		#elif new_state == ACTIVE_DOWNLOADS:
+		#	pass
+		elif new_state == LOADING_FEEDS:
+			pass
+		
+		self.main_window.set_state(new_state, data)
+		self._entry_view.set_state(new_state, data)
+		self._entry_list_view.set_state(new_state, data)
+		self.feed_list_view.set_state(new_state, data)
+		
+		self._state = new_state
+		
+	#def get_state(self):
+	#	return self._state
+		
 	def _search(self, query, blacklist=None):
-		if len(self.main_window.search_entry.get_text()) > 0:
-			print "setting saved query"
-			self._saved_search = query
 		try:
 			query = query.replace("!","")
-			#print blacklist
 			result = self.db.search(query, blacklist=blacklist)
 		except Exception, e:
 			print "Error with that search term: ", e
@@ -833,10 +900,11 @@ class PenguinTVApp:
 		return result
 	
 	def _show_search(self, query, result):
-		self._showing_search = True		
+		if self._state != MANUAL_SEARCH and self._state != TAG_SEARCH:
+			print "incorrect state, aborting", self._state
+			return
 		try:
 			#print result
-			self._entry_view.display_item()
 			self._entry_list_view.show_search_results(result[1], query)
 			self.feed_list_view.show_search_results(result[0])
 		except ptvDB.BadSearchResults, e:
@@ -844,20 +912,10 @@ class PenguinTVApp:
 			self.db.reindex(result[0], [i[0] for i in result[1]])
 			self._show_search(query, self._search(query))
 			return
-		self.main_window.filter_unread_checkbox.set_sensitive(False)
-	
+		
 	def _update_search(self):
 		print "weeee updating search"
 		self._search(self._saved_search)
-		
-	def unshow_search(self, gonna_filter=False):
-		self._showing_search = False
-		self._entry_view.display_item()
-		self._entry_list_view.unshow_search()
-		self.feed_list_view.unshow_search(gonna_filter)
-		#self._entry_view.display_item()
-		self.main_window.search_entry.set_text("")
-		self.main_window.filter_unread_checkbox.set_sensitive(True)
 		
 	def threaded_search(self, query):
 		if query != "":
@@ -875,10 +933,9 @@ class PenguinTVApp:
 		self._waiting_for_search = False
 		
 	def _got_search(self, query, results):
+		self.set_state(MANUAL_SEARCH)
+		print "show search", query
 		self._show_search(query, results)
-		if self.main_window.filter_combo_widget.get_active() != FeedList.SEARCH:
-			self._saved_filter = self.main_window.filter_combo_widget.get_active()
-			self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
 		
 	if ptvDB.HAS_LUCENE:
 		import PyLucene
@@ -915,21 +972,11 @@ class PenguinTVApp:
 	def manual_search(self, query):
 		#self._saved_search = query #even if it's blank
 		if len(query)==0:
-			self.unshow_search()
-			#self._saved_search = ""
-			selected = self.feed_list_view.get_selected()
-			if selected is not None:
-				name = self.main_window.get_filter_name(self._saved_filter)
-				if name not in self.db.get_tags_for_feed(selected):
-					self.main_window.filter_combo_widget.set_active(FeedList.ALL)
-				else:
-					self.main_window.filter_combo_widget.set_active(self._saved_filter)
+			self.set_state(DEFAULT)
 			return
-	
+			
+		self.set_state(MANUAL_SEARCH)
 		self._show_search(query, self._search(query))
-		if self.main_window.filter_combo_widget.get_active() != FeedList.SEARCH:
-			self._saved_filter = self.main_window.filter_combo_widget.get_active()
-		self.main_window.filter_combo_widget.set_active(FeedList.SEARCH)
 		
 	def entrylist_selecting_right_now(self):
 		return self._entry_list_view.presently_selecting
@@ -943,19 +990,20 @@ class PenguinTVApp:
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.filter_combo_widget.get_active()
 		if filter_id == FeedList.SEARCH:
+			self.set_state(MANUAL_SEARCH)
 			self._show_search(self._saved_search, self._search(self._saved_search))
 			if self._threaded_searcher:
 				if not self._waiting_for_search:
 					self.main_window.search_entry.set_text(self._saved_search)
+		#elif filter_id == FeedList.ACTIVE:
+		#	self.set_state(ACTIVE_DOWNLOADS)
 		else:
 			if tag_type == ptvDB.T_SEARCH:
+				self.set_state(TAG_SEARCH)
 				query = self.db.get_search_tag(current_filter)
-				#self.unshow_search()
 				self._show_search(query, self._search(query))			
 			else:
-				if self._showing_search:
-					self.unshow_search(True)
-				#for some reason self.feed_list_view doesn't work here
+				self.set_state(DEFAULT, True) #gonna filter!
 				self.main_window.feed_list_view.set_filter(filter_id, current_filter)
 				
 	def show_downloads(self):
@@ -1048,6 +1096,7 @@ class PenguinTVApp:
 			
 	def add_feed(self, url, title):
 		"""Inserts the url and starts the polling process"""
+		
 		self.main_window.display_status_message(_("Trying to poll feed..."))
 		feed_id = -1
 		try:
@@ -1211,6 +1260,7 @@ class PenguinTVApp:
 					self.db.set_entry_read(d.media['entry_id'],False)
 					self.db.set_media_viewed(d.media['media_id'],False)
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)	
+			self.main_window.download_finished(d)
 		if self._exiting:
 			self.feed_list_view.do_filter() #to remove active downloads from the list
 			return
@@ -1308,8 +1358,8 @@ class PenguinTVApp:
 		
 	def done_populating(self, sensitize=True):
 		"""this is only called on startup I think"""
-		self.main_window.display_status_message("")	
-		self.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
+		self._unset_state(True) #force exit of done_loading state
+		self.set_state(DEFAULT) #redundant
 		if sensitize:
 			self.main_window._sensitize_search()
 		for filename in self._for_import:
@@ -1497,4 +1547,8 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 			sys.exit(1)
 	gtk.main()
 	
-
+class CantChangeState(Exception):
+	def __init__(self,m):
+		self.m = m
+	def __str__(self):
+		return self.m

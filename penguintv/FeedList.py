@@ -6,7 +6,7 @@ import utils
 
 import MainWindow
 
-import traceback, sys
+import traceback, sys, os, re
 import glob
 
 import random
@@ -33,13 +33,19 @@ VISIBLE=9
 POLLFAIL=10
 FIRSTENTRYTITLE=11
 
+#STATES
+S_DEFAULT          = 0
+S_SEARCH           = 1 
+#S_ACTIVE_DOWNLOADS = 2
+S_LOADING_FEEDS    = 2
+
 MAX_WIDTH  = 48
 MAX_HEIGHT = 48
 MIN_SIZE   = 24
 
 if ptvDB.RUNNING_SUGAR:
-	MAX_WIDTH  = 48
-	MAX_HEIGHT = 48
+	MAX_WIDTH  = 32
+	MAX_HEIGHT = 32
 	MIN_SIZE   = 0
 
 class FeedList:
@@ -59,7 +65,7 @@ class FeedList:
 		self._selecting_misfiltered=False
 		self._filter_unread = False
 		self._cancel_load = False
-		self._showing_search = False
+		self._state = S_DEFAULT
 		self._fancy = fancy
 		
 		self._loading = False
@@ -191,7 +197,12 @@ class FeedList:
 				except: m_first_entry_title = ""
 				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, False) 
 				m_pixbuf = self._get_pixbuf(feed_id)
-				m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
+				try:
+					m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
+				except:
+					print "not int?",
+					print unviewed,entry_count,flag
+					m_readinfo = ""
 			else:
 				m_title = self._get_markedup_title(title,flag) 
 				m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
@@ -351,12 +362,15 @@ class FeedList:
 		 		if updated==1 and active==0:
 			 		need_filter = True		
 			
-		if need_filter and not self._showing_search:
+		if need_filter and self._state != S_SEARCH:#not self._showing_search:
 			self.do_filter()
 		
 	def show_search_results(self, results=[]):
 		"""shows the feeds in the list 'results'"""
-		self._showing_search = True
+		if self._state != S_SEARCH:
+			print "not in search state, returning"
+			return
+			
 		if results is None:
 			results = []
 		#print results[0]
@@ -400,30 +414,51 @@ class FeedList:
 			if highlight_count == 0:
 				self._app.display_feed(showing_feed)
 		
-	def unshow_search(self, gonna_filter=False):
-		showing_feed = self.get_selected()
-		self._showing_search = False
-		id_list = [feed[FEEDID] for feed in self._feedlist]
-		f_list = list(self._feedlist)
-		def alpha_sorter(x,y):
-			if x[TITLE].upper()>y[TITLE].upper():
-				return 1
-			if x[TITLE].upper()==y[TITLE].upper():
-				return 0
-			return -1
-		f_list.sort(alpha_sorter)
-		i_list = []
-		for f in f_list:
-			i_list.append(id_list.index(f[FEEDID]))
-		self._feedlist.reorder(i_list)
-		if showing_feed is not None:
-			self._app.display_feed(showing_feed)
-			if not self.filter_test_feed(showing_feed):
+	def _unset_state(self, data=True):
+		if self._state == S_SEARCH:
+			gonna_filter = data
+			showing_feed = self.get_selected()
+			id_list = [feed[FEEDID] for feed in self._feedlist]
+			f_list = list(self._feedlist)
+			def alpha_sorter(x,y):
+				if x[TITLE].upper()>y[TITLE].upper():
+					return 1
+				if x[TITLE].upper()==y[TITLE].upper():
+					return 0
+				return -1
+			f_list.sort(alpha_sorter)
+			i_list = []
+			for f in f_list:
+				i_list.append(id_list.index(f[FEEDID]))
+			self._feedlist.reorder(i_list)
+			if showing_feed is not None:
+				self._app.display_feed(showing_feed)
+				if not self.filter_test_feed(showing_feed):
+					self._app.main_window.filter_combo_widget.set_active(ALL)
+				self.set_selected(showing_feed)
+			elif gonna_filter == False:
 				self._app.main_window.filter_combo_widget.set_active(ALL)
-			self.set_selected(showing_feed)
-		elif not gonna_filter:
-			self._app.main_window.filter_combo_widget.set_active(ALL)
-			self._app.display_entry(None)
+				self._app.display_entry(None)
+
+	
+	def set_state(self, newstate, data=None):
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_SEARCH,
+			 penguintv.TAG_SEARCH: S_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_ACTIVE_DOWNLOADS,
+			 penguintv.LOADING_FEEDS: S_LOADING_FEEDS}
+			 
+		newstate = d[newstate]
+		
+		if newstate == self._state:
+			return
+			
+		#if newstate == S_ACTIVE_DOWNLOADS:
+		#	print "display active downloads or some junk!"
+		#	self.set_filter(ACTIVE, BUILTIN_TAGS[0])
+			 
+		self._unset_state(data)
+		self._state = newstate
 			
 	def do_filter(self,keep_misfiltered=True):
 		if self.filter_setting == SEARCH:
@@ -535,8 +570,10 @@ class FeedList:
 		self.filter_setting = new_filter
 		self.filter_name = name
 		
-		if new_filter != SEARCH and self._showing_search:
-			self.unshow_search()
+		if new_filter != SEARCH and self._state == S_SEARCH:
+			print "hope we also changed state"
+			self._app.set_state(penguintv.DEFAULT)
+		#	self.unshow_search()
 			
 		self.do_filter(False)
 		self._va.set_value(0)
@@ -552,16 +589,18 @@ class FeedList:
 		else:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
 			self._widget.set_property('rules-hint', False)
-		if self._showing_search:
-			self.unshow_search()
+		if self._state == S_SEARCH:
+			self._app.set_state(penguintv.DEFAULT)
 		self._app.write_feed_cache()
 		self.clear_list()
 		self.populate_feeds(self._app._done_populating)
 		self._widget.columns_autosize()
 		
 	def set_unread_toggle(self, active):
-		if self._showing_search:
-			return
+		#if self._showing_search:
+		#	return
+		if self._state == S_SEARCH:
+			return 
 		self._filter_unread = active
 		self.do_filter(False)
 		self._va.set_value(0)
@@ -606,17 +645,17 @@ class FeedList:
 		return title
 		
 	def _get_pixbuf(self, feed_id):
-		filename = '/home/owen/.penguintv/icons/'+str(feed_id)+'.*'
+		filename = os.path.join(self._db.home,'.penguintv','icons',str(feed_id)+'.*')
 		result = glob.glob(filename)
 		if len(result)==0:
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
 			p.fill(0xffffff00)
 			return p
 	
 		try:
 			p = gtk.gdk.pixbuf_new_from_file(result[0])
 		except:
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
 			p.fill(0xffffff00)
 			return p
 		height = p.get_height()
@@ -641,8 +680,18 @@ class FeedList:
 		if not title:
 			return _("Please wait...")
 		try:
-			if len(first_entry_title)>30:
+			#limit title to 30 chars, but
+			#don't include hacked-off entities
+			m = re.compile('&[^;]+;').search(first_entry_title)
+			if m is not None: #entity found
+				span = m.span()
+				if span[0]<30 and span[1]-span[0] < 10: 
+					first_entry_title = first_entry_title[0:span[0]]+"..."
+				else:
+					first_entry_title = first_entry_title[0:30]+"..."
+			else:
 				first_entry_title = first_entry_title[0:30]+"..."
+				
 			#selected = self.get_selected()
 			if not selected:
 				title = utils.my_quote(title)+'\n<span color="#777777" size="smaller"><i>'+first_entry_title+'</i></span>'
@@ -691,12 +740,14 @@ class FeedList:
 				pass
 			
 		self._last_feed=item
+		self._select_after_load=None
 		
 		if item:
 			if self._fancy:
 				feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], True)
 		
-			if self._showing_search:
+			#if self._showing_search:
+			if self._state == S_SEARCH:
 				if item == self._last_selected:
 					return
 				self._last_selected = item

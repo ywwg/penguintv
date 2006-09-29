@@ -302,6 +302,8 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN feed_pointer INT')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN link')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN image')
+		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN download_date DATE')
+		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN thumbnail')
 		self._db_execute(self._c, u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
 		self._db_execute(self._c, u'UPDATE feeds SET link=""')
 		self._db_execute(self._c, u"""CREATE TABLE terms
@@ -396,6 +398,8 @@ class ptvDB:
 								viewed BOOL NOT NULL,
 								keep BOOL NOT NULL,
 								length,
+								download_date DATE, 
+								thumbnail,
 								UNIQUE(id)
 							);
 							""")
@@ -1220,7 +1224,7 @@ class ptvDB:
 								print "this appears to be new"
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
-								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
+								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, download_date) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 								self._db_execute(c, u'UPDATE entries SET read=0 WHERE id=?', (status[1]))
 					#db.commit()
 							else:
@@ -1597,8 +1601,12 @@ class ptvDB:
 		self._db.commit()
 				
 	def set_media_download_status(self, media_id, status):
-		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
-		self._db.commit()
+		if status == D_DOWNLOADED:
+			self._db_execute(self._c, u'UPDATE media SET download_status=?, download_date=? WHERE id=?', (status,time.time(),media_id,))
+			self._db.commit()
+		else:
+			self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))
+			self._db.commit()
 		self._db_execute(self._c, u'SELECT entry_id FROM media WHERE id=?',(media_id,))
 		entry_id = self._c.fetchone()[0]
 		if self.entry_flag_cache.has_key(entry_id):
@@ -1748,16 +1756,19 @@ class ptvDB:
 			return False
 		return True
 		
-	def get_unplayed_media_set_viewed(self):
-		self._db_execute(self._c, u'SELECT media.id, media.entry_id, media.file, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
+	def get_unplayed_media(self, set_viewed=False):
+		self._db_execute(self._c, u'SELECT media.id, media.entry_id, entries.feed_id, media.file FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
 		list=self._c.fetchall()
 		playlist=[]
-		for item in list:
-			self._db_execute(self._c, u'UPDATE media SET viewed=1 WHERE id=?',(item[0],))
-			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE id=?',(item[1],))	
-			if self.entry_flag_cache.has_key(item[1]): del self.entry_flag_cache[item[1]]				
-			playlist.append(item[2])
-		self._db.commit()
+		if set_viewed:
+			for item in list:
+				self._db_execute(self._c, u'UPDATE media SET viewed=1 WHERE id=?',(item[0],))
+				self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE id=?',(item[1],))	
+				if self.entry_flag_cache.has_key(item[1]): del self.entry_flag_cache[item[1]]				
+				playlist.append(item)
+			self._db.commit()
+		else:
+			playlist = list
 		return playlist 
 		
 	def pause_all_downloads(self):

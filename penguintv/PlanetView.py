@@ -23,6 +23,10 @@ except:
 	
 ENTRIES_PER_PAGE = 10
 
+#states
+S_DEFAULT=0
+S_SEARCH=1
+
 class PlanetView:
 	"""PlanetView implementes the api for entrylist and entryview, so that the main program doesn't
 	need to know that the two objects are actually the same"""
@@ -43,8 +47,8 @@ class PlanetView:
 		self._css = ""
 		self._current_feed_id = -1
 		self._moz_realized = False
-		self._showing_search = False
 		self._feed_title=""
+		self._state = S_DEFAULT
 		
 		self._entrylist = []
 		self._entry_store = {}
@@ -152,12 +156,11 @@ class PlanetView:
 		if entries is None:
 			self.display_custom_entry(_("No entries match those search criteria"))
 			
-		self._showing_search = True
 		self._entrylist = [e[0] for e in entries]
+		print "rendering (highlighting)",query
 		self._render_entries(query)
 		
 	def unshow_search(self):
-		self._showing_search = False
 		self._render("<html><body></body></html")
 		
 	def highlight_results(self, feed_id):
@@ -169,6 +172,24 @@ class PlanetView:
 		self._entry_store={}
 		self._entrylist = []
 		self._render("<html><body></body></html")
+		
+	def _unset_state(self):
+		self.clear_entries()
+	
+	def set_state(self, newstate, data=None):
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_SEARCH,
+			 penguintv.TAG_SEARCH: S_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
+			 penguintv.LOADING_FEEDS: S_DEFAULT}
+			 
+		newstate = d[newstate]
+		
+		if newstate == self._state:
+			return
+		
+		self._unset_state()
+		self._state = newstate
 
 	#entryview functions
 	def update_if_selected(self, entry_id=None):
@@ -205,7 +226,8 @@ class PlanetView:
 		if media:
 			item['media']=media
 		item['read'] = read
-		if self._showing_search:
+		if self._state == S_SEARCH:
+		#if self._showing_search:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
 			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
 		else:
@@ -250,7 +272,10 @@ class PlanetView:
 			
 		self._app.mark_entrylist_as_viewed(unreads, False)
 		for e in unreads:
-			del self._entry_store[e] #need to regen because it's not new anymore
+			try:
+				del self._entry_store[e] #need to regen because it's not new anymore
+			except:
+				print "warning: can't remove non-existant entry from store"
 			
 		#######build HTML#######	
 				
@@ -268,7 +293,8 @@ class PlanetView:
 			html += '<a href="planet:down">Older Entries</a>'
 		html += "</td></tr></tbody></table></div>"
 		
-		if not self._showing_search: 
+		if self._state != S_SEARCH:
+		#if not self._showing_search: 
 			html += '<div class="feed_title">'+self._feed_title+"</div>"
 		html += entries
 			
@@ -286,6 +312,7 @@ class PlanetView:
 		html += "</body></html>"
 		
 		if highlight is not None:
+			print "doing highlight"
 			html = html.encode('utf-8')
 			try:
 				highlight = highlight.replace("*","")

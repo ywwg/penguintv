@@ -24,6 +24,10 @@ GTKHTML=0
 MOZILLA=1
 DEMOCRACY_MOZ=2
 
+#states
+S_DEFAULT = 0
+S_SEARCH  = 1
+
 class EntryView:
 	def __init__(self, widget_tree, app, main_window, renderer=GTKHTML):
 		self._app = app
@@ -32,6 +36,7 @@ class EntryView:
 		self._main_window = main_window
 		self._renderer = renderer
 		self._moz_realized = False
+		self._state = S_DEFAULT
 		html_dock = widget_tree.get_widget('html_dock')
 		
 		scrolled_window = gtk.ScrolledWindow()
@@ -212,7 +217,6 @@ class EntryView:
 		"""tests to see if this is the currently-displayed entry, 
 		and if so, goes back to the app and asks to redisplay it."""
 		#item, progress, message = data
-		print "update if selected"
 		try:
 			if len(self._current_entry) == 0:
 				return
@@ -263,6 +267,24 @@ class EntryView:
 					self._moz.append_data(message, long(len(message)))
 					self._moz.close_stream()	
 			self._custom_entry = False
+			
+	def _unset_state(self):
+		self.display_custom_entry("")
+	
+	def set_state(self, newstate, data=None):
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_SEARCH,
+			 penguintv.TAG_SEARCH: S_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
+			 penguintv.LOADING_FEEDS: S_DEFAULT}
+			 
+		newstate = d[newstate]
+		
+		if newstate == self._state:
+			return
+		
+		self._unset_state()
+		self._state = newstate
 	
 	def display_item(self, item=None, highlight=""):
 		#when a feed is refreshed, the item selection changes from an entry,

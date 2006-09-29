@@ -83,12 +83,12 @@ class HTTPDownloader(Downloader):
 			if data[0]==33: #if server doesn't support resuming, retry
 				self._resume=False
 				self.download(None)
-			if data[0]==42:
+			elif data[0]==42:
 				self.status = STOPPED
 				self.message = ""
 				self._finished_callback()
 			else:
-				print "some downloading error "+str(data)
+				print "some downloading error "+str(data),"data[0]:",data[0]
 				self.media['errormsg']=data
 				self.status = FAILURE
 				self.message = data

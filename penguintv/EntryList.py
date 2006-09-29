@@ -13,6 +13,10 @@ ICON          = 4
 FLAG          = 5
 FEED          = 6
 
+S_DEFAULT = 0
+S_SEARCH  = 1
+#S_ACTIVE  = 2
+
 class EntryList:
 	def __init__(self, widget_tree, app, main_window, entry_view, db):
 		self._widget = widget_tree.get_widget("entrylistview")
@@ -23,10 +27,11 @@ class EntryList:
 		self._db = db
 		self._feed_id=None
 		self._last_entry=None
-		self._showing_search = False
 		self._search_query = ""
 		self._search_results = []
+		self._state = S_DEFAULT
 		self.presently_selecting = False
+		
 		
 		#build list view
 		self._widget.set_model(self._entrylist)
@@ -61,7 +66,8 @@ class EntryList:
 			self.populate_entries(feed_id, -1)
 			
 	def populate_entries(self, feed_id, selected=-1):
-		if self._showing_search:
+		if self._state == S_SEARCH:
+#		if self._showing_search:
 			if len(self._search_results) > 0: 
 				if feed_id in [s[1] for s in self._search_results]:
 					self.show_search_results(self._search_results, self._search_query)
@@ -189,7 +195,6 @@ class EntryList:
 			
 	def show_search_results(self, entries, query):
 		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
-		self._showing_search = True
 		self._search_query = query
 		if entries is None:
 			entries = []
@@ -216,12 +221,31 @@ class EntryList:
 		self._widget.columns_autosize()
 		gobject.idle_add(self.auto_pane)
 		
-	def unshow_search(self):
-		self._showing_search = False
-		self._search_query = ""
-		self._widget.get_selection().unselect_all()
-		self._search_results = []
-		self._entrylist.clear()
+	def _unset_state(self):
+		if self._state == S_SEARCH:
+			self._search_query = ""
+			self._widget.get_selection().unselect_all()
+			self._search_results = []
+			self._entrylist.clear()
+	
+	def set_state(self, newstate, data=None):
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_SEARCH,
+			 penguintv.TAG_SEARCH: S_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_ACTIVE,
+			 penguintv.LOADING_FEEDS: S_DEFAULT}
+			 
+		newstate = d[newstate]
+		
+		if newstate == self._state:
+			return
+			
+		#print "what"
+		#if newstate == S_ACTIVE:
+		#	print "active downloads already!"
+		
+		self._unset_state()
+		self._state = newstate
 		
 	def highlight_results(self, feed_id):
 		selection = self._widget.get_selection()
@@ -276,7 +300,8 @@ class EntryList:
 			return
 		self._last_entry = selected['entry_id']
 		#print "selected item: "+str(selected) #CONVENIENT
-		if self._showing_search:
+		#if self._showing_search:
+		if self._state == S_SEARCH:
 			self._app.select_feed(selected['feed_id'])
 		if selection.count_selected_rows()==1:
 			self._app.display_entry(selected['entry_id'], query=self._search_query)
