@@ -207,19 +207,19 @@ class ptvDB:
 				self._migrate_database_one_two()
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				#self._clean_database_media()
+				self.clean_database_media()
 			elif db_ver < 2:
 				self._migrate_database_one_two()
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				#self._clean_database_media()
+				self.clean_database_media()
 			elif db_ver < 3:
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				#self._clean_database_media()
+				self.clean_database_media()
 			elif db_ver < 4:
 				self._migrate_database_three_four()
-				#self._clean_database_media()
+				self.clean_database_media()
 			elif db_ver > 4:
 				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
 				raise DBError, "db_ver is "+str(db_ver)+" instead of 4"
@@ -437,7 +437,7 @@ class ptvDB:
 	def clean_file_media(self):
 		"""walks the media dir, and deletes anything that doesn't have an entry in the database.
 		Also deletes dirs with only a playlist or with nothing"""
-		media_dir = self.home+"/.penguintv/media"
+		media_dir = os.path.join(self.home,".penguintv","media")
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
 			if root!=media_dir:
@@ -446,8 +446,8 @@ class ptvDB:
 						self._db_execute(self._c, u"SELECT id FROM media WHERE file=?",(root+"/"+file,))
 						result = self._c.fetchone()
 						if result is None:
-							print "deleting "+root+"/"+file
-							os.remove(root+"/"+file)
+							print "deleting "+os.path.join(root,file)
+							os.remove(os.path.join(root,file))
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
 			if root!=media_dir:
@@ -486,13 +486,10 @@ class ptvDB:
 			elif type == STRING:
 				self._conf.set_string(datum, value)
 		else:
-			#print "set",datum,"to",value,
 			current_val = self.get_setting(type, datum)
 			if current_val is None:
-				#print "insert"
 				self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES (?,?)', (datum, value))
 			else:
-				#print "update"
 				self._db_execute(self._c, u'UPDATE settings SET value=? WHERE data=?', (value,datum))
 			self._db.commit()
 			
@@ -1205,8 +1202,6 @@ class ptvDB:
 					removed = list(db_set.difference(f_set))
 					added   = list(f_set.difference(db_set))
 					
-					print "removed",removed,"\nadded",added
-					
 					if len(removed)>0:
 						qmarks = "?,"*(len(removed)-1)+"?"
 						self._db_execute(c, u'DELETE FROM media WHERE url IN (('+qmarks+')', tuple(removed))
@@ -1221,14 +1216,11 @@ class ptvDB:
 							#if dburl:
 							if media['url'] in added:
 								#if dburl[0] != media['url']: #only add if that url doesn't exist
-								print "this appears to be new"
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
 								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, download_date) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
 								self._db_execute(c, u'UPDATE entries SET read=0 WHERE id=?', (status[1]))
 					#db.commit()
-							else:
-								print "old", media['url']
 				self._reindex_entry_list.append(status[1])
 							
 				#flag_list.append(self.get_entry_flag(status[1], c))

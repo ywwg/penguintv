@@ -1029,6 +1029,8 @@ class PenguinTVApp:
 			self._entry_view = self.main_window.entry_view
 			self.main_window.changing_layout = False
 			self._populate_feeds(self._done_populating)
+			while gtk.events_pending(): #wait for pop to be done, _then_ select
+				gtk.main_iteration()
 			self.update_disk_usage()
 			self.feed_list_view.set_selected(selected)
 			#self.layout_changing_dialog.hide()

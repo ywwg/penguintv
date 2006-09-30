@@ -15,10 +15,7 @@ import random
 NONE=-1 #unused, needs a value
 ALL=0
 DOWNLOADED=1
-ACTIVE=4
 SEARCH=2
-UNKNOWN=3
-#BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"), _("Search Results")]
 BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"), _("Search Results")]
 
 TITLE=0
@@ -27,17 +24,17 @@ FEEDID=2
 STOCKID=3
 READINFO=4
 PIXBUF=5
-UNREAD=6
-TOTAL=7
-FLAG=8
-VISIBLE=9
-POLLFAIL=10
-FIRSTENTRYTITLE=11
+DETAILS_LOADED=6
+UNREAD=7
+TOTAL=8
+FLAG=9
+VISIBLE=10
+POLLFAIL=11
+FIRSTENTRYTITLE=12
 
 #STATES
 S_DEFAULT          = 0
 S_SEARCH           = 1 
-#S_ACTIVE_DOWNLOADS = 2
 S_LOADING_FEEDS    = 2
 
 MAX_WIDTH  = 48
@@ -58,19 +55,29 @@ class FeedList:
 		self._widget = widget_tree.get_widget('feedlistview')
 		self._entry_list_widget = widget_tree.get_widget('entrylistview')
 		
-		self._feedlist = gtk.ListStore(str, str, int, str, str, gtk.gdk.Pixbuf, int, int, int, bool, bool, str) #see enum above
+		self._feedlist = gtk.ListStore(str,            #title
+									   str,            #markup title
+									   int,            #feed_id
+									   str,            #stockid
+									   str,            #readinfo
+									   gtk.gdk.Pixbuf, #pixbuf 
+									   bool,           #details loaded
+									   int,            #unread
+									   int,            #total
+									   int,            #flag
+									   bool,           #visible
+									   bool,           #pollfail
+									   str)            #first entry title
 		self._last_selected=None
 		self._last_feed=None
 		self.filter_setting=ALL
 		self.filter_name = _("All Feeds")
 		self._selecting_misfiltered=False
 		self._filter_unread = False
-		self._cancel_load = False
+		self._cancel_load = [False,False] #loading feeds, loading details
+		self._loading_details = False
 		self._state = S_DEFAULT
 		self._fancy = fancy
-		
-		self._loading = False
-		self._select_after_load = None
 		
 		#build list view
 		self._feed_filter = self._feedlist.filter_new()
@@ -129,13 +136,23 @@ class FeedList:
 		if len(self._feedlist)==0:
 			#first fill out rough feedlist
 			db_feedlist = self._db.get_feedlist()
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
-			p.fill(0xffffff00)			
+			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title in db_feedlist:
-				self._feedlist.append([title, title, feed_id, 'gtk-stock-blank', "", p, 0, 0, 0, False, False,""]) #assume invisible
-		
-		self._loading = True
-		self._select_after_load = None
+				self._feedlist.append([title, 
+									   title, 
+									   feed_id, 
+									   'gtk-stock-blank', 
+									   "", 
+									   blank_pixbuf, 
+									   False,
+									   0, 
+									   0, 
+									   0, 
+									   False, 
+									   False,
+									   ""]) #assume invisible
+			
 		gobject.idle_add(self._update_feeds_generator(callback,subset).next)
 		#self._update_feeds_generator(subset)
 		return False #in case this was called by the timeout below
@@ -149,23 +166,17 @@ class FeedList:
 		
 		i=-1
 	
-		if not self._fancy:
-			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
-			blank_pixbuf.fill(0xffffff00)
+		blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
+		blank_pixbuf.fill(0xffffff00)
 		
 		for feed_id,title in db_feedlist:
-			if self._cancel_load:
-				self._cancel_load = False
-				yield False
+			if self._cancel_load[0]:
+				break
 			i=i+1
 			
 			if subset==DOWNLOADED:
 				flag = self._feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADED==0 and flag & ptvDB.F_PAUSED==0:
-					continue
-			if subset==ACTIVE:
-				flag = self._feedlist[i][FLAG]
-				if flag & ptvDB.F_DOWNLOADING==0:
 					continue
 			if feed_cache is not None:
 				cached     = feed_cache[i]
@@ -193,11 +204,19 @@ class FeedList:
 				print "WARNING: zero unread articles but flag says there should be some"
 				flag -= ptvDB.F_UNVIEWED
 			
+			visible = self._feedlist[i][VISIBLE]
+			
 			if self._fancy:
-				try: m_first_entry_title = self._db.get_entrylist(feed_id)[0][1]
-				except: m_first_entry_title = ""
+				if visible:
+					try: m_first_entry_title = self._db.get_entrylist(feed_id)[0][1]
+					except: m_first_entry_title = ""
+					m_pixbuf = self._get_pixbuf(feed_id)
+					m_details_loaded = True
+				else:
+					m_first_entry_title = ""
+					m_pixbuf = blank_pixbuf
+					m_details_loaded = False
 				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, False) 
-				m_pixbuf = self._get_pixbuf(feed_id)
 				try:
 					m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
 				except:
@@ -209,14 +228,27 @@ class FeedList:
 				m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 				m_pixbuf = blank_pixbuf
 				m_first_entry_title = ""
+				m_details_loaded = False
 				
 			icon = self._get_icon(flag)	
 			
 			if pollfail:
  				if icon=='gtk-harddisk' or icon=='gnome-stock-blank':
  					icon='gtk-dialog-error'
-			visible = self._feedlist[i][VISIBLE]
-			self._feedlist[i] = [title, m_title, feed_id, icon, m_readinfo, m_pixbuf, unviewed, entry_count, flag, visible, pollfail, m_first_entry_title]
+			
+			self._feedlist[i] = [title, 
+								 m_title, 
+								 feed_id, 
+								 icon, 
+								 m_readinfo, 
+								 m_pixbuf, 
+								 m_details_loaded, 
+								 unviewed, 
+								 entry_count, 
+								 flag, 
+								 visible, 
+								 pollfail, 
+								 m_first_entry_title]
 			try:
 				if i % (len(db_feedlist)/20) == 0:
 					self.do_filter()
@@ -224,18 +256,16 @@ class FeedList:
 			except:
 				pass
 			yield True
-		self._loading = False
 		
-		self.do_filter()
-		
-		if self._select_after_load is not None:
-			selected = self._select_after_load
-		if selected:
-			self.set_selected(selected)
-			
-		if callback is not None:
-			try: callback()
-			except: pass
+		if not self._cancel_load[0]:
+			self.do_filter()
+			if selected:
+				self.set_selected(selected)
+			if callback is not None:
+				try: callback()
+				except: pass
+		else:
+			self._cancel_load[0] = False
 		yield False
 		
 	def update_feed_list(self, feed_id=None, update_what=None, update_data=None, recur_ok=True):  #returns True if this is the already-displayed feed
@@ -283,17 +313,13 @@ class FeedList:
 			updated=0
 			unviewed=0
 			downloaded=0
-			active=0
 		 	
 			updated=1
 			for flag in update_data['flag_list']:
 				if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					unviewed=unviewed+1
 				if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
-					downloaded=1
-				if flag & ptvDB.F_DOWNLOADING:
-					active=1
-
+					downloaded=1				
 			flag = self._pick_important_flag(feed_id, update_data['flag_list'])				
 
 		if 'icon' in update_what and 'pollfail' not in update_what:
@@ -359,10 +385,7 @@ class FeedList:
 			feed[FLAG] = flag	 
 		 	if self.filter_setting == DOWNLOADED:
 		 		if updated==1 and downloaded==0:
-			 		need_filter = True
-			if self.filter_setting == ACTIVE:
-		 		if updated==1 and active==0:
-			 		need_filter = True		
+			 		need_filter = True	
 			
 		if need_filter and self._state != S_SEARCH:#not self._showing_search:
 			self.do_filter()
@@ -447,17 +470,12 @@ class FeedList:
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_SEARCH,
 			 penguintv.TAG_SEARCH: S_SEARCH,
-			 #penguintv.ACTIVE_DOWNLOADS: S_ACTIVE_DOWNLOADS,
 			 penguintv.LOADING_FEEDS: S_LOADING_FEEDS}
 			 
 		newstate = d[newstate]
 		
 		if newstate == self._state:
 			return
-			
-		#if newstate == S_ACTIVE_DOWNLOADS:
-		#	print "display active downloads or some junk!"
-		#	self.set_filter(ACTIVE, BUILTIN_TAGS[0])
 			 
 		self._unset_state(data)
 		self._state = newstate
@@ -478,9 +496,6 @@ class FeedList:
 			
 			if self.filter_setting == DOWNLOADED:
 				if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
-					passed_filter = True
-			elif self.filter_setting == ACTIVE:
-				if flag & ptvDB.F_DOWNLOADING:
 					passed_filter = True
 			elif self.filter_setting == ALL:
 				passed_filter = True
@@ -504,9 +519,6 @@ class FeedList:
 						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
 							passed_filter = True
 							self._selecting_misfiltered=True
-						elif self.filter_setting == ACTIVE and flag & ptvDB.F_DOWNLOADING == 0:
-							passed_filter = True
-							self._selecting_misfiltered=True
 					#else: leave the filter result alone
 				else:
 					#if filter is NONE, no one is getting past.
@@ -524,7 +536,29 @@ class FeedList:
 			self._last_selected = None
 			self._selecting_misfiltered=False
 		self._feed_filter.refilter()
-		
+			
+	def _load_visible_details(self):
+		self._loading_details = True
+		for row in self._feedlist:
+			if self._cancel_load[1]:
+				break
+			if row[VISIBLE] and not row[DETAILS_LOADED]:
+				try: row[FIRSTENTRYTITLE] = self._db.get_entrylist(row[FEEDID])[0][1]
+				except: row[FIRSTENTRYTITLE] = ""
+				row[PIXBUF] = self._get_pixbuf(row[FEEDID])
+				row[DETAILS_LOADED] = True
+				row[MARKUPTITLE] = self._get_fancy_markedup_title(row[TITLE],
+																  row[FIRSTENTRYTITLE],
+																  row[UNREAD],
+																  row[TOTAL],
+																  row[FLAG], 
+																  False)
+				yield True
+		if self._cancel_load[1]:
+			self._cancel_load[1] = False
+		self._loading_details = False
+		yield False
+				
 	def filter_test_feed(self, feed_id):
 		"""Tests a feed against the filters (although _not_ unviewed status testing)"""
 		passed_filter = False
@@ -535,9 +569,6 @@ class FeedList:
 		
 		if self.filter_setting == DOWNLOADED:
 			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
-				passed_filter = True
-		elif self.filter_setting == ACTIVE:
-			if flag & ptvDB.F_DOWNLOADING:
 				passed_filter = True
 		elif self.filter_setting == ALL:
 			passed_filter = True
@@ -564,9 +595,6 @@ class FeedList:
 	
 	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
-	#	if pane_size>0:
-	#		print "resize"
-	#		self._feed_column.set_fixed_width(pane_size - (self._articles_column.get_width()))
 			
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
@@ -575,9 +603,11 @@ class FeedList:
 		if new_filter != SEARCH and self._state == S_SEARCH:
 			print "hope we also changed state"
 			self._app.set_state(penguintv.DEFAULT)
-		#	self.unshow_search()
 			
 		self.do_filter(False)
+		if self._fancy:
+			if not self._loading_details:
+				gobject.idle_add(self._load_visible_details().next)
 		self._va.set_value(0)
 		self.resize_columns()
 		
@@ -603,8 +633,6 @@ class FeedList:
 		self._widget.columns_autosize()
 		
 	def set_unread_toggle(self, active):
-		#if self._showing_search:
-		#	return
 		if self._state == S_SEARCH:
 			return 
 		self._filter_unread = active
@@ -708,9 +736,7 @@ class FeedList:
 		except:
 			return title
 		return title
-		
 	
-		
 	def _pick_important_flag(self, feed_id, flag_list):
 		"""go through entries and pull out most important flag"""
 		if len(flag_list)==0:
@@ -797,23 +823,22 @@ class FeedList:
 			return None
 			
 	def set_selected(self, feed_id):
-		if self._loading:
-			self._select_after_load = feed_id
-			return
 		visible = [f[FEEDID] for f in self._feedlist if f[VISIBLE]]
 		index=None
 		try:
 			index = visible.index(feed_id)
 		except:
+			pass
+		if index is None:
 			if self.filter_setting != ALL:
 				self._app.main_window.filter_combo_widget.set_active(ALL) #hmm..
 				self.set_selected(feed_id)
 				return
-		if index is not None:
+			else:
+				self._widget.get_selection().unselect_all()
+		else:
 			self._widget.get_selection().select_path((index,))
 			self._widget.scroll_to_cell((index,))
-		else:
-			self._widget.get_selection().unselect_all()
 			
 	def find_index_of_item(self, feed_id):
 		try:
@@ -830,5 +855,6 @@ class FeedList:
 		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL]] for f in self._feedlist]
 		
 	def interrupt(self):
-		self._cancel_load = True
+		self._cancel_load = [True,True]
+		print "set cancel"
 		

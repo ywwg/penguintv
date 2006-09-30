@@ -217,10 +217,13 @@ class MainWindow:
 		vbox = gtk.VBox()
 		self._notebook.append_page(vbox, label)
 		
-		label = gtk.Label(_('<span size="small">Downloads</span>'))
-		label.set_property('use-markup',True)
+		self._downloads_label = gtk.Label('<span size="small">'+_('Downloads')+'</span>')
+		self._downloads_label.set_property('use-markup',True)
 		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._db, self._glade_prefix+'/penguintv.glade')
-		self._notebook.append_page(self._download_view.get_widget(), label)
+		self._notebook.append_page(self._download_view.get_widget(), self._downloads_label)
+		
+		self._notebook.set_show_tabs(False)
+		self._notebook.set_property('show-border', False)
 		
 		self._notebook.show_all()
 		self._notebook.set_current_page(0)
@@ -968,6 +971,7 @@ class MainWindow:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)
 			self._download_view.update_downloads()
+			self._update_notebook_tabs(0)
 			return
 		total_size = 0
 		downloaded = 0
@@ -992,9 +996,18 @@ class MainWindow:
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
 		
 		self._download_view.update_downloads()
+		self._update_notebook_tabs(len(progresses)+len(queued))
 		
 	def download_finished(self, d):
 		self._download_view.update_downloads()
+		
+	def _update_notebook_tabs(self, number):
+		if number == 0:
+			self._notebook.set_show_tabs(False)
+			self._notebook.set_current_page(0)
+		else:
+			self._downloads_label.set_markup(_('<span size="small">Downloads(%d)</span>') % number)
+			self._notebook.set_show_tabs(True)
 				
 	def desensitize(self):
 		if self.app_window:
