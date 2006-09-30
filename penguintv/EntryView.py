@@ -477,9 +477,9 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 	else:
 		if item.has_key('title'):
 			if indicate_new and not item['read']:
-				ret.append('<div class="stitle">&#10036;%s</div>' % item['title'])
+				ret.append('<div class="stitle"><a href="#%s">&#10036;%s</a></div>' % (item['entry_id'],item['title']))
 			else:
-				ret.append('<div class="stitle">%s</div>' % item['title'])
+				ret.append('<div class="stitle"><a href="#%s">%s</a></div>' % (item['entry_id'],item['title']))
 			
 	if item.has_key('creator'):
 		if item['creator']!="" and item['creator'] is not None:
@@ -527,7 +527,7 @@ def htmlify_media(medium, mm):
 				ret.append('<p><i>'+_("Download queued") +'</i> '+
 				            utils.html_command('pause:',medium['media_id'])+' '+
 				            utils.html_command('stop:',medium['media_id'])+'</p>')
-			elif downloader.status == Downloader.STOPPED:
+			elif downloader.status == Downloader.STOPPED or downloader.status == Downloader.PAUSED:
 				ret.append("STOPPPPPPPPPED")
 		elif medium.has_key('progress'):       #no custom message, but we have a progress value
 			d = {'progress':medium['progress'],

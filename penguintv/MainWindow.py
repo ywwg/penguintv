@@ -210,20 +210,26 @@ class MainWindow:
 				self._widgetTree.signal_connect(key, getattr(self, key))
 				
 	def load_notebook(self):
-		notebook = gtk.Notebook()
-		notebook.set_property('tab-border',0)
+		self._notebook = gtk.Notebook()
+		self._notebook.set_property('tab-border',0)
 		label = gtk.Label(_('<span size="small">Feeds</span>'))
 		label.set_property('use-markup',True)
 		vbox = gtk.VBox()
-		notebook.append_page(vbox, label)
+		self._notebook.append_page(vbox, label)
 		
 		label = gtk.Label(_('<span size="small">Downloads</span>'))
 		label.set_property('use-markup',True)
-		self._download_view = DownloadView.DownloadView(self._mm, self._db, self._glade_prefix+'/penguintv.glade')
-		notebook.append_page(self._download_view.get_widget(), label)
+		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._db, self._glade_prefix+'/penguintv.glade')
+		self._notebook.append_page(self._download_view.get_widget(), label)
 		
-		self._layout_dock.add(notebook)
+		self._notebook.show_all()
+		self._notebook.set_current_page(0)
+		
+		self._layout_dock.add(self._notebook)
 		self._layout_dock = vbox
+		
+	def notebook_select_page(self, page):
+		self._notebook.set_current_page(page)
 		
 	def load_layout(self):
 		#self._app.log("load_layout")
@@ -961,6 +967,7 @@ class MainWindow:
 		if len(progresses)+len(queued)==0:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)
+			self._download_view.update_downloads()
 			return
 		total_size = 0
 		downloaded = 0
@@ -987,7 +994,7 @@ class MainWindow:
 		self._download_view.update_downloads()
 		
 	def download_finished(self, d):
-		self._download_view.update_unplayed_media()
+		self._download_view.update_downloads()
 				
 	def desensitize(self):
 		if self.app_window:

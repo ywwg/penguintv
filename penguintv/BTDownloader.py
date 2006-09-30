@@ -54,7 +54,8 @@ class BTDownloader(Downloader):
 			self.message = _("There was an error downloading the torrent")
 			self._finished_callback()
 			return
-		self.status = STOPPED
+		if self.status not in [STOPPED,PAUSED]:
+			self.status = STOPPED
 		self.message = ""
 		self._finished_callback()
 

@@ -22,6 +22,7 @@ import gnome
 import gnomevfs
 
 from penguintv import DOWNLOAD_ERROR, DOWNLOAD_PROGRESS, DOWNLOAD_WARNING, DOWNLOAD_QUEUED
+from Downloader import QUEUED, DOWNLOADING, FINISHED, FINISHED_AND_PLAY, STOPPED, FAILURE, PAUSED
 
 RUNNING = 0
 PAUSING = 1 
@@ -111,6 +112,12 @@ class MediaManager:
 			
 	def download(self, media_id, queue=False, resume=False):
 		"""queues a download"""
+		for downloader in self.downloads:
+			if downloader.media['media_id'] == media_id:
+				print "removing old downloader"
+				self.downloads.remove(downloader)
+				break
+		
 		media = self.db.get_media(media_id)
 		media['downloader_index']=self.index
 		media['download_status']=1
@@ -201,7 +208,8 @@ class MediaManager:
 		return self.app_callback_progress(obj)
 	
 	def callback_finished(self, obj):
-		self.downloads.remove(obj)
+		if obj.status in [STOPPED, FINISHED, FINISHED_AND_PLAY, FAILURE]:
+			self.downloads.remove(obj)
 		self.update_playlist(obj.media)
 		#if self.pause_state == RUNNING:
 		self.app_callback_finished(obj)

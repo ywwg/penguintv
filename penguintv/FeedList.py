@@ -15,10 +15,11 @@ import random
 NONE=-1 #unused, needs a value
 ALL=0
 DOWNLOADED=1
-ACTIVE=2
-SEARCH=3
-UNKNOWN=4
-BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"), _("Search Results")]
+ACTIVE=4
+SEARCH=2
+UNKNOWN=3
+#BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"),_("Active Downloads"), _("Search Results")]
+BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"), _("Search Results")]
 
 TITLE=0
 MARKUPTITLE=1
@@ -207,6 +208,7 @@ class FeedList:
 				m_title = self._get_markedup_title(title,flag) 
 				m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 				m_pixbuf = blank_pixbuf
+				m_first_entry_title = ""
 				
 			icon = self._get_icon(flag)	
 			
@@ -582,6 +584,10 @@ class FeedList:
 	def set_fancy(self, fancy):
 		if fancy == self._fancy:
 			return #no need
+		if self._state == S_LOADING_FEEDS:
+			self.interrupt()
+			while gtk.events_pending():
+				gtk.main_iteration()
 		self._fancy = fancy
 		if self._fancy:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
@@ -799,7 +805,10 @@ class FeedList:
 		try:
 			index = visible.index(feed_id)
 		except:
-			pass
+			if self.filter_setting != ALL:
+				self._app.main_window.filter_combo_widget.set_active(ALL) #hmm..
+				self.set_selected(feed_id)
+				return
 		if index is not None:
 			self._widget.get_selection().select_path((index,))
 			self._widget.scroll_to_cell((index,))

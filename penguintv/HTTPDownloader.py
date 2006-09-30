@@ -84,7 +84,8 @@ class HTTPDownloader(Downloader):
 				self._resume=False
 				self.download(None)
 			elif data[0]==42:
-				self.status = STOPPED
+				if self.status not in [STOPPED, PAUSED]:
+					self.status = STOPPED
 				self.message = ""
 				self._finished_callback()
 			else:

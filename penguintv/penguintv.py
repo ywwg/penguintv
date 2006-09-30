@@ -325,7 +325,7 @@ class PenguinTVApp:
 		for medium in list:
 			#if self.pausing_all_downloads: #bail
 			#	yield False
-			print "resuming "+str(medium['file'])
+			#print "resuming "+str(medium['file'])
 			self.mediamanager.download(medium['media_id'], False, True) #resume please
 			self.db.set_entry_read(medium['entry_id'],False)
 			self.feed_list_view.update_feed_list(medium['feed_id'],['icon'])
@@ -503,12 +503,7 @@ class PenguinTVApp:
 			self.feed_list_view.update_feed_list(None,['icon'])
 			self.update_entry_list()
 		elif action=="resume" or action=="tryresume":
-			self.mediamanager.unpause_downloads()
-			self.mediamanager.download(item, False, True) #resume please
-			media = self.db.get_media(item)
-			self.db.set_media_viewed(item,False)
-			self.feed_list_view.update_feed_list(None,['readinfo','icon'])
-			self.update_entry_list()
+			self.do_resume_download(item)
 		elif action=="play":
 			media = self.db.get_media(item)
 			self.db.set_entry_read(media['entry_id'],True)
@@ -539,9 +534,6 @@ class PenguinTVApp:
 			newitem['media_id']=item
 			newitem['entry_id']=self.db.get_entryid_for_media(newitem['media_id'])
 			self.do_cancel_download(newitem)
-			self._entry_view.update_if_selected(newitem['entry_id'])
-			self.feed_list_view.update_feed_list(None,['readinfo','icon'])
-			self.update_entry_list()
 		elif action=="delete":
 			self.delete_media(item)
 			self.feed_list_view.update_feed_list(None,['readinfo','icon'])
@@ -914,7 +906,6 @@ class PenguinTVApp:
 			return
 		
 	def _update_search(self):
-		print "weeee updating search"
 		self._search(self._saved_search)
 		
 	def threaded_search(self, query):
@@ -934,7 +925,6 @@ class PenguinTVApp:
 		
 	def _got_search(self, query, results):
 		self.set_state(MANUAL_SEARCH)
-		print "show search", query
 		self._show_search(query, results)
 		
 	if ptvDB.HAS_LUCENE:
@@ -986,6 +976,12 @@ class PenguinTVApp:
 		
 	def select_feed(self, feed_id):
 		self.feed_list_view.set_selected(feed_id)
+		
+	def select_entry(self, entry_id):
+		feed_id = self.db.get_entry(entry_id)['feed_id']
+		self.select_feed(feed_id)
+		self.display_entry(entry_id)
+		self.main_window.notebook_select_page(0)
 
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.filter_combo_widget.get_active()
@@ -1207,6 +1203,7 @@ class PenguinTVApp:
 		"""cancels a download and cleans up.  Right now there's redundancy because we call this twice
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
 		   callback tells the thread to stop working.  how to make this better?"""
+		   
 		if self.mediamanager.has_downloader(item['media_id']):
 			self.mediamanager.get_downloader(item['media_id']).stop()
 		self.db.set_media_download_status(item['media_id'],ptvDB.D_NOT_DOWNLOADED)
@@ -1217,6 +1214,7 @@ class PenguinTVApp:
 			return
 		try:
 			feed_id = self.db.get_entry(item['entry_id'])['feed_id']
+			self._entry_view.update_if_selected(item['entry_id'])
 			self.update_entry_list(item['entry_id'])
 			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
@@ -1229,17 +1227,24 @@ class PenguinTVApp:
 		self.feed_list_view.do_filter() #to remove active downloads from the list
 		
 	def do_pause_download(self, media_id):
-		self.mediamanager.get_downloader(media_id).stop()
+		self.mediamanager.get_downloader(media_id).stop(True) #pause it
 		self.db.set_media_download_status(media_id,ptvDB.D_RESUMABLE)
 		self.db.set_media_viewed(media_id,0)
 		self.db.set_entry_read(media_id,0)
+		
+	def do_resume_download(self, media_id):
+		self.mediamanager.unpause_downloads()
+		self.mediamanager.download(media_id, False, True) #resume please
+		self.db.set_media_viewed(media_id,False)
+		self.feed_list_view.update_feed_list(None,['readinfo','icon'])
+		self.update_entry_list()
 		
 	def _download_finished(self, d):
 		"""Process the data from a callback for a downloaded file"""
 		self.update_disk_usage()
 		if d.status==Downloader.FAILURE: 
 			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR) 
-		elif d.status==Downloader.STOPPED:
+		elif d.status==Downloader.STOPPED or d.status==Downloader.PAUSED:
 			self.main_window.update_download_progress()
 		elif d.status==Downloader.FINISHED or d.status==Downloader.FINISHED_AND_PLAY:
 			if os.stat(d.media['file'])[6] < int(d.media['size']/2) and os.path.isfile(d.media['file']): #don't check dirs
@@ -1390,23 +1395,19 @@ class PenguinTVApp:
 	def _polling_callback(self, args):
 		if not self._exiting:
 			feed_id,update_data,total = args
-			if feed_id == 335: print args
 			self._gui_updater.queue_task(self._poll_update_progress,total)
 			if len(update_data)>0: #else don't need to update, nothing changed
 				if update_data.has_key('ioerror'):
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._gui_updater.queue_task(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
-					if feed_id == 335: print "no error"
 					if update_data.has_key('feed_image'):
-						print "updating image"
 						update_what = ['readinfo','icon','pollfail','image']
 					else:
 						update_what = ['readinfo','icon','pollfail']
 					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,update_what,update_data))
 					
 					if not self._showing_search:
-						if feed_id == 335: print "popif"
 						self._gui_updater.queue_task(self._entry_list_view.populate_if_selected, feed_id)
 				else:
 					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
@@ -1414,16 +1415,13 @@ class PenguinTVApp:
 	def _poll_update_progress(self, total=0, error = False, errmsg = ""):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
 		if error:
-			#print "error, resetting"
 			self._polled=0
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(errmsg,MainWindow.U_POLL)
 			gobject.timeout_add(2000, self.main_window.display_status_message,"")
 			return
 		self._polled += 1
-		#print "polled",self._polled,"items"
 		if self._polled == total:
-			#print "done, resetting"
 			self._polled=0
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)

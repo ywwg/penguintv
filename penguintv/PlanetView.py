@@ -157,7 +157,6 @@ class PlanetView:
 			self.display_custom_entry(_("No entries match those search criteria"))
 			
 		self._entrylist = [e[0] for e in entries]
-		print "rendering (highlighting)",query
 		self._render_entries(query)
 		
 	def unshow_search(self):
@@ -216,37 +215,6 @@ class PlanetView:
 		self._render("<html><body></body></html")
 		
 	#protected functions
-	def _load_entry(self, entry_id, force = False):
-		if self._entry_store.has_key(entry_id) and not force:
-			return self._entry_store[entry_id]
-		
-		item = self._db.get_entry(entry_id)
-		media = self._db.get_entry_media(entry_id)
-		read = self._db.get_entry_read(entry_id)
-		if media:
-			item['media']=media
-		item['read'] = read
-		if self._state == S_SEARCH:
-		#if self._showing_search:
-			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
-		else:
-			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, indicate_new=True),item)
-		
-		index = self._entrylist.index(entry_id)
-		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
-			entry = self._entry_store[entry_id][1]
-			if not entry.has_key('media'):
-				return self._entry_store[entry_id]
-			ret = []
-			ret.append(str(entry_id)+" ")
-			for medium in entry['media']:
-				ret += htmlify_media(medium, self._mm)
-			ret = "".join(ret)
-			self._update_server.push_update(ret)
-		
-		return self._entry_store[entry_id]
-		
 	def _render_entries(self, highlight=None):
 		"""Takes a block on entry_ids and throws up a page.  also calls penguintv so that entries
 		are marked as read"""
@@ -268,6 +236,16 @@ class PlanetView:
 				media_exists = True
 			if not item.has_key('media'):
 				unreads.append(entry_id)
+			if highlight is not None:
+				entry_html = entry_html.encode('utf-8')
+				try:
+					highlight = highlight.replace("*","")
+					p = HTMLHighlightParser(highlight)
+					p.feed(entry_html)
+					entry_html = p.new_data
+				except:
+					pass	
+				
 			entries += entry_html
 			
 		self._app.mark_entrylist_as_viewed(unreads, False)
@@ -311,18 +289,6 @@ class PlanetView:
 		html += "</td></tr></tbody></table></div>"
 		html += "</body></html>"
 		
-		if highlight is not None:
-			print "doing highlight"
-			html = html.encode('utf-8')
-			try:
-				highlight = highlight.replace("*","")
-				p = HTMLHighlightParser(highlight)
-				p.feed(html)
-				html = p.new_data
-				print "highlighted"
-			except:
-				pass
-				
 		self._render(html)
 	
 	def _build_header(self, media_exists):
@@ -410,6 +376,37 @@ class PlanetView:
 			html += """</head><body><span id="errorMsg"></span><br>"""
 			
 		return html
+		
+	def _load_entry(self, entry_id, force = False):
+		if self._entry_store.has_key(entry_id) and not force:
+			return self._entry_store[entry_id]
+		
+		item = self._db.get_entry(entry_id)
+		media = self._db.get_entry_media(entry_id)
+		read = self._db.get_entry_read(entry_id)
+		if media:
+			item['media']=media
+		item['read'] = read
+		if self._state == S_SEARCH:
+		#if self._showing_search:
+			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
+		else:
+			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, indicate_new=True),item)
+		
+		index = self._entrylist.index(entry_id)
+		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
+			entry = self._entry_store[entry_id][1]
+			if not entry.has_key('media'):
+				return self._entry_store[entry_id]
+			ret = []
+			ret.append(str(entry_id)+" ")
+			for medium in entry['media']:
+				ret += htmlify_media(medium, self._mm)
+			ret = "".join(ret)
+			self._update_server.push_update(ret)
+		
+		return self._entry_store[entry_id]
 		
 	def _render(self, html):
 		if self._moz_realized:

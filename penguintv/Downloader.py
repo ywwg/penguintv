@@ -3,6 +3,7 @@ DOWNLOADING       = 1
 FINISHED          = 2
 FINISHED_AND_PLAY = 3
 STOPPED           = 4
+PAUSED            = 5
 FAILURE           = -1
 
 class Downloader:
@@ -43,7 +44,13 @@ class Downloader:
 	def _finished_callback(self):
 		return self._app_finished_callback(self)
 		
-	def stop(self):
+	def stop(self, pause=False):
+		if pause:
+			self.status = PAUSED
+		else:
+			self.status = STOPPED
+		if self._stop_download: #if it's called _again_, ping the app and say "we're done already!"
+			return self._app_finished_callback(self)
 		self._stop_download = True
 		
 	def _basic_finished_callback(self, data):
