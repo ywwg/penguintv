@@ -7,25 +7,17 @@ import sets, time, os, glob
 import ptvDB
 import utils
 
-from Downloader import PAUSED, STOPPED
+from Downloader import PAUSED, STOPPED, QUEUED
 
 D_MEDIA_ID           = 0
-D_FEED_TITLE         = 1
-D_FEED_TITLE_MARKUP  = 2
-D_ENTRY_TITLE        = 3
-D_ENTRY_TITLE_MARKUP = 4
-D_PROGRESS           = 5
-D_SIZE               = 6
-D_SIZE_MARKUP        = 7
-D_PIXBUF             = 8
-D_STATUS             = 9
-
-U_DATE_INT    = 0
-U_DATE_STR    = 1
-U_MEDIA_ID    = 2
-U_FEED_TITLE  = 3
-U_ENTRY_TITLE = 4 
-U_PIXBUF      = 5
+D_DESCRIPTION         = 1
+D_DESCRIPTION_MARKUP  = 2
+D_PROGRESS           = 3
+D_SIZE               = 4
+D_SIZE_MARKUP        = 5
+D_PIXBUF             = 6
+D_STATUS             = 7
+D_STATUS_MARKUP      = 8
 
 MAX_WIDTH  = 48
 MAX_HEIGHT = 48
@@ -47,25 +39,15 @@ class DownloadView:
 		self._unplayed_media = [] #contains media id
 		
 		self._downloads_liststore = gtk.ListStore(int, #media_id
-											 	  str, #feed_title
-											 	  str, #feeed_title_markup
-											 	  str, #entry_title
-											 	  str, #entry_title_markup
+											 	  str, #description 
+											 	  str, #description_markup
 											 	  int, #progress
 											 	  str, #size
 											 	  str, #size markup
 											 	  gtk.gdk.Pixbuf, #icon
-											 	  int) #status
-											 
-		#self._unplayed_liststore  = gtk.ListStore(int, #date as int
-		#									 	  str, #date as str
-		#									 	  int, #media_id
-		#										  str, #feed_title
-		#										  str, #entry_title
-		#										  gtk.gdk.Pixbuf) #icon
-		
-		
-											 
+											 	  int, #status
+											 	  str) #status markup
+										 
 		self.Show()
 		#self.update_unplayed_media()
 		
@@ -75,6 +57,8 @@ class DownloadView:
 			if key[:3] == 'on_':
 				widget_tree.signal_connect(key, getattr(self, key))
 		self._widget = widget_tree.get_widget('download_view')
+		self._resume_button = widget_tree.get_widget('resume_toolbutton')
+		self._resume_button.set_sensitive(False)
 		
 		self._downloads_listview = widget_tree.get_widget('download_list')
 		try:
@@ -92,18 +76,11 @@ class DownloadView:
 		column.set_attributes(renderer, pixbuf=D_PIXBUF)
 		self._downloads_listview.append_column(column)
 		
-		column = gtk.TreeViewColumn(_('Feed'))
+		column = gtk.TreeViewColumn(_('Description'))
 		column.set_resizable(True)
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer, True)
-		column.set_attributes(renderer, markup=D_FEED_TITLE_MARKUP)
-		self._downloads_listview.append_column(column)
-		
-		column = gtk.TreeViewColumn(_('Entry'))
-		column.set_resizable(True)
-		renderer = gtk.CellRendererText()
-		column.pack_start(renderer, True)
-		column.set_attributes(renderer, markup=D_ENTRY_TITLE_MARKUP)
+		column.set_attributes(renderer, markup=D_DESCRIPTION_MARKUP)
 		self._downloads_listview.append_column(column)
 		
 		column = gtk.TreeViewColumn(_('Progress'))
@@ -120,50 +97,14 @@ class DownloadView:
 		column.set_attributes(renderer, markup=D_SIZE_MARKUP)
 		self._downloads_listview.append_column(column)
 		
+		column = gtk.TreeViewColumn(_('Status'))
+		column.set_resizable(True)
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer, True)
+		column.set_attributes(renderer, markup=D_STATUS_MARKUP)
+		self._downloads_listview.append_column(column)
 		self._downloads_listview.columns_autosize()
-		
-		##########
-		#self._unplayed_listview = widget_tree.get_widget('unplayed_list')
-		#column = gtk.TreeViewColumn(_(''))
-		#column.set_resizable(True)
-		#renderer = gtk.CellRendererPixbuf()
-		#column.pack_start(renderer, True)
-		#column.set_attributes(renderer, pixbuf=U_PIXBUF)
-		#self._unplayed_listview.append_column(column)
-		
-		#column = gtk.TreeViewColumn(_('Date'))
-		#column.set_resizable(True)
-		#renderer = gtk.CellRendererText()
-		#column.pack_start(renderer, True)
-		#column.set_attributes(renderer, text=U_DATE_STR)
-		#self._unplayed_listview.append_column(column)
-		
-		#column = gtk.TreeViewColumn(_('Feed Title'))
-		#column.set_resizable(True)
-		#renderer = gtk.CellRendererText()
-		#column.pack_start(renderer, True)
-		#column.set_attributes(renderer, text=U_FEED_TITLE)
-		#self._unplayed_listview.append_column(column)
-		
-		#column = gtk.TreeViewColumn(_('Entry Title'))
-		#column.set_resizable(True)
-		#renderer = gtk.CellRendererText()
-		#column.pack_start(renderer, True)
-		#column.set_attributes(renderer, text=U_ENTRY_TITLE)
-		#self._unplayed_listview.append_column(column)
-		
-		#self._unplayed_listview.columns_autosize()
-		
-		#unplayed_sorted = gtk.TreeModelSort(self._unplayed_liststore)
-		#unplayed_sorted.set_sort_column_id(U_DATE_INT, gtk.SORT_DESCENDING)
-		
 		self._downloads_listview.set_model(self._downloads_liststore)
-		#self._unplayed_listview.set_model(unplayed_sorted)
-		
-		
-		#panes = widget_tree.get_widget('download_panes')
-		#panes.set_position(200)
-		
 		self._widget.show_all()
 		
 	def get_widget(self):
@@ -204,77 +145,56 @@ class DownloadView:
 				iter[D_PROGRESS] = medium.progress
 				iter[D_SIZE]     = utils.format_size(medium.total_size)
 				#iter[D_STATUS] refers to the old status
-				if medium.status == PAUSED:
-					if iter[D_STATUS] != PAUSED:
+				if medium.status == PAUSED or medium.status == QUEUED:
+					if iter[D_STATUS] != medium.status:
 						if i in selected:
-							iter[D_FEED_TITLE_MARKUP] = '<i>'+iter[D_FEED_TITLE]+'</i>'
-							iter[D_ENTRY_TITLE_MARKUP]= '<i>'+iter[D_ENTRY_TITLE]+'</i>'
+							iter[D_DESCRIPTION_MARKUP] = '<i>'+iter[D_DESCRIPTION]+'</i>'
 							iter[D_SIZE_MARKUP]= '<i>'+iter[D_SIZE]+'</i>'
+							if medium.status == PAUSED:
+								iter[D_STATUS_MARKUP] = '<i>'+_("Paused")+'</i>'
+							elif medium.status == QUEUED:
+								iter[D_STATUS_MARKUP] = '<i>'+_("Queued")+'</i>'
 						else:
-							iter[D_FEED_TITLE_MARKUP] = '<span color="#777"><i>'+iter[D_FEED_TITLE]+'</i></span>'
-							iter[D_ENTRY_TITLE_MARKUP]= '<span color="#777"><i>'+iter[D_ENTRY_TITLE]+'</i></span>'
-							iter[D_SIZE_MARKUP]= '<span color="#777"><i>'+iter[D_SIZE]+'</i></span>'
+							iter[D_DESCRIPTION_MARKUP] = '<span color="#777"><i>'+iter[D_DESCRIPTION]+'</i></span>'
+							iter[D_SIZE_MARKUP] = '<span color="#777"><i>'+iter[D_SIZE]+'</i></span>'
+							if medium.status == PAUSED:
+								iter[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Paused")+'</i></span>'
+							elif medium.status == QUEUED:
+								iter[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Queued")+'</i></span>'
 						iter[D_STATUS] = medium.status
 				else:
-					if iter[D_STATUS] == PAUSED or i in selected:
-						iter[D_FEED_TITLE_MARKUP] = iter[D_FEED_TITLE]
-						iter[D_ENTRY_TITLE_MARKUP]= iter[D_ENTRY_TITLE]
-						iter[D_SIZE_MARKUP]= iter[D_SIZE]
-						iter[D_STATUS] = medium.status
+					#if iter[D_STATUS] == PAUSED or i in selected:
+					iter[D_DESCRIPTION_MARKUP] = iter[D_DESCRIPTION]
+					iter[D_SIZE_MARKUP]= iter[D_SIZE]
+					iter[D_STATUS] = medium.status
+					iter[D_STATUS_MARKUP] = ""
+					
+		#check resume button sensitivity
+		resume_sens = False
+		i=-1
+		for item in self._downloads_liststore:
+			i+=1
+			if item[D_STATUS] == PAUSED or item[D_STATUS] == QUEUED:
+				if i in selected:
+					resume_sens = True
+					break
+		self._resume_button.set_sensitive(resume_sens)
 
 		for media_id in added:
 			item       = self._downloads[current_list.index(media_id)]
 			entry      = self._db.get_entry(item.media['entry_id'])
-			feed_title = self._db.get_feed_title(entry['feed_id'])
+			description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
 			pixbuf     = self._get_pixbuf(entry['feed_id'])
 			self._downloads_liststore.append([media_id, 
-											  feed_title, 
-											  feed_title,
-											  entry['title'], 
-											  entry['title'],
+											  description, 
+											  description,
 											  item.progress, 
 											  utils.format_size(item.total_size), 
 											  utils.format_size(item.total_size),
 											  pixbuf,
-											  item.status])
+											  item.status,
+											  ""])
 			
-		
-	def update_unplayed_media(self):
-		"""gets called when a download finishes
-		self.update_downloads()
-		return
-		
-		
-		
-		
-		current_list = self._db.get_unplayed_media()
-		media_id_list = [item[0] for item in current_list]
-		viewing_list = [item[U_MEDIA_ID] for item in self._unplayed_liststore]
-			
-		oldset = sets.Set(viewing_list)
-		newset = sets.Set(media_id_list)
-		
-		removed = list(oldset.difference(newset))
-		added   = list(newset.difference(oldset))
-		
-		i=-1
-		for item in self._unplayed_liststore:
-			i+=1
-			if item[U_MEDIA_ID] in removed:
-				self._unplayed_liststore.remove(self._unplayed_liststore.get_iter((i,)))
-			
-		for media_id in added:
-			item = current_list[media_id_list.index(media_id)]
-			feed_title  = self._db.get_feed_title(item[2])
-			entry       = self._db.get_entry(item[1])
-			date_str    = time.strftime("%x",time.localtime(entry['date']))
-			entry_title = entry['title']
-			pixbuf      = self._get_pixbuf(item[2])
-			self._unplayed_liststore.append([entry['date'], date_str, item[0], feed_title, entry_title, pixbuf])
-			
-		self.update_downloads()"""
-		pass
-		
 	def _get_pixbuf(self, feed_id):
 		"""from feedlist.py"""
 		filename = os.path.join(self._db.home,'.penguintv','icons',str(feed_id)+'.*')
@@ -337,19 +257,28 @@ class DownloadView:
 		tree,selected = selection.get_selected_rows()
 		selected = [i[0] for i in selected]
 		
+		resume_sens = False
 		i=-1
 		for item in self._downloads_liststore:
 			i+=1
-			if item[D_STATUS] == PAUSED:
+			if item[D_STATUS] == PAUSED or item[D_STATUS] == QUEUED:
 				if i in selected:
-					item[D_FEED_TITLE_MARKUP] = '<i>'+item[D_FEED_TITLE]+'</i>'
-					item[D_ENTRY_TITLE_MARKUP]= '<i>'+item[D_ENTRY_TITLE]+'</i>'
+					item[D_DESCRIPTION_MARKUP] = '<i>'+item[D_DESCRIPTION]+'</i>'
 					item[D_SIZE_MARKUP]= '<i>'+item[D_SIZE]+'</i>'
+					if item[D_STATUS] == PAUSED:
+						item[D_STATUS_MARKUP] = '<i>'+_("Paused")+'</i>'
+						resume_sens = True
+					elif item[D_STATUS] == QUEUED:
+						item[D_STATUS_MARKUP] = '<i>'+_("Queued")+'</i>'
 				else:
-					item[D_FEED_TITLE_MARKUP] = '<span color="#777"><i>'+item[D_FEED_TITLE]+'</i></span>'
-					item[D_ENTRY_TITLE_MARKUP]= '<span color="#777"><i>'+item[D_ENTRY_TITLE]+'</i></span>'
+					item[D_DESCRIPTION_MARKUP] = '<span color="#777"><i>'+item[D_DESCRIPTION]+'</i></span>'
 					item[D_SIZE_MARKUP]= '<span color="#777"><i>'+item[D_SIZE]+'</i></span>'
+					if item[D_STATUS] == PAUSED:
+						item[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Paused")+'</i></span>'
+					elif item[D_STATUS] == QUEUED:
+						item[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Queued")+'</i></span>'
 			else:
-				item[D_FEED_TITLE_MARKUP] = item[D_FEED_TITLE]
-				item[D_ENTRY_TITLE_MARKUP]= item[D_ENTRY_TITLE]
-				item[D_SIZE_MARKUP]= item[D_SIZE]
+				item[D_DESCRIPTION_MARKUP] = item[D_DESCRIPTION]
+				item[D_SIZE_MARKUP] = item[D_SIZE]
+				item[D_STATUS_MARKUP] = ""
+		self._resume_button.set_sensitive(resume_sens)

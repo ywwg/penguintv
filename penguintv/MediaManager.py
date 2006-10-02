@@ -114,7 +114,6 @@ class MediaManager:
 		"""queues a download"""
 		for downloader in self.downloads:
 			if downloader.media['media_id'] == media_id:
-				print "removing old downloader"
 				self.downloads.remove(downloader)
 				break
 		

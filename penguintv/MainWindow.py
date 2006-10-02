@@ -109,8 +109,9 @@ class MainWindow:
 			
 			vbox.pack_start(self._load_toolbar(), False, False)
 			self._app.log("loading layout "+self.layout)
-			self.load_notebook()
-			vbox.pack_start(self.load_layout())
+			self._layout_dock = self.load_notebook()
+			self._layout_dock.add(self.load_layout())
+			vbox.pack_start(self._notebook)
 			self._status_view = MainWindow._my_status_view()
 			vbox.pack_start(self._status_view, False, False)
 			dock_widget.add(vbox)
@@ -119,24 +120,24 @@ class MainWindow:
 				#remove UI elements that don't apply without search
 				self.search_container.hide_all()
 				
-	def _load_toolbar(self, widgetTree=None):
-		if widgetTree is None:
-			widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar1','penguintv')
-		toolbar = widgetTree.get_widget('toolbar1')
+	def _load_toolbar(self):
+		if self._widgetTree is None:
+			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar1','penguintv')
+		toolbar = self._widgetTree.get_widget('toolbar1')
 		
 		#set up separator (see below)
-		vseparator = widgetTree.get_widget('vseparator1')
-		vseparator_toolitem = widgetTree.get_widget('toolitem1')
+		vseparator = self._widgetTree.get_widget('vseparator1')
+		vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
 		vseparator_toolitem.set_expand(True)
 		vseparator.set_draw(False)
 		
 		if ptvDB.RUNNING_SUGAR:
-			vsep2 = widgetTree.get_widget('vseparator2')
+			vsep2 = self._widgetTree.get_widget('vseparator2')
 			vseparator.set_property('visible',True)
-			pref_button = widgetTree.get_widget('preferences_toolbutton')
+			pref_button = self._widgetTree.get_widget('preferences_toolbutton')
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
-		self._disk_usage_widget = widgetTree.get_widget('disk_usage')
+		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
 	
 		return toolbar
 		
@@ -162,7 +163,7 @@ class MainWindow:
 			
 	def _load_app_window(self):
 		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
-		self._layout_dock = self._widgetTree.get_widget('layout_dock')
+		notebook_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
 		
 		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
@@ -179,7 +180,7 @@ class MainWindow:
 				self.app_window.set_icon_from_file(self._glade_prefix+"/penguintvicon.png")
 		self._status_view = self._widgetTree.get_widget("appbar")
 		
-		self._load_toolbar(self._widgetTree)
+		self._load_toolbar()
 		
 		#load the layout
 		#vbox = gtk.VBox()
@@ -187,7 +188,8 @@ class MainWindow:
 		#self._status_view = MainWindow._my_status_view()
 		#vbox.pack_start(self._status_view, False, False)
 		#self._layout_dock.add(vbox)
-		self.load_notebook()
+		self._layout_dock = self.load_notebook()
+		notebook_dock.add(self._notebook)
 		self._layout_dock.add(self.load_layout())
 		self.app_window.show_all()
 		
@@ -228,8 +230,7 @@ class MainWindow:
 		self._notebook.show_all()
 		self._notebook.set_current_page(0)
 		
-		self._layout_dock.add(self._notebook)
-		self._layout_dock = vbox
+		return vbox
 		
 	def notebook_select_page(self, page):
 		self._notebook.set_current_page(page)
@@ -864,10 +865,12 @@ class MainWindow:
 		if self._state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
-			self._widgetTree.get_widget("add_feed").set_sensitive(True)
-			self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
-			self._widgetTree.get_widget("remove_feed").set_sensitive(True)
-			self._widgetTree.get_widget("rename_feed").set_sensitive(True)
+			if not ptvDB.RUNNING_SUGAR:
+				#these are menu items
+				self._widgetTree.get_widget("add_feed").set_sensitive(True)
+				self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
+				self._widgetTree.get_widget("remove_feed").set_sensitive(True)
+				self._widgetTree.get_widget("rename_feed").set_sensitive(True)
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
 			
@@ -897,10 +900,12 @@ class MainWindow:
 		if new_state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
-			self._widgetTree.get_widget("add_feed").set_sensitive(False)
-			self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
-			self._widgetTree.get_widget("remove_feed").set_sensitive(False)
-			self._widgetTree.get_widget("rename_feed").set_sensitive(False)
+			if not ptvDB.RUNNING_SUGAR: 
+				#these are menu items
+				self._widgetTree.get_widget("add_feed").set_sensitive(False)
+				self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
+				self._widgetTree.get_widget("remove_feed").set_sensitive(False)
+				self._widgetTree.get_widget("rename_feed").set_sensitive(False)
 			
 		self._state = new_state
 
@@ -920,16 +925,17 @@ class MainWindow:
 				continue
 			model.append([builtin,"",False,ptvDB.T_BUILTIN])
 
-		if ptvDB.HAS_LUCENE:
-			model.append(["---","---",True,ptvDB.T_BUILTIN])			
+		if ptvDB.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
+				model.append(["---","---",True,ptvDB.T_BUILTIN])
 				for tag in tags:
 					model.append([tag,"",False,ptvDB.T_SEARCH])
 		
-		model.append(["---","---",True,ptvDB.T_BUILTIN])
+		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
+			model.append(["---","---",True,ptvDB.T_BUILTIN])
 			for tag in tags:
 				model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,ptvDB.T_TAG])
 		
@@ -967,11 +973,13 @@ class MainWindow:
 	def update_download_progress(self):
 		progresses = self._mm.get_download_list(Downloader.DOWNLOADING)
 		queued     = self._mm.get_download_list(Downloader.QUEUED)
+		paused     = self._mm.get_download_list(Downloader.PAUSED)
 		if len(progresses)+len(queued)==0:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)
 			self._download_view.update_downloads()
-			self._update_notebook_tabs(0)
+			total = len(progresses) + len(queued) + len(paused)
+			self._update_notebook_tabs(total)
 			return
 		total_size = 0
 		downloaded = 0
@@ -996,7 +1004,7 @@ class MainWindow:
 		self.update_progress_bar(dict['percent']/100.0,U_DOWNLOAD)
 		
 		self._download_view.update_downloads()
-		self._update_notebook_tabs(len(progresses)+len(queued))
+		self._update_notebook_tabs(len(progresses)+len(queued)+len(paused))
 		
 	def download_finished(self, d):
 		self._download_view.update_downloads()

@@ -2027,7 +2027,7 @@ j@v2v.cc
 		  <property name="stock_id">gtk-preferences</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
-		  <property name="is_important">False</property>
+		  <property name="is_important">True</property>
 		  <signal name="clicked" handler="on_preferences_activate" last_modification_time="Tue, 26 Sep 2006 23:03:04 GMT"/>
 		</widget>
 		<packing>
@@ -7134,10 +7134,10 @@ No Feeds (Calm Mode)</property>
 	      <property name="tooltip" translatable="yes">Resume Selected Downloads</property>
 	      <property name="label" translatable="yes">Resume</property>
 	      <property name="use_underline">True</property>
-	      <property name="stock_id">gtk-media-play</property>
+	      <property name="stock_id">gtk-go-down</property>
 	      <property name="visible_horizontal">True</property>
 	      <property name="visible_vertical">True</property>
-	      <property name="is_important">False</property>
+	      <property name="is_important">True</property>
 	      <signal name="clicked" handler="on_resume_toolbutton_clicked" last_modification_time="Fri, 29 Sep 2006 21:33:06 GMT"/>
 	    </widget>
 	    <packing>

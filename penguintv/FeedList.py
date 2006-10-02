@@ -44,7 +44,7 @@ MIN_SIZE   = 24
 if ptvDB.RUNNING_SUGAR:
 	MAX_WIDTH  = 32
 	MAX_HEIGHT = 32
-	MIN_SIZE   = 0
+	MIN_SIZE   = 1
 
 class FeedList:
 	def __init__(self, widget_tree, app, db, fancy=False):
@@ -190,7 +190,7 @@ class FeedList:
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
-			if entry_count==0: #this is a good indication that the cache is bad
+			if entry_count==0 or entry_count is None: #this is a good indication that the cache is bad
 				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
 				flag        = feed_info['important_flag']
@@ -217,12 +217,7 @@ class FeedList:
 					m_pixbuf = blank_pixbuf
 					m_details_loaded = False
 				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, False) 
-				try:
-					m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
-				except:
-					print "not int?",
-					print unviewed,entry_count,flag
-					m_readinfo = ""
+				m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
 			else:
 				m_title = self._get_markedup_title(title,flag) 
 				m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
@@ -259,6 +254,7 @@ class FeedList:
 		
 		if not self._cancel_load[0]:
 			self.do_filter()
+			gobject.idle_add(self._load_visible_details().next)
 			if selected:
 				self.set_selected(selected)
 			if callback is not None:
@@ -648,7 +644,8 @@ class FeedList:
 		feed = newlist[index]
 		p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		p.fill(0xffffff00)
-		self._feedlist.insert(index,[feed[1], feed[1], feed[0], 'gnome-stock-blank', "", p, 1, 1, 0, True, False, ""])
+		#insert, not append
+		self._feedlist.insert(index,[feed[1], feed[1], feed[0], 'gnome-stock-blank', "", p, False, 1, 1, 0, True, False, ""])
 		self.update_feed_list(feed_id)
 		
 	def remove_feed(self, feed_id):
@@ -823,6 +820,9 @@ class FeedList:
 			return None
 			
 	def set_selected(self, feed_id):
+		if feed_id is None:
+			self._widget.get_selection().unselect_all()
+			return
 		visible = [f[FEEDID] for f in self._feedlist if f[VISIBLE]]
 		index=None
 		try:
@@ -856,5 +856,4 @@ class FeedList:
 		
 	def interrupt(self):
 		self._cancel_load = [True,True]
-		print "set cancel"
 		

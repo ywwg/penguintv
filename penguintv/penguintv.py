@@ -16,6 +16,7 @@
 import urlparse
 import threading
 import sys, os, os.path
+import gc
 import traceback
 import urllib
 import time
@@ -851,8 +852,6 @@ class PenguinTVApp:
 					self.main_window.filter_combo_widget.set_active(self._saved_filter)
 			else:
 				self.main_window.filter_combo_widget.set_active(self._saved_filter)
-		#if self._state == ACTIVE_DOWNLOADS:
-		#	pass #future
 			
 	def set_state(self, new_state, data=None):
 		if self._state == new_state:
@@ -867,8 +866,6 @@ class PenguinTVApp:
 			pass
 		elif new_state == TAG_SEARCH:
 			pass
-		#elif new_state == ACTIVE_DOWNLOADS:
-		#	pass
 		elif new_state == LOADING_FEEDS:
 			pass
 		
@@ -991,8 +988,6 @@ class PenguinTVApp:
 			if self._threaded_searcher:
 				if not self._waiting_for_search:
 					self.main_window.search_entry.set_text(self._saved_search)
-		#elif filter_id == FeedList.ACTIVE:
-		#	self.set_state(ACTIVE_DOWNLOADS)
 		else:
 			if tag_type == ptvDB.T_SEARCH:
 				self.set_state(TAG_SEARCH)
@@ -1018,11 +1013,13 @@ class PenguinTVApp:
 		if self.main_window.layout != layout:
 			#self.layout_changing_dialog.show_all()
 			selected = self.feed_list_view.get_selected()
+			old_filter = self.main_window.filter_combo_widget.get_active()
 			self.feed_list_view.interrupt()
 			self.feed_list_view.set_selected(None)
 			self._entry_view.finish()
 			while gtk.events_pending(): #make sure everything gets shown
 				gtk.main_iteration()
+			gc.collect()
 			self.main_window.activate_layout(layout)
 			self.feed_list_view = self.main_window.feed_list_view
 			self._entry_list_view = self.main_window.entry_list_view
@@ -1032,7 +1029,12 @@ class PenguinTVApp:
 			while gtk.events_pending(): #wait for pop to be done, _then_ select
 				gtk.main_iteration()
 			self.update_disk_usage()
-			self.feed_list_view.set_selected(selected)
+			new_selected = self.feed_list_view.get_selected()
+			new_filter = self.main_window.filter_combo_widget.get_active()
+			#don't set selected if they've done anything since the switch
+			if new_selected is None and selected is not None and old_filter == new_filter:
+				print "nothing is selected so away we go"
+				self.feed_list_view.set_selected(selected)
 			#self.layout_changing_dialog.hide()
 
 	def on_window_changing_layout_delete_event(self, widget, event):
