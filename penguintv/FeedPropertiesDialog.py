@@ -79,7 +79,8 @@ class FeedPropertiesDialog:
 	def on_save_values_activate(self, event):
 		new_title = self._title_widget.get_text()
 		if new_title != self._old_title:
-			self._app.db.set_feed_name(self._feed_id,new_title)
+			#self._app.db.set_feed_name(self._feed_id,new_title)
+			self._app.rename_feed(self._feed_id, new_title)
 			self._old_title = new_title
 		new_rss = self._rss_widget.get_text()
 		if new_rss != self._old_rss:

@@ -1366,7 +1366,6 @@ class PenguinTVApp:
 		self._gui_updater.queue_task(self.done_populating, False)
 		
 	def done_populating(self, sensitize=True):
-		"""this is only called on startup I think"""
 		self._unset_state(True) #force exit of done_loading state
 		self.set_state(DEFAULT) #redundant
 		if sensitize:

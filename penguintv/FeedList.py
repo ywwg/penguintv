@@ -113,17 +113,19 @@ class FeedList:
 		#self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._widget.append_column(self._articles_column)
 		
-		if self._fancy:
-			image_column = gtk.TreeViewColumn(_('Image'))
-			image_column.pack_start(feed_image_renderer, False)
-			image_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
-			self._widget.append_column(image_column)
+		#if self._fancy:
+		image_column = gtk.TreeViewColumn(_('Image'))
+		image_column.pack_start(feed_image_renderer, False)
+		image_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
+		self._widget.append_column(image_column)
 		
 		self._widget.columns_autosize()
 		
-		#signals
+		#signals are MANUAL ONLY
 		self._widget.get_selection().connect("changed", self._item_selection_changed)
 		self._widget.connect("row-activated", self.on_row_activated)
+		#applies to mousewheel ONLY
+		#self._scrolled_window.connect("scroll-event", self.on_feedlistview_scroll_event)
 		
 		#init style
 		if self._fancy:
@@ -139,8 +141,12 @@ class FeedList:
 			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title in db_feedlist:
+				if self._fancy:
+					title_m = title+"\n"
+				else:
+					title_m = title
 				self._feedlist.append([title, 
-									   title, 
+									   title_m, 
 									   feed_id, 
 									   'gtk-stock-blank', 
 									   "", 
@@ -210,12 +216,12 @@ class FeedList:
 				if visible:
 					try: m_first_entry_title = self._db.get_entrylist(feed_id)[0][1]
 					except: m_first_entry_title = ""
-					m_pixbuf = self._get_pixbuf(feed_id)
 					m_details_loaded = True
 				else:
 					m_first_entry_title = ""
 					m_pixbuf = blank_pixbuf
 					m_details_loaded = False
+				m_pixbuf = self._get_pixbuf(feed_id)
 				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, False) 
 				m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
 			else:
@@ -254,7 +260,8 @@ class FeedList:
 		
 		if not self._cancel_load[0]:
 			self.do_filter()
-			gobject.idle_add(self._load_visible_details().next)
+			if self._fancy:
+				gobject.idle_add(self._load_visible_details().next)
 			if selected:
 				self.set_selected(selected)
 			if callback is not None:
@@ -428,6 +435,8 @@ class FeedList:
 		#we now have a list of old indexes in the new order		
 		self._feedlist.reorder(i_list)
 		self._feed_filter.refilter()
+		if self._fancy:
+			gobject.idle_add(self._load_visible_details().next)
 		self._va.set_value(0)
 		showing_feed = self.get_selected()
 		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
@@ -541,7 +550,7 @@ class FeedList:
 			if row[VISIBLE] and not row[DETAILS_LOADED]:
 				try: row[FIRSTENTRYTITLE] = self._db.get_entrylist(row[FEEDID])[0][1]
 				except: row[FIRSTENTRYTITLE] = ""
-				row[PIXBUF] = self._get_pixbuf(row[FEEDID])
+				#row[PIXBUF] = self._get_pixbuf(row[FEEDID])
 				row[DETAILS_LOADED] = True
 				row[MARKUPTITLE] = self._get_fancy_markedup_title(row[TITLE],
 																  row[FIRSTENTRYTITLE],
@@ -588,7 +597,7 @@ class FeedList:
 			dialog.hide()
 			del dialog
 		self._app.activate_link(link)
-	
+		
 	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
 			
@@ -614,6 +623,7 @@ class FeedList:
 			self.interrupt()
 			while gtk.events_pending():
 				gtk.main_iteration()
+		self._app.set_state(penguintv.LOADING_FEEDS)
 		self._fancy = fancy
 		if self._fancy:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)

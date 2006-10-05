@@ -37,6 +37,7 @@ class EntryView:
 		self._renderer = renderer
 		self._moz_realized = False
 		self._state = S_DEFAULT
+		self._auth_info = (-1, "","") #user:pass, url
 		html_dock = widget_tree.get_widget('html_dock')
 		
 		scrolled_window = gtk.ScrolledWindow()
@@ -315,6 +316,14 @@ class EntryView:
 				self._currently_blank = True
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
+				
+				
+		if item['feed_id'] != self._auth_info[0]:
+			feed_info = self._db.get_feed_info(item['feed_id'])
+			if feed_info['auth_feed']:
+				self._auth_info = (item['feed_id'],feed_info['auth_userpass'], feed_info['auth_domain'])
+			else:
+				self._auth_info = (-1, "","")
 		
 		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			if item is not None:
@@ -364,6 +373,11 @@ class EntryView:
 			except:
 				pass
 			
+		if self._auth_info[0] != -1:	
+			p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
+			p.feed(html)
+			html = p.new_data
+				
 		#print html
 			
 		if self._renderer == GTKHTML:
@@ -477,7 +491,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 	else:
 		if item.has_key('title'):
 			if indicate_new and not item['read']:
-				ret.append('<div class="stitle"><a href="#%s">&#10036;</a>%s</div>' % (item['entry_id'],item['title']))
+				ret.append('<div class="stitle"><a href="#%s"></a>&#10036;%s</div>' % (item['entry_id'],item['title']))
 			else:
 				ret.append('<div class="stitle"><a href="#%s"></a>%s</div>' % (item['entry_id'],item['title']))
 			
@@ -485,7 +499,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 		if item['creator']!="" and item['creator'] is not None:
 			ret.append('By %s<br/>' % (item['creator'],))			
 	if item['date'] != (0,0,0,0,0,0,0,0,0):
-		ret.append('<div class="sdate">%s</div><br/>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
+		ret.append('<div class="sdate">%s</div>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
 		#ret.append('</div>')
 	if item.has_key('media'):
 		
@@ -496,7 +510,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 			ret += '<span id="' + str(item['entry_id']) + '"></span>'
 	ret.append('<div class="content">')
 	if item.has_key('description'):
-		ret.append('<br/>%s ' % item['description'])
+		ret.append('%s' % item['description'])
 	ret.append('</div>')
 	if item.has_key('link'):
 		ret.append('<br/><a href="'+item['link']+'">'+_("Full Entry...")+'</a><br />' )
@@ -631,3 +645,39 @@ class HTMLHighlightParser(HTMLParser.HTMLParser):
 					data_u = data_u[:place] + self.style_start + data_u[place:place+l] + self.style_end + data_u[place+l:]
 					place+=len(self.style_start)+len(term)+len(self.style_end)
 		self.new_data+=data
+		
+class HTMLImgAuthParser(HTMLParser.HTMLParser):
+	def __init__(self, domain, userpass):
+		HTMLParser.HTMLParser.__init__(self)
+		self._domain = domain
+		self._userpass = userpass
+		self.new_data = ""
+		
+	def handle_starttag(self, tag, attrs):
+		new_attrs = []
+		for a in attrs:
+			attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+			new_attrs.append(attr)
+		attrs = new_attrs
+		if len(attrs)>0:
+			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+">"
+		else:
+			self.new_data+="<"+str(tag)+">"
+		
+	def handle_endtag(self, tag):
+		self.new_data+="</"+str(tag)+">"
+		
+	def handle_startendtag(self, tag, attrs):
+		new_attrs = []
+		for a in attrs:
+			attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+			new_attrs.append(attr)
+		attrs = new_attrs
+		if len(attrs)>0:
+			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+">"
+		else:
+			self.new_data+="<"+str(tag)+">"
+		
+	def handle_data(self, data):
+		self.new_data+=data
+

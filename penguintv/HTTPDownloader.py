@@ -59,13 +59,21 @@ class HTTPDownloader(Downloader):
 			response = curl.getinfo(pycurl.RESPONSE_CODE)
 			curl.close()
 			fp.close()
-				
-			if response != 200 and response != 206:
-				if response == 404:
-					self.media['errormsg']=_("404: File Not Found")
-				else:
-					d = {"response":response}
-					self.media['errormsg']=_("Some HTTP error: %(response)s") % d
+			if self.media['url'][:5] == "http:":
+				if response != 200 and response != 206:
+					if response == 404:
+						self.media['errormsg']=_("404: File Not Found")
+					else:
+						d = {"response":response}
+						self.media['errormsg']=_("Some HTTP error: %(response)s") % d
+					self.status = FAILURE
+					self.message = self.media['errormsg']
+					self._finished_callback()
+					return
+			elif self.media['url'][:5] == "file:":
+				pass #it's ok, curl would throw an exception on error
+			else: 
+				self.media['errormsg']=_("Unknown protocol")
 				self.status = FAILURE
 				self.message = self.media['errormsg']
 				self._finished_callback()

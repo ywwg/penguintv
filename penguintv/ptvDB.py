@@ -9,7 +9,7 @@ import OPML
 import time
 import string
 import sha
-import urllib, urllib2
+import urllib, urllib2, urlparse
 from types import *
 import threading
 import ThreadPool
@@ -175,8 +175,12 @@ class ptvDB:
 		
 	def _db_execute(self, c, command, args=()):
 		#if "MEDIA" in command.upper() and "SELECT" not in command.upper(): 
-		print command, args
-		return c.execute(command, args)
+		#print command, args
+		try:
+			return c.execute(command, args)
+		except:
+			print command, args
+			return None
 				
 	def __del__(self):
 		self.finish()
@@ -949,6 +953,7 @@ class ptvDB:
 			try:
 				href = data['channel']['image']['href']
 				if href != old_img and href != "":
+					filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.'+href.split('.')[-1])
 					print "removing old icon",result[0]
 					os.remove(result[0])
 					urllib.urlretrieve(href, filename)
@@ -1201,7 +1206,7 @@ class ptvDB:
 					
 					if len(removed)>0:
 						qmarks = "?,"*(len(removed)-1)+"?"
-						self._db_execute(c, u'DELETE FROM media WHERE url IN (('+qmarks+')', tuple(removed))
+						self._db_execute(c, u'DELETE FROM media WHERE url IN ('+qmarks+')', tuple(removed))
 					
 					#need to  delete media that isn't in enclosures only andis not downloaded 
 					#need to add media that's in enclosures but not in db after that process
@@ -1216,7 +1221,7 @@ class ptvDB:
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
 								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, download_date) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
-								self._db_execute(c, u'UPDATE entries SET read=0 WHERE id=?', (status[1]))
+								self._db_execute(c, u'UPDATE entries SET read=0 WHERE id=?', (status[1],))
 					#db.commit()
 				self._reindex_entry_list.append(status[1])
 							
@@ -1536,6 +1541,15 @@ class ptvDB:
 				 'feed_pointer':result[4],
 				 'lastpoll':result[5],
 				 'pollfreq':result[6]}
+			parts=urlparse.urlsplit(result[2])
+			usernameandpassword, domain=urllib.splituser(parts[1])
+			#username, password=urllib.splitpasswd(usernameandpassword)
+			if usernameandpassword is None:
+				d['auth_feed'] = False
+			else:
+				d['auth_feed'] = True
+				d['auth_userpass'] = usernameandpassword
+				d['auth_domain'] = domain
 			return d
 		except TypeError:
 			raise NoFeed, feed_id	

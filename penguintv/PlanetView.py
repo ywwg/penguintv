@@ -49,6 +49,7 @@ class PlanetView:
 		self._moz_realized = False
 		self._feed_title=""
 		self._state = S_DEFAULT
+		self._auth_info = (-1, "","") #user:pass, url
 		
 		self._entrylist = []
 		self._entry_store = {}
@@ -136,6 +137,11 @@ class PlanetView:
 			self._first_entry = 0
 			self._entry_store={}
 			self._feed_title = self._db.get_feed_title(feed_id)
+			feed_info = self._db.get_feed_info(feed_id)
+			if feed_info['auth_feed']:
+				self._auth_info = (feed_id,feed_info['auth_userpass'], feed_info['auth_domain'])
+			else:
+				self._auth_info = (feed_id, "","")
 		
 		self._entrylist = [e[0] for e in db_entrylist]
 		self._render_entries()
@@ -245,7 +251,15 @@ class PlanetView:
 					entry_html = p.new_data
 				except:
 					pass	
-				
+					
+			if self._auth_info[0] != -1:
+				print entry_html
+				print "="*80
+				p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
+				p.feed(entry_html)
+				entry_html = p.new_data
+				print entry_html
+			
 			entries += entry_html
 			
 		self._app.mark_entrylist_as_viewed(unreads, False)
