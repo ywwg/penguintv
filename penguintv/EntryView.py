@@ -374,9 +374,12 @@ class EntryView:
 				pass
 			
 		if self._auth_info[0] != -1:	
-			p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
-			p.feed(html)
-			html = p.new_data
+			try:
+				p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
+				p.feed(html)
+				html = p.new_data
+			except:
+				pass
 				
 		#print html
 			

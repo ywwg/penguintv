@@ -131,7 +131,6 @@ class PlanetView:
 			return
 
 		db_entrylist = self._db.get_entrylist(feed_id)
-		
 		if feed_id != self._current_feed_id:
 			self._current_feed_id = feed_id
 			self._first_entry = 0
@@ -141,7 +140,7 @@ class PlanetView:
 			if feed_info['auth_feed']:
 				self._auth_info = (feed_id,feed_info['auth_userpass'], feed_info['auth_domain'])
 			else:
-				self._auth_info = (feed_id, "","")
+				self._auth_info = (-1, "","")
 		
 		self._entrylist = [e[0] for e in db_entrylist]
 		self._render_entries()
@@ -253,12 +252,9 @@ class PlanetView:
 					pass	
 					
 			if self._auth_info[0] != -1:
-				print entry_html
-				print "="*80
 				p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
 				p.feed(entry_html)
 				entry_html = p.new_data
-				print entry_html
 			
 			entries += entry_html
 			
