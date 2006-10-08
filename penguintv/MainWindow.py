@@ -92,6 +92,10 @@ class MainWindow:
 		#sys.stderr.write("show,"+str(dock_widget))
 		self._app.log("Show, please...")
 		
+		if not EntryView.MOZ_OK and self.layout == "planet":
+			print "requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)"
+			self.layout = "standard"
+		
 		if dock_widget is None:  #if we are loading in a regular window...
 			self._load_app_window()
 			if not ptvDB.HAS_LUCENE:
@@ -100,6 +104,8 @@ class MainWindow:
 				self._widgetTree.get_widget('saved_searches').hide()
 				self._widgetTree.get_widget('separator11').hide()
 				self._widgetTree.get_widget('reindex_searches').hide()
+			if not EntryView.MOZ_OK:
+				self._widgetTree.get_widget('planet_layout').hide()
 		else:  #if we are in OLPC mode and just have to supply a widget...
 			self._status_view = None
 			self._disk_usage_widget = None
@@ -168,7 +174,6 @@ class MainWindow:
 		
 		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
 		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True))
-		self._app.log(self.layout+"_layout")
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
 		
 		try:
@@ -237,6 +242,7 @@ class MainWindow:
 		
 	def load_layout(self):
 		#self._app.log("load_layout")
+				
 		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
@@ -248,8 +254,6 @@ class MainWindow:
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
 		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "MOZILLA") #stupid misspelling (renderrer != renderer)
 		
-		self._app.log(renderer_str)
-		
 		if renderer_str == "GTKHTML":
 			renderer = EntryView.GTKHTML
 		elif renderer_str == "DEMOCRACY_MOZ":
@@ -259,8 +263,9 @@ class MainWindow:
 		else:
 			renderer = EntryView.GTKHTML
 			
-		self._app.log(str(renderer))
-		
+		if not EntryView.MOZ_OK:
+			renderer = EntryView.GTKHTML
+					
 		def load_renderer(x,recur=0):
 			"""little function I define so I can recur"""
 			if recur==2:
@@ -715,6 +720,7 @@ class MainWindow:
 		
 	def on_reindex_searches_activate(self, event):
 		self.search_container.set_sensitive(False)
+		self._app.set_state(penguintv.DEFAULT)
 		self.search_entry.set_text(_("Please wait..."))
 		self._app.db.doindex(self._app._done_populating)
 		
@@ -974,6 +980,7 @@ class MainWindow:
 		progresses = self._mm.get_download_list(Downloader.DOWNLOADING)
 		queued     = self._mm.get_download_list(Downloader.QUEUED)
 		paused     = self._mm.get_download_list(Downloader.PAUSED)
+		#print len(progresses)
 		if len(progresses)+len(queued)==0:
 			self.display_status_message("")
 			self.update_progress_bar(-1,U_DOWNLOAD)

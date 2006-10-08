@@ -7,7 +7,6 @@
 from EntryView import *
 import ptvDB
 import utils
-import gtkmozembed
 
 import socket
 import SocketServer

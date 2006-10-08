@@ -17,8 +17,9 @@ try:
 	#not good enough to load it below.  need to load it module-wide
 	#or else random images don't load.  gtkmozembed is VERY picky!
 	import gtkmozembed
+	MOZ_OK = True
 except:
-	pass
+	MOZ_OK = False
 
 GTKHTML=0
 MOZILLA=1

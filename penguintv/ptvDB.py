@@ -178,9 +178,10 @@ class ptvDB:
 		#print command, args
 		try:
 			return c.execute(command, args)
-		except:
+		except Exception, e:
+			print "barf:",
 			print command, args
-			return None
+			raise e
 				
 	def __del__(self):
 		self.finish()
@@ -188,10 +189,12 @@ class ptvDB:
 	def finish(self):
 		self._exiting=True
 		if HAS_LUCENE:
-			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list):
-				self.searcher.finish(True) #tell lucene we didn't reindex everything
-			else:
-				self.searcher.finish(False)
+			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
+				print "have leftover things to reindex"
+				self.reindex() #it's usually not much...
+				#self.searcher.finish(True) #tell lucene we didn't reindex everything
+			#else:
+			self.searcher.finish(False)
 		#self._c.close() finish gets called out of thread so this is bad
 		#self._db.close()
 
@@ -199,6 +202,7 @@ class ptvDB:
 		try:
 			self._db_execute(self._c, u'SELECT * FROM feeds')
 		except:
+			print "create a database"
 			self._init_database()
 			return True	
 			
@@ -212,7 +216,7 @@ class ptvDB:
 				self._migrate_database_one_two()
 				self._migrate_database_two_three()
 				self._migrate_database_three_four()
-				self.clean_database_media()
+				#self.clean_database_media()
 			elif db_ver < 2:
 				self._migrate_database_one_two()
 				self._migrate_database_two_three()
@@ -702,7 +706,6 @@ class ptvDB:
 			time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
-		#print "reindexing"
 		self.reindex()
 		self._cancel_poll_multiple = False
 		gc.collect()
@@ -830,6 +833,7 @@ class ptvDB:
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 				error_msg += s
 			print error_msg
+			self.reindex()
 			callback(feed, False)
 
 	def _polling_callback(self, data):
@@ -939,9 +943,14 @@ class ptvDB:
 				try:
 					os.stat(filename)
 				except:
-					urllib.urlretrieve(href, filename)
-					self._db_execute(c, u"""UPDATE feeds SET image=? WHERE id=?""",(href,feed_id))
-					db.commit()
+					try:
+						urllib.urlretrieve(href, filename)
+						self._db_execute(c, u"""UPDATE feeds SET image=? WHERE id=?""",(href,feed_id))
+						db.commit()
+					except:
+						f = open(os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.none'),'w')
+						f.write("")
+						f.close()
 			else:
 				f = open(os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.none'),'w')
 				f.write("")
@@ -2169,7 +2178,7 @@ class ptvDB:
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list
 		try:
-			#print "reindexing"
+			#print "reindexing",len(self._reindex_feed_list),len(self._reindex_entry_list)
 			self.searcher.Re_Index_Threaded(feed_list, entry_list)
 		except:
 			print "reindex failure.  wait til next time I guess"

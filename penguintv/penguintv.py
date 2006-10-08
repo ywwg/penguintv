@@ -852,6 +852,8 @@ class PenguinTVApp:
 					self.main_window.filter_combo_widget.set_active(self._saved_filter)
 			else:
 				self.main_window.filter_combo_widget.set_active(self._saved_filter)
+		if self._state == TAG_SEARCH:
+			self.main_window.filter_combo_widget.set_active(FeedList.ALL)
 			
 	def set_state(self, new_state, data=None):
 		if self._state == new_state:
