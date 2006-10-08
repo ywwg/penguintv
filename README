@@ -18,6 +18,8 @@ python setup.py install
 
 as root.  Please email me if you have trouble installing the program.
 
+the autotools files (autogen.sh, configure.ac, etc) are for OLPC ONLY.  They are not needed for regular penguintv installations
+
 == Running PenguinTV ==
 
 Simply type PenguinTV from the command line.  At this point, PenguinTV does not have a proper .desktop file so it does not show up in GNOME or KDE menus.
