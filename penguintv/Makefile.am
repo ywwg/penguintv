@@ -38,5 +38,6 @@ activity_PYTHON =               \
 	ThreadPool.py \
 	timeoutsocket.py \
 	UpdateTasksManager.py \
-	utils.py 
+	utils.py \
+	FilterSelectionWidget.py
 

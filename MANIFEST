@@ -69,6 +69,7 @@ penguintv/FeedFilterPropertiesDialog.py
 penguintv/ptv_sync.py
 penguintv/PTVAppSocket.py
 penguintv/Downloadview.py
+penguintv/FilterSelectionWidget.py
 feedparser/setup.py
 feedparser/feedparser.py
 feedparser/LICENSE
