@@ -464,10 +464,10 @@ class FeedList:
 			if showing_feed is not None:
 				self._app.display_feed(showing_feed)
 				if not self.filter_test_feed(showing_feed):
-					self._app.main_window.filter_combo_widget.set_active(ALL)
+					self._app.main_window.set_active_filter(ALL)
 				self.set_selected(showing_feed)
 			elif gonna_filter == False:
-				self._app.main_window.filter_combo_widget.set_active(ALL)
+				self._app.main_window.set_active_filter(ALL)
 				self._app.display_entry(None)
 
 	
@@ -844,7 +844,7 @@ class FeedList:
 			pass
 		if index is None:
 			if self.filter_setting != ALL:
-				self._app.main_window.filter_combo_widget.set_active(ALL) #hmm..
+				self._app.main_window.set_active_filter(ALL) #hmm..
 				self.set_selected(feed_id)
 				return
 			else:

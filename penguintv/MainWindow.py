@@ -13,18 +13,6 @@ import UpdateTasksManager
 import utils
 import Downloader
 
-import EditTextTagsDialog
-import EditTagsMultiDialog
-import RenameFeedDialog
-import AddSearchTagDialog
-import EditSearchesDialog
-import FeedFilterDialog
-import FeedPropertiesDialog
-import FeedFilterPropertiesDialog
-import SynchronizeDialog
-import FilterSelectorWidget
-import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
-
 #status of the main window progress bar
 U_NOBODY=0
 U_DOWNLOAD=1
@@ -37,6 +25,26 @@ S_DEFAULT       = 0
 S_MANUAL_SEARCH = 1
 S_TAG_SEARCH    = 2
 S_LOADING_FEEDS = 3
+
+#filter model
+F_TEXT         = 0
+F_COUNT        = 1
+F_SEPARATOR    = 2 
+F_FAVORITE     = 3
+F_NOT_FAVORITE = 4
+F_TYPE         = 5						  
+
+import EditTextTagsDialog
+import EditTagsMultiDialog
+import RenameFeedDialog
+import AddSearchTagDialog
+import EditSearchesDialog
+import FeedFilterDialog
+import FeedPropertiesDialog
+import FeedFilterPropertiesDialog
+import SynchronizeDialog
+import FilterSelectorWidget
+import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
 class MainWindow:
 	COLUMN_TITLE = 0
@@ -57,6 +65,9 @@ class MainWindow:
 		self._status_owner = U_NOBODY
 		self._state = S_DEFAULT
 		
+		self._active_filter_name = FeedList.BUILTIN_TAGS[FeedList.ALL]
+		self._active_filter_index = FeedList.ALL
+		
 		##other WINDOWS we open
 		self._window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self._app) #MAGIC
 		self._window_rename_feed.hide()
@@ -67,7 +78,6 @@ class MainWindow:
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
 		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
-		self._filter_selector_widget = FilterSelectorWidget.FilterSelectorWidget(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'filter_selector_widget', 'penguintv'), self)
 		
 		try:
 			self._about_box.set_version(utils.VERSION)
@@ -127,7 +137,6 @@ class MainWindow:
 			if not ptvDB.HAS_LUCENE:
 				#remove UI elements that don't apply without search
 				self.search_container.hide_all()
-		self.filter_combo_widget.hide()
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:
@@ -310,30 +319,39 @@ class MainWindow:
 		else:
 			self.entry_pane = self.feed_pane #cheat
 		
-		self.filter_combo_widget = components.get_widget('filter_combo')
-		filter_combo_model = gtk.ListStore(str,str,bool,int) #text to display, name of filter, separator-or-not, type
-		self.filter_combo_widget.set_model(filter_combo_model)		
-		self.filter_combo_widget.set_row_separator_func(lambda model,iter: model[model.get_path(iter)[0]][2])
+		self._filter_model = gtk.ListStore(str, #text to display
+										   str, #name of filter
+										   bool, #separator-or-not
+										   bool, #favorite
+										   bool, #non-favorite
+										   int) #type
 		
-		self.filter_combo_widget.clear()
-		renderer = gtk.CellRendererText()
-		self.filter_combo_widget.pack_start(renderer, False)
-		self.filter_combo_widget.set_attributes(renderer, text=0)
-		
-		renderer = gtk.CellRendererText()
-		self.filter_combo_widget.pack_start(renderer, False)
-		self.filter_combo_widget.set_attributes(renderer, text=1)
-		#self.filter_combo_widget.set_property('appears-as-list', True) #doesn't work?
+		self._filter_selector_widget = FilterSelectorWidget.FilterSelectorWidget(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'filter_selector_widget', 'penguintv'), self, self._filter_model)
 		
 		self.filter_unread_checkbox = components.get_widget('unread_filter')
-		
 		self._filter_selector_button = components.get_widget('filter_selector_button')
-		
-		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self._db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
+		self._filter_model.append([FeedList.BUILTIN_TAGS[0],
+									     "("+str(len(self._db.get_feedlist()))+")",
+									     False,
+									     False, 
+									     False,
+									     ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
-			filter_combo_model.append([builtin,"",False,ptvDB.T_BUILTIN])
-		filter_combo_model.append(["---","---",True,ptvDB.T_BUILTIN])
+			self._filter_model.append([builtin,
+									 		 "",
+											 False,
+											 False,
+											 False,
+											 ptvDB.T_BUILTIN,])
+		self._filter_model.append(["---",
+									     "---",
+ 								  	     True,
+									     False,
+									     True,
+									     ptvDB.T_BUILTIN])
 		self.update_filters()
+		
+		self.set_active_filter(FeedList.ALL)
 		
 		self.search_entry = components.get_widget('search_entry')
 		self.search_container = components.get_widget('search_container')
@@ -366,17 +384,17 @@ class MainWindow:
 		val = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/default_filter')
 		if val is not None:
 			try:
-				filter_index = [row[0] for row in filter_combo_model].index(val)
-				cur_filter = filter_combo_model[filter_index]
-				if cur_filter[3] != ptvDB.T_SEARCH and filter_index!=FeedList.SEARCH:
+				filter_index = [row[F_TEXT] for row in self._filter_model].index(val)
+				cur_filter = self._filter_model[filter_index]
+				if cur_filter[F_TYPE] != ptvDB.T_SEARCH and filter_index!=FeedList.SEARCH:
 					#self.feed_list_view.set_filter(filter_index,val)
-					self.filter_combo_widget.set_active(filter_index)
+					self.set_active_filter(filter_index)
 				else:
-					self.filter_combo_widget.set_active(FeedList.ALL)
+					self.set_active_filter(FeedList.ALL)
 			except ValueError: #didn't find the item in the model (.index(val) fails)
-				self.filter_combo_widget.set_active(FeedList.ALL)
+				self.set_active_filter(FeedList.ALL)
 		else:
-			self.filter_combo_widget.set_active(FeedList.ALL)
+			self.set_active_filter(FeedList.ALL)
 		#sys.stderr.write("done")
 		return self._layout_container
 			
@@ -397,7 +415,6 @@ class MainWindow:
 		del self.app_window
 		del self._status_view
 		del self._disk_usage_widget
-		del self.filter_combo_widget
 
 	def on_about_activate(self,event):
 		try:
@@ -550,10 +567,10 @@ class MainWindow:
 			menu = gtk.Menu()   
 			
 			path = widget.get_path_at_pos(int(event.x),int(event.y))
-			model = widget.get_model()
+			#model = widget.get_model()
 			if path is None: #nothing selected
 				return
-			selected = model[path[0]][FeedList.FEEDID]
+			selected = self._filter_model[path[0]][FeedList.FEEDID]
 			is_filter = self._db.is_feed_filter(selected)  
 			
 			if is_filter and not ptvDB.HAS_LUCENE:
@@ -631,31 +648,20 @@ class MainWindow:
 		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 		
-	def on_filter_combo_changed(self, widget):
-		try: #this gets called when we are initially populating the combo list
-			self.search_entry.get_text()
-		except:
+	def on_filter_changed(self, widget):
+		current_filter = self._filter_model[self.get_active_filter()[1]]
+		if current_filter[F_TYPE] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
+			self.set_active_filter(FeedList.ALL)
 			return
-		#print "changed"
-		#print traceback.print_stack()
-		model = self.filter_combo_widget.get_model()
-		current_filter = model[self.filter_combo_widget.get_active()]
-		if current_filter[3] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
-			self.filter_combo_widget.set_active(FeedList.ALL)
-			return
-		self._app.change_filter(current_filter[0],current_filter[3])
-		self._filter_selector_button.set_label(current_filter[0]+' '+current_filter[1])
+		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
+		self._filter_selector_button.set_label(current_filter[F_TEXT]+' '+current_filter[F_COUNT])
 		
 	def on_filter_selector_button_clicked(self, button):
 		if self._filter_selector_widget.is_visible():
 			self._filter_selector_widget.Hide()
 			return
 		
-		model = self.filter_combo_widget.get_model()
-		filter_list = [(r[0]+' '+r[1],r[3]) for r in model]
-		self._filter_selector_widget.populate_lists(filter_list)
-		
-		rootwin = self.filter_combo_widget.get_screen().get_root_window()
+		rootwin = self._filter_selector_button.get_screen().get_root_window() #convenient widget
 		x, y, mods = rootwin.get_pointer()
 		
 		self._filter_selector_widget.ShowAt(x+10,y+10)
@@ -774,7 +780,7 @@ class MainWindow:
 		self._window_add_search.set_query(query)		
 		
 	def on_search_clear_clicked(self, event):
-		self.filter_combo_widget.set_active(FeedList.ALL)
+		self.set_active_filter(FeedList.ALL)
 		
 	def on_saved_searches_activate(self, event):
 		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'penguintv.glade'),self._app)
@@ -917,8 +923,8 @@ class MainWindow:
 		self._unset_state()
 			 
 		if new_state == S_MANUAL_SEARCH:
-			if self.filter_combo_widget.get_active() != FeedList.SEARCH:	
-				self.filter_combo_widget.set_active(FeedList.SEARCH)
+			if self.get_active_filter()[1] != FeedList.SEARCH:	
+				self.set_active_filter(FeedList.SEARCH)
 			self.filter_unread_checkbox.set_sensitive(False)
 		if new_state == S_TAG_SEARCH:
 			self.search_entry.set_text("")
@@ -927,11 +933,6 @@ class MainWindow:
 		if new_state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
-			
-			#model = self.filter_combo_widget.get_model()
-			#for row in model:
-			#	if row[3] == ptvDB.T_SEARCH:
-			#		
 			
 			if not ptvDB.RUNNING_SUGAR: 
 				#these are menu items
@@ -945,65 +946,71 @@ class MainWindow:
 	def update_filters(self):
 		"""update the filter combo box with the current list of filters"""
 		#get name of current filter, if a tag
-		model = self.filter_combo_widget.get_model()
-		current_filter = model[self.filter_combo_widget.get_active()][0]
+		current_filter = self._filter_model[self.get_active_filter()[1]][F_TEXT]
 		#if current_filter not in BUILTIN_TAGS:	
 		#	if current_filter not in self._db.get_all_tags():
 		#		current_filter = ALL  #in case the current filter is an out of date tag
-		model.clear()
+		self._filter_model.clear()
 
-		model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self._db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
+		self._filter_model.append([FeedList.BUILTIN_TAGS[0],
+				  	  "("+str(len(self._db.get_feedlist()))+")",
+				  	  False,
+				  	  False,
+				  	  False,
+				  	  ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
-			model.append([builtin,"",False,ptvDB.T_BUILTIN])
+			self._filter_model.append([builtin,"",False,False,False,ptvDB.T_BUILTIN])
 
 		if ptvDB.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
-				model.append(["---","---",True,ptvDB.T_BUILTIN])
+				self._filter_model.append(["---","---",True,False,False,ptvDB.T_BUILTIN])
 				for tag in tags:
-					model.append([tag,"",False,ptvDB.T_SEARCH])
+					self._filter_model.append([tag,"",False,False,True,ptvDB.T_SEARCH])
 		
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
-			model.append(["---","---",True,ptvDB.T_BUILTIN])
+			self._filter_model.append(["---","---",True,False,True,ptvDB.T_BUILTIN])
 			for tag in tags:
-				model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,ptvDB.T_TAG])
+				if tag[0] == '*':
+					self._filter_model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,True,False,ptvDB.T_TAG])
+				else:
+					self._filter_model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,False,True,ptvDB.T_TAG])
 		
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
 		if not self.changing_layout:
 			if index is not None:
-				self.filter_combo_widget.set_active(index)
+				self.set_active_filter(index)
 			else:
-				self.filter_combo_widget.set_active(FeedList.ALL)
+				self.set_active_filter(FeedList.ALL)
+				
+	def set_active_filter(self, index):
+		self._active_filter_index = index
+		self._active_filter_name = self._filter_model[index][F_TEXT]
+		self.on_filter_changed(None)
 			
 	def get_filter_name(self, filt):
-		model = self.filter_combo_widget.get_model()
-		return model[filt][0]
+		return self._filter_model[filt][F_TEXT]
 		
-	def get_current_filter(self):
-		model = self.filter_combo_widget.get_model()
-		current = model[self.filter_combo_widget.get_active()]
-		return (current[0],current[1]) 
+	def get_active_filter(self):
+		return (self._active_filter_name,self._active_filter_index) 
 		
 	def rename_filter(self, old_name, new_name):
-		model = self.filter_combo_widget.get_model()	
-		names = [m[0] for m in model]
-		model[names.index(old_name)][0] = new_name
+		names = [m[F_TEXT] for m in self._filter_model]
+		self._filter_model[names.index(old_name)][F_TEXT] = new_name
 		
 	def get_index_for_filter(self, filter_name):
-		model = self.filter_combo_widget.get_model()
-		names = [f[0] for f in model]
+		names = [f[F_TEXT] for f in self._filter_model]
 		if filter_name not in names:
 			return None
 		return names.index(filter_name)
 
 	def select_feed(self, feed_id):
-		#self.feed_list_view.populate_feeds()
-		self.filter_combo_widget.set_active(FeedList.ALL)
+		self.set_active_filter(FeedList.ALL)
 		self.filter_unread_checkbox.set_active(False)
 		self.feed_list_view.set_selected(feed_id)
 		self.feed_list_view.resize_columns()

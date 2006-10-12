@@ -414,7 +414,7 @@ class PenguinTVApp:
 		index = self.main_window.get_index_for_filter(tag_name)
 		if index is not None:
 			self.main_window.search_entry.set_text("")
-			self.main_window.filter_combo_widget.set_active(index)
+			self.main_window.set_active_filter(index)
 		else:
 			print "WARNING: we just added a search tag but it's not in the list"
 			
@@ -432,8 +432,8 @@ class PenguinTVApp:
 			
 		if new_query is not None:
 			self.db.change_query_for_tag(current_tag, new_query)
-			index = self.main_window.filter_combo_widget.get_active()
-			if self.main_window.get_current_filter()[0] == current_tag:
+			index = self.main_window.get_active_filter()[1]
+			if self.main_window.get_active_filter()[0] == current_tag:
 				self.set_state(TAG_SEARCH) #redundant, but good practice
 				self._show_search(new_query, self._search(new_query))
 
@@ -845,20 +845,20 @@ class PenguinTVApp:
 		
 		if self._state != MANUAL_SEARCH:
 			#save filter for later
-			self._saved_filter = self.main_window.filter_combo_widget.get_active()
+			self._saved_filter = self.main_window.get_active_filter()[0]
 		if self._state == MANUAL_SEARCH:
 			self._saved_search = self.main_window.search_entry.get_text()
 			selected = self.feed_list_view.get_selected()
 			if selected is not None:
 				name = self.main_window.get_filter_name(self._saved_filter)
 				if name not in self.db.get_tags_for_feed(selected):
-					self.main_window.filter_combo_widget.set_active(FeedList.ALL)
+					self.main_window.set_active_filter(FeedList.ALL)
 				else:
-					self.main_window.filter_combo_widget.set_active(self._saved_filter)
+					self.main_window.set_active_filter(self._saved_filter)
 			else:
-				self.main_window.filter_combo_widget.set_active(self._saved_filter)
+				self.main_window.set_active_filter(self._saved_filter)
 		#if self._state == TAG_SEARCH:
-		#	self.main_window.filter_combo_widget.set_active(FeedList.ALL)
+		#	self.main_window.set_active_filter(FeedList.ALL)
 			
 	def set_state(self, new_state, data=None):
 		if self._state == new_state:
@@ -988,7 +988,7 @@ class PenguinTVApp:
 		self.main_window.notebook_select_page(0)
 
 	def change_filter(self, current_filter, tag_type):
-		filter_id = self.main_window.filter_combo_widget.get_active()
+		filter_id = self.main_window.get_active_filter()[1]
 		if filter_id == FeedList.SEARCH:
 			self.set_state(MANUAL_SEARCH)
 			self._show_search(self._saved_search, self._search(self._saved_search))
@@ -1020,7 +1020,7 @@ class PenguinTVApp:
 		if self.main_window.layout != layout:
 			#self.layout_changing_dialog.show_all()
 			selected = self.feed_list_view.get_selected()
-			old_filter = self.main_window.filter_combo_widget.get_active()
+			old_filter = self.main_window.get_active_filter()[1]
 			self.feed_list_view.interrupt()
 			self.feed_list_view.set_selected(None)
 			self._entry_view.finish()
@@ -1037,7 +1037,7 @@ class PenguinTVApp:
 				gtk.main_iteration()
 			self.update_disk_usage()
 			new_selected = self.feed_list_view.get_selected()
-			new_filter = self.main_window.filter_combo_widget.get_active()
+			new_filter = self.main_window.get_active_filter()[1]
 			#don't set selected if they've done anything since the switch
 			if new_selected is None and selected is not None and old_filter == new_filter:
 				print "nothing is selected so away we go"
@@ -1303,8 +1303,6 @@ class PenguinTVApp:
 			self.db.set_feed_name(feed_id, name)
 		self.feed_list_view.update_feed_list(feed_id,['title'],{'title':name})
 		self.feed_list_view.resize_columns()	
-		#self.filter_combo_widget.set_active(FeedList.ALL)
-		#self.filter_unread_checkbox.set_active(False)
 		
 	def _gconf_set_auto_resume(self, client, *args, **kwargs):
 		autoresume = client.get_bool('/apps/penguintv/auto_resume')

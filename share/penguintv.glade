@@ -4194,19 +4194,19 @@ j@v2v.cc
 	  <property name="spacing">0</property>
 
 	  <child>
-	    <widget class="GtkComboBox" id="filter_combo">
+	    <widget class="GtkButton" id="filter_combo_button">
 	      <property name="visible">True</property>
-	      <property name="items" translatable="yes">All Feeds
-Downloaded Media
-No Feeds (Calm Mode)</property>
-	      <property name="add_tearoffs">False</property>
+	      <property name="can_focus">True</property>
+	      <property name="label" translatable="yes">&gt;</property>
+	      <property name="use_underline">True</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
-	      <signal name="changed" handler="on_filter_combo_changed" last_modification_time="Fri, 07 Oct 2005 15:35:12 GMT"/>
+	      <signal name="clicked" handler="on_filter_selector_button_clicked" last_modification_time="Thu, 12 Oct 2006 17:19:36 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
-	      <property name="expand">True</property>
-	      <property name="fill">True</property>
+	      <property name="expand">False</property>
+	      <property name="fill">False</property>
 	    </packing>
 	  </child>
 
@@ -4557,19 +4557,19 @@ No Feeds (Calm Mode)</property>
 		  <property name="spacing">0</property>
 
 		  <child>
-		    <widget class="GtkComboBox" id="filter_combo">
+		    <widget class="GtkButton" id="filter_combo_button">
 		      <property name="visible">True</property>
-		      <property name="items" translatable="yes">All Feeds
-Downloaded Media
-No Feeds (Calm Mode)</property>
-		      <property name="add_tearoffs">False</property>
+		      <property name="can_focus">True</property>
+		      <property name="label" translatable="yes">&gt;</property>
+		      <property name="use_underline">True</property>
+		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
-		      <signal name="changed" handler="on_filter_combo_changed" last_modification_time="Fri, 07 Oct 2005 15:35:12 GMT"/>
+		      <signal name="clicked" handler="on_filter_selector_button_clicked" last_modification_time="Thu, 12 Oct 2006 17:19:36 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
+		      <property name="expand">False</property>
+		      <property name="fill">False</property>
 		    </packing>
 		  </child>
 
@@ -4947,19 +4947,19 @@ No Feeds (Calm Mode)</property>
 		  <property name="spacing">0</property>
 
 		  <child>
-		    <widget class="GtkComboBox" id="filter_combo">
+		    <widget class="GtkButton" id="filter_selector_button">
 		      <property name="visible">True</property>
-		      <property name="items" translatable="yes">All Feeds
-Downloaded Media
-No Feeds (Calm Mode)</property>
-		      <property name="add_tearoffs">False</property>
+		      <property name="can_focus">True</property>
+		      <property name="label" translatable="yes">&gt;</property>
+		      <property name="use_underline">True</property>
+		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
-		      <signal name="changed" handler="on_filter_combo_changed" last_modification_time="Fri, 07 Oct 2005 15:35:12 GMT"/>
+		      <signal name="clicked" handler="on_filter_selector_button_clicked" last_modification_time="Thu, 12 Oct 2006 17:19:36 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
+		      <property name="expand">False</property>
+		      <property name="fill">False</property>
 		    </packing>
 		  </child>
 
@@ -7039,8 +7039,8 @@ No Feeds (Calm Mode)</property>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
+		      <property name="expand">False</property>
+		      <property name="fill">False</property>
 		    </packing>
 		  </child>
 
@@ -7062,22 +7062,6 @@ No Feeds (Calm Mode)</property>
 		      <property name="padding">0</property>
 		      <property name="expand">False</property>
 		      <property name="fill">False</property>
-		    </packing>
-		  </child>
-
-		  <child>
-		    <widget class="GtkComboBox" id="filter_combo">
-		      <property name="items" translatable="yes">All Feeds
-Downloaded Media
-No Feeds (Calm Mode)</property>
-		      <property name="add_tearoffs">False</property>
-		      <property name="focus_on_click">True</property>
-		      <signal name="changed" handler="on_filter_combo_changed" last_modification_time="Fri, 07 Oct 2005 15:35:12 GMT"/>
-		    </widget>
-		    <packing>
-		      <property name="padding">0</property>
-		      <property name="expand">True</property>
-		      <property name="fill">True</property>
 		    </packing>
 		  </child>
 		</widget>
