@@ -6,6 +6,8 @@ STOPPED           = 4
 PAUSED            = 5
 FAILURE           = -1
 
+import traceback
+
 class Downloader:
 	"""Interface class for downloading.  Doesn't do anything"""
 	def __init__(self, media, media_dir, params, resume, queue, progress_callback=None, finished_callback=None):

@@ -659,10 +659,13 @@ class HTMLImgAuthParser(HTMLParser.HTMLParser):
 		
 	def handle_starttag(self, tag, attrs):
 		new_attrs = []
-		for a in attrs:
-			attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
-			new_attrs.append(attr)
-		attrs = new_attrs
+		if tag.upper() != "A":
+			for a in attrs:
+				attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+				new_attrs.append(attr)
+			attrs = new_attrs
+		else:
+			print "not doing link tag"
 		if len(attrs)>0:
 			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+">"
 		else:

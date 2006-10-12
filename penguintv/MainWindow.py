@@ -320,6 +320,7 @@ class MainWindow:
 		renderer = gtk.CellRendererText()
 		self.filter_combo_widget.pack_start(renderer, False)
 		self.filter_combo_widget.set_attributes(renderer, text=1)
+		#self.filter_combo_widget.set_property('appears-as-list', True) #doesn't work?
 		
 		self.filter_unread_checkbox = components.get_widget('unread_filter')
 		
@@ -756,7 +757,7 @@ class MainWindow:
 		self._app.manual_search("")
 		
 	def on_saved_searches_activate(self, event):
-		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_edit_search_tags",'penguintv'),self._app)
+		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'penguintv.glade'),self._app)
 		window_edit_saved_searches.show()
 		del window_edit_saved_searches
 		
@@ -906,6 +907,12 @@ class MainWindow:
 		if new_state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
+			
+			#model = self.filter_combo_widget.get_model()
+			#for row in model:
+			#	if row[3] == ptvDB.T_SEARCH:
+			#		
+			
 			if not ptvDB.RUNNING_SUGAR: 
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(False)
@@ -956,6 +963,16 @@ class MainWindow:
 	def get_filter_name(self, filt):
 		model = self.filter_combo_widget.get_model()
 		return model[filt][0]
+		
+	def get_current_filter(self):
+		model = self.filter_combo_widget.get_model()
+		current = model[self.filter_combo_widget.get_active()]
+		return (current[0],current[1]) 
+		
+	def rename_filter(self, old_name, new_name):
+		model = self.filter_combo_widget.get_model()	
+		names = [m[0] for m in model]
+		model[names.index(old_name)][0] = new_name
 		
 	def get_index_for_filter(self, filter_name):
 		model = self.filter_combo_widget.get_model()

@@ -427,11 +427,16 @@ class PenguinTVApp:
 	def change_search_tag(self, current_tag, new_tag=None, new_query=None):
 		if new_tag is not None:
 			self.db.rename_tag(current_tag, new_tag)
+			self.main_window.rename_filter(current_tag, new_tag)
+			current_tag = new_tag
 			
 		if new_query is not None:
 			self.db.change_query_for_tag(current_tag, new_query)
-		self.main_window.update_filters()
-			
+			index = self.main_window.filter_combo_widget.get_active()
+			if self.main_window.get_current_filter()[0] == current_tag:
+				self.set_state(TAG_SEARCH) #redundant, but good practice
+				self._show_search(new_query, self._search(new_query))
+
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
 		old_set = sets.Set(old_tags)

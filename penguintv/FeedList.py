@@ -733,6 +733,9 @@ class FeedList:
 			else:
 				first_entry_title = first_entry_title[0:30]+"..."
 				
+			if first_entry_title.find("<") != -1:
+				first_entry_title = first_entry_title[0:first_entry_title.find("<")] + "..."
+				
 			#selected = self.get_selected()
 			if not selected:
 				title = utils.my_quote(title)+'\n<span color="#777777" size="smaller"><i>'+first_entry_title+'</i></span>'

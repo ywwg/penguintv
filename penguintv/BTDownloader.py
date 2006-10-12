@@ -126,12 +126,8 @@ class BTDownloader(Downloader):
 		if errormsg=='rejected by tracker - This tracker requires new tracker protocol. Please use our Easy Downloader or check blogtorrent.com for updates.':
 			print "getting blogtorrent 'rejected by tracker' error, ignoring"
 		else:
-			print "error: "+errormsg
-			self.media['errormsg']=errormsg
-			self.message = errormsg
-			self.status = FAILURE
-			self._finished_callback()		
 			self._done.set()
+			raise TorrentError(errormsg)
 		
 	def _newpath(self, path):
 		pass
@@ -143,3 +139,10 @@ class NoDir(Exception):
 		self.durr = durr
 	def __str__(self):
 		return "no such directory: "+self.durr
+		
+class TorrentError(Exception):
+	def __init__(self,m):
+		self.m = m
+	def __str__(self):
+		return self.m
+

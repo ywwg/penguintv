@@ -8,9 +8,10 @@ import sets
 import utils
 
 class EditSearchesDialog:
-	def __init__(self,xml,app):
-		self._xml = xml
-		self._app = app
+	def __init__(self,glade_path,app):
+		self._xml        = gtk.glade.XML(glade_path, "window_edit_search_tags",'penguintv')
+		self._modify_xml = gtk.glade.XML(glade_path, "dialog_modify_search_tag",'penguintv')
+		self._app        = app
 		
 	def on_remove_button_clicked(self, event):
 		selection = self._saved_search_list_widget.get_selection()
@@ -48,13 +49,35 @@ class EditSearchesDialog:
 		model = self._saved_search_list_widget.get_model()
 		self._app.change_search_tag(model[path][0], new_tag=new_text)
 		model[path][0] = new_text
-		self._saved_search_list_widget.grab_focus()
-		self._saved_search_list_widget.set_cursor(len(model)-1, self._query_column, True)
 		
 	def on_query_edit_done(self, renderer, path, new_text):
 		model = self._saved_search_list_widget.get_model()
 		self._app.change_search_tag(model[path][0], new_query=new_text)
 		model[path][1] = new_text
+		
+	def on_modify_button_clicked(self, event):
+		selection = self._saved_search_list_widget.get_selection()
+		model, iter = selection.get_selected()
+		
+		if iter is None:
+			return
+		
+		tag_name = model[iter][0]
+		query    = model[iter][1]
+		
+		self._mod_tag_name_entry.set_text(tag_name)
+		self._mod_query_entry.set_text(query)
+	
+		response = self._mod_dialog.run()
+		
+		if response == gtk.RESPONSE_OK:
+			new_name  = self._mod_tag_name_entry.get_text()
+			new_query = self._mod_query_entry.get_text()
+			self._app.change_search_tag(tag_name, new_name, new_query)
+			model[iter][0] = new_name
+			model[iter][1] = new_query
+			
+		self._mod_dialog.hide()		
 				
 	def on_close_button_clicked(self,event):
  		self.hide()
@@ -70,6 +93,9 @@ class EditSearchesDialog:
  		
  	def show(self):
  		self._window = self._xml.get_widget("window_edit_search_tags")
+ 		self._mod_dialog         = self._modify_xml.get_widget("dialog_modify_search_tag")
+ 		self._mod_tag_name_entry = self._modify_xml.get_widget("tag_name_entry")
+ 		self._mod_query_entry    = self._modify_xml.get_widget("query_entry")
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))

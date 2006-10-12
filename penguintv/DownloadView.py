@@ -181,19 +181,33 @@ class DownloadView:
 		self._resume_button.set_sensitive(resume_sens)
 
 		for media_id in added:
-			item       = self._downloads[current_list.index(media_id)]
-			entry      = self._db.get_entry(item.media['entry_id'])
+			item        = self._downloads[current_list.index(media_id)]
+			entry       = self._db.get_entry(item.media['entry_id'])
 			description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
+			size        = utils.format_size(item.total_size)
+			if item.status == PAUSED:
+				description_markup = '<span color="#777"><i>'+description+'</i></span>'
+				size_markup = '<span color="#777"><i>'+size+'</i></span>'
+				status_markup = '<i>'+_("Paused")+'</i>'
+			elif item.status == QUEUED:
+				description_markup = '<span color="#777"><i>'+description+'</i></span>'
+				size_markup = '<span color="#777"><i>'+size+'</i></span>'
+				status_markup = '<i>'+_("Queued")+'</i>'
+			else:
+				description_markup = description
+				size_markup = size
+				status_markup = ""
+
 			pixbuf     = self._get_pixbuf(entry['feed_id'])
 			self._downloads_liststore.append([media_id, 
 											  description, 
-											  description,
+											  description_markup,
 											  item.progress, 
-											  utils.format_size(item.total_size), 
-											  utils.format_size(item.total_size),
+											  size, 
+											  size_markup,
 											  pixbuf,
 											  item.status,
-											  ""])
+											  status_markup])
 			
 	def _get_pixbuf(self, feed_id):
 		"""from feedlist.py"""
