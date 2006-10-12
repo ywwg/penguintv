@@ -53,7 +53,7 @@ class EditTagsMultiDialog:
 		self._tag_selector_widget.append_text(_("None"))
 		self._tag_selector_widget.append_text(_("No Tag"))
 		i=2
-		for tag in self._app.db.get_all_tags():
+		for tag,favorite in self._app.db.get_all_tags():
 			self._tag_selector_widget.append_text(tag)
 			if tag == selected:
 				index = i

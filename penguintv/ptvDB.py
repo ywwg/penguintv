@@ -306,6 +306,7 @@ class ptvDB:
 		print "upgrading to database schema 4"
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN type INT')
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN query')
+		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN favorite BOOL NOT NULL')
 		self._db_execute(self._c, u'UPDATE tags SET type=?',(T_TAG,)) #they must all be regular tags right now
 		self._db_execute(self._c, u'UPDATE settings SET value=4 WHERE data="db_ver"')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN feed_pointer INT')
@@ -313,6 +314,7 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN image')
 		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN download_date DATE')
 		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN thumbnail')
+		
 		self._db_execute(self._c, u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
 		self._db_execute(self._c, u'UPDATE feeds SET link=""')
 		self._db_execute(self._c, u"""CREATE TABLE terms
@@ -418,6 +420,7 @@ class ptvDB:
 							tag,
 							feed_id INT UNSIGNED NOT NULL,
 							query,
+							favorite BOOL NOT NULL,
 							type INT);""")
 							
 		self._db_execute(self._c, u"""CREATE TABLE terms
@@ -2033,10 +2036,10 @@ class ptvDB:
 		current_tags = self.get_tags_for_feed(feed_id)
 		if current_tags:
 			if tag not in current_tags and len(tag)>0:
-				self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type) VALUES (?,?,?)',(tag,feed_id, T_TAG))
+				self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type, favorite) VALUES (?,?,?,0)',(tag,feed_id, T_TAG))
 				self._db.commit()
 		else:
-			self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type) VALUES (?,?,?)',(tag,feed_id, T_TAG))
+			self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type, favorite) VALUES (?,?,?,0)',(tag,feed_id, T_TAG))
 			self._db.commit()
 		if tag == NOSEARCH:
 			self._blacklist = self.get_tags_for_feed(NOSEARCH)
@@ -2045,16 +2048,16 @@ class ptvDB:
 		self._db_execute(self._c, u'DELETE FROM tags WHERE tag=""')
 		self._db.commit()
 			
-	def add_search_tag(self, query, tag):
-		current_tags = self.get_all_tags(T_ALL)
+	def add_search_tag(self, query, tag, favorite=False):
+		current_tags = [t[0] for t in self.get_all_tags(T_ALL)] #exclude favorite stuff
 		if current_tags:
 			if tag not in current_tags:
-				self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, query, type) VALUES (?,?,?,?)',(tag,0,query,T_SEARCH))
+				self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, query, type, favorite) VALUES (?,?,?,?,?)',(tag,0,query,T_SEARCH,favorite))
 				self._db.commit()
 			else:
 				raise TagAlreadyExists,"The tag name "+str(tag)+" is already being used"
 		else:
-			self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, query, type) VALUES (?,?,?,?)',(tag,0,query,T_SEARCH))
+			self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, query, type) VALUES (?,?,?,?,?)',(tag,0,query,T_SEARCH,favorite))
 			self._db.commit()	
 	
 	def change_query_for_tag(self, tag, query):
@@ -2063,6 +2066,13 @@ class ptvDB:
 			self._db.commit()
 		except:
 			print "error updating tag"
+			
+	def set_tag_favorite(self, tag, favorite=False):
+		try:
+			self._db_execute(self._c, u'UPDATE tags SET favorite=? WHERE tag=?',(favorite,tag))
+			self._db.commit()
+		except:
+			print "error updating tag favorite"
 
 	def rename_tag(self, old_tag, new_tag):
 		self._db_execute(self._c, u'UPDATE tags SET tag=? WHERE tag=?',(new_tag,old_tag))
@@ -2070,7 +2080,6 @@ class ptvDB:
 		if new_tag == NOSEARCH or old_tag == NOSEARCH:
 			self._blacklist=self.get_tags_for_feed(NOSEARCH)
 
-		
 	def remove_tag_from_feed(self, feed_id, tag):
 		self._db_execute(self._c, u'DELETE FROM tags WHERE tag=? AND feed_id=?',(tag,feed_id))
 		self._db.commit()
@@ -2085,18 +2094,13 @@ class ptvDB:
 		
 	def get_all_tags(self, type=T_TAG):
 		if type==T_ALL:
-			self._db_execute(self._c, u'SELECT DISTINCT tag FROM tags ORDER BY tag')
+			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags ORDER BY tag')
 		elif type==T_TAG:
-			self._db_execute(self._c, u'SELECT DISTINCT tag FROM tags WHERE type=? ORDER BY tag',(T_TAG,))
+			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags WHERE type=? ORDER BY tag',(T_TAG,))
 		elif type==T_SEARCH:
-			self._db_execute(self._c, u'SELECT DISTINCT tag FROM tags WHERE type=? ORDER BY tag',(T_SEARCH,))
+			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags WHERE type=? ORDER BY tag',(T_SEARCH,))
 		result = self._c.fetchall()
-		dataList = []
-		if result: 
-			dataList = [row[0] for row in result]
-		else:
-			return None
-		return dataList
+		return result
 	
 	def get_count_for_tag(self, tag):
 		self._db_execute(self._c, u'SELECT feed_id FROM tags WHERE tag=?',(tag,))

@@ -969,18 +969,15 @@ class MainWindow:
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				self._filter_model.append(["---","---",True,False,False,ptvDB.T_BUILTIN])
-				for tag in tags:
+				for tag,favorite in tags:
 					self._filter_model.append([tag,tag,False,False,True,ptvDB.T_SEARCH])
 		
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
 			self._filter_model.append(["---","---",True,False,True,ptvDB.T_BUILTIN])
-			for tag in tags:
-				if tag[0] == '*':
-					self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,True,True,ptvDB.T_TAG])
-				else:
-					self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,False,True,ptvDB.T_TAG])
+			for tag,favorite in tags:
+				self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,favorite,True,ptvDB.T_TAG])
 		
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
@@ -989,6 +986,12 @@ class MainWindow:
 				self.set_active_filter(index)
 			else:
 				self.set_active_filter(FeedList.ALL)
+				
+	def set_tag_favorite(self, tag_name, favorite):
+		self._db.set_tag_favorite(tag_name, favorite)
+		names = [m[F_TEXT] for m in self._filter_model]
+		index = names.index(tag_name)
+		self._filter_model[index][F_FAVORITE] = favorite
 				
 	def set_active_filter(self, index):
 		self._active_filter_index = index

@@ -17,7 +17,7 @@ class FilterSelectorWidget:
 		self._favorites_filter.set_visible_column(F_FAVORITE)
 		self._favorites_treeview.set_model(self._favorites_filter)
 
-		column = gtk.TreeViewColumn('Favorites')
+		column = gtk.TreeViewColumn(_('Favorites'))
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer)
 		column.set_attributes(renderer, text=F_COUNT)
@@ -29,20 +29,35 @@ class FilterSelectorWidget:
 		self._all_tags_filter.set_visible_column(F_NOT_FAVORITE)
 		self._all_tags_treeview.set_model(self._all_tags_filter)
 		
-		column = gtk.TreeViewColumn('Tags')
+		column = gtk.TreeViewColumn(_('All Tags'))
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer)
 		column.set_attributes(renderer, text=F_COUNT)
 		self._all_tags_treeview.append_column(column)
 		
-		self._favorites_treeview.get_selection().connect("changed", self._on_selection_changed)
-		self._all_tags_treeview.get_selection().connect("changed", self._on_selection_changed)
 		self._all_tags_treeview.set_row_separator_func(lambda model,iter: model[model.get_path(iter)[0]][F_SEPARATOR])
 		self._xml.get_widget('all_feeds_button').connect('clicked', self._select_all_feeds)
 		self._xml.get_widget('downloaded_media_button').connect('clicked', self._select_downloaded_media)
 		
-		self._old_list = []
+		self._TARGET_TYPE_TEXT = 80
+		self._TARGET_TYPE_IGNORE = 81
+		drop_types = [ ('text/unicode',gtk.TARGET_SAME_APP,self._TARGET_TYPE_TEXT),
+					   ('text/plain',gtk.TARGET_SAME_APP,self._TARGET_TYPE_TEXT)]
+		#for removing items from favorites
+		self._favorites_treeview.drag_source_set(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_MOVE)
+		self._all_tags_treeview.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_MOVE)
 		
+		#copying items to favorites
+		self._all_tags_treeview.drag_source_set(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_COPY)
+		self._favorites_treeview.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
+		
+		self._dragging = False
+		
+		for key in dir(self.__class__): #python insaneness
+			if key[:3] == '_on':
+				self._xml.signal_connect(key, getattr(self, key))
+		
+		self._old_list = []
 		
 	def is_visible(self):
 		return self._widget.get_property('visible')
@@ -81,17 +96,34 @@ class FilterSelectorWidget:
 	def Hide(self):
 		self._widget.hide()
 		
-	def _on_selection_changed(self, selection):
-		model, iter = selection.get_selected()
-		if iter is not None:
-			i=-1
-			for row in self._model:
-				i+=1
-				if row[F_TEXT] == model[iter][F_TEXT]:
-					break
-			self._main_window.set_active_filter(i)
-			self.Hide()
-			selection.unselect_all()
+	def _on_button_release_event(self, button, event):
+		if not self._dragging:
+			selection = self._favorites_treeview.get_selection()
+			model, iter = selection.get_selected()
+			if iter is not None:
+				i=-1
+				for row in self._model:
+					i+=1
+					if row[F_TEXT] == model[iter][F_TEXT]:
+						break
+				self._main_window.set_active_filter(i)
+				self.Hide()
+				selection.unselect_all()
+				return
+				
+			selection = self._all_tags_treeview.get_selection()
+			model, iter = selection.get_selected()
+			if iter is not None:
+				i=-1
+				for row in self._model:
+					i+=1
+					if row[F_TEXT] == model[iter][F_TEXT]:
+						break
+				self._main_window.set_active_filter(i)
+				self.Hide()
+				selection.unselect_all()
+				return
+			
 			
 	def _select_all_feeds(self, button):
 		self._main_window.set_active_filter(ALL)
@@ -101,3 +133,40 @@ class FilterSelectorWidget:
 		self._main_window.set_active_filter(DOWNLOADED)
 		self.Hide()
 		
+	def _on_all_tags_treeview_drag_data_get(self, widget, drag_context, selection_data, info, time):
+		selection = self._all_tags_treeview.get_selection()
+		model, iter = selection.get_selected()
+		tag_name = model[iter][F_TEXT]
+		selection_data.set(selection_data.target, 8, tag_name) #FIXME: does this work with unicode?
+		selection.unselect_all()
+		
+	def _on_favorites_drag_data_received(self, widget, context, x, y, selection, targetType, time):
+		widget.emit_stop_by_name('drag-data-received')
+		if targetType == self._TARGET_TYPE_TEXT:
+			tag_name = ""
+			for c in selection.data:
+				if c != "\0":  #for some reason ever other character is a null.  what gives?
+					tag_name = tag_name+c
+			self._main_window.set_tag_favorite(tag_name, True)
+
+	def _on_favorites_treeview_drag_data_get(self, widget, drag_context, selection_data, info, time):
+		selection = self._favorites_treeview.get_selection()
+		model, iter = selection.get_selected()
+		tag_name = model[iter][F_TEXT]
+		selection_data.set(selection_data.target, 8, tag_name) #FIXME: does this work with unicode?
+		selection.unselect_all()
+
+	def _on_all_tags_treeview_drag_data_received(self, widget, context, x, y, selection, targetType, time):
+		widget.emit_stop_by_name('drag-data-received')
+		if targetType == self._TARGET_TYPE_TEXT:
+			tag_name = ""
+			for c in selection.data:
+				if c != "\0":  #for some reason ever other character is a null.  what gives?
+					tag_name = tag_name+c
+			self._main_window.set_tag_favorite(tag_name, False)
+			
+	def _on_drag_begin(self, widget, drag_context):
+		self._dragging = True
+	
+	def _on_drag_end(self, widget, drag_context):
+		self._dragging = False
