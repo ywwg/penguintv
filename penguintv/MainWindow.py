@@ -22,6 +22,7 @@ import FeedFilterDialog
 import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
 import SynchronizeDialog
+import FilterSelectorWidget
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
 #status of the main window progress bar
@@ -66,6 +67,7 @@ class MainWindow:
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
 		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
+		self._filter_selector_widget = FilterSelectorWidget.FilterSelectorWidget(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'filter_selector_widget', 'penguintv'), self)
 		
 		try:
 			self._about_box.set_version(utils.VERSION)
@@ -125,6 +127,7 @@ class MainWindow:
 			if not ptvDB.HAS_LUCENE:
 				#remove UI elements that don't apply without search
 				self.search_container.hide_all()
+		self.filter_combo_widget.hide()
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:
@@ -323,6 +326,8 @@ class MainWindow:
 		#self.filter_combo_widget.set_property('appears-as-list', True) #doesn't work?
 		
 		self.filter_unread_checkbox = components.get_widget('unread_filter')
+		
+		self._filter_selector_button = components.get_widget('filter_selector_button')
 		
 		filter_combo_model.append([FeedList.BUILTIN_TAGS[0],"("+str(len(self._db.get_feedlist()))+")",False,ptvDB.T_BUILTIN])
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
@@ -626,7 +631,7 @@ class MainWindow:
 		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 		
-	def on_filter_combo_changed(self, event):
+	def on_filter_combo_changed(self, widget):
 		try: #this gets called when we are initially populating the combo list
 			self.search_entry.get_text()
 		except:
@@ -639,6 +644,21 @@ class MainWindow:
 			self.filter_combo_widget.set_active(FeedList.ALL)
 			return
 		self._app.change_filter(current_filter[0],current_filter[3])
+		self._filter_selector_button.set_label(current_filter[0]+' '+current_filter[1])
+		
+	def on_filter_selector_button_clicked(self, button):
+		if self._filter_selector_widget.is_visible():
+			self._filter_selector_widget.Hide()
+			return
+		
+		model = self.filter_combo_widget.get_model()
+		filter_list = [(r[0]+' '+r[1],r[3]) for r in model]
+		self._filter_selector_widget.populate_lists(filter_list)
+		
+		rootwin = self.filter_combo_widget.get_screen().get_root_window()
+		x, y, mods = rootwin.get_pointer()
+		
+		self._filter_selector_widget.ShowAt(x+10,y+10)
 		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -754,7 +774,7 @@ class MainWindow:
 		self._window_add_search.set_query(query)		
 		
 	def on_search_clear_clicked(self, event):
-		self._app.manual_search("")
+		self.filter_combo_widget.set_active(FeedList.ALL)
 		
 	def on_saved_searches_activate(self, event):
 		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'penguintv.glade'),self._app)

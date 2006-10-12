@@ -199,9 +199,9 @@ def uniquer(seq, idfun=None):
 		result.append(item)
 	return result
 	
-commands={	'play:':_("Play"),
+commands={	'play:':_("Open"),
 			'download:':_("Download"),
-			'downloadqueue:':_("Download And Play"),
+			'downloadqueue:':_("Download And Open"),
 			'pause:':_("Pause"),
 			'cancel:':_("Cancel"),
 			'file://':_("Open File"),
@@ -212,7 +212,7 @@ commands={	'play:':_("Play"),
 			'tryresume:':("Try Resume")	}
 	
 def html_command(command,arg):
-	"""returns something like '<a href="play:%s">Play</a>' for all the commands I have.
+	"""returns something like '<a href="play:%s">Open</a>' for all the commands I have.
 	Dictionary has keys of commands, and returns located strings"""
 	
 	#a couple special cases
