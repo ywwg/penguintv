@@ -654,7 +654,9 @@ class MainWindow:
 			self.set_active_filter(FeedList.ALL)
 			return
 		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
-		self._filter_selector_button.set_label(current_filter[F_TEXT]+' '+current_filter[F_COUNT])
+		self._filter_selector_button.set_label(current_filter[F_COUNT])
+		#just in case...
+		self._filter_selector_button.set_active(False)
 		
 	def on_filter_selector_button_clicked(self, button):
 		if self._filter_selector_widget.is_visible():
@@ -946,14 +948,14 @@ class MainWindow:
 	def update_filters(self):
 		"""update the filter combo box with the current list of filters"""
 		#get name of current filter, if a tag
-		current_filter = self._filter_model[self.get_active_filter()[1]][F_TEXT]
+		current_filter = self.get_active_filter()[0]
 		#if current_filter not in BUILTIN_TAGS:	
 		#	if current_filter not in self._db.get_all_tags():
 		#		current_filter = ALL  #in case the current filter is an out of date tag
 		self._filter_model.clear()
 
 		self._filter_model.append([FeedList.BUILTIN_TAGS[0],
-				  	  "("+str(len(self._db.get_feedlist()))+")",
+				  	  FeedList.BUILTIN_TAGS[0]+" ("+str(len(self._db.get_feedlist()))+")",
 				  	  False,
 				  	  False,
 				  	  False,
@@ -961,14 +963,14 @@ class MainWindow:
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
-			self._filter_model.append([builtin,"",False,False,False,ptvDB.T_BUILTIN])
+			self._filter_model.append([builtin,builtin,False,False,False,ptvDB.T_BUILTIN])
 
 		if ptvDB.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				self._filter_model.append(["---","---",True,False,False,ptvDB.T_BUILTIN])
 				for tag in tags:
-					self._filter_model.append([tag,"",False,False,True,ptvDB.T_SEARCH])
+					self._filter_model.append([tag,tag,False,False,True,ptvDB.T_SEARCH])
 		
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
@@ -976,9 +978,9 @@ class MainWindow:
 			self._filter_model.append(["---","---",True,False,True,ptvDB.T_BUILTIN])
 			for tag in tags:
 				if tag[0] == '*':
-					self._filter_model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,True,False,ptvDB.T_TAG])
+					self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,True,True,ptvDB.T_TAG])
 				else:
-					self._filter_model.append([tag,"("+str(self._db.get_count_for_tag(tag))+")",False,False,True,ptvDB.T_TAG])
+					self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,False,True,ptvDB.T_TAG])
 		
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
@@ -1001,7 +1003,9 @@ class MainWindow:
 		
 	def rename_filter(self, old_name, new_name):
 		names = [m[F_TEXT] for m in self._filter_model]
-		self._filter_model[names.index(old_name)][F_TEXT] = new_name
+		index = names.index(old_name)
+		self._filter_model[index][F_TEXT] = new_name
+		self._filter_model[index][F_COUNT] = new_name
 		
 	def get_index_for_filter(self, filter_name):
 		names = [f[F_TEXT] for f in self._filter_model]
