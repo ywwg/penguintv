@@ -52,8 +52,8 @@ class FilterSelectorWidget:
 		drop_types = [ ('reorder',gtk.TARGET_SAME_WIDGET,self._TARGET_TYPE_REORDER),
 					   ('integer',gtk.TARGET_SAME_APP,self._TARGET_TYPE_INTEGER)]
 		#for removing items from favorites and reordering
-		self._favorites_treeview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_COPY)
-		self._all_tags_treeview.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
+		self._favorites_treeview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_MOVE)
+		self._all_tags_treeview.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_MOVE)
 		
 		#copying items to favorites
 		self._favorites_treeview.enable_model_drag_dest(drop_types, gtk.gdk.ACTION_COPY)
