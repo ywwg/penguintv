@@ -17,6 +17,7 @@ activity_PYTHON =               \
 	FeedList.py \
 	feedparser.py \
 	FeedPropertiesDialog.py \
+	FilterSelectorWidget.py \
 	HTTPDownloader.py \
 	__init__.py \
 	LoginDialog.py \
@@ -38,6 +39,5 @@ activity_PYTHON =               \
 	ThreadPool.py \
 	timeoutsocket.py \
 	UpdateTasksManager.py \
-	utils.py \
-	FilterSelectionWidget.py
+	utils.py 
 

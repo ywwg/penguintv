@@ -4,7 +4,7 @@
 import gtk
 import pango
 from ptvDB import T_ALL, T_TAG, T_SEARCH, T_BUILTIN
-from FeedList import ALL, DOWNLOADED
+from FeedList import ALL, DOWNLOADED, BUILTIN_TAGS
 from MainWindow import F_TEXT, F_COUNT, F_SEPARATOR, F_FAVORITE, F_NOT_FAVORITE, F_TYPE
 
 class FilterSelectorWidget:
@@ -17,16 +17,45 @@ class FilterSelectorWidget:
 		self._complex_widget = self._xml_complex.get_widget('filter_selector_widget_with_tags')
 		self._simple_widget  = self._xml_simple.get_widget('filter_selector_widget_no_tags')
 		self._pane = self._xml_complex.get_widget('hpaned')
+		
+		builtins_model  =  gtk.ListStore(str, #name of filter
+											   str, #text to display
+											   int) #original id									   
+		i=-1
+		for builtin in BUILTIN_TAGS[:-1]:
+			i+=1
+			builtins_model.append([builtin, builtin, i])
+			
+		self._builtins_treeview_complex = self._xml_complex.get_widget('builtins_treeview')
+		self._builtins_treeview_complex.set_model(builtins_model)
+		column = gtk.TreeViewColumn(_('Builtin Tags'))
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer)
+		column.set_attributes(renderer, text=1)
+		column.set_alignment(0.5)
+		self._builtins_treeview_complex.append_column(column)
+		
+		self._builtins_treeview_simple = self._xml_simple.get_widget('builtins_treeview')
+		self._builtins_treeview_simple.set_model(builtins_model)
+		column = gtk.TreeViewColumn(_('Builtin Tags'))
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer)
+		column.set_attributes(renderer, text=1)
+		column.set_alignment(0.5)
+		self._builtins_treeview_simple.append_column(column)
+		
 		self._favorites_treeview = self._xml_complex.get_widget('favorites_treeview')
 		self._favorites_model =  gtk.ListStore(str, #name of filter
 											   str, #text to display
 											   int) #original id
+		
 		self._favorites_treeview.set_model(self._favorites_model)
 
 		column = gtk.TreeViewColumn(_('Favorites'))
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer)
 		column.set_attributes(renderer, text=1)
+		column.set_alignment(0.5)
 		self._favorites_treeview.append_column(column)
 		
 		self._all_tags_treeview = self._xml_complex.get_widget('all_tags_treeview')
@@ -38,14 +67,15 @@ class FilterSelectorWidget:
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer)
 		column.set_attributes(renderer, text=F_COUNT)
+		column.set_alignment(0.5)
 		self._all_tags_treeview.append_column(column)
 		
 		self._all_tags_treeview.set_row_separator_func(lambda model,iter: model[model.get_path(iter)[0]][F_SEPARATOR])
-		self._xml_complex.get_widget('all_feeds_button').connect('clicked', self._select_all_feeds)
-		self._xml_complex.get_widget('downloaded_media_button').connect('clicked', self._select_downloaded_media)
+		#self._xml_complex.get_widget('all_feeds_button').connect('clicked', self._select_all_feeds)
+		#self._xml_complex.get_widget('downloaded_media_button').connect('clicked', self._select_downloaded_media)
 		
-		self._xml_simple.get_widget('all_feeds_button').connect('clicked', self._select_all_feeds)
-		self._xml_simple.get_widget('downloaded_media_button').connect('clicked', self._select_downloaded_media)
+		#self._xml_simple.get_widget('all_feeds_button').connect('clicked', self._select_all_feeds)
+		#self._xml_simple.get_widget('downloaded_media_button').connect('clicked', self._select_downloaded_media)
 		
 		self._TARGET_TYPE_INTEGER = 80
 		self._TARGET_TYPE_REORDER = 81
@@ -64,6 +94,8 @@ class FilterSelectorWidget:
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == '_on':
 				self._xml_complex.signal_connect(key, getattr(self, key))
+		
+		self._builtins_treeview_simple.connect('button-release-event', self._on_button_release_event)
 		
 		self._old_list = []
 		
@@ -115,14 +147,16 @@ class FilterSelectorWidget:
 			self._all_tags_filter.refilter()
 			self._favorites_treeview.columns_autosize()
 			self._all_tags_treeview.columns_autosize()
-			self._complex_widget.show_all()
+			self._complex_widget.show_all()		
 		else:
 			self._simple_widget.move(x,y)
+			self._simple_widget.resize(pane_position,10)
 			self._simple_widget.show_all()
+			
+		self._do_unselect()
 						
 	def Hide(self):
-		self._all_tags_treeview.get_selection().unselect_all()
-		self._favorites_treeview.get_selection().unselect_all()
+		self._do_unselect()
 		self._complex_widget.hide()
 		self._simple_widget.hide()
 		new_order = [r[0] for r in self._favorites_model]
@@ -135,31 +169,21 @@ class FilterSelectorWidget:
 				
 	def _on_button_release_event(self, button, event):
 		if not self._dragging:
-			selection = self._favorites_treeview.get_selection()
-			model, iter = selection.get_selected()
-			if iter is not None:
-				i=-1
-				for row in self._model:
-					i+=1
-					if row[F_TEXT] == model[iter][F_TEXT]:
-						break
-				self._main_window.set_active_filter(i)
-				self.Hide()
-				selection.unselect_all()
-				return
-				
-			selection = self._all_tags_treeview.get_selection()
-			model, iter = selection.get_selected()
-			if iter is not None:
-				i=-1
-				for row in self._model:
-					i+=1
-					if row[F_TEXT] == model[iter][F_TEXT]:
-						break
-				self._main_window.set_active_filter(i)
-				self.Hide()
-				selection.unselect_all()
-				return
+			for selection in (self._favorites_treeview.get_selection(), 
+							  self._all_tags_treeview.get_selection(),
+							  self._builtins_treeview_complex.get_selection(),
+							  self._builtins_treeview_simple.get_selection()):
+				model, iter = selection.get_selected()
+				if iter is not None:
+					i=-1
+					for row in self._model:
+						i+=1
+						if row[F_TEXT] == model[iter][F_TEXT]:
+							break
+					self._main_window.set_active_filter(i)
+					self.Hide()
+					selection.unselect_all()
+					return
 			
 	def _select_all_feeds(self, button):
 		self._main_window.set_active_filter(ALL)
@@ -169,20 +193,14 @@ class FilterSelectorWidget:
 		self._main_window.set_active_filter(DOWNLOADED)
 		self.Hide()
 		
-	def _on_all_tags_treeview_drag_data_get(self, treeview, drag_context, selection_data, info, time):
+	def _on_drag_data_get(self, treeview, drag_context, selection_data, info, time):
 		selection = treeview.get_selection()
 		model, iter = selection.get_selected()
 		path = model.get_path(iter)
 		selection_data.set(selection_data.target, 8, str(path[0]))
 		
-	def _on_favorites_treeview_drag_data_get(self, treeview, drag_context, selection_data, info, time):
-		selection = treeview.get_selection()
-		model, iter = selection.get_selected()
-		path = model.get_path(iter)
-		selection_data.set(selection_data.target, 8, str(path[0]))
-		
-	def _on_all_tags_treeview_drag_data_received(self, widget, context, x, y, selection, targetType, time):
-		widget.emit_stop_by_name('drag-data-received')
+	def _on_all_tags_treeview_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
+		treeview.emit_stop_by_name('drag-data-received')
 		if targetType == self._TARGET_TYPE_INTEGER:
 			#print "got",selection.data
 			tag_index = ""
@@ -193,6 +211,7 @@ class FilterSelectorWidget:
 			target_iter = self._favorites_model.get_iter((index,))
 			self._main_window.set_tag_favorite(self._favorites_model[index][0], 0)
 			self._favorites_model.remove(target_iter)
+		self._on_drag_end(None, None)
 		
 	def _on_favorites_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
 		treeview.emit_stop_by_name('drag-data-received')
@@ -230,6 +249,7 @@ class FilterSelectorWidget:
 			except:
 				model.append(row)
 				context.finish(True, True, time)
+		self._on_drag_end(None, None)
 
 	def checkSanity(self, model, iter_to_copy, target_iter):
 		path_of_iter_to_copy = model.get_path(iter_to_copy)
@@ -241,7 +261,7 @@ class FilterSelectorWidget:
     
 	def iterCopy(self, target_model, target_iter, row, pos):
 		if (pos == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE) or (pos == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
-			new_iter = target_model.prepend(row)
+			new_iter = target_model.append(row)
 		elif pos == gtk.TREE_VIEW_DROP_BEFORE:
 			new_iter = target_model.insert_before(target_iter, row)
 		elif pos == gtk.TREE_VIEW_DROP_AFTER:
@@ -252,3 +272,10 @@ class FilterSelectorWidget:
 	
 	def _on_drag_end(self, widget, drag_context):
 		self._dragging = False
+		self._do_unselect()
+	
+	def _do_unselect(self):
+		self._all_tags_treeview.get_selection().unselect_all()
+		self._favorites_treeview.get_selection().unselect_all()
+		self._builtins_treeview_complex.get_selection().unselect_all()
+		self._builtins_treeview_simple.get_selection().unselect_all()

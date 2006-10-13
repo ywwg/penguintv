@@ -161,7 +161,11 @@ class PlanetView:
 			self.display_custom_entry(_("No entries match those search criteria"))
 			
 		self._entrylist = [e[0] for e in entries]
-		self._render_entries(query)
+		try:
+			self._render_entries(query)
+		except ptvDB.NoEntry:
+			print "error displaying search"
+			self.display_custom_entry(_("There was an error displaying the search results.  Please reindex searches and try again"))
 		
 	def unshow_search(self):
 		self._render("<html><body></body></html")
@@ -200,6 +204,7 @@ class PlanetView:
 		
 	def display_custom_entry(self, message):
 		self._custom_message = message
+		self._render(message)
 		#print "custom: ",message
 		#self.populate_entries()
 		
