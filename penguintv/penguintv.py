@@ -848,7 +848,7 @@ class PenguinTVApp:
 		
 		if self._state != MANUAL_SEARCH:
 			#save filter for later
-			self._saved_filter = self.main_window.get_active_filter()[0]
+			self._saved_filter = self.main_window.get_active_filter()[1]
 		if self._state == MANUAL_SEARCH:
 			self._saved_search = self.main_window.search_entry.get_text()
 			selected = self.feed_list_view.get_selected()

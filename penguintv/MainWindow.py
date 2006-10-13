@@ -653,10 +653,9 @@ class MainWindow:
 		if current_filter[F_TYPE] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
 			self.set_active_filter(FeedList.ALL)
 			return
-		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
 		self._filter_selector_button.set_label(current_filter[F_COUNT])
-		#just in case...
-		self._filter_selector_button.set_active(False)
+		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
+		
 		
 	def on_filter_selector_button_clicked(self, button):
 		if self._filter_selector_widget.is_visible():
@@ -782,7 +781,7 @@ class MainWindow:
 		self._window_add_search.set_query(query)		
 		
 	def on_search_clear_clicked(self, event):
-		self.set_active_filter(FeedList.ALL)
+		self._app.set_state(penguintv.DEFAULT)
 		
 	def on_saved_searches_activate(self, event):
 		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'penguintv.glade'),self._app)
@@ -994,6 +993,10 @@ class MainWindow:
 		self._filter_model[index][F_FAVORITE] = favorite
 				
 	def set_active_filter(self, index):
+		#just in case...
+		self._filter_selector_button.set_active(False)
+		if self._active_filter_index == index:
+			return
 		self._active_filter_index = index
 		self._active_filter_name = self._filter_model[index][F_TEXT]
 		self.on_filter_changed(None)

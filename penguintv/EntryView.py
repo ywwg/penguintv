@@ -610,7 +610,7 @@ class HTMLimgParser(htmllib.HTMLParser):
 class HTMLHighlightParser(HTMLParser.HTMLParser):
 	def __init__(self, highlight_terms):
 		HTMLParser.HTMLParser.__init__(self)
-		self.terms = [a.upper() for a in highlight_terms.split() if a.upper() not in ["AND","OR","NOT"]]
+		self.terms = [a.upper() for a in highlight_terms.split() if len(a)>3]
 		self.new_data = ""
 		self.style_start="""<span style="background-color: #ffff00">"""
 		self.style_end  ="</span>"
