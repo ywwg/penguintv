@@ -104,6 +104,7 @@ class EditTagsMultiDialog:
 		tags=[]
 		for tag in self._tag_list_widget.get_text().split(','):
 			tags.append(tag.strip())
+		tags = [t for t in tags if len(t)>0]
 			
 		for row in rows:
 			self._app.apply_tags_to_feed(model[row][0], self._old_tags, tags)

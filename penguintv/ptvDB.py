@@ -190,7 +190,7 @@ class ptvDB:
 		self._exiting=True
 		if HAS_LUCENE:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
-				print "have leftover things to reindex"
+				print "have leftover things to reindex, reindexing"
 				self.reindex() #it's usually not much...
 				#self.searcher.finish(True) #tell lucene we didn't reindex everything
 			#else:
@@ -306,7 +306,7 @@ class ptvDB:
 		print "upgrading to database schema 4"
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN type INT')
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN query')
-		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN favorite BOOL NOT NULL')
+		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN favorite INT')
 		self._db_execute(self._c, u'UPDATE tags SET type=?',(T_TAG,)) #they must all be regular tags right now
 		self._db_execute(self._c, u'UPDATE settings SET value=4 WHERE data="db_ver"')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN feed_pointer INT')
@@ -420,7 +420,7 @@ class ptvDB:
 							tag,
 							feed_id INT UNSIGNED NOT NULL,
 							query,
-							favorite BOOL NOT NULL,
+							favorite INT,
 							type INT);""")
 							
 		self._db_execute(self._c, u"""CREATE TABLE terms
@@ -2094,12 +2094,19 @@ class ptvDB:
 		
 	def get_all_tags(self, type=T_TAG):
 		if type==T_ALL:
-			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags ORDER BY tag')
+			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags')
 		elif type==T_TAG:
-			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags WHERE type=? ORDER BY tag',(T_TAG,))
+			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags WHERE type=?',(T_TAG,))
 		elif type==T_SEARCH:
-			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags WHERE type=? ORDER BY tag',(T_SEARCH,))
+			self._db_execute(self._c, u'SELECT DISTINCT tag,favorite FROM tags WHERE type=?',(T_SEARCH,))
 		result = self._c.fetchall()
+		def alpha_sorter(x,y):
+			if x[0].upper()>y[0].upper():
+				return 1
+			if x[0].upper()==y[0].upper():
+				return 0
+			return -1
+		result.sort(alpha_sorter)
 		return result
 	
 	def get_count_for_tag(self, tag):

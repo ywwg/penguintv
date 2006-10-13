@@ -319,14 +319,15 @@ class MainWindow:
 		else:
 			self.entry_pane = self.feed_pane #cheat
 		
-		self._filter_model = gtk.ListStore(str, #text to display
-										   str, #name of filter
+		self._filter_model = gtk.ListStore(str, #name of filter
+										   str, #text to display
 										   bool, #separator-or-not
-										   bool, #favorite
+										   int, #favorite
 										   bool, #non-favorite
 										   int) #type
 		
-		self._filter_selector_widget = FilterSelectorWidget.FilterSelectorWidget(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'filter_selector_widget', 'penguintv'), self, self._filter_model)
+		self._filter_selector_widget = FilterSelectorWidget.FilterSelectorWidget(os.path.join(self._glade_prefix,'penguintv.glade'),
+																				 self, self._filter_model)
 		
 		self.filter_unread_checkbox = components.get_widget('unread_filter')
 		self._filter_selector_button = components.get_widget('filter_selector_button')
@@ -965,19 +966,20 @@ class MainWindow:
 		for builtin in FeedList.BUILTIN_TAGS[1:]:
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
-			self._filter_model.append([builtin,builtin,False,False,False,ptvDB.T_BUILTIN])
+			self._filter_model.append([builtin,builtin,False,0,False,ptvDB.T_BUILTIN])
 
 		if ptvDB.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
-				self._filter_model.append(["---","---",True,False,False,ptvDB.T_BUILTIN])
+				self._filter_model.append(["---","---",True,0,False,ptvDB.T_BUILTIN])
 				for tag,favorite in tags:
-					self._filter_model.append([tag,tag,False,False,True,ptvDB.T_SEARCH])
+					self._filter_model.append([tag,tag,False,0,True,ptvDB.T_SEARCH])
 		
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
-			self._filter_model.append(["---","---",True,False,True,ptvDB.T_BUILTIN])
+			self._filter_model.append(["---","---",True,0,True,ptvDB.T_BUILTIN])
+			
 			for tag,favorite in tags:
 				self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,favorite,True,ptvDB.T_TAG])
 		

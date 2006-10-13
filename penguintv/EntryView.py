@@ -665,7 +665,7 @@ class HTMLImgAuthParser(HTMLParser.HTMLParser):
 				new_attrs.append(attr)
 			attrs = new_attrs
 		else:
-			print "not doing link tag"
+			pass#print "not doing link tag"
 		if len(attrs)>0:
 			self.new_data+="<"+str(tag)+" "+" ".join([i[0]+"=\""+i[1]+"\"" for i in attrs])+">"
 		else:
