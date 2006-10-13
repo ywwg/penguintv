@@ -567,10 +567,10 @@ class MainWindow:
 			menu = gtk.Menu()   
 			
 			path = widget.get_path_at_pos(int(event.x),int(event.y))
-			#model = widget.get_model()
+			model = widget.get_model()
 			if path is None: #nothing selected
 				return
-			selected = self._filter_model[path[0]][FeedList.FEEDID]
+			selected = model[path[0]][FeedList.FEEDID]
 			is_filter = self._db.is_feed_filter(selected)  
 			
 			if is_filter and not ptvDB.HAS_LUCENE:
@@ -656,16 +656,19 @@ class MainWindow:
 		self._filter_selector_button.set_label(current_filter[F_COUNT])
 		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
 		
-		
 	def on_filter_selector_button_clicked(self, button):
 		if self._filter_selector_widget.is_visible():
 			self._filter_selector_widget.Hide()
 			return
 		
-		rootwin = self._filter_selector_button.get_screen().get_root_window() #convenient widget
-		x, y, mods = rootwin.get_pointer()
-		
-		self._filter_selector_widget.ShowAt(x+10,y+10)
+		#figure out the onscreen location of the button by starting with the window
+		#and doing a translation
+		x,y =  self._filter_selector_button.window.get_position()
+		x_offset = self._filter_selector_button.get_allocation().width
+		x2,y2 = self._filter_selector_button.translate_coordinates(self.app_window, 0, 0)
+		x += x2 + x_offset
+		y += y2
+		self._filter_selector_widget.ShowAt(x,y)
 		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,

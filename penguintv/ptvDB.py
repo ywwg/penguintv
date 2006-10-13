@@ -2304,8 +2304,6 @@ class ptvDB:
 		for i in pop_entries:
 			print i
 		
-			
-		
 	def _resolve_pointed_feed(self, feed_id, c=None):
 		if c is None:
 			c = self._c
