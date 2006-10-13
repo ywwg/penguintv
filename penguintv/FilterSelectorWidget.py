@@ -48,6 +48,7 @@ class FilterSelectorWidget:
 		self._favorites_model =  gtk.ListStore(str, #name of filter
 											   str, #text to display
 											   int) #original id
+		self._favorites_old_order = []											 		
 		
 		self._favorites_treeview.set_model(self._favorites_model)
 
@@ -115,6 +116,7 @@ class FilterSelectorWidget:
 		has_tags = False
 		
 		self._favorites_model.clear()
+		
 		self._favorites_old_order = []
 		
 		i=-1
@@ -156,6 +158,8 @@ class FilterSelectorWidget:
 		self._do_unselect()
 						
 	def Hide(self):
+		if self._dragging: #dangerous?
+			return False
 		self._do_unselect()
 		self._complex_widget.hide()
 		self._simple_widget.hide()
@@ -166,6 +170,7 @@ class FilterSelectorWidget:
 			for tag in new_order:
 				i+=1
 				self._main_window.set_tag_favorite(tag, i)
+		return True
 				
 	def _on_button_release_event(self, button, event):
 		if not self._dragging:

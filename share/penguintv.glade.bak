@@ -1290,6 +1290,7 @@ j@v2v.cc
   <signal name="destroy_event" handler="on_app_destroy_event" last_modification_time="Sat, 11 Feb 2006 19:15:56 GMT"/>
   <signal name="delete_event" handler="on_app_delete_event" last_modification_time="Sat, 11 Feb 2006 19:15:53 GMT"/>
   <signal name="window_state_event" handler="on_app_window_state_event" last_modification_time="Sat, 11 Feb 2006 19:15:50 GMT"/>
+  <signal name="focus_out_event" handler="on_app_focus_out_event" last_modification_time="Fri, 13 Oct 2006 18:23:43 GMT"/>
 
   <child internal-child="dock">
     <widget class="BonoboDock" id="bonobodock1">
@@ -7522,7 +7523,7 @@ j@v2v.cc
 
 <widget class="GtkWindow" id="filter_selector_widget_with_tags">
   <property name="title" translatable="yes">window1</property>
-  <property name="type">GTK_WINDOW_TOPLEVEL</property>
+  <property name="type">GTK_WINDOW_POPUP</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>
@@ -7745,7 +7746,7 @@ j@v2v.cc
 
 <widget class="GtkWindow" id="filter_selector_widget_no_tags">
   <property name="title" translatable="yes">window1</property>
-  <property name="type">GTK_WINDOW_TOPLEVEL</property>
+  <property name="type">GTK_WINDOW_POPUP</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>
   <property name="resizable">True</property>

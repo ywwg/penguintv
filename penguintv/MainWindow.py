@@ -118,6 +118,7 @@ class MainWindow:
 				self._widgetTree.get_widget('reindex_searches').hide()
 			if not EntryView.MOZ_OK:
 				self._widgetTree.get_widget('planet_layout').hide()
+			self._window = self.app_window
 		else:  #if we are in OLPC mode and just have to supply a widget...
 			self._status_view = None
 			self._disk_usage_widget = None
@@ -137,10 +138,14 @@ class MainWindow:
 			if not ptvDB.HAS_LUCENE:
 				#remove UI elements that don't apply without search
 				self.search_container.hide_all()
+			self._window = dock_widget
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:
 			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar1','penguintv')
+			for key in dir(self.__class__): #python insaneness
+				if key[:3] == 'on_':
+					self._widgetTree.signal_connect(key, getattr(self, key))
 		toolbar = self._widgetTree.get_widget('toolbar1')
 		
 		#set up separator (see below)
@@ -416,6 +421,15 @@ class MainWindow:
 		del self.app_window
 		del self._status_view
 		del self._disk_usage_widget
+		
+	def get_parent(self):
+		#if self.app_window is not None:
+		#	return self.app_window
+		#else:
+		#	self._app.log(str(self._layout_dock.get_parent_window()))
+		#	return self._layout_dock.get_parent_window()
+		self._app.log(str(self._window))
+		return self._window
 
 	def on_about_activate(self,event):
 		try:
@@ -431,6 +445,10 @@ class MainWindow:
 		
 	def on_app_destroy_event(self,event,data):
 		self._app.do_quit()
+		
+	def on_app_focus_out_event(self, widget, event):
+		if self._filter_selector_widget.Hide(): #returns false if we're dragging
+			self._filter_selector_button.set_active(False)
 		
 	def on_app_window_state_event(self, client, event):
 		if event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED:
@@ -658,7 +676,7 @@ class MainWindow:
 		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
 		
 	def on_filter_selector_button_clicked(self, button):
-		if self._filter_selector_widget.is_visible():
+		if self._filter_selector_widget.is_visible() or not button.get_active():
 			self._filter_selector_widget.Hide()
 			return
 		
@@ -666,7 +684,10 @@ class MainWindow:
 		#and doing a translation
 		x,y =  self._filter_selector_button.window.get_position()
 		x_offset = self._filter_selector_button.get_allocation().width
-		x2,y2 = self._filter_selector_button.translate_coordinates(self.app_window, 0, 0)
+		if self.app_window is not None:
+			x2,y2 = self._filter_selector_button.translate_coordinates(self.app_window, 0, 0)
+		else: #olpc has no appwindow
+			x2,y2 = self._filter_selector_button.translate_coordinates(self._layout_dock, 0, 0)
 		x += x2 + x_offset
 		y += y2
 		self._filter_selector_widget.ShowAt(x,y)

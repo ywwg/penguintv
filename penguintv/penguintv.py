@@ -588,6 +588,7 @@ class PenguinTVApp:
 		feeds = self.db.get_feedlist()
 		download_list=self.db.get_media_for_download()
 		total_size=0
+		
 		if len(download_list)==0:
 			dialog = gtk.Dialog(title=_("No Unviewed Media"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("There is no unviewed media to download."))
