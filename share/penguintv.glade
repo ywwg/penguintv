@@ -7035,16 +7035,14 @@ j@v2v.cc
 		  <property name="spacing">0</property>
 
 		  <child>
-		    <widget class="GtkToggleButton" id="filter_selector_button">
+		    <widget class="GtkButton" id="filter_selector_button">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
 		      <property name="label" translatable="yes">All Feeds</property>
 		      <property name="use_underline">True</property>
 		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
-		      <property name="active">False</property>
-		      <property name="inconsistent">False</property>
-		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Sun, 15 Oct 2006 16:22:52 GMT"/>
+		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Sun, 15 Oct 2006 22:32:07 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>

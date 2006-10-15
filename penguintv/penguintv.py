@@ -844,13 +844,35 @@ class PenguinTVApp:
 				self._state = DONE_LOADING_FEEDS
 				return
 		
-		if self._state == DEFAULT:
-			return
+		#if self._state == DEFAULT:
+		#	return
 		
 		if self._state != MANUAL_SEARCH:
 			#save filter for later
 			self._saved_filter = self.main_window.get_active_filter()[1]
-		if self._state == MANUAL_SEARCH:
+		
+	def set_state(self, new_state, data=None):
+		if self._state == new_state:
+			return	
+			
+		#try:
+		self._unset_state()
+		#except:
+		#	return
+			
+		if new_state == MANUAL_SEARCH:
+			pass
+		elif new_state == TAG_SEARCH:
+			pass
+		elif new_state == LOADING_FEEDS:
+			pass
+			
+		self.main_window.set_state(new_state, data)
+		self._entry_view.set_state(new_state, data)
+		self._entry_list_view.set_state(new_state, data)
+		self.feed_list_view.set_state(new_state, data)
+		
+		if self._state == MANUAL_SEARCH and new_state == DEFAULT:
 			self._saved_search = self.main_window.search_entry.get_text()
 			selected = self.feed_list_view.get_selected()
 			if selected is not None:
@@ -861,29 +883,6 @@ class PenguinTVApp:
 					self.main_window.set_active_filter(self._saved_filter)
 			else:
 				self.main_window.set_active_filter(self._saved_filter)
-		#if self._state == TAG_SEARCH:
-		#	self.main_window.set_active_filter(FeedList.ALL)
-			
-	def set_state(self, new_state, data=None):
-		if self._state == new_state:
-			return	
-			
-		try:
-			self._unset_state()
-		except:
-			return
-			
-		if new_state == MANUAL_SEARCH:
-			pass
-		elif new_state == TAG_SEARCH:
-			pass
-		elif new_state == LOADING_FEEDS:
-			pass
-		
-		self.main_window.set_state(new_state, data)
-		self._entry_view.set_state(new_state, data)
-		self._entry_list_view.set_state(new_state, data)
-		self.feed_list_view.set_state(new_state, data)
 		
 		self._state = new_state
 		
@@ -917,8 +916,11 @@ class PenguinTVApp:
 		self._search(self._saved_search)
 		
 	def threaded_search(self, query):
+		#print "threaded search!"
 		if query != "":
 			if self._threaded_searcher is None:
+				#print "set to manual",MANUAL_SEARCH
+				#self.set_state(MANUAL_SEARCH)
 				self._threaded_searcher = PenguinTVApp._threaded_searcher(query, self.__got_search, self._searcher_done)
 			self._threaded_searcher.set_query(query)
 			if not self._waiting_for_search:
@@ -972,7 +974,7 @@ class PenguinTVApp:
 		if len(query)==0:
 			self.set_state(DEFAULT)
 			return
-			
+		print "hello, change state please"
 		self.set_state(MANUAL_SEARCH)
 		self._show_search(query, self._search(query))
 		
@@ -994,7 +996,7 @@ class PenguinTVApp:
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.get_active_filter()[1]
 		if filter_id == FeedList.SEARCH:
-			self.set_state(MANUAL_SEARCH)
+			#self.set_state(MANUAL_SEARCH)
 			self._show_search(self._saved_search, self._search(self._saved_search))
 			if self._threaded_searcher:
 				if not self._waiting_for_search:

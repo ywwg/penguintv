@@ -27,12 +27,9 @@ S_TAG_SEARCH    = 2
 S_LOADING_FEEDS = 3
 
 #filter model
-F_TEXT         = 0
-F_COUNT        = 1
-F_SEPARATOR    = 2 
-F_FAVORITE     = 3
-F_NOT_FAVORITE = 4
-F_TYPE         = 5						  
+F_NAME    = 0
+F_DISPLAY = 1
+F_TYPE    = 2
 
 import EditTextTagsDialog
 import EditTagsMultiDialog
@@ -43,7 +40,7 @@ import FeedFilterDialog
 import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
 import SynchronizeDialog
-import FilterSelectorWidget
+#import FilterSelectorWidget
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
 class MainWindow:
@@ -205,11 +202,6 @@ class MainWindow:
 		self._load_toolbar()
 		
 		#load the layout
-		#vbox = gtk.VBox()
-		#vbox.pack_start(self.load_layout())
-		#self._status_view = MainWindow._my_status_view()
-		#vbox.pack_start(self._status_view, False, False)
-		#self._layout_dock.add(vbox)
 		self._layout_dock = self.load_notebook()
 		notebook_dock.add(self._notebook)
 		self._layout_dock.add(self.load_layout())
@@ -324,37 +316,14 @@ class MainWindow:
 		else:
 			self.entry_pane = self.feed_pane #cheat
 		
-		self._filter_model = gtk.ListStore(str, #name of filter
-										   str, #text to display
-										   bool, #separator-or-not
-										   int, #favorite
-										   bool, #non-favorite
-										   int) #type
-		
-		self._filter_selector_widget = FilterSelectorWidget.FilterSelectorWidget(os.path.join(self._glade_prefix,'penguintv.glade'),
-																				 self, self._filter_model)
-		
 		self.filter_unread_checkbox = components.get_widget('unread_filter')
 		self._filter_selector_button = components.get_widget('filter_selector_button')
-		self._filter_model.append([FeedList.BUILTIN_TAGS[0],
-									     "("+str(len(self._db.get_feedlist()))+")",
-									     False,
-									     False, 
-									     False,
-									     ptvDB.T_BUILTIN])
-		for builtin in FeedList.BUILTIN_TAGS[1:]:
-			self._filter_model.append([builtin,
-									 		 "",
-											 False,
-											 False,
-											 False,
-											 ptvDB.T_BUILTIN,])
-		self._filter_model.append(["---",
-									     "---",
- 								  	     True,
-									     False,
-									     True,
-									     ptvDB.T_BUILTIN])
+		#self._filter_menubar = components.get_widget('filter_menubar')
+		#self._filter_menuitem = gtk.MenuItem()#components.get_widget('filter_menu_root')
+		self._filter_menu = gtk.Menu()
+		#self._filter_menu.append(self._filter_menuitem)
+		self._filter_menu.attach_to_widget(self._filter_selector_button, (lambda widget,menu:widget))
+		self._filters = [] #text, text to display, type
 		self.update_filters()
 		
 		self.set_active_filter(FeedList.ALL)
@@ -362,14 +331,6 @@ class MainWindow:
 		self.search_entry = components.get_widget('search_entry')
 		self.search_container = components.get_widget('search_container')
 		
-		#button = self._widgetTree.get_widget('search_button')
-		#button.set_property("image",gtk.image_new_from_stock('gtk-find',gtk.ICON_SIZE_SMALL_TOOLBAR))
-		#button.set_property("label",None)
-		
-		#button = self._widgetTree.get_widget('clear_search_button')
-		#button.set_property("image",gtk.image_new_from_stock('gtk-clear',gtk.ICON_SIZE_SMALL_TOOLBAR))
-		#button.set_property("label",None)
-						
 		#dnd
 		self._TARGET_TYPE_TEXT = 80
 		self._TARGET_TYPE_URL = 81
@@ -383,15 +344,13 @@ class MainWindow:
 		self.feed_pane.set_position(val)
 		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 309)
 		if val < 10: val = 50
-		#self.app_window.show_all()
-		#dock_widget.show_all()
 		self.entry_pane.set_position(val)
 		
 		val = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/default_filter')
 		if val is not None:
 			try:
-				filter_index = [row[F_TEXT] for row in self._filter_model].index(val)
-				cur_filter = self._filter_model[filter_index]
+				filter_index = [row[F_NAME] for row in self._filters].index(val)
+				cur_filter = self._filters[filter_index]
 				if cur_filter[F_TYPE] != ptvDB.T_SEARCH and filter_index!=FeedList.SEARCH:
 					#self.feed_list_view.set_filter(filter_index,val)
 					self.set_active_filter(filter_index)
@@ -445,11 +404,6 @@ class MainWindow:
 		
 	def on_app_destroy_event(self,event,data):
 		self._app.do_quit()
-		
-	def on_app_focus_out_event(self, widget, event):
-		if self._filter_selector_widget.Hide(): #returns false if we're dragging
-			self._filter_selector_button.released()
-			self._filter_selector_button.set_active(False)
 		
 	def on_app_window_state_event(self, client, event):
 		if event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED:
@@ -668,23 +622,32 @@ class MainWindow:
 		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 		
-	def on_filter_changed(self, widget):
-		current_filter = self._filter_model[self.get_active_filter()[1]]
+	def _on_filter_menu_activate(self, widget, filter_name):
+		names = [f[0] for f in self._filters]
+		self._active_filter_name = filter_name	
+		self._active_filter_index = names.index(filter_name)
+		self.on_filter_changed()
+		
+	def _on_edit_favorite_tags(self, widget):
+		print "launch the crazy window, but now it's a little less crazy"
+		
+	def on_filter_changed(self, widget=None):
+		current_filter = self._filters[self.get_active_filter()[1]]
+		#label = self._filter_menuitem.get_children()[0]
+		#label.set_text(current_filter[1])
+		self._filter_selector_button.set_label(current_filter[1])
 		if current_filter[F_TYPE] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
 			self.set_active_filter(FeedList.ALL)
 			return
-		self._filter_selector_button.set_label(current_filter[F_COUNT])
-		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
+		self._app.change_filter(current_filter[F_NAME],current_filter[F_TYPE])
 		
 	def on_filter_selector_button_press_event(self, button, event):
-		if button.get_active():
-			self._filter_selector_button.released()
-			self._filter_selector_widget.Hide()
-			return
-		
+		self._filter_menu.popup(None, None, self._position_menu_func, event.button, event.get_time())
+	
+	def _position_menu_func(self, data=None):
 		#figure out the onscreen location of the button by starting with the window
 		#and doing a translation
-		x,y =  self._filter_selector_button.window.get_position()
+		x,y = self._filter_selector_button.window.get_position()
 		y_offset = self._filter_selector_button.get_allocation().height
 		if self.app_window is not None:
 			x2,y2 = self._filter_selector_button.translate_coordinates(self.app_window, 0, 0)
@@ -692,9 +655,7 @@ class MainWindow:
 			x2,y2 = self._filter_selector_button.translate_coordinates(self._layout_dock, 0, 0)
 		x += x2
 		y += y2 + y_offset
-		gtk.gdk.pointer_ungrab(event.get_time())
-		self._filter_selector_widget.ShowAt(x,y)
-		
+		return (x,y,True)	
 		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -920,7 +881,6 @@ class MainWindow:
 	def _unset_state(self):
 		"""gets app ready to display new state by unloading current state"""
 		#bring state back to default
-		
 		if self._state == S_MANUAL_SEARCH:
 			self.search_entry.set_text("")
 		if self._state == S_MANUAL_SEARCH or self._state == S_TAG_SEARCH:
@@ -946,12 +906,10 @@ class MainWindow:
 			 penguintv.LOADING_FEEDS: S_LOADING_FEEDS}
 			 
 		new_state = d[new_state]
-		
 		if self._state == new_state:
 			return	
 			
 		self._unset_state()
-			 
 		if new_state == S_MANUAL_SEARCH:
 			if self.get_active_filter()[1] != FeedList.SEARCH:	
 				self.set_active_filter(FeedList.SEARCH)
@@ -977,37 +935,67 @@ class MainWindow:
 		"""update the filter combo box with the current list of filters"""
 		#get name of current filter, if a tag
 		current_filter = self.get_active_filter()[0]
-		#if current_filter not in BUILTIN_TAGS:	
-		#	if current_filter not in self._db.get_all_tags():
-		#		current_filter = ALL  #in case the current filter is an out of date tag
-		self._filter_model.clear()
-
-		self._filter_model.append([FeedList.BUILTIN_TAGS[0],
-				  	  FeedList.BUILTIN_TAGS[0]+" ("+str(len(self._db.get_feedlist()))+")",
-				  	  False,
-				  	  False,
-				  	  False,
-				  	  ptvDB.T_BUILTIN])
-		for builtin in FeedList.BUILTIN_TAGS[1:]:
+		self._filters = []
+		self._favorite_filters = []
+		
+		for builtin in FeedList.BUILTIN_TAGS:
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
-			self._filter_model.append([builtin,builtin,False,0,False,ptvDB.T_BUILTIN])
+			self._filters.append([builtin,builtin,ptvDB.T_BUILTIN])
+			menuitem = gtk.MenuItem(builtin)
+			menuitem.connect('activate',self._on_filter_menu_activate, builtin)
+			self._filter_menu.append(menuitem)
 
 		if ptvDB.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
-				self._filter_model.append(["---","---",True,0,False,ptvDB.T_BUILTIN])
+				sep = gtk.SeparatorMenuItem()
+				self._filter_menu.append(sep)
 				for tag,favorite in tags:
-					self._filter_model.append([tag,tag,False,0,True,ptvDB.T_SEARCH])
-		
+					self._filters.append([tag,tag,ptvDB.T_SEARCH])
+					menuitem = gtk.MenuItem(tag)
+					menuitem.connect('activate',self._on_filter_menu_activate, tag)
+					self._filter_menu.append(menuitem)
+					if favorite > 0:
+						self._favorite_filters.append([favorite, tag,tag]) 
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
-			self._filter_model.append(["---","---",True,0,True,ptvDB.T_BUILTIN])
-			
+			sep = gtk.SeparatorMenuItem()
+			self._filter_menu.append(sep)
 			for tag,favorite in tags:
-				self._filter_model.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",False,favorite,True,ptvDB.T_TAG])
+				self._filters.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
+				if favorite > 0:
+					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")"])
 		
+		self._favorite_filters.sort()
+		self._favorite_filters = [f[1:] for f in self._favorite_filters]
+		
+		for fav in self._favorite_filters:
+			menuitem = gtk.MenuItem(fav[1])
+			menuitem.connect('activate',self._on_filter_menu_activate, fav[0])
+			self._filter_menu.append(menuitem)
+			
+		if tags:
+			all_tags_item = gtk.MenuItem(_('All Tags'))
+			all_tags_submenu = gtk.Menu()
+			for f in self._filters:
+				if f[2] == ptvDB.T_TAG:
+					menuitem = gtk.MenuItem(f[1])
+					menuitem.connect('activate',self._on_filter_menu_activate, f[0])
+					all_tags_submenu.append(menuitem)
+			all_tags_item.set_submenu(all_tags_submenu)
+			self._filter_menu.append(all_tags_item)
+			
+		sep = gtk.SeparatorMenuItem()
+		self._filter_menu.append(sep)
+	
+		menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
+		menuitem.connect('activate', self._on_edit_favorite_tags)
+		self._filter_menu.append(menuitem) 
+					
+		self._filter_menu.show_all()
+				
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
 		if not self.changing_layout:
@@ -1018,34 +1006,30 @@ class MainWindow:
 				
 	def set_tag_favorite(self, tag_name, favorite):
 		self._db.set_tag_favorite(tag_name, favorite)
-		names = [m[F_TEXT] for m in self._filter_model]
-		index = names.index(tag_name)
-		self._filter_model[index][F_FAVORITE] = favorite
+		if tag_name not in self._favorite_filters:
+			self._favorite_filters.insert(favorite-1,tag_name)
 				
 	def set_active_filter(self, index):
-		#just in case...
-		self._filter_selector_button.released()
-		self._filter_selector_button.set_active(False)
 		if self._active_filter_index == index:
 			return
 		self._active_filter_index = index
-		self._active_filter_name = self._filter_model[index][F_TEXT]
-		self.on_filter_changed(None)
+		self._active_filter_name = self._filters[index][F_NAME]
+		self.on_filter_changed()
 			
 	def get_filter_name(self, filt):
-		return self._filter_model[filt][F_TEXT]
+		return self._filters[filt][F_NAME]
 		
 	def get_active_filter(self):
 		return (self._active_filter_name,self._active_filter_index) 
 		
 	def rename_filter(self, old_name, new_name):
-		names = [m[F_TEXT] for m in self._filter_model]
+		names = [m[F_NAME] for m in self._filters]
 		index = names.index(old_name)
-		self._filter_model[index][F_TEXT] = new_name
-		self._filter_model[index][F_COUNT] = new_name
+		self._filters[index][F_NAME] = new_name
+		self._filters[index][F_DISPLAY] = new_name
 		
 	def get_index_for_filter(self, filter_name):
-		names = [f[F_TEXT] for f in self._filter_model]
+		names = [f[F_NAME] for f in self._filters]
 		if filter_name not in names:
 			return None
 		return names.index(filter_name)

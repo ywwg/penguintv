@@ -41,6 +41,9 @@ else:
 		HAS_GCONF = True
 	except:
 		HAS_GCONF = False
+		
+##DEBUG!
+#HAS_LUCENE=False
 
 import timeoutsocket
 import smtplib
