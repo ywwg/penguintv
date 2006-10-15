@@ -28,6 +28,7 @@ class FilterSelectorWidget:
 			
 		self._builtins_treeview_complex = self._xml_complex.get_widget('builtins_treeview')
 		self._builtins_treeview_complex.set_model(builtins_model)
+		self._builtins_treeview_complex.set_hover_selection(True)
 		column = gtk.TreeViewColumn(_('Builtin Tags'))
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer)
@@ -37,6 +38,7 @@ class FilterSelectorWidget:
 		
 		self._builtins_treeview_simple = self._xml_simple.get_widget('builtins_treeview')
 		self._builtins_treeview_simple.set_model(builtins_model)
+		self._builtins_treeview_simple.set_hover_selection(True)
 		column = gtk.TreeViewColumn(_('Builtin Tags'))
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer)
@@ -51,6 +53,7 @@ class FilterSelectorWidget:
 		self._favorites_old_order = []											 		
 		
 		self._favorites_treeview.set_model(self._favorites_model)
+		self._favorites_treeview.set_hover_selection(True)
 
 		column = gtk.TreeViewColumn(_('Favorites'))
 		renderer = gtk.CellRendererText()
@@ -97,8 +100,13 @@ class FilterSelectorWidget:
 				self._xml_complex.signal_connect(key, getattr(self, key))
 		
 		self._builtins_treeview_simple.connect('button-release-event', self._on_button_release_event)
+		self._xml_complex.get_widget('show_all_tags_button').connect('toggled', self._on_show_details_toggled)
 		
 		self._old_list = []
+		self._pane_position = 0
+		self._window_width = 0
+		self._smaller_height = 1
+		self._expanded_height = 1
 		
 	def is_visible(self):
 		return self._complex_widget.get_property('visible') or self._simple_widget.get_property('visible')
@@ -138,24 +146,43 @@ class FilterSelectorWidget:
 		for row in self._favorites_old_order:
 			self._favorites_model.append(row[1:])
 		
-		pane_position = pango.PIXELS((widest_left+10)*char_width)
-		window_width  = pango.PIXELS((widest_left+widest_right+10)*char_width)+100
+		self._pane_position = pango.PIXELS((widest_left+10)*char_width)
+		self._window_width  = pango.PIXELS((widest_left+widest_right+10)*char_width)+100
 		
 		if has_tags:
 			widget = self._complex_widget
 			self._complex_widget.move(x,y)
-			self._complex_widget.resize(window_width,500)
-			self._pane.set_position(pane_position)
+			self._complex_widget.resize(self._pane_position,1)
+			self._pane.set_position(self._pane_position)
 			self._all_tags_filter.refilter()
 			self._favorites_treeview.columns_autosize()
 			self._all_tags_treeview.columns_autosize()
-			self._complex_widget.show_all()		
+			self._complex_widget.show()	
+			self._builtins_treeview_complex.show_all()
+			self._favorites_treeview.show_all()
 		else:
 			self._simple_widget.move(x,y)
-			self._simple_widget.resize(pane_position,10)
+			self._simple_widget.resize(self._pane_position,10)
 			self._simple_widget.show_all()
 			
 		self._do_unselect()
+		
+	def _hide_complex_details(self):
+		self._xml_complex.get_widget('instruction_box').hide()
+		self._xml_complex.get_widget('all_tags_window').hide()
+		self._complex_widget.set_size_request(self._pane_position,self._smaller_height)
+		self._complex_widget.resize(self._pane_position,self._smaller_height)
+		
+	def _show_complex_details(self):
+		self._xml_complex.get_widget('instruction_box').show_all()
+		self._xml_complex.get_widget('all_tags_window').show_all()
+		self._complex_widget.set_size_request(-1,-1)
+		self._complex_widget.resize(self._window_width,self._expanded_height)
+		
+	def _on_instruction_box_realize(self, widget):
+		self._expanded_height = self._xml_complex.get_widget('expanded_vbox').size_request()[1]
+		self._smaller_height = self._xml_complex.get_widget('hpaned').size_request()[1]
+		self._hide_complex_details()
 						
 	def Hide(self):
 		if self._dragging: #dangerous?
@@ -163,6 +190,7 @@ class FilterSelectorWidget:
 		self._do_unselect()
 		self._complex_widget.hide()
 		self._simple_widget.hide()
+		self._xml_complex.get_widget('show_all_tags_button').set_active(False)
 		new_order = [r[0] for r in self._favorites_model]
 		old_order = [r[1] for r in self._favorites_old_order]
 		if old_order != new_order:
@@ -171,6 +199,12 @@ class FilterSelectorWidget:
 				i+=1
 				self._main_window.set_tag_favorite(tag, i)
 		return True
+		
+	def _on_show_details_toggled(self, button):
+		if button.get_active():
+			self._show_complex_details()
+		else:
+			self._hide_complex_details()
 				
 	def _on_button_release_event(self, button, event):
 		if not self._dragging:

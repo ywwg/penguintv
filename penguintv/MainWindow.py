@@ -675,21 +675,23 @@ class MainWindow:
 		self._filter_selector_button.set_label(current_filter[F_COUNT])
 		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
 		
-	def on_filter_selector_button_clicked(self, button):
-		if self._filter_selector_widget.is_visible() or not button.get_active():
+	def on_filter_selector_button_press_event(self, button, event):
+		#if self._filter_selector_widget.is_visible() or button.get_active():
+		if button.get_active():
 			self._filter_selector_widget.Hide()
 			return
 		
 		#figure out the onscreen location of the button by starting with the window
 		#and doing a translation
 		x,y =  self._filter_selector_button.window.get_position()
-		x_offset = self._filter_selector_button.get_allocation().width
+		y_offset = self._filter_selector_button.get_allocation().height
 		if self.app_window is not None:
 			x2,y2 = self._filter_selector_button.translate_coordinates(self.app_window, 0, 0)
 		else: #olpc has no appwindow
 			x2,y2 = self._filter_selector_button.translate_coordinates(self._layout_dock, 0, 0)
-		x += x2 + x_offset
-		y += y2
+		x += x2
+		y += y2 + y_offset
+		gtk.gdk.pointer_ungrab(event.get_time())
 		self._filter_selector_widget.ShowAt(x,y)
 		
 	def on_import_opml_activate(self, event):
