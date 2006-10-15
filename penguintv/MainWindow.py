@@ -677,7 +677,6 @@ class MainWindow:
 		self._app.change_filter(current_filter[F_TEXT],current_filter[F_TYPE])
 		
 	def on_filter_selector_button_press_event(self, button, event):
-		#if self._filter_selector_widget.is_visible() or button.get_active():
 		if button.get_active():
 			self._filter_selector_button.released()
 			self._filter_selector_widget.Hide()
@@ -693,7 +692,6 @@ class MainWindow:
 			x2,y2 = self._filter_selector_button.translate_coordinates(self._layout_dock, 0, 0)
 		x += x2
 		y += y2 + y_offset
-		#self._filter_selector_button.released()
 		gtk.gdk.pointer_ungrab(event.get_time())
 		self._filter_selector_widget.ShowAt(x,y)
 		

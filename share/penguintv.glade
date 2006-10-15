@@ -4204,7 +4204,7 @@ j@v2v.cc
 	      <property name="focus_on_click">True</property>
 	      <property name="active">False</property>
 	      <property name="inconsistent">False</property>
-	      <signal name="clicked" handler="on_filter_selector_button_clicked" last_modification_time="Fri, 13 Oct 2006 13:45:44 GMT"/>
+	      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Sun, 15 Oct 2006 18:46:58 GMT"/>
 	    </widget>
 	    <packing>
 	      <property name="padding">0</property>
@@ -4569,7 +4569,7 @@ j@v2v.cc
 		      <property name="focus_on_click">True</property>
 		      <property name="active">False</property>
 		      <property name="inconsistent">False</property>
-		      <signal name="clicked" handler="on_filter_selector_button_clicked" last_modification_time="Fri, 13 Oct 2006 13:45:48 GMT"/>
+		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Sun, 15 Oct 2006 18:47:08 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
@@ -4961,7 +4961,7 @@ j@v2v.cc
 		      <property name="focus_on_click">True</property>
 		      <property name="active">False</property>
 		      <property name="inconsistent">False</property>
-		      <signal name="clicked" handler="on_filter_selector_button_clicked" last_modification_time="Fri, 13 Oct 2006 13:45:55 GMT"/>
+		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Sun, 15 Oct 2006 18:47:17 GMT"/>
 		    </widget>
 		    <packing>
 		      <property name="padding">0</property>
