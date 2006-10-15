@@ -448,6 +448,7 @@ class MainWindow:
 		
 	def on_app_focus_out_event(self, widget, event):
 		if self._filter_selector_widget.Hide(): #returns false if we're dragging
+			self._filter_selector_button.released()
 			self._filter_selector_button.set_active(False)
 		
 	def on_app_window_state_event(self, client, event):
@@ -678,6 +679,7 @@ class MainWindow:
 	def on_filter_selector_button_press_event(self, button, event):
 		#if self._filter_selector_widget.is_visible() or button.get_active():
 		if button.get_active():
+			self._filter_selector_button.released()
 			self._filter_selector_widget.Hide()
 			return
 		
@@ -691,8 +693,10 @@ class MainWindow:
 			x2,y2 = self._filter_selector_button.translate_coordinates(self._layout_dock, 0, 0)
 		x += x2
 		y += y2 + y_offset
+		#self._filter_selector_button.released()
 		gtk.gdk.pointer_ungrab(event.get_time())
 		self._filter_selector_widget.ShowAt(x,y)
+		
 		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
@@ -1022,6 +1026,7 @@ class MainWindow:
 				
 	def set_active_filter(self, index):
 		#just in case...
+		self._filter_selector_button.released()
 		self._filter_selector_button.set_active(False)
 		if self._active_filter_index == index:
 			return
