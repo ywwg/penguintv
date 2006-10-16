@@ -2,6 +2,7 @@ import gtk
 import gtk.glade
 import gobject
 import sys, os, os.path
+import sets
 
 import traceback
 
@@ -27,9 +28,10 @@ S_TAG_SEARCH    = 2
 S_LOADING_FEEDS = 3
 
 #filter model
-F_NAME    = 0
-F_DISPLAY = 1
-F_TYPE    = 2
+F_FAVORITE = 0
+F_NAME     = 1
+F_DISPLAY  = 2
+F_TYPE     = 3
 
 import EditTextTagsDialog
 import EditTagsMultiDialog
@@ -40,7 +42,7 @@ import FeedFilterDialog
 import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
 import SynchronizeDialog
-#import FilterSelectorWidget
+import FilterSelectorDialog
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
 class MainWindow:
@@ -75,6 +77,7 @@ class MainWindow:
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
 		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
+		self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
 		
 		try:
 			self._about_box.set_version(utils.VERSION)
@@ -324,6 +327,7 @@ class MainWindow:
 		#self._filter_menu.append(self._filter_menuitem)
 		self._filter_menu.attach_to_widget(self._filter_selector_button, (lambda widget,menu:widget))
 		self._filters = [] #text, text to display, type
+		self._favorite_filters = [] #text, text to display, type
 		self.update_filters()
 		
 		self.set_active_filter(FeedList.ALL)
@@ -623,19 +627,23 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def _on_filter_menu_activate(self, widget, filter_name):
-		names = [f[0] for f in self._filters]
+		print filter_name
+		names = [f[F_NAME] for f in self._filters]
 		self._active_filter_name = filter_name	
 		self._active_filter_index = names.index(filter_name)
 		self.on_filter_changed()
 		
 	def _on_edit_favorite_tags(self, widget):
-		print "launch the crazy window, but now it's a little less crazy"
+		#self._filters
+		#self._favorite_filters #ordered
+		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
+		self._filter_selector_dialog.Show()	
 		
 	def on_filter_changed(self, widget=None):
 		current_filter = self._filters[self.get_active_filter()[1]]
 		#label = self._filter_menuitem.get_children()[0]
 		#label.set_text(current_filter[1])
-		self._filter_selector_button.set_label(current_filter[1])
+		self._filter_selector_button.set_label(current_filter[F_DISPLAY])
 		if current_filter[F_TYPE] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
 			self.set_active_filter(FeedList.ALL)
 			return
@@ -937,37 +945,40 @@ class MainWindow:
 		current_filter = self.get_active_filter()[0]
 		self._filters = []
 		self._favorite_filters = []
+		for child in self._filter_menu.get_children():
+			self._filter_menu.remove(child)
 		
+		i=-1 #we only set i here so that searches and regular tags have incrementing ids
 		for builtin in FeedList.BUILTIN_TAGS:
+			i+=1
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
-			self._filters.append([builtin,builtin,ptvDB.T_BUILTIN])
+			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
 			menuitem = gtk.MenuItem(builtin)
 			menuitem.connect('activate',self._on_filter_menu_activate, builtin)
 			self._filter_menu.append(menuitem)
 
+		has_search = False
 		if ptvDB.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
-				sep = gtk.SeparatorMenuItem()
-				self._filter_menu.append(sep)
+				has_search = True
 				for tag,favorite in tags:
-					self._filters.append([tag,tag,ptvDB.T_SEARCH])
-					menuitem = gtk.MenuItem(tag)
-					menuitem.connect('activate',self._on_filter_menu_activate, tag)
-					self._filter_menu.append(menuitem)
+					i+=1
+					self._filters.append([favorite, tag,tag,ptvDB.T_SEARCH])
 					if favorite > 0:
-						self._favorite_filters.append([favorite, tag,tag]) 
+						self._favorite_filters.append([favorite, tag,tag, i]) 
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)	
 		if tags:
 			sep = gtk.SeparatorMenuItem()
 			self._filter_menu.append(sep)
 			for tag,favorite in tags:
-				self._filters.append([tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
+				i+=1
+				self._filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
 				if favorite > 0:
-					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")"])
-		
+					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")", i])
+					
 		self._favorite_filters.sort()
 		self._favorite_filters = [f[1:] for f in self._favorite_filters]
 		
@@ -979,10 +990,18 @@ class MainWindow:
 		if tags:
 			all_tags_item = gtk.MenuItem(_('All Tags'))
 			all_tags_submenu = gtk.Menu()
+			if has_search:
+				for f in self._filters:
+					if f[F_TYPE] == ptvDB.T_SEARCH:
+						menuitem = gtk.MenuItem(f[F_DISPLAY])
+						menuitem.connect('activate',self._on_filter_menu_activate, f[F_NAME])
+						all_tags_submenu.append(menuitem)
+				sep = gtk.SeparatorMenuItem()
+				all_tags_submenu.append(sep)
 			for f in self._filters:
-				if f[2] == ptvDB.T_TAG:
-					menuitem = gtk.MenuItem(f[1])
-					menuitem.connect('activate',self._on_filter_menu_activate, f[0])
+				if f[F_TYPE] == ptvDB.T_TAG:
+					menuitem = gtk.MenuItem(f[F_DISPLAY])
+					menuitem.connect('activate',self._on_filter_menu_activate, f[F_NAME])
 					all_tags_submenu.append(menuitem)
 			all_tags_item.set_submenu(all_tags_submenu)
 			self._filter_menu.append(all_tags_item)
@@ -993,9 +1012,8 @@ class MainWindow:
 		menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
 		menuitem.connect('activate', self._on_edit_favorite_tags)
 		self._filter_menu.append(menuitem) 
-					
-		self._filter_menu.show_all()
-				
+		self._filter_menu.show_all()	
+		
 		#get index for our previously selected tag
 		index = self.get_index_for_filter(current_filter)
 		if not self.changing_layout:
@@ -1004,10 +1022,26 @@ class MainWindow:
 			else:
 				self.set_active_filter(FeedList.ALL)
 				
-	def set_tag_favorite(self, tag_name, favorite):
-		self._db.set_tag_favorite(tag_name, favorite)
-		if tag_name not in self._favorite_filters:
-			self._favorite_filters.insert(favorite-1,tag_name)
+	def set_tag_favorites(self, tag_list):
+		old_order = [f[0] for f in self._favorite_filters]
+		
+		i=0
+		for t in tag_list[:len(old_order)]:
+			i+=1
+			if t != old_order[i-1]:
+				self._db.set_tag_favorite(t, i)
+		
+		i=len(old_order)-1
+		for t in tag_list[len(old_order):]:
+			i+=1
+			self._db.set_tag_favorite(t, i)
+				
+		old = sets.Set(old_order)
+		new = sets.Set(tag_list)
+		removed = list(old.difference(new))
+		for t in removed:
+			self._db.set_tag_favorite(t, 0)
+		self.update_filters()
 				
 	def set_active_filter(self, index):
 		if self._active_filter_index == index:

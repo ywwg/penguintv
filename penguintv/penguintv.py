@@ -886,9 +886,6 @@ class PenguinTVApp:
 		
 		self._state = new_state
 		
-	#def get_state(self):
-	#	return self._state
-		
 	def _search(self, query, blacklist=None):
 		try:
 			query = query.replace("!","")
