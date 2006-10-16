@@ -665,7 +665,7 @@ class PenguinTVApp:
 			#select entries and get all the media ids, and tell them all to cancel
 			#in case they are downloading
 			try:
-				for entry_id,title,date,new in self.db.get_entrylist(feed):
+				for entry_id,title,date,read in self.db.get_entrylist(feed):
 					for medium in self.db.get_entry_media(entry_id):
 						if self.mediamanager.has_downloader(medium['media_id']):
 							self.mediamanager.stop_download(medium['media_id'])
@@ -798,7 +798,7 @@ class PenguinTVApp:
 	def mark_feed_as_viewed(self,feed):
 		self.db.mark_feed_as_viewed(feed)
 		self._entry_list_view.populate_entries(feed)
-		self.feed_list_view.update_feed_list(feed,['readinfo'])
+		self.feed_list_view.update_feed_list(feed,['readinfo'],{'unread_count':0})
 
 	def play_entry(self,entry):
 		media = self.db.get_entry_media(entry)

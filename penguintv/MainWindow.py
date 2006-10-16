@@ -627,7 +627,6 @@ class MainWindow:
 		self.set_wait_cursor(False)
 		
 	def _on_filter_menu_activate(self, widget, filter_name):
-		print filter_name
 		names = [f[F_NAME] for f in self._filters]
 		self._active_filter_name = filter_name	
 		self._active_filter_index = names.index(filter_name)

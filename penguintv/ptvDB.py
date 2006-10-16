@@ -317,6 +317,7 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN image')
 		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN download_date DATE')
 		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN thumbnail')
+		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN feed_id INTEGER UNSIGNED NOT NULL')
 		
 		self._db_execute(self._c, u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
 		self._db_execute(self._c, u'UPDATE feeds SET link=""')
@@ -327,6 +328,19 @@ class ptvDB:
 							frequency INT);""")
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
+		
+		print "building new column, please wait..."
+		self._db_execute(db._c, u'SELECT id FROM feeds')
+		for feed_id, in self._c.fetchall():
+			self._db_execute(self._c, u'SELECT media.id FROM entries INNER JOIN media ON media.entry_id = entries.id WHERE entries.feed_id=?', (feed_id,))
+			media = self._c.fetchall()
+			media = [m[0] for m in media]
+			if len(media) > 0:
+				qmarks = "?,"*(len(media)-1)+"?"
+				self._db_execute(db._c, u'UPDATE media SET feed_id=? WHERE id IN ('+qmarks+')', tuple([feed_id] + media))
+
+		self._db.commit()
+		print "done"
 		
 	def _init_database(self):
 		try:
@@ -405,6 +419,7 @@ class ptvDB:
 							(
 								id INTEGER  PRIMARY KEY,
 								entry_id INTEGER UNSIGNED NOT NULL,
+								feed_id INTEGER UNSIGNED NOT NULL,
 								url  NOT NULL,
 								file ,
 								mimetype ,
@@ -1197,7 +1212,7 @@ class ptvDB:
 					for media in item['enclosures']:
 						media.setdefault('length', 0)
 						media.setdefault('type', 'application/octet-stream')
-						self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
+						self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length'], feed_id))
 				self._reindex_entry_list.append(entry_id)
 			elif status[0]==EXISTS:
 				self._db_execute(c, """UPDATE entries SET old=0 where id=?""",(status[1],))
@@ -1235,7 +1250,7 @@ class ptvDB:
 								#if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
-								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, download_date) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length']))
+								self._db_execute(c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length'], feed_id))
 								self._db_execute(c, u'UPDATE entries SET read=0 WHERE id=?', (status[1],))
 					#db.commit()
 				self._reindex_entry_list.append(status[1])
@@ -1244,17 +1259,17 @@ class ptvDB:
 			i+=1
 		db.commit()
 		#don't call anything old that has media...
-		self._db_execute(c, """SELECT entries.id FROM entries INNER JOIN media ON entries.id = media.entry_id WHERE media.download_status>0 AND entries.feed_id=?""",(feed_id,))
+		self._db_execute(c, """SELECT entry_id FROM media WHERE download_status>0 AND feed_id=?""",(feed_id,))
 		for id in c.fetchall():
 			self._db_execute(c, """UPDATE entries SET old=0 WHERE id=?""",(id[0],))
 		db.commit()
 		#anything not set above as new, mod, or exists is no longer in
 		#the xml and therefore should be deleted
 		
-		self._db_execute(c, """SELECT id FROM entries WHERE feed_id=?""",(feed_id,))
-		all_entries = len(c.fetchall())
-		self._db_execute(c, """SELECT id FROM entries WHERE old=1 AND feed_id=?""",(feed_id,))
-		old_entries = len(c.fetchall())
+		self._db_execute(c, """SELECT count(*) FROM entries WHERE feed_id=?""",(feed_id,))
+		all_entries = c.fetchone()[0]
+		self._db_execute(c, """SELECT count(*) FROM entries WHERE old=1 AND feed_id=?""",(feed_id,))
+		old_entries = c.fetchone()[0]
 		if old_entries>0:
 			new_entries = all_entries - old_entries
 			if MAX_ARTICLES > 0: #zero means never delete
@@ -1462,6 +1477,10 @@ class ptvDB:
 		medium['viewed']=int(datum[5]) #MAGIC
 		medium['mimetype']=datum[6] #MAGIC
 		return medium
+		
+	def get_feed_media_count(self, feed_id):
+		self._db_execute(self._c, u'SELECT count(*) FROM media WHERE feed_id=?',(feed_id,))
+		return self._c.fetchone()[0]
 	
 	def get_entry(self, entry_id):
 		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date FROM entries WHERE id=?""",(entry_id,))
@@ -1494,31 +1513,19 @@ class ptvDB:
 			if len(entries)==0:
 				return []
 			entries.sort(lambda x,y: int(y[2] - x[2]))
-			#need list of "new"s.
-			#self._db_execute(c, u'SELECT id,new FROM entries WHERE feed_id=? ORDER BY fakedate DESC',(pointed_feed,))
-			#new_info = c.fetchall()
-			#ret_val = []
-			#i=0
-			#try:
-			#	for entry in entries:
-			#		while new_info[i][0] != entry[0]:
-			#			i+=1
-			#		ret_val.append((entry[0],entry[1],entry[2],new_info[i][1]))
-			#except Exception, e:
-			#	print "problem with getentrylist..."
-			#	print e
-			#	print i
-			#	print len(entries)
-			#	print len(new_info)
 			self._filtered_entries[feed_index] = entries
 			return entries
 	
-		self._db_execute(c, """SELECT id,title,fakedate FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
+		self._db_execute(c, """SELECT id,title,fakedate,read FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
 		result = c.fetchall()
 		
 		if result=="":
 			raise NoFeed, feed_index
 		return result
+		
+	def get_entry_count(self, feed_id):
+		self._db_execute(self._c, u'SELECT count(*) FROM entries WHERE feed_id=?', (feed_id,))
+		return self._c.fetchone()[0]
 
 	def get_feedlist(self):
 		self._db_execute(self._c, """SELECT id,title FROM feeds ORDER BY UPPER(title)""")
@@ -1646,7 +1653,6 @@ class ptvDB:
 			#mark as unviewed by default
 			self.set_entry_read(entry_id, 0)
 				
-		
 	def get_media_size(self, media_id):
 		self._db_execute(self._c, u'SELECT length FROM media WHERE id=?',(media_id,))
 		return self._c.fetchone()[0]
@@ -1689,9 +1695,9 @@ class ptvDB:
 		return ret[0]
 		
 	def get_media_for_download(self):
-		self._db_execute(self._c, u'SELECT media.id, media.length, media.entry_id, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE (download_status==? OR download_status==?) AND viewed=0',(D_NOT_DOWNLOADED,D_RESUMABLE))
+		self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE (download_status==? OR download_status==?) AND viewed=0',(D_NOT_DOWNLOADED,D_RESUMABLE))
 		list=self._c.fetchall()
-		self._db_execute(self._c, u'SELECT media.id, media.length, media.entry_id, entries.feed_id FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status==?',(D_ERROR,))
+		self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE download_status==?',(D_ERROR,))
 		list=list+self._c.fetchall()
 		newlist=[]
 		for item in list:
@@ -1715,7 +1721,7 @@ class ptvDB:
 		return newlist 
 		
 	def get_resumable_media(self):
-		self._db_execute(self._c, u'SELECT media.id, media.file, media.entry_id, entries.feed_id  FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=?',(D_RESUMABLE,))
+		self._db_execute(self._c, u'SELECT id, file, entry_id, feed_id  FROM media WHERE download_status=?',(D_RESUMABLE,))
 		list = self._c.fetchall()
 		dict_list = []	
 		dict = {}
@@ -1731,22 +1737,20 @@ class ptvDB:
 	def mark_feed_as_viewed(self, feed_id):
 		"""marks a feed's entries and media as viewed.  If there's a way to do this all
 		in sql, I'd like to know"""
-		
 		if self._filtered_entries.has_key(feed_id):
 			list = []
 			for entry in self._filtered_entries[feed_id]:
-				self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE id=?',(entry[0],))
-				self._db_execute(self._c, u'SELECT media.id, media.download_status FROM media WHERE entry_id=?',(entry[0],))
+				self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE id=? AND read=0',(entry[0],))
+				self._db_execute(self._c, u'SELECT id, download_status FROM media WHERE entry_id=?',(entry[0],))
 				list = list+self._c.fetchall()
 			feed_id = self._resolve_pointed_feed(feed_id)
 		else:
 			#feed_id = self._resolve_pointed_feed(feed_id)
-			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE feed_id=?',(feed_id,))#
-			self._db_execute(self._c, u'SELECT media.id, media.download_status FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE entries.feed_id = ?',(feed_id,))
+			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE feed_id=? AND read=0',(feed_id,))
+			self._db_execute(self._c, u'SELECT id, download_status FROM media WHERE feed_id = ?',(feed_id,))
 			list = self._c.fetchall()
-			
 		for item in list:
-			self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE id=?',(1,item[0]))
+			self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE id=? AND viewed=0',(1,item[0]))
 			if item[1] == D_ERROR:
 				self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE id=?', (D_NOT_DOWNLOADED,item[0]))
 		self._db.commit()
@@ -1757,16 +1761,16 @@ class ptvDB:
 				del self.entry_flag_cache[item[0]]
 	
 	def media_exists(self, filename):
-		self._db_execute(self._c, u'SELECT media.id FROM media WHERE media.file=?',(filename,))
-		list=self._c.fetchall()
-		if len(list)>1:
+		self._db_execute(self._c, u'SELECT count(*) FROM media WHERE media.file=?',(filename,))
+		count = self._c.fetchone()[0]
+		if count>1:
 			print "WARNING: multiple entries in db for one filename"
-		if len(list)==0:
+		if count==0:
 			return False
 		return True
 		
 	def get_unplayed_media(self, set_viewed=False):
-		self._db_execute(self._c, u'SELECT media.id, media.entry_id, entries.feed_id, media.file FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
+		self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file FROM media WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
 		list=self._c.fetchall()
 		playlist=[]
 		if set_viewed:
@@ -1794,7 +1798,7 @@ class ptvDB:
 	def get_entry_download_status(self, entry_id, c=None):
 		if c == None:
 			c = self._c
-		self._db_execute(c, u'SELECT media.download_status, media.viewed FROM media INNER JOIN entries ON media.entry_id=entries.id WHERE media.download_status!=0 AND entries.id=?',(entry_id,))
+		self._db_execute(c, u'SELECT download_status, viewed FROM media WHERE download_status!=0 AND entry_id=?',(entry_id,))
 		result = c.fetchall()
 		#if entry_id==262:
 		#	print result
@@ -1875,20 +1879,18 @@ class ptvDB:
 			feed_info['poll_fail'] = True
 		return feed_info
 	
-	def get_entry_flag(self, entry_id, c=None, medialist=None):
+	def get_entry_flag(self, entry_id, c=None, medialist=None, read=None):
 		if self.entry_flag_cache.has_key(entry_id):
-			#print "cache hit "+str(entry_id)
 			return self.entry_flag_cache[entry_id]
-		#print "cache miss "+str(entry_id)
 
 		if c == None:
 			c = self._c
 			
 		importance=0
-		#status = self.get_entry_download_status(entry_id,c)
 		
-		self._db_execute(c, u'SELECT read FROM entries WHERE id=?',(entry_id,))
-		read = c.fetchone()[0]
+		if read is None:
+			self._db_execute(c, u'SELECT read FROM entries WHERE id=?',(entry_id,))
+			read = c.fetchone()[0]
 		
 		if medialist is None:
 			medialist = self.get_entry_media(entry_id,c)
@@ -1943,14 +1945,15 @@ class ptvDB:
 					list.append(c.fetchone())
 				except:
 					pass
+			unread=0
+			for item in list:
+				if item[0]==0:
+					unread=unread+1
 		else:
 			feed_id = self._resolve_pointed_feed(feed_id, c)		
-			self._db_execute(c, u'SELECT read FROM entries WHERE feed_id=?',(feed_id,))
-			list = c.fetchall()
-		unread=0
-		for item in list:
-			if item[0]==0:
-				unread=unread+1
+			self._db_execute(c, u'SELECT count(*) FROM entries WHERE feed_id=? and read=0', (feed_id,))
+			unread = c.fetchone()[0]
+		
 		return unread
 		
 	def correct_unread_count(self, feed_id): #FIXME: we shouldn't need this one day
@@ -1973,20 +1976,17 @@ class ptvDB:
 	def get_entry_flags(self, feed_id, c=None):
 		if c is None:
 			c = self._c
-		#self._db_execute(c, u'SELECT feed_pointer, description FROM feeds WHERE id=?',(feed_id,))
-		#result = c.fetchone()
-		#if result[0] >= 0:
+		medialist=None
 		if self._filtered_entries.has_key(feed_id):
 			entrylist = [e[0] for e in self._filtered_entries[feed_id]]
-			#entrylist = self.search(result[1], feed_id)
-			#entrylist = [e[0] for e in entrylist]
 		else:
-			self._db_execute(c, u'SELECT id FROM entries WHERE feed_id=?',(feed_id,))
+			self._db_execute(c, u'SELECT id, read FROM entries WHERE feed_id=?',(feed_id,))
 			entrylist = c.fetchall()
-			entrylist = [e[0] for e in entrylist]
+			if self.get_feed_media_count(feed_id) == 0:
+				medialist = []
 		flaglist = []
-		for entry in entrylist:
-			flaglist.append(self.get_entry_flag(entry,c))
+		for entry,read in entrylist:
+			flaglist.append(self.get_entry_flag(entry,c,read=read, medialist=medialist))
 		return flaglist
 	
 	def get_feed_flag(self, feed_id):#, c=None):
@@ -2113,9 +2113,9 @@ class ptvDB:
 		return result
 	
 	def get_count_for_tag(self, tag):
-		self._db_execute(self._c, u'SELECT feed_id FROM tags WHERE tag=?',(tag,))
-		result = self._c.fetchall()
-		return len(result)
+		self._db_execute(self._c, u'SELECT count(*) FROM tags WHERE tag=?',(tag,))
+		result = self._c.fetchone()[0]
+		return result
 		
 	def export_OPML(self,stream):
 		self._db_execute(self._c, u'SELECT title, description, url FROM feeds ORDER BY UPPER(title)')

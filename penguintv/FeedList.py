@@ -281,7 +281,6 @@ class FeedList:
 		
 		update_what is a bunch of strings saying what we want to update.  it will go to the
 		db for info unless the value is already in update_data"""
-		
 		if feed_id is None:
 			if self._last_feed is None:
 				return
@@ -303,9 +302,7 @@ class FeedList:
 			
 		need_filter = False #some updates will require refiltering. 
 		
-		if 'pollfail' not in update_what or len(update_what)>1:
-			#or in the converse, if pollfail in what and len is one, we don't need to do this
-			
+		if 'title' in update_what or 'icon' in update_what:
 			if not update_data.has_key('flag_list'):
 				entrylist = self._db.get_entrylist(feed_id)
 				if entrylist:
@@ -317,7 +314,6 @@ class FeedList:
 			unviewed=0
 			downloaded=0
 		 	
-			updated=1
 			for flag in update_data['flag_list']:
 				if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					unviewed=unviewed+1
@@ -337,7 +333,7 @@ class FeedList:
 			feed[POLLFAIL] = update_data['pollfail']
 			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 				feed[STOCKID]='gtk-dialog-error'
-				
+		
 		if 'readinfo' in update_what:
 			#db_unread_count = self._db.get_unread_count(feed_id) #need it always for FIXME below
 			if not update_data.has_key('unread_count'):
@@ -356,9 +352,9 @@ class FeedList:
 				feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
 				
 			if self._filter_unread:
-		 		if updated==1 and unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
+		 		if unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
 					need_filter = True
-					
+		
 		if 'title' in update_what:
 			selected = self.get_selected()
 			if not update_data.has_key('title'):
@@ -387,7 +383,7 @@ class FeedList:
 					feed[STOCKID]='gtk-dialog-error'
 			feed[FLAG] = flag	 
 		 	if self.filter_setting == DOWNLOADED:
-		 		if updated==1 and downloaded==0:
+		 		if downloaded==0:
 			 		need_filter = True	
 			
 		if need_filter and self._state != S_SEARCH:#not self._showing_search:

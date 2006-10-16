@@ -51,6 +51,7 @@ class PlanetView:
 		self._auth_info = (-1, "","") #user:pass, url
 		
 		self._entrylist = []
+		self._readinfo  = []
 		self._entry_store = {}
 		
 		self._first_entry = 0 #first entry visible
@@ -128,7 +129,7 @@ class PlanetView:
 		if feed_id==-1:
 			self.clear_entries()
 			return
-
+			
 		db_entrylist = self._db.get_entrylist(feed_id)
 		if feed_id != self._current_feed_id:
 			self._current_feed_id = feed_id
@@ -142,8 +143,8 @@ class PlanetView:
 				self._auth_info = (-1, "","")
 		
 		self._entrylist = [e[0] for e in db_entrylist]
+		self._readinfo  = [e[3] for e in db_entrylist]
 		self._render_entries()
-		
 		
 	def auto_pane(self):
 		pass
@@ -178,6 +179,7 @@ class PlanetView:
 		self._first_entry = 0
 		self._entry_store={}
 		self._entrylist = []
+		self._readinfo  = []
 		self._render("<html><body></body></html")
 		
 	def _unset_state(self):
@@ -227,6 +229,7 @@ class PlanetView:
 	def _render_entries(self, highlight=None):
 		"""Takes a block on entry_ids and throws up a page.  also calls penguintv so that entries
 		are marked as read"""
+
 		if self._first_entry < 0:
 			self._first_entry = 0
 			
@@ -239,11 +242,14 @@ class PlanetView:
 		entries = ""
 		html = ""
 		unreads = []
+
+		i=-1
 		for entry_id in self._entrylist[self._first_entry:last_entry]:
+			i+=1
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
 				media_exists = True
-			if not item.has_key('media'):
+			if not item.has_key('media') and self._readinfo[i]==0:
 				unreads.append(entry_id)
 			if highlight is not None:
 				entry_html = entry_html.encode('utf-8')
@@ -261,7 +267,7 @@ class PlanetView:
 				entry_html = p.new_data
 			
 			entries += entry_html
-			
+
 		self._app.mark_entrylist_as_viewed(unreads, False)
 		for e in unreads:
 			try:
@@ -270,7 +276,6 @@ class PlanetView:
 				print "warning: can't remove non-existant entry from store"
 			
 		#######build HTML#######	
-				
 		html = self._build_header(media_exists)
 		
 		html += """<div id="nav_bar"><table
@@ -302,7 +307,6 @@ class PlanetView:
 			html += '<a href="planet:down">Older Entries</a>'
 		html += "</td></tr></tbody></table></div>"
 		html += "</body></html>"
-		
 		self._render(html)
 	
 	def _build_header(self, media_exists):
