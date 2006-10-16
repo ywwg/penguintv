@@ -97,7 +97,7 @@ class EntryList:
 		
 		def populate_gen():
 			i=-1
-			for entry_id,title,date in db_entrylist:
+			for entry_id,title,date,read in db_entrylist:
 				i=i+1	
 				flag = self._db.get_entry_flag(entry_id)
 				icon = self._get_icon(flag)

@@ -317,7 +317,7 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN image')
 		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN download_date DATE')
 		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN thumbnail')
-		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN feed_id INTEGER UNSIGNED NOT NULL')
+		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN feed_id INTEGER')
 		
 		self._db_execute(self._c, u'UPDATE feeds SET feed_pointer=-1') #no filters yet!
 		self._db_execute(self._c, u'UPDATE feeds SET link=""')
@@ -330,14 +330,14 @@ class ptvDB:
 		self._db.commit()
 		
 		print "building new column, please wait..."
-		self._db_execute(db._c, u'SELECT id FROM feeds')
+		self._db_execute(self._c, u'SELECT id FROM feeds')
 		for feed_id, in self._c.fetchall():
 			self._db_execute(self._c, u'SELECT media.id FROM entries INNER JOIN media ON media.entry_id = entries.id WHERE entries.feed_id=?', (feed_id,))
 			media = self._c.fetchall()
 			media = [m[0] for m in media]
 			if len(media) > 0:
 				qmarks = "?,"*(len(media)-1)+"?"
-				self._db_execute(db._c, u'UPDATE media SET feed_id=? WHERE id IN ('+qmarks+')', tuple([feed_id] + media))
+				self._db_execute(self._c, u'UPDATE media SET feed_id=? WHERE id IN ('+qmarks+')', tuple([feed_id] + media))
 
 		self._db.commit()
 		print "done"

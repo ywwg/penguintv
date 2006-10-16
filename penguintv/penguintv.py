@@ -836,6 +836,9 @@ class PenguinTVApp:
 		Also checks if we are loading feeds, in which case state can not change.
 		
 		To unset loading_feeds, we take a "manual override" argument"""
+		if self._state == DEFAULT:
+			return
+		
 		#bring state back to default
 		if self._state == LOADING_FEEDS:
 			if not authorize:
@@ -843,10 +846,7 @@ class PenguinTVApp:
 			else:
 				self._state = DONE_LOADING_FEEDS
 				return
-		
-		#if self._state == DEFAULT:
-		#	return
-		
+	
 		if self._state != MANUAL_SEARCH:
 			#save filter for later
 			self._saved_filter = self.main_window.get_active_filter()[1]
