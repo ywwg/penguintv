@@ -633,7 +633,7 @@ class MainWindow:
 		self._active_filter_index = names.index(filter_name)
 		self.on_filter_changed()
 		
-	def _on_edit_favorite_tags(self, widget):
+	def on_edit_favorite_tags(self, widget):
 		#self._filters
 		#self._favorite_filters #ordered
 		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
@@ -1006,12 +1006,12 @@ class MainWindow:
 			all_tags_item.set_submenu(all_tags_submenu)
 			self._filter_menu.append(all_tags_item)
 			
-		sep = gtk.SeparatorMenuItem()
-		self._filter_menu.append(sep)
+		#sep = gtk.SeparatorMenuItem()
+		#self._filter_menu.append(sep)
 	
-		menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
-		menuitem.connect('activate', self._on_edit_favorite_tags)
-		self._filter_menu.append(menuitem) 
+		#menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
+		#menuitem.connect('activate', self._on_edit_favorite_tags)
+		#self._filter_menu.append(menuitem) 
 		self._filter_menu.show_all()	
 		
 		#get index for our previously selected tag
