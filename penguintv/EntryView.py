@@ -517,7 +517,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 		ret.append('%s' % item['description'])
 	ret.append('</div>')
 	if item.has_key('link'):
-		ret.append('<br/><a href="'+item['link']+'">'+_("Full Entry...")+'</a><br />' )
+		ret.append('<a href="'+item['link']+'">'+_("Full Entry...")+'</a>' )
 	ret.append('</p></div>')
 	return "".join(ret)
 	
@@ -545,8 +545,6 @@ def htmlify_media(medium, mm):
 				ret.append('<p><i>'+_("Download queued") +'</i> '+
 				            utils.html_command('pause:',medium['media_id'])+' '+
 				            utils.html_command('stop:',medium['media_id'])+'</p>')
-			elif downloader.status == Downloader.STOPPED or downloader.status == Downloader.PAUSED:
-				ret.append("STOPPPPPPPPPED")
 		elif medium.has_key('progress'):       #no custom message, but we have a progress value
 			d = {'progress':medium['progress'],
 			     'size':utils.format_size(medium['size'])}
@@ -591,10 +589,6 @@ def htmlify_media(medium, mm):
 								 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
 	ret.append('</div>')								 
 	return ret
-#class EntryDownloaderThread(threading.Thread):
-#	def __init__(self):
-#		threading.Thread.__init__(self)
-#		pass
 
 class HTMLimgParser(htmllib.HTMLParser):
 	def __init__(self):

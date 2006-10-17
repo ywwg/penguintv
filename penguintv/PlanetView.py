@@ -51,7 +51,7 @@ class PlanetView:
 		self._auth_info = (-1, "","") #user:pass, url
 		
 		self._entrylist = []
-		self._readinfo  = []
+		self._readinfo  = None
 		self._entry_store = {}
 		
 		self._first_entry = 0 #first entry visible
@@ -152,10 +152,12 @@ class PlanetView:
 	def update_entry_list(self, entry_id=None):
 		if entry_id is None:
 			self._entry_store = {}
-			self._render_entries()
-		if entry_id not in self._entrylist: #not this feed
-			return
-		self._load_entry(entry_id, True)
+			print "updated, rendering entries"
+			self.populate_entries()
+		else:
+			if entry_id not in self._entrylist: #not this feed
+				return
+			self._load_entry(entry_id, True)
 		
 	def show_search_results(self, entries, query):
 		if entries is None:
@@ -179,7 +181,7 @@ class PlanetView:
 		self._first_entry = 0
 		self._entry_store={}
 		self._entrylist = []
-		self._readinfo  = []
+		self._readinfo  = None
 		self._render("<html><body></body></html")
 		
 	def _unset_state(self):
@@ -206,13 +208,12 @@ class PlanetView:
 		
 	def display_custom_entry(self, message):
 		self._custom_message = message
-		self._render(message)
-		#print "custom: ",message
-		#self.populate_entries()
+		self.populate_entries()
 		
 	def undisplay_custom_entry(self):
 		self._custom_message = ""
 		#print "custom: blank (undisplay)"
+		self.populate_entries()
 		
 	def display_item(self, item=None, highlight=""):
 		if item is None:
@@ -249,8 +250,12 @@ class PlanetView:
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
 				media_exists = True
-			if not item.has_key('media') and self._readinfo[i]==0:
-				unreads.append(entry_id)
+			if not item.has_key('media'):
+				if self._readinfo:
+					if self._readinfo[i]==0:
+						unreads.append(entry_id)
+				else:
+					unreads.append(entry_id)
 			if highlight is not None:
 				entry_html = entry_html.encode('utf-8')
 				try:
@@ -277,6 +282,8 @@ class PlanetView:
 			
 		#######build HTML#######	
 		html = self._build_header(media_exists)
+		
+		html += self._custom_message
 		
 		html += """<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"

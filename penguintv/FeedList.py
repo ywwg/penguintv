@@ -166,6 +166,7 @@ class FeedList:
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
 			
+		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self._db.get_feed_cache()
 		db_feedlist = self._db.get_feedlist()
@@ -222,7 +223,10 @@ class FeedList:
 					m_pixbuf = blank_pixbuf
 					m_details_loaded = False
 				m_pixbuf = self._get_pixbuf(feed_id)
-				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, False) 
+				model, iter = selection.get_selected()
+				try: sel = model[iter][FEEDID]
+				except: sel = -1
+				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, feed_id == sel) 
 				m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
 			else:
 				m_title = self._get_markedup_title(title,flag) 
@@ -508,22 +512,17 @@ class FeedList:
 			#so now we know if we passed the main filter, but we need to test for special cases where we keep it anyway
 			#also, we still need to test for unviewed
 			if i == index and selected is not None:  #if it's the selected feed, we have to be careful
-				if self.filter_setting != NONE:
-					if keep_misfiltered: 
-						#some cases when we want to keep the current feed visible
-						if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
-							passed_filter = True  #keep it
-							self._selecting_misfiltered=True
-						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
-							passed_filter = True
-							self._selecting_misfiltered=True
-						elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
-							passed_filter = True
-							self._selecting_misfiltered=True
-					#else: leave the filter result alone
-				else:
-					#if filter is NONE, no one is getting past.
-					passed_filter = False
+				if keep_misfiltered: 
+					#some cases when we want to keep the current feed visible
+					if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
+						passed_filter = True  #keep it
+						self._selecting_misfiltered=True
+					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
+						passed_filter = True
+						self._selecting_misfiltered=True
+					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
+						passed_filter = True
+						self._selecting_misfiltered=True
 				if not passed_filter:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 					self._app.display_feed(-1)
@@ -531,11 +530,6 @@ class FeedList:
 				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
 					passed_filter = False #see ya
 			feed[VISIBLE] = passed_filter #note, this seems to change the selection!
-			
-		if self.filter_setting == NONE:
-			self._app.display_feed(-1)
-			self._last_selected = None
-			self._selecting_misfiltered=False
 		self._feed_filter.refilter()
 			
 	def _load_visible_details(self):
@@ -547,13 +541,16 @@ class FeedList:
 				try: row[FIRSTENTRYTITLE] = self._db.get_entrylist(row[FEEDID])[0][1]
 				except: row[FIRSTENTRYTITLE] = ""
 				#row[PIXBUF] = self._get_pixbuf(row[FEEDID])
+				model, iter = self._widget.get_selection().get_selected()
 				row[DETAILS_LOADED] = True
+				try: selected = model[iter][FEEDID]
+				except: selected = -1
 				row[MARKUPTITLE] = self._get_fancy_markedup_title(row[TITLE],
 																  row[FIRSTENTRYTITLE],
 																  row[UNREAD],
 																  row[TOTAL],
 																  row[FLAG], 
-																  False)
+																  row[FEEDID] == selected)
 				yield True
 		if self._cancel_load[1]:
 			self._cancel_load[1] = False

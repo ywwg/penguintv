@@ -789,6 +789,7 @@ class MainWindow:
 		self._app.manual_search(self.search_entry.get_text())
 		
 	def on_search_entry_changed(self, widget):
+		#print "no more find while type"
 		if self.search_container.get_property("sensitive"):
 			self._app.threaded_search(self.search_entry.get_text())
 		
@@ -904,7 +905,6 @@ class MainWindow:
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
 			
-			
 	def set_state(self, new_state, data=None):
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_MANUAL_SEARCH,
@@ -1014,7 +1014,7 @@ class MainWindow:
 		self._filter_menu.show_all()	
 		
 		#get index for our previously selected tag
-		index = self.get_index_for_filter(current_filter)
+		index = self.get_filter_index(current_filter)
 		if not self.changing_layout:
 			if index is not None:
 				self.set_active_filter(index)
@@ -1052,6 +1052,16 @@ class MainWindow:
 	def get_filter_name(self, filt):
 		return self._filters[filt][F_NAME]
 		
+	def get_filter_index(self, string):
+		names = [m[F_NAME] for m in self._filters]
+		try:
+			index = names.index(string)
+			if names not in FeedList.BUILTIN_TAGS:
+				return index
+			return None
+		except:
+			return None
+		
 	def get_active_filter(self):
 		return (self._active_filter_name,self._active_filter_index) 
 		
@@ -1061,12 +1071,6 @@ class MainWindow:
 		self._filters[index][F_NAME] = new_name
 		self._filters[index][F_DISPLAY] = new_name
 		
-	def get_index_for_filter(self, filter_name):
-		names = [f[F_NAME] for f in self._filters]
-		if filter_name not in names:
-			return None
-		return names.index(filter_name)
-
 	def select_feed(self, feed_id):
 		self.set_active_filter(FeedList.ALL)
 		self.filter_unread_checkbox.set_active(False)

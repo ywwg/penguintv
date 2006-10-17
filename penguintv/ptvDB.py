@@ -1977,16 +1977,18 @@ class ptvDB:
 		if c is None:
 			c = self._c
 		medialist=None
+		flaglist = []
 		if self._filtered_entries.has_key(feed_id):
 			entrylist = [e[0] for e in self._filtered_entries[feed_id]]
+			for entry in entrylist:
+				flaglist.append(self.get_entry_flag(entry,c))
 		else:
 			self._db_execute(c, u'SELECT id, read FROM entries WHERE feed_id=?',(feed_id,))
 			entrylist = c.fetchall()
 			if self.get_feed_media_count(feed_id) == 0:
 				medialist = []
-		flaglist = []
-		for entry,read in entrylist:
-			flaglist.append(self.get_entry_flag(entry,c,read=read, medialist=medialist))
+			for entry,read in entrylist:
+				flaglist.append(self.get_entry_flag(entry,c,read=read, medialist=medialist))
 		return flaglist
 	
 	def get_feed_flag(self, feed_id):#, c=None):
