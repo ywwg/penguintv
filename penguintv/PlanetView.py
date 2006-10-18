@@ -49,6 +49,7 @@ class PlanetView:
 		self._feed_title=""
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
+		self._custom_message = ""
 		
 		self._entrylist = []
 		self._readinfo  = None

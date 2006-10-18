@@ -328,13 +328,22 @@ class MainWindow:
 		self._filter_menu.attach_to_widget(self._filter_selector_button, (lambda widget,menu:widget))
 		self._filters = [] #text, text to display, type
 		self._favorite_filters = [] #text, text to display, type
-		self.update_filters()
-		
-		self.set_active_filter(FeedList.ALL)
 		
 		self.search_entry = components.get_widget('search_entry')
+		completion = gtk.EntryCompletion()
+		self._tag_completion_model = gtk.ListStore(str, str, int) #name, display, index
+		completion.set_model(self._tag_completion_model)
+		renderer = gtk.CellRendererText()
+		completion.pack_start(renderer)
+		completion.add_attribute(renderer, 'text', 1)
+		completion.set_match_func(lambda comp, string, iter: self._tag_completion_model[iter][0].upper().startswith(string.upper()))
+		#completion.set_text_column(0)
+		completion.connect('match-selected',self._on_completion_match_selected, 2)
+		self.search_entry.set_completion(completion)
 		self.search_container = components.get_widget('search_container')
 		
+		self.update_filters()
+		self.set_active_filter(FeedList.ALL)
 		#dnd
 		self._TARGET_TYPE_TEXT = 80
 		self._TARGET_TYPE_URL = 81
@@ -690,6 +699,12 @@ class MainWindow:
 		elif response == gtk.RESPONSE_CANCEL:
 			print 'Closed, no files selected'
 		dialog.destroy()		
+		
+	def on_app_key_press_event(self, widget, event):
+		keyname = gtk.gdk.keyval_name(event.keyval)
+		if event.state & gtk.gdk.CONTROL_MASK:
+			if keyname == 'k':
+				self.search_entry.grab_focus()
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		try:
@@ -789,9 +804,10 @@ class MainWindow:
 		self._app.manual_search(self.search_entry.get_text())
 		
 	def on_search_entry_changed(self, widget):
-		#print "no more find while type"
-		if self.search_container.get_property("sensitive"):
-			self._app.threaded_search(self.search_entry.get_text())
+		pass
+		#self.search_entry.get_completion().complete()
+		#if self.search_container.get_property("sensitive"):
+		#	self._app.threaded_search(self.search_entry.get_text())
 		
 	def on_show_downloads_activate(self, event):
 		self._app.show_downloads()
@@ -946,12 +962,13 @@ class MainWindow:
 		self._favorite_filters = []
 		for child in self._filter_menu.get_children():
 			self._filter_menu.remove(child)
+		self._tag_completion_model.clear()
 		
 		i=-1 #we only set i here so that searches and regular tags have incrementing ids
 		for builtin in FeedList.BUILTIN_TAGS:
-			i+=1
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
+			i+=1
 			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
 			menuitem = gtk.MenuItem(builtin)
 			menuitem.connect('activate',self._on_filter_menu_activate, builtin)
@@ -965,6 +982,7 @@ class MainWindow:
 				for tag,favorite in tags:
 					i+=1
 					self._filters.append([favorite, tag,tag,ptvDB.T_SEARCH])
+					self._tag_completion_model.append([tag,_('tag: %s') % (tag,), i])
 					if favorite > 0:
 						self._favorite_filters.append([favorite, tag,tag, i]) 
 		
@@ -975,6 +993,7 @@ class MainWindow:
 			for tag,favorite in tags:
 				i+=1
 				self._filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
+				self._tag_completion_model.append([tag,_('tag: %s') % (tag,), i])
 				if favorite > 0:
 					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")", i])
 					
@@ -1041,6 +1060,10 @@ class MainWindow:
 		for t in removed:
 			self._db.set_tag_favorite(t, 0)
 		self.update_filters()
+		
+	def _on_completion_match_selected(self, completion, model, iter, column):
+		self.search_entry.set_text("")
+		self.set_active_filter(model[iter][column])
 				
 	def set_active_filter(self, index):
 		if self._active_filter_index == index:

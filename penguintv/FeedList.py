@@ -598,9 +598,9 @@ class FeedList:
 		self.filter_setting = new_filter
 		self.filter_name = name
 		
-		if new_filter != SEARCH and self._state == S_SEARCH:
-			print "hope we also changed state"
-			self._app.set_state(penguintv.DEFAULT)
+		#if new_filter != SEARCH and self._state == S_SEARCH:
+		#	print "hope we also changed state"
+		#	self._app.set_state(penguintv.DEFAULT)
 			
 		self.do_filter(False)
 		if self._fancy:
