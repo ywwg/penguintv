@@ -873,7 +873,7 @@ class PenguinTVApp:
 		self._entry_list_view.set_state(new_state, data)
 		self.feed_list_view.set_state(new_state, data)
 		
-		if self._state == MANUAL_SEARCH and new_state == DEFAULT:
+		if self._state == MANUAL_SEARCH and new_state == DEFAULT and data != True:
 			self._saved_search = self.main_window.search_entry.get_text()
 			selected = self.feed_list_view.get_selected()
 			if selected is not None:

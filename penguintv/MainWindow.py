@@ -331,12 +331,15 @@ class MainWindow:
 		
 		self.search_entry = components.get_widget('search_entry')
 		completion = gtk.EntryCompletion()
-		self._tag_completion_model = gtk.ListStore(str, str, int) #name, display, index
-		completion.set_model(self._tag_completion_model)
+		completion_model = gtk.ListStore(str, str, int) #name, display, index
+		completion.set_model(completion_model)
 		renderer = gtk.CellRendererText()
 		completion.pack_start(renderer)
 		completion.add_attribute(renderer, 'text', 1)
-		completion.set_match_func(lambda comp, string, iter: self._tag_completion_model[iter][0].upper().startswith(string.upper()))
+		def match_func(comp, string, iter):
+			try: return comp.get_model()[iter][0].upper().startswith(string.upper())
+			except: return False
+		completion.set_match_func(match_func)
 		#completion.set_text_column(0)
 		completion.connect('match-selected',self._on_completion_match_selected, 2)
 		self.search_entry.set_completion(completion)
@@ -962,8 +965,9 @@ class MainWindow:
 		self._favorite_filters = []
 		for child in self._filter_menu.get_children():
 			self._filter_menu.remove(child)
-		self._tag_completion_model.clear()
-		
+		completion_model = self.search_entry.get_completion().get_model()
+		completion_model.clear()
+				
 		i=-1 #we only set i here so that searches and regular tags have incrementing ids
 		for builtin in FeedList.BUILTIN_TAGS:
 			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
@@ -982,7 +986,7 @@ class MainWindow:
 				for tag,favorite in tags:
 					i+=1
 					self._filters.append([favorite, tag,tag,ptvDB.T_SEARCH])
-					self._tag_completion_model.append([tag,_('tag: %s') % (tag,), i])
+					completion_model.append([tag,_('tag: %s') % (tag,), i])
 					if favorite > 0:
 						self._favorite_filters.append([favorite, tag,tag, i]) 
 		
@@ -993,7 +997,7 @@ class MainWindow:
 			for tag,favorite in tags:
 				i+=1
 				self._filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
-				self._tag_completion_model.append([tag,_('tag: %s') % (tag,), i])
+				completion_model.append([tag,_('tag: %s') % (tag,), i])
 				if favorite > 0:
 					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")", i])
 					
@@ -1027,9 +1031,9 @@ class MainWindow:
 		#sep = gtk.SeparatorMenuItem()
 		#self._filter_menu.append(sep)
 	
-		#menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
-		#menuitem.connect('activate', self._on_edit_favorite_tags)
-		#self._filter_menu.append(menuitem) 
+		menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
+		menuitem.connect('activate', self.on_edit_favorite_tags)
+		self._filter_menu.append(menuitem) 
 		self._filter_menu.show_all()	
 		
 		#get index for our previously selected tag

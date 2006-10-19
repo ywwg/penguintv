@@ -7800,7 +7800,7 @@ j@v2v.cc
 </widget>
 
 <widget class="GtkDialog" id="dialog_tag_favorites">
-  <property name="title" translatable="yes">Edit Dialog Favorites</property>
+  <property name="title" translatable="yes">Edit Favorite Tags</property>
   <property name="type">GTK_WINDOW_TOPLEVEL</property>
   <property name="window_position">GTK_WIN_POS_NONE</property>
   <property name="modal">False</property>

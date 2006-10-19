@@ -208,12 +208,18 @@ class PlanetView:
 		self.update_entry_list(entry_id)
 		
 	def display_custom_entry(self, message):
+		if self._custom_message == message:
+			return
 		self._custom_message = message
+		print "custom"
 		self.populate_entries()
 		
 	def undisplay_custom_entry(self):
+		if self._custom_message == "":
+			return
 		self._custom_message = ""
 		#print "custom: blank (undisplay)"
+		print "uncustom"
 		self.populate_entries()
 		
 	def display_item(self, item=None, highlight=""):
