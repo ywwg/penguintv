@@ -17,6 +17,35 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 
+RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None #imagine a question mark
+#RUNNING_SUGAR = True
+
+if RUNNING_SUGAR:
+	#I do this in case we're running in a python environment that has lucene
+	#and/or gconf but we want to pretend they aren't there
+	HAS_LUCENE = False
+	HAS_GCONF = False
+else:
+	try:
+		HAS_LUCENE = True
+	except:
+		HAS_LUCENE = False
+		
+	try:
+		HAS_GCONF = True
+	except:
+		HAS_GCONF = False
+
+try:
+	import pygst
+	pygst.require("0.10")
+	import gst
+	HAS_GSTREAMER = True
+except:
+	HAS_GSTREAMER = False
+		
+##DEBUG!
+#HAS_LUCENE=False
 
 VERSION="2.5"
 #DEBUG

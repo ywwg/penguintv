@@ -96,7 +96,7 @@ class PlanetView:
 			scrolled_window.add_with_viewport(self._moz)
 			#scrolled_window.add(self._moz)
 			self._moz.show()
-			if ptvDB.HAS_GCONF:
+			if utils.HAS_GCONF:
 				import gconf
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
@@ -136,13 +136,13 @@ class PlanetView:
 			self._current_feed_id = feed_id
 			self._first_entry = 0
 			self._entry_store={}
-			self._feed_title = self._db.get_feed_title(feed_id)
 			feed_info = self._db.get_feed_info(feed_id)
 			if feed_info['auth_feed']:
 				self._auth_info = (feed_id,feed_info['auth_userpass'], feed_info['auth_domain'])
 			else:
 				self._auth_info = (-1, "","")
-		
+		#always update title in case it changed... it's a cheap lookup
+		self._feed_title = self._db.get_feed_title(feed_id)
 		self._entrylist = [e[0] for e in db_entrylist]
 		self._readinfo  = [e[3] for e in db_entrylist]
 		self._render_entries()

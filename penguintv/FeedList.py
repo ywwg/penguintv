@@ -41,7 +41,7 @@ MAX_WIDTH  = 48
 MAX_HEIGHT = 48
 MIN_SIZE   = 24
 
-if ptvDB.RUNNING_SUGAR:
+if utils.RUNNING_SUGAR:
 	MAX_WIDTH  = 32
 	MAX_HEIGHT = 32
 	MIN_SIZE   = 1
@@ -581,9 +581,9 @@ class FeedList:
 		index = path[0]
 		model = treeview.get_model()
 		link = self._db.get_feed_info(model[index][FEEDID])['link']
-		if len(link) == 0:
+		if link is None:
 			dialog = gtk.Dialog(title=_("No Homepage"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label(_("There is no homepage associated with this feed.  You can set one in the feed properties"))
+			label = gtk.Label(_("There is no homepage associated with this feed.  You can set one in the feed properties."))
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
 			dialog.run()
@@ -705,9 +705,6 @@ class FeedList:
 			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
 			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
-			
-		#put a space between the image and the icon (to the left of it)
-		#use treeviewcolumn spacing instead
 		return p
 		
 	def _get_fancy_markedup_title(self, title, first_entry_title, unread, total, flag, selected):
@@ -722,9 +719,11 @@ class FeedList:
 				if span[0]<30 and span[1]-span[0] < 10: 
 					first_entry_title = first_entry_title[0:span[0]]+"..."
 				else:
-					first_entry_title = first_entry_title[0:30]+"..."
+					if len(first_entry_title) > 30:
+						first_entry_title = first_entry_title[0:30]+"..."
 			else:
-				first_entry_title = first_entry_title[0:30]+"..."
+				if len(first_entry_title) > 30:
+					first_entry_title = first_entry_title[0:30]+"..."
 				
 			if first_entry_title.find("<") != -1:
 				first_entry_title = first_entry_title[0:first_entry_title.find("<")] + "..."

@@ -2,6 +2,7 @@
 # see LICENSE for license information
 import penguintv
 import ptvDB
+import utils
 import gtk
 
 class PreferencesDialog:
@@ -85,11 +86,11 @@ class PreferencesDialog:
 		try:
 			if new_val==penguintv.REFRESH_AUTO:
 				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','auto')
-				if not ptvDB.HAS_GCONF:
+				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('auto')
 			else:
 				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','specified')
-				if not ptvDB.HAS_GCONF:
+				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('specified')
 		except AttributeError:
 			pass #this fails on startup, which is good because we haven't loaded the proper value in the app yet
@@ -100,29 +101,29 @@ class PreferencesDialog:
 		except ValueError:
 			return
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency',val)
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_polling_frequency(val)
 		
 	def on_auto_resume_toggled(self,event):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_resume',self.autoresume.get_active())
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_auto_resume(self.autoresume.get_active())
 		
 	def on_poll_on_startup_toggled(self,event):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup',self.poll_on_startup.get_active())
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_poll_on_startup(self.poll_on_startup.get_active())
 		
 	def on_auto_download_toggled(self, event):
 		auto_download = self.auto_download_widget.get_active()
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download', auto_download)
 		self.limiter_hbox_widget.set_sensitive(auto_download)
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_auto_download(auto_download)
 		
 	def on_auto_download_limiter_toggled(self,event):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download_limiter',self.auto_download_limiter_widget.get_active())
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_auto_download_limiter(self.auto_download_limiter_widget.get_active())
 		
 	def on_auto_download_limit_focus_out_event(self, thing, event):
@@ -132,7 +133,7 @@ class PreferencesDialog:
 		except ValueError:
 			return
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit',limit)
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_auto_download_limit(limit)
 		
 	def on_min_port_entry_changed(self,event):
@@ -141,7 +142,7 @@ class PreferencesDialog:
 		except ValueError:
 			return
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_min_port',minport)
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_bt_minport(minport)
 		
 	def on_max_port_entry_changed(self,event):
@@ -150,7 +151,7 @@ class PreferencesDialog:
 		except ValueError:
 			return
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_max_port',maxport)
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_bt_maxport(maxport)
 		
 	def on_upload_limit_entry_changed(self,event):
@@ -159,6 +160,6 @@ class PreferencesDialog:
 		except ValueError:
 			return
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit',val)
-		if not ptvDB.HAS_GCONF:
+		if not utils.HAS_GCONF:
 			self._app.set_bt_ullimit(val)
 	

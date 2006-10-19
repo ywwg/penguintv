@@ -33,6 +33,11 @@ F_NAME     = 1
 F_DISPLAY  = 2
 F_TYPE     = 3
 
+#notebook tabs
+N_FEEDS     = 0
+N_PLAYER    = 1
+N_DOWNLOADS = 2
+
 import EditTextTagsDialog
 import EditTagsMultiDialog
 import RenameFeedDialog
@@ -44,6 +49,8 @@ import FeedFilterPropertiesDialog
 import SynchronizeDialog
 import FilterSelectorDialog
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
+if utils.HAS_GSTREAMER:
+	import GStreamerPlayer
 
 class MainWindow:
 	COLUMN_TITLE = 0
@@ -110,7 +117,7 @@ class MainWindow:
 		
 		if dock_widget is None:  #if we are loading in a regular window...
 			self._load_app_window()
-			if not ptvDB.HAS_LUCENE:
+			if not utils.HAS_LUCENE:
 				#remove UI elements that don't apply without search
 				self.search_container.hide_all()
 				self._widgetTree.get_widget('saved_searches').hide()
@@ -135,10 +142,11 @@ class MainWindow:
 			vbox.pack_start(self._status_view, False, False)
 			dock_widget.add(vbox)
 			dock_widget.show_all()
-			if not ptvDB.HAS_LUCENE:
+			if not utils.HAS_LUCENE:
 				#remove UI elements that don't apply without search
 				self.search_container.hide_all()
 			self._window = dock_widget
+		self._notebook.show_only(N_FEEDS)
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:
@@ -154,7 +162,7 @@ class MainWindow:
 		vseparator_toolitem.set_expand(True)
 		vseparator.set_draw(False)
 		
-		if ptvDB.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR:
 			vsep2 = self._widgetTree.get_widget('vseparator2')
 			vseparator.set_property('visible',True)
 			pref_button = self._widgetTree.get_widget('preferences_toolbutton')
@@ -229,23 +237,30 @@ class MainWindow:
 				self._widgetTree.signal_connect(key, getattr(self, key))
 				
 	def load_notebook(self):
-		self._notebook = gtk.Notebook()
+		self._notebook = NotebookManager()
 		self._notebook.set_property('tab-border',0)
 		label = gtk.Label(_('<span size="small">Feeds</span>'))
 		label.set_property('use-markup',True)
 		vbox = gtk.VBox()
 		self._notebook.append_page(vbox, label)
 		
+		if utils.HAS_GSTREAMER:
+			p_vbox = gtk.VBox()
+			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(self._db, p_vbox)
+			self._gstreamer_player.Show()
+			label = gtk.Label('<span size="small">'+_('Player')+'</span>')
+			label.set_property('use-markup',True)
+			self._notebook.append_page(p_vbox, label)
+		
 		self._downloads_label = gtk.Label('<span size="small">'+_('Downloads')+'</span>')
 		self._downloads_label.set_property('use-markup',True)
 		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._db, self._glade_prefix+'/penguintv.glade')
 		self._notebook.append_page(self._download_view.get_widget(), self._downloads_label)
 		
-		self._notebook.set_show_tabs(False)
+		#self._notebook.set_show_tabs(False)
 		self._notebook.set_property('show-border', False)
 		
 		self._notebook.show_all()
-		self._notebook.set_current_page(0)
 		
 		return vbox
 		
@@ -260,7 +275,7 @@ class MainWindow:
 		#dock_widget.add(self._layout_container)
 		
 		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
-		if ptvDB.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR:
 			fancy = True
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
@@ -563,7 +578,7 @@ class MainWindow:
 			selected = model[path[0]][FeedList.FEEDID]
 			is_filter = self._db.is_feed_filter(selected)  
 			
-			if is_filter and not ptvDB.HAS_LUCENE:
+			if is_filter and not utils.HAS_LUCENE:
 				item = gtk.MenuItem(_("Lucene required for feed filters"))
 				item.set_sensitive(False)
 				menu.append(item)
@@ -583,19 +598,19 @@ class MainWindow:
 			
 			item = gtk.ImageMenuItem('gtk-refresh')
 			item.connect('activate',self.on_refresh_activate)
-			if is_filter and not ptvDB.HAS_LUCENE:
+			if is_filter and not utils.HAS_LUCENE:
 				item.set_sensitive(False)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Mark as _Viewed"))
 			item.connect('activate',self.on_mark_feed_as_viewed_activate)
-			if is_filter and not ptvDB.HAS_LUCENE:
+			if is_filter and not utils.HAS_LUCENE:
 				item.set_sensitive(False)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("_Delete All Media"))
 			item.connect('activate',self.on_delete_feed_media_activate)
-			if is_filter and not ptvDB.HAS_LUCENE:
+			if is_filter and not utils.HAS_LUCENE:
 				item.set_sensitive(False)
 			menu.append(item)
 			
@@ -603,7 +618,7 @@ class MainWindow:
 			menu.append(separator)
 			
 			if not is_filter:
-				if ptvDB.HAS_LUCENE:
+				if utils.HAS_LUCENE:
 					item = gtk.MenuItem(_("_Create Feed Filter"))
 					item.connect('activate',self.on_add_feed_filter_activate)
 					if self._state == S_LOADING_FEEDS:
@@ -616,7 +631,7 @@ class MainWindow:
 			else:
 				item = gtk.ImageMenuItem('gtk-properties')
 				item.connect('activate',self.on_feed_filter_properties_activate)
-				if not ptvDB.HAS_LUCENE:
+				if not utils.HAS_LUCENE:
 					item.set_sensitive(False)
 				menu.append(item)
 
@@ -849,8 +864,9 @@ class MainWindow:
 		self._app.write_feed_cache()
 		self._layout_dock.remove(self._layout_container)
 		self._layout_dock.add(self.load_layout())
-		if not ptvDB.HAS_LUCENE:
+		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
+		self._notebook.show_only(N_FEEDS)
 		#can't reset changing_layout because app hasn't updated pointers yet
 		
 	def is_changing_layout(self):
@@ -915,7 +931,7 @@ class MainWindow:
 		if self._state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
-			if not ptvDB.RUNNING_SUGAR:
+			if not utils.RUNNING_SUGAR:
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(True)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
@@ -948,7 +964,7 @@ class MainWindow:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
 			
-			if not ptvDB.RUNNING_SUGAR: 
+			if not utils.RUNNING_SUGAR: 
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(False)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
@@ -970,7 +986,7 @@ class MainWindow:
 				
 		i=-1 #we only set i here so that searches and regular tags have incrementing ids
 		for builtin in FeedList.BUILTIN_TAGS:
-			if not ptvDB.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
+			if not utils.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
 			i+=1
 			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
@@ -979,7 +995,7 @@ class MainWindow:
 			self._filter_menu.append(menuitem)
 
 		has_search = False
-		if ptvDB.HAS_LUCENE:	
+		if utils.HAS_LUCENE:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				has_search = True
@@ -1151,11 +1167,10 @@ class MainWindow:
 		
 	def _update_notebook_tabs(self, number):
 		if number == 0:
-			self._notebook.set_show_tabs(False)
-			self._notebook.set_current_page(0)
+			self._notebook.hide_page(N_DOWNLOADS)
 		else:
 			self._downloads_label.set_markup(_('<span size="small">Downloads(%d)</span>') % number)
-			self._notebook.set_show_tabs(True)
+			self._notebook.show_page(N_DOWNLOADS)
 				
 	def desensitize(self):
 		if self.app_window:
@@ -1164,7 +1179,54 @@ class MainWindow:
 			self._layout_container.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
+			
+class NotebookManager(gtk.Notebook):
+	"""manages showing and hiding of tabs.  Also, hides the whole tab bar if only one 
+	tab open, and selects a different tab if the one we are closing is selected"""
+	def __init__(self):
+		gtk.Notebook.__init__(self)
+		self._pages_showing = {}
+		self._default_page = 0
 	
+	def show_page(self, n):
+		if self._pages_showing[n] == True:
+			return
+		self._pages_showing[n] = True
+		self.get_nth_page(n).show_all()
+		showing_count = 0
+		for key in self._pages_showing.keys():
+			if self._pages_showing[key]:
+				showing_count+=1
+		if showing_count > 1:
+			self.set_show_tabs(True)
+					
+	def hide_page(self, n):
+		if self._pages_showing[n] == False:
+			return
+		self._pages_showing[n] = False
+		self.get_nth_page(n).hide()
+		showing_count = 0
+		for key in self._pages_showing.keys():
+			if self._pages_showing[key]:
+				showing_count+=1
+		if showing_count == 1:
+			for key in self._pages_showing.keys():
+				if self._pages_showing[key]:
+					self.set_current_page(key)
+					self.set_show_tabs(False)
+		if self.get_current_page() == n:
+			self.set_current_page(self._default_page)
+					
+	def show_only(self, n):
+		self._default_page = n
+		for i in range(0,self.get_n_pages()):
+			self._pages_showing[i] = i==n
+			if i == n:
+				self.get_nth_page(i).show_all()
+			else:
+				self.get_nth_page(i).hide_all()
+		self.set_show_tabs(False)
+					
 class ShouldntHappenError(Exception):
 	def __init__(self,error):
 		self.error = error

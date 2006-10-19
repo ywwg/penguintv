@@ -144,7 +144,7 @@ class PenguinTVApp:
 		self._state = DEFAULT
 		
 		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout', 'standard')
-		if ptvDB.RUNNING_SUGAR: window_layout='planet' #always use planet on sugar platform
+		if utils.RUNNING_SUGAR: window_layout='planet' #always use planet on sugar platform
 		
 		self.main_window = MainWindow.MainWindow(self,self.glade_prefix) 
 		self.main_window.layout=window_layout
@@ -176,7 +176,7 @@ class PenguinTVApp:
 		#self.layout_changing_dialog.hide()
 					
 		#gconf
-		if ptvDB.HAS_GCONF:
+		if utils.HAS_GCONF:
 			import gconf
 			conf = gconf.client_get_default()
 			conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
@@ -198,7 +198,7 @@ class PenguinTVApp:
 		self._entry_view = self.main_window.entry_view
 		
 		self.main_window.search_container.set_sensitive(False)
-		if ptvDB.HAS_LUCENE:
+		if utils.HAS_LUCENE:
 			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
 				self.main_window.search_entry.set_text(_("Please wait..."))
 				self.main_window.display_status_message(_("Reindexing Feeds..."))
@@ -933,7 +933,7 @@ class PenguinTVApp:
 		self.set_state(MANUAL_SEARCH)
 		self._show_search(query, results)
 		
-	if ptvDB.HAS_LUCENE:
+	if utils.HAS_LUCENE:
 		import PyLucene
 		threadclass = PyLucene.PythonThread
 	else:
@@ -1099,7 +1099,7 @@ class PenguinTVApp:
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
 		else:
 			self.feed_refresh_method=REFRESH_SPECIFIED
-			if ptvDB.HAS_GCONF:
+			if utils.HAS_GCONF:
 				self._gconf_set_polling_frequency(client,None,None)
 			else:
 				self.set_polling_frequency(self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 5))

@@ -5,6 +5,7 @@ import ptv_sync
 import ptvDB
 import gtk.glade
 import gobject
+import utils
 
 import os, os.path
 import PyLucene
@@ -23,7 +24,7 @@ class SynchronizeDialog:
 		self._delete_check = self._xml.get_widget("delete_check")
 		self._destination_entry = self._xml.get_widget("dest_entry")
 		
-		if ptvDB.HAS_GCONF:
+		if utils.HAS_GCONF:
 			import gconf
 			self._conf = gconf.client_get_default()
 			self._conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)

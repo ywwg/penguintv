@@ -18,6 +18,7 @@ activity_PYTHON =               \
 	feedparser.py \
 	FeedPropertiesDialog.py \
 	FilterSelectorWidget.py \
+	GStreamerPlayer.py \
 	HTTPDownloader.py \
 	__init__.py \
 	LoginDialog.py \

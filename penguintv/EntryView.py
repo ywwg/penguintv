@@ -125,7 +125,7 @@ class EntryView:
 			#html_dock.add(self._moz)
 			scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
-			if ptvDB.HAS_GCONF:
+			if utils.HAS_GCONF:
 				import gconf
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
@@ -142,7 +142,7 @@ class EntryView:
 			self._mb.setURICallBack(self._dmoz_link_clicked)
 			self._moz.load_url("about:blank")
 			scrolled_window.add_with_viewport(self._moz)
-			if ptvDB.HAS_GCONF:
+			if utils.HAS_GCONF:
 				import gconf
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)

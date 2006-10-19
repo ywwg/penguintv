@@ -21,30 +21,6 @@ import gettext
 import sets
 import pickle
 
-RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None #imagine a question mark
-#RUNNING_SUGAR = True
-
-if RUNNING_SUGAR:
-	#I do this in case we're running in a python environment that has lucene
-	#and/or gconf but we want to pretend they aren't there
-	HAS_LUCENE = False
-	HAS_GCONF = False
-else:
-	try:
-		import Lucene
-		HAS_LUCENE = True
-	except:
-		HAS_LUCENE = False
-		
-	try:
-		import gconf
-		HAS_GCONF = True
-	except:
-		HAS_GCONF = False
-		
-##DEBUG!
-#HAS_LUCENE=False
-
 import timeoutsocket
 import smtplib
 timeoutsocket.setDefaultSocketTimeout(30)
@@ -56,6 +32,10 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 import utils
+if utils.HAS_LUCENE:
+	import Lucene
+if utils.HAS_GCONF:
+	import gconf
 
 NEW = 0
 EXISTS = 1
@@ -161,10 +141,10 @@ class ptvDB:
 		else:
 			self.polling_callback = polling_callback		
 			
-		if HAS_LUCENE:
+		if utils.HAS_LUCENE:
 			self.searcher = Lucene.Lucene()
 			
-		if HAS_GCONF:
+		if utils.HAS_GCONF:
 			self._conf = gconf.client_get_default()
 			
 		try:
@@ -191,7 +171,7 @@ class ptvDB:
 		
 	def finish(self):
 		self._exiting=True
-		if HAS_LUCENE:
+		if utils.HAS_LUCENE:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
 				print "have leftover things to reindex, reindexing"
 				self.reindex() #it's usually not much...
@@ -490,7 +470,7 @@ class ptvDB:
 					utils.deltree(root)
 					
 	def get_setting(self, type, datum, default=None):
-		if HAS_GCONF and datum[0] == '/':
+		if utils.HAS_GCONF and datum[0] == '/':
 			if   type == BOOL:
 				retval = self._conf.get_bool(datum)
 			elif type == INT:
@@ -508,7 +488,7 @@ class ptvDB:
 			return default
 				
 	def set_setting(self, type, datum, value):
-		if HAS_GCONF and datum[0] == '/':
+		if utils.HAS_GCONF and datum[0] == '/':
 			if   type == BOOL:
 				self._conf.set_bool(datum, value)
 			elif type == INT:
@@ -693,7 +673,7 @@ class ptvDB:
 			else:
 				return
 		
-		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = HAS_LUCENE)
+		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = utils.HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
 			if self._cancel_poll_multiple or self._exiting:
@@ -2175,7 +2155,7 @@ class ptvDB:
 		yield (-1,0)
 		
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
-		if not HAS_LUCENE:
+		if not utils.HAS_LUCENE:
 			return ([],[])
 		if blacklist is None:
 			blacklist = self._blacklist
@@ -2184,12 +2164,12 @@ class ptvDB:
 		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):
-		if HAS_LUCENE:
+		if utils.HAS_LUCENE:
 			self.searcher.Do_Index_Threaded(callback)
 		
 	def reindex(self, feed_list=[], entry_list=[]):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
-		if not HAS_LUCENE:
+		if not utils.HAS_LUCENE:
 			return
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list
