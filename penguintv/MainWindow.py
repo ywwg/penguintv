@@ -147,6 +147,9 @@ class MainWindow:
 				self.search_container.hide_all()
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
+		if utils.HAS_GSTREAMER:
+			if self._gstreamer_player.get_queue_count() > 0:
+				self._notebook.show_page(N_PLAYER)
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:
@@ -247,12 +250,12 @@ class MainWindow:
 		if utils.HAS_GSTREAMER:
 			p_vbox = gtk.VBox()
 			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(self._db, p_vbox)
-			self._gstreamer_player.Show()
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
-			label = gtk.Label('<span size="small">'+_('Player')+'</span>')
-			label.set_property('use-markup',True)
-			self._notebook.append_page(p_vbox, label)
+			self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
+			self._player_label.set_property('use-markup',True)
+			self._notebook.append_page(p_vbox, self._player_label)
+			self._gstreamer_player.Show()
 		
 		self._downloads_label = gtk.Label('<span size="small">'+_('Downloads')+'</span>')
 		self._downloads_label.set_property('use-markup',True)
@@ -261,9 +264,9 @@ class MainWindow:
 		
 		#self._notebook.set_show_tabs(False)
 		self._notebook.set_property('show-border', False)
+		self._notebook.connect('realize', self._on_notebook_realized)
 		
 		self._notebook.show_all()
-		
 		return vbox
 		
 	def get_gst_player(self):
@@ -754,6 +757,12 @@ class MainWindow:
 		feed = self.feed_list_view.get_selected()
 		if feed:
 			self._app.mark_feed_as_viewed(feed)
+			
+	def _on_notebook_realized(self, widget):
+		self._notebook.show_page(N_FEEDS)
+		if utils.HAS_GSTREAMER:
+			if self._gstreamer_player.get_queue_count() > 0:
+				self._notebook.show_page(N_PLAYER)
  
  	def on_play_entry_activate(self, event):
  		try:
@@ -771,13 +780,18 @@ class MainWindow:
 	def _on_player_item_queued(self, player):
 		self._notebook.show_page(N_PLAYER)	
 		if player.get_queue_count() == 1:
-			self._notebook.set_current_page(N_PLAYER)
-			player.play()
+			try:
+				self._notebook.set_current_page(N_PLAYER)
+				player.play()
+			except:
+				pass #fails while loading
+		self._player_label.set_markup(_('<span size="small">Player(%d)</span>') % player.get_queue_count())
 		
 	def _on_player_items_removed(self, player):
 		if player.get_queue_count() == 0:
 			self._notebook.hide_page(N_PLAYER)
 			player.stop()
+		self._player_label.set_markup(_('<span size="small">Player(%d)</span>') % player.get_queue_count())
 		
 	def on_preferences_activate(self, event):
 		self._app.window_preferences.show()
@@ -890,6 +904,9 @@ class MainWindow:
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
 		self._notebook.show_only(N_FEEDS)
+		if utils.HAS_GSTREAMER:
+			if self._gstreamer_player.get_queue_count() > 0:
+				self._notebook.show_page(N_PLAYER)
 		#can't reset changing_layout because app hasn't updated pointers yet
 		
 	def is_changing_layout(self):
@@ -1114,6 +1131,11 @@ class MainWindow:
 		self._active_filter_index = index
 		self._active_filter_name = self._filters[index][F_NAME]
 		self.on_filter_changed()
+		
+	def finish(self):
+		if utils.HAS_GSTREAMER:
+			self._gstreamer_player.finish()
+		self.desensitize()
 			
 	def get_filter_name(self, filt):
 		return self._filters[filt][F_NAME]
@@ -1210,8 +1232,15 @@ class NotebookManager(gtk.Notebook):
 		gtk.Notebook.__init__(self)
 		self._pages_showing = {}
 		self._default_page = 0
+		
+	def append_page(self, widget, label):
+		self._pages_showing[len(self._pages_showing)] = False
+		gtk.Notebook.append_page(self, widget, label)
 	
 	def show_page(self, n):
+		if not self._pages_showing.has_key(n):
+			return
+		print self._pages_showing
 		if self._pages_showing[n] == True:
 			return
 		self._pages_showing[n] = True
@@ -1220,10 +1249,13 @@ class NotebookManager(gtk.Notebook):
 		for key in self._pages_showing.keys():
 			if self._pages_showing[key]:
 				showing_count+=1
+		print showing_count
 		if showing_count > 1:
 			self.set_show_tabs(True)
 					
 	def hide_page(self, n):
+		if n == N_PLAYER:
+			traceback.print_stack()
 		if self._pages_showing[n] == False:
 			return
 		self._pages_showing[n] = False

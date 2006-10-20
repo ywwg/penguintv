@@ -14,7 +14,8 @@ import gobject
 import ptvDB
 import utils
 
-import os.path
+import os,os.path
+import pickle
 
 class GStreamerPlayer(gobject.GObject):
 	def __init__(self, db, layout_dock):
@@ -32,12 +33,12 @@ class GStreamerPlayer(gobject.GObject):
 		gobject.signal_new('items-removed', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 		
 	def Show(self):
-		self._fullscreen_window = gtk.Window()
+		self._external_window = gtk.Window()
 		self._drawing_area_fullscreen = gtk.DrawingArea()
 		color = gtk.gdk.Color(0,0,0)
 		self._drawing_area_fullscreen.modify_bg(gtk.STATE_NORMAL, color)
-		self._fullscreen_window.add(self._drawing_area_fullscreen)
-		self._fullscreen_window.connect('key-press-event', self._on_key_press_event)
+		self._external_window.add(self._drawing_area_fullscreen)
+		self._external_window.connect('key-press-event', self._on_key_press_event)
 	
 		hpaned = gtk.HPaned()
 		self._video_container = gtk.VBox()
@@ -136,6 +137,8 @@ class GStreamerPlayer(gobject.GObject):
 		bus.connect('message', self._on_gst_message)
 
 		self._layout_dock.show_all()
+		self._external_window.hide_all()
+		self._load()
 		
 	def detach(self):
 		"""video window can detach.  queue stays embedded"""
@@ -148,13 +151,13 @@ class GStreamerPlayer(gobject.GObject):
 	def toggle_fullscreen(self):
 		if self._fullscreen:
 			self._fullscreen = False
-			self._fullscreen_window.window.unfullscreen()
-			self._fullscreen_window.hide_all()
+			self._external_window.window.unfullscreen()
+			self._external_window.hide_all()
 			self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
 		else:
 			self._fullscreen = True
-			self._fullscreen_window.show_all()
-			self._fullscreen_window.window.fullscreen()
+			self._external_window.show_all()
+			self._external_window.window.fullscreen()
 			self._v_sink.set_xwindow_id(self._drawing_area_fullscreen.window.xid)
 		
 	def queue_file(self, filename, name=None):
@@ -189,10 +192,13 @@ class GStreamerPlayer(gobject.GObject):
 		gobject.timeout_add(1000, self._tick)
 		
 	def pause(self):
-		self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
+		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
+		except: pass
 		self._pipeline.set_state(gst.STATE_PAUSED)
 		
 	def stop(self):
+		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
+		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
 		
 	def ff(self):
@@ -211,18 +217,20 @@ class GStreamerPlayer(gobject.GObject):
 		model = self._queue_listview.get_model()
 		if self._current_file >= len(model):
 			return
+		self._pipeline.set_state(gst.STATE_READY)
 		self._current_file += 1
 		self.play()
 		
 	def prev(self):
-		if self._current_file == 0:
+		self._pipeline.set_state(gst.STATE_READY)
+		if self._current_file <= 0:
+			self._current_file = 0
 			self.seek(0)
 		self._current_file -= 1
 		self.play()
 		
 	def finish(self):
-		"""pauses, saves state, and cleans up gstreamer"""
-		pass
+		self._save()
 		
 	def seek(self, time):
 		self._pipeline.seek(1.0, gst.FORMAT_TIME,
@@ -314,6 +322,46 @@ class GStreamerPlayer(gobject.GObject):
 		#                               message.parse_tag())
 		elif message.type == gst.MESSAGE_ERROR:
 			print str(message)
+			
+	def _load(self):
+		home = os.path.join(os.getenv('HOME'), '.penguintv')
+		try:
+			playlist = open(os.path.join(home, 'gst_playlist.pickle'), 'r')
+		except:
+			print "error reading playlist"
+			return
+			
+		self._current_file = pickle.load(playlist)
+		self._media_position = pickle.load(playlist)
+		self._media_duration= pickle.load(playlist)
+		l = pickle.load(playlist)
+		model = self._queue_listview.get_model()
+		for filename, name in l:
+			model.append([filename, name])
+			self.emit('item-queued')
+		self._seek_scale.set_range(0,self._media_duration)
+		self._seek_scale.set_value(self._media_position)
+		self.seek(self._media_position)
+		self.pause()
+		playlist.close()
+			
+	def _save(self):
+		"""pauses, saves state, and cleans up gstreamer"""
+		home = os.path.join(os.getenv('HOME'), '.penguintv')
+		try:
+			playlist = open(os.path.join(home, 'gst_playlist.pickle'), 'w')
+		except:
+			print "error writing playlist"
+			return
+			
+		pickle.dump(self._current_file, playlist)
+		pickle.dump(self._media_position, playlist)
+		pickle.dump(self._media_duration, playlist)
+		l = []
+		for filename, name in self._queue_listview.get_model():
+			l.append([filename,name])
+		pickle.dump(l, playlist)
+		playlist.close()
 	
 		
 def do_quit(self, widget):

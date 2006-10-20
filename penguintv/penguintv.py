@@ -340,7 +340,7 @@ class PenguinTVApp:
 		self.feed_list_view.interrupt()
 		self._update_thread.goAway()
 		self._updater_thread_db.finish()
-		self.main_window.desensitize()
+		self.main_window.finish()
 		self.stop_downloads()
 		self.save_settings()
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
