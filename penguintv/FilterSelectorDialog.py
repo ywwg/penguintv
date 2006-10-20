@@ -165,7 +165,7 @@ class FilterSelectorDialog:
 			index = int(tag_index)
 			source_row = self._all_tags_model[index]
 			for row in self._favorites_model:
-				if source_row[F_NAME] == row[0]:
+				if source_row[F_NAME] == row[F_NAME]:
 					return
 			new_row = [source_row[F_NAME],source_row[F_DISPLAY],index, False]
 			try:

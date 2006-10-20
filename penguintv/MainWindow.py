@@ -735,9 +735,6 @@ class MainWindow:
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if keyname == 'k':
 				self.search_entry.grab_focus()
-		if utils.HAS_GSTREAMER:
-			if keyname == 'f' and self._notebook.get_current_page() == N_PLAYER:
-				self._gstreamer_player.toggle_fullscreen()
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		try:
@@ -761,8 +758,13 @@ class MainWindow:
 	def _on_notebook_realized(self, widget):
 		self._notebook.show_page(N_FEEDS)
 		if utils.HAS_GSTREAMER:
+			self._gstreamer_player.load()
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
+		
+	#def _on_gst_player_realized(self, widget):
+	#	print "seek seek seek"
+	#	self._gstreamer_player.seek_to_saved_position()
  
  	def on_play_entry_activate(self, event):
  		try:
@@ -779,12 +781,12 @@ class MainWindow:
 		
 	def _on_player_item_queued(self, player):
 		self._notebook.show_page(N_PLAYER)	
-		if player.get_queue_count() == 1:
-			try:
-				self._notebook.set_current_page(N_PLAYER)
-				player.play()
-			except:
-				pass #fails while loading
+		#if player.get_queue_count() == 1:
+		#	try:
+		#		self._notebook.set_current_page(N_PLAYER)
+		#		player.play()
+		#	except:
+		#		pass #fails while loading
 		self._player_label.set_markup(_('<span size="small">Player(%d)</span>') % player.get_queue_count())
 		
 	def _on_player_items_removed(self, player):
@@ -1240,7 +1242,6 @@ class NotebookManager(gtk.Notebook):
 	def show_page(self, n):
 		if not self._pages_showing.has_key(n):
 			return
-		print self._pages_showing
 		if self._pages_showing[n] == True:
 			return
 		self._pages_showing[n] = True
@@ -1249,13 +1250,10 @@ class NotebookManager(gtk.Notebook):
 		for key in self._pages_showing.keys():
 			if self._pages_showing[key]:
 				showing_count+=1
-		print showing_count
 		if showing_count > 1:
 			self.set_show_tabs(True)
 					
 	def hide_page(self, n):
-		if n == N_PLAYER:
-			traceback.print_stack()
 		if self._pages_showing[n] == False:
 			return
 		self._pages_showing[n] = False
