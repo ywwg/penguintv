@@ -248,6 +248,8 @@ class MainWindow:
 			p_vbox = gtk.VBox()
 			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(self._db, p_vbox)
 			self._gstreamer_player.Show()
+			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
+			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			label = gtk.Label('<span size="small">'+_('Player')+'</span>')
 			label.set_property('use-markup',True)
 			self._notebook.append_page(p_vbox, label)
@@ -263,6 +265,13 @@ class MainWindow:
 		self._notebook.show_all()
 		
 		return vbox
+		
+	def get_gst_player(self):
+		try:
+			return self._gstreamer_player
+		except:
+			print "no gstreamer player to get"
+			return None
 		
 	def notebook_select_page(self, page):
 		self._notebook.set_current_page(page)
@@ -723,6 +732,9 @@ class MainWindow:
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if keyname == 'k':
 				self.search_entry.grab_focus()
+		if utils.HAS_GSTREAMER:
+			if keyname == 'f' and self._notebook.get_current_page() == N_PLAYER:
+				self._gstreamer_player.toggle_fullscreen()
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		try:
@@ -755,6 +767,17 @@ class MainWindow:
 			
 	def on_play_unviewed_clicked(self, event):
 		self._app.play_unviewed()
+		
+	def _on_player_item_queued(self, player):
+		self._notebook.show_page(N_PLAYER)	
+		if player.get_queue_count() == 1:
+			self._notebook.set_current_page(N_PLAYER)
+			player.play()
+		
+	def _on_player_items_removed(self, player):
+		if player.get_queue_count() == 0:
+			self._notebook.hide_page(N_PLAYER)
+			player.stop()
 		
 	def on_preferences_activate(self, event):
 		self._app.window_preferences.show()

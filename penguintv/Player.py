@@ -7,7 +7,8 @@ import os
 from types import *
 
 class Player:
-	def __init__(self):
+	def __init__(self, gst_player=None):
+		self._gst_player = gst_player
 		self.cmdline = 'totem --enqueue'
 		try:
 			home=os.getenv('HOME')
@@ -65,13 +66,21 @@ class Player:
 				else:
 					players[player]=[f]
 		playlist.close()
-		for player in players.keys():
-			cmdline=player+" "
-			for filename in players[player]:
-				cmdline+=filename+" "
-			cmdline+="&"
-			#print "running: "+str(cmdline)
-			subProcess.subProcess(cmdline)
+		
+		if utils.HAS_GSTREAMER:
+			if self._gst_player is None:
+				print "no gstreamer player to call"
+			else:
+				for f in files:
+					self._gst_player.queue_file('file://'+f)
+		else:
+			for player in players.keys():
+				cmdline=player+" "
+				for filename in players[player]:
+					cmdline+=filename+" "
+				cmdline+="&"
+				#print "running: "+str(cmdline)
+				subProcess.subProcess(cmdline)
 			
 class NoDir(Exception):
 	def __init__(self,durr):

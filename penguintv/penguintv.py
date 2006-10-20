@@ -126,7 +126,6 @@ class PenguinTVApp:
 		#self.db.maybe_write_term_frequency_table()
 		self.db.clean_media_status()
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
-		self._player = Player.Player()
 		self._updater_db = None
 		self._polled=0      #Used for updating the polling progress bar
 		self._polling_taskid=0 #the taskid we can use to waitfor a polling operation
@@ -156,6 +155,7 @@ class PenguinTVApp:
 			
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
+		self._player = Player.Player(self.main_window.get_gst_player())
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
 		self._update_thread = self.DBUpdaterThread(self._polling_callback)
 		self._update_thread.start()
