@@ -787,13 +787,13 @@ class MainWindow:
 		#		player.play()
 		#	except:
 		#		pass #fails while loading
-		self._player_label.set_markup(_('<span size="small">Player(%d)</span>') % player.get_queue_count())
+		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		
 	def _on_player_items_removed(self, player):
 		if player.get_queue_count() == 0:
 			self._notebook.hide_page(N_PLAYER)
 			player.stop()
-		self._player_label.set_markup(_('<span size="small">Player(%d)</span>') % player.get_queue_count())
+		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		
 	def on_preferences_activate(self, event):
 		self._app.window_preferences.show()
@@ -1216,7 +1216,7 @@ class MainWindow:
 		if number == 0:
 			self._notebook.hide_page(N_DOWNLOADS)
 		else:
-			self._downloads_label.set_markup(_('<span size="small">Downloads(%d)</span>') % number)
+			self._downloads_label.set_markup(_('<span size="small">Downloads (%d)</span>') % number)
 			self._notebook.show_page(N_DOWNLOADS)
 				
 	def desensitize(self):

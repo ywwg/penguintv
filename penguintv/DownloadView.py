@@ -237,9 +237,6 @@ class DownloadView:
 			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
 			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
-			
-		#put a space between the image and the icon (to the left of it)
-		#use treeviewcolumn spacing instead
 		return p
 		
 	def on_stop_toolbutton_clicked(self, widget):
@@ -248,6 +245,7 @@ class DownloadView:
 		for index in selected: #build a list to avoid race conditions
 			medialist.append(self._downloads[index[0]].media)
 		for medium in medialist:
+			print "stopping",medium['url']
 			self._app.do_cancel_download(medium)
 		self.update_downloads()
 		

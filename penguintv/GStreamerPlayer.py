@@ -31,9 +31,12 @@ class GStreamerPlayer(gobject.GObject):
 		self._fullscreen = False
 		self.__no_seek = False
 		self.__is_exposed = False
+		self._x_overlay = None
 		
 		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 		gobject.signal_new('items-removed', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+		
+	###public functions###
 		
 	def Show(self):
 		#self._external_window = gtk.Window()
@@ -132,7 +135,6 @@ class GStreamerPlayer(gobject.GObject):
 		self._queue_listview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_MOVE)
 		self._queue_listview.enable_model_drag_dest(drop_types, gtk.gdk.ACTION_MOVE)
 		self._queue_listview.connect('drag-data-received', self._on_queue_drag_data_received)
-		#self._queue_listview.connect('drag-data-get', self._on_queue_drag_data_get)
 		
 		s_w.add(self._queue_listview)
 		vbox.pack_start(s_w, True)
@@ -250,23 +252,18 @@ class GStreamerPlayer(gobject.GObject):
 				self.play()
 			return
 		if self._last_file != self._current_file:
-			if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
-				self._pipeline.set_state(gst.STATE_READY)
-			self._pipeline.set_property('uri',filename)
 			self._last_file = self._current_file
 			selection = self._queue_listview.get_selection()
 			selection.unselect_all()
 			selection.select_path((self._current_file,))
-			
-		#if self._fullscreen:
-	#		self._v_sink.set_xwindow_id(self._drawing_area_fullscreen.window.xid)
-	#	else:
-		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
-		self._v_sink.set_property('force-aspect-ratio', True)
+			self._ready_new_file(filename)
+		self._prepare_display()
+		
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		self._media_duration = -1
 		if not notick:
 			gobject.timeout_add(1000, self._tick)
+		#self._pipeline.get_property('stream-info')
 		
 	def pause(self):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
@@ -279,13 +276,13 @@ class GStreamerPlayer(gobject.GObject):
 		self._pipeline.set_state(gst.STATE_READY)
 		
 	def ff(self):
-		new_pos = self._media_position+7000000000L #7 seconds I think
+		new_pos = self._media_position+15000000000L #15 seconds I think
 		if new_pos > self._media_duration:
 			new_pos = self._media_duration
 		self.seek(new_pos)
 		
 	def rew(self):
-		new_pos = self._media_position-3000000000L #3 seconds I think
+		new_pos = self._media_position-5000000000L #3 seconds I think
 		if new_pos < 0:
 			new_pos = 0
 		self.seek(new_pos)
@@ -320,6 +317,8 @@ class GStreamerPlayer(gobject.GObject):
 							gst.SEEK_FLAG_FLUSH | gst.SEEK_FLAG_ACCURATE,
 							gst.SEEK_TYPE_SET, time,
 							gst.SEEK_TYPE_NONE, 0)
+							
+	###handlers###
 		
 	def _on_play_clicked(self, b): self.play()
 		
@@ -374,6 +373,7 @@ class GStreamerPlayer(gobject.GObject):
 			self.prev()
 		elif keyname == 'space':
 			self.play_pause_toggle()
+		#FIXME: these don't work when we're embedded in penguintv.  why?
 		elif keyname == 'Right':
 			self.ff()
 		elif keyname == 'Left':
@@ -382,12 +382,39 @@ class GStreamerPlayer(gobject.GObject):
 		#	print keyname
 			
 	def _on_drawing_area_exposed(self, widget, event):
+		if self._x_overlay is None:
+			self._x_overlay = self._pipeline.get_by_interface(gst.interfaces.XOverlay)
+		if self._x_overlay is not None:
+			self._x_overlay.expose()
 		if not self.__is_exposed:
 			self.__is_exposed = True
 			model = self._queue_listview.get_model()
 			if len(model) > 0:
 				self._seek_to_saved_position()
+				
+	###utility functions###
+				
+	def _ready_new_file(self, uri):
+		"""load a new uri into the pipeline and prepare the pipeline for playing"""
+		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
+			self._pipeline.set_state(gst.STATE_READY)
+		self._pipeline.set_property('uri',uri)
+		self._x_overlay = None #reset so we grab again when we start playing
 		
+	def _prepare_display(self):
+		#get video width and height so we can resize the pane
+		#see totem
+		#	get stream info
+		#	get pad
+		#	get caps
+		#	get structure
+		#test for fullscreen...
+		#if self._fullscreen:
+		#		self._v_sink.set_xwindow_id(self._drawing_area_fullscreen.window.xid)
+		#	else:
+		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
+		self._v_sink.set_property('force-aspect-ratio', True)
+
 	def _tick(self):
 		self.__no_seek = True
 		self._update_seek_bar()
@@ -423,10 +450,12 @@ class GStreamerPlayer(gobject.GObject):
 			print str(message)
 			
 	def _seek_to_saved_position(self):
+		"""many sources don't support seek in ready, so we do it the old fashioned way:
+		play, wait for it to play, pause, wait for it to pause, and then seek"""
 		selection = self._queue_listview.get_selection()
 		selection.unselect_all()
 		selection.select_path((self._current_file,))
-		#save, because they may get overwritten
+		#save, because they may get overwritten when we play and pause
 		pos, dur = self._media_position, self._media_duration
 		self.play(True)
 		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
@@ -437,10 +466,11 @@ class GStreamerPlayer(gobject.GObject):
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			print "some problem changing state to pause"
 		self._media_position, self._media_duration = pos, dur
-		#self._update_seek_bar()
 		self.seek(self._media_position)
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
+		
+	###drag and drop###
 		
 	def _on_queue_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
 		treeview.emit_stop_by_name('drag-data-received')
