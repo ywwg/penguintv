@@ -28,7 +28,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._media_position = 0
 		self._last_file = -1
 		self._current_file = 0 #index to tree model
-		self._fullscreen = False
+		self._resized_pane = False
 		self.__no_seek = False
 		self.__is_exposed = False
 		self._x_overlay = None
@@ -39,26 +39,22 @@ class GStreamerPlayer(gobject.GObject):
 	###public functions###
 		
 	def Show(self):
-		#self._external_window = gtk.Window()
-		#self._drawing_area_fullscreen = gtk.DrawingArea()
-		#color = gtk.gdk.Color(0,0,0)
-		#self._drawing_area_fullscreen.modify_bg(gtk.STATE_NORMAL, color)
-		#self._external_window.add(self._drawing_area_fullscreen)
-		#self._external_window.connect('key-press-event', self._on_key_press_event)
-	
-		hpaned = gtk.HPaned()
-		self._video_container = gtk.VBox()
+		self._hpaned = gtk.HPaned()
+		main_vbox = gtk.VBox()
+		self._player_vbox = gtk.VBox()
 		self._drawing_area = gtk.DrawingArea()
 		color = gtk.gdk.Color(0,0,0)
 		self._drawing_area.modify_bg(gtk.STATE_NORMAL, color)
 		self._drawing_area.connect('expose-event', self._on_drawing_area_exposed)
-		self._video_container.pack_start(self._drawing_area)
+		self._player_vbox.pack_start(self._drawing_area)
+		main_vbox.pack_start(self._player_vbox)
 		
+		self._controls_vbox = gtk.VBox()
 		self._seek_scale = gtk.HScale()
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_draw_value(False)
 		self._seek_scale.connect('value-changed', self._on_seek_value_changed)
-		self._video_container.pack_start(self._seek_scale, False)
+		self._controls_vbox.pack_start(self._seek_scale, False)
 		
 		button_box = gtk.HButtonBox()
 		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
@@ -111,16 +107,24 @@ class GStreamerPlayer(gobject.GObject):
 		button.connect("clicked", self._on_next_clicked)
 		button_box.add(button)
 		
-		self._video_container.pack_start(button_box, False)
-		hpaned.add1(self._video_container)
+		self._controls_vbox.pack_start(button_box, False)
+		main_vbox.pack_start(self._controls_vbox, False)
+		self._hpaned.add1(main_vbox)
 		
-		vbox = gtk.VBox()
+		self._sidepane_vbox = gtk.VBox()
 		s_w = gtk.ScrolledWindow()
 		s_w.set_shadow_type(gtk.SHADOW_IN)
 		s_w.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		self._queue_listview = gtk.TreeView()
-		model = gtk.ListStore(str, str) #filename, title to display
+		model = gtk.ListStore(str, str, str) #filename, title to display, current track indicator
 		self._queue_listview.set_model(model)
+		
+		column = gtk.TreeViewColumn(_(""))
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer, True)
+		column.set_attributes(renderer, markup=2)
+		self._queue_listview.append_column(column)
+		
 		column = gtk.TreeViewColumn(_("Playlist"))
 		renderer = gtk.CellRendererText()
 		column.pack_start(renderer, True)
@@ -137,17 +141,16 @@ class GStreamerPlayer(gobject.GObject):
 		self._queue_listview.connect('drag-data-received', self._on_queue_drag_data_received)
 		
 		s_w.add(self._queue_listview)
-		vbox.pack_start(s_w, True)
+		self._sidepane_vbox.pack_start(s_w, True)
 		button_box = gtk.HButtonBox()
 		button_box.set_property('layout-style', gtk.BUTTONBOX_END)
 		button = gtk.Button(stock='gtk-remove')
 		button.connect("clicked", self._on_remove_clicked)
 		button_box.add(button)
-		vbox.pack_start(button_box, False)
+		self._sidepane_vbox.pack_start(button_box, False)
 		
-		hpaned.add2(vbox)
-		self._layout_dock.add(hpaned)
-		self._layout_dock.connect('key-press-event', self._on_key_press_event)
+		self._hpaned.add2(self._sidepane_vbox)
+		self._layout_dock.add(self._hpaned)
 		
 		#Gstreamer init
 		self._pipeline = gst.element_factory_make("playbin", "ptv_bin")
@@ -172,17 +175,13 @@ class GStreamerPlayer(gobject.GObject):
 		"""hides external window and reinits embedded window"""
 		pass
 		
-	def toggle_fullscreen(self):
-		if self._fullscreen:
-			self._fullscreen = False
-			#self._external_window.window.unfullscreen()
-			#self._external_window.hide_all()
-			#self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
+	def toggle_controls(self, show_controls):
+		if not show_controls:
+			self._controls_vbox.show()
+			self._sidepane_vbox.show()
 		else:
-			self._fullscreen = True
-			#self._external_window.show_all()
-			#self._external_window.window.fullscreen()
-			#self._v_sink.set_xwindow_id(self._drawing_area_fullscreen.window.xid)
+			self._controls_vbox.hide()
+			self._sidepane_vbox.hide()
 			
 	def load(self):
 		home = os.path.join(os.getenv('HOME'), '.penguintv')
@@ -199,7 +198,7 @@ class GStreamerPlayer(gobject.GObject):
 		l = pickle.load(playlist)
 		model = self._queue_listview.get_model()
 		for filename, name in l:
-			model.append([filename, name])
+			model.append([filename, name, ""])
 			self.emit('item-queued')
 		if self.__is_exposed:
 			self._seek_to_saved_position()
@@ -218,7 +217,7 @@ class GStreamerPlayer(gobject.GObject):
 		pickle.dump(self._media_position, playlist)
 		pickle.dump(self._media_duration, playlist)
 		l = []
-		for filename, name in self._queue_listview.get_model():
+		for filename, name, current in self._queue_listview.get_model():
 			l.append([filename,name])
 		pickle.dump(l, playlist)
 		playlist.close()
@@ -227,7 +226,7 @@ class GStreamerPlayer(gobject.GObject):
 		if name is None:
 			name = os.path.split(filename)[1]
 		model = self._queue_listview.get_model()
-		model.append([filename, name])
+		model.append([filename, name, ""])
 		self.emit('item-queued')
 		
 	def get_queue_count(self):
@@ -244,18 +243,22 @@ class GStreamerPlayer(gobject.GObject):
 		if len(model) == 0:
 			return
 		if self._current_file < 0: self._current_file = 0
-		try:
-			filename, title = list(model[self._current_file])
-		except:
-			if self._current_file > 0:
-				self._current_file-=1
-				self.play()
-			return
+		filename, title, current = list(model[self._current_file])
+		#except:
+		#	if self._current_file > 0:
+		#		self._current_file-=1
+		#		self.play()
+		#	return
 		if self._last_file != self._current_file:
 			self._last_file = self._current_file
 			selection = self._queue_listview.get_selection()
-			selection.unselect_all()
-			selection.select_path((self._current_file,))
+			i = -1
+			for row in model:
+				i+=1
+				if i == self._current_file:
+					row[2] = "*"
+				else:
+					row[2] = ""
 			self._ready_new_file(filename)
 		self._prepare_display()
 		
@@ -359,15 +362,16 @@ class GStreamerPlayer(gobject.GObject):
 		self.seek(pos)
 		
 	def _on_queue_row_activated(self, treeview, path, view_column):
+		self.stop()
 		self._last_file = -1
 		self._current_file = path[0]
 		self.play()
 		
 	def _on_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
-		if keyname == 'f':
-			self.toggle_fullscreen()
-		elif keyname == 'n':
+		#if keyname == 'f':
+		#	self.toggle_fullscreen()
+		if keyname == 'n':
 			self.next()
 		elif keyname == 'p':
 			self.prev()
@@ -402,19 +406,33 @@ class GStreamerPlayer(gobject.GObject):
 		self._x_overlay = None #reset so we grab again when we start playing
 		
 	def _prepare_display(self):
-		#get video width and height so we can resize the pane
-		#see totem
-		#	get stream info
-		#	get pad
-		#	get caps
-		#	get structure
-		#test for fullscreen...
-		#if self._fullscreen:
-		#		self._v_sink.set_xwindow_id(self._drawing_area_fullscreen.window.xid)
-		#	else:
 		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
 		self._v_sink.set_property('force-aspect-ratio', True)
-
+		self._resized_pane = False
+		
+	def _resize_pane(self):
+		#get video width and height so we can resize the pane
+		#see totem
+		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
+		pad = self._v_sink.get_pad('sink')
+		if pad is None:
+			print "didn't get pad"
+			return
+ 		caps = pad.get_negotiated_caps()
+ 		if caps is None:
+ 			print "didn't get caps"
+ 			return
+  		s = caps[0]
+  		movie_aspect = float(s['width']) / s['height']
+  		display_height = self._drawing_area.get_allocation().height
+  		max_width = self._hpaned.get_allocation().width - 100 #-100 for the list box
+  		new_display_width = float(display_height)*movie_aspect
+  		if new_display_width <= max_width:
+  			self._hpaned.set_position(int(new_display_width))
+  		else:
+  			self._hpaned.set_position(max_width)
+  		self._resized_pane = True
+		
 	def _tick(self):
 		self.__no_seek = True
 		self._update_seek_bar()
@@ -444,6 +462,11 @@ class GStreamerPlayer(gobject.GObject):
 		return v_sink
 		
 	def _on_gst_message(self, bus, message):
+		if message.type == gst.MESSAGE_STATE_CHANGED:
+			prev, new, pending = message.parse_state_changed()
+			if new == gst.STATE_PLAYING:
+				if not self._resized_pane:
+					self._resize_pane()
 		if message.type == gst.MESSAGE_EOS:
 			self.next()
 		elif message.type == gst.MESSAGE_ERROR:
@@ -452,9 +475,12 @@ class GStreamerPlayer(gobject.GObject):
 	def _seek_to_saved_position(self):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
 		play, wait for it to play, pause, wait for it to pause, and then seek"""
-		selection = self._queue_listview.get_selection()
-		selection.unselect_all()
-		selection.select_path((self._current_file,))
+		model = self._queue_listview.get_model()
+		i = -1
+		for row in model:
+			i+=1
+			if i == self._current_file: row[2] = "*"
+			else: row[2] = ""
 		#save, because they may get overwritten when we play and pause
 		pos, dur = self._media_position, self._media_duration
 		self.play(True)
@@ -467,6 +493,8 @@ class GStreamerPlayer(gobject.GObject):
 			print "some problem changing state to pause"
 		self._media_position, self._media_duration = pos, dur
 		self.seek(self._media_position)
+		if self._media_duration <= 0:
+			self._media_duration = 1
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
 		
@@ -490,13 +518,14 @@ class GStreamerPlayer(gobject.GObject):
 				if self.checkSanity(model, iter_to_copy, target_iter):
 					self.iterCopy(model, target_iter, row, pos)
 					context.finish(True, True, time) #finishes the move
-					i = model.get_iter_first()
-					while i is not None:
-						if playing_filename == model[i][0]:
-							self._last_file = self._current_file = model.get_path(i)[0]
-							treeview.get_selection().select_path((self._current_file,))
-							break
-						i = model.iter_next(i)
+					i=-1
+					for row in model:
+						i+=1
+						if playing_filename == row[0]:
+							self._last_file = self._current_file = i
+							row[2]="*"
+						else:
+							row[2]=""							
 				else:
 					context.finish(False, False, time)
 			except:
@@ -529,10 +558,17 @@ def do_quit(self, widget, player):
 def items_removed(player):
 	print player.get_queue_count()
 	
-#def on_app_key_press_event(widget, event, player):
-#	keyname = gtk.gdk.keyval_name(event.keyval)
-#	if keyname == 'f':
-#		player.toggle_fullscreen()
+fullscreen = False
+def on_app_key_press_event(widget, event, player, window):
+	global fullscreen
+	keyname = gtk.gdk.keyval_name(event.keyval)
+	if keyname == 'f':
+		fullscreen = not fullscreen
+		player.toggle_controls(fullscreen)
+		if fullscreen:
+			window.window.fullscreen()
+		else:
+			window.window.unfullscreen()
 		
 #loaded = False
 #def app_realized(widget, event, app):
@@ -549,9 +585,12 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	window = gtk.Window()
 	app = GStreamerPlayer(db, window)
 	app.Show()
-	app.load()
+	try:
+		app.load()
+	except:
+		print "error loading playlist"
 	window.connect('delete-event', do_quit, app)
-	#window.connect('key-press-event', on_app_key_press_event, app)
+	window.connect('key-press-event', on_app_key_press_event, app, window)
 	#window.connect('expose-event', app_realized, app)
 	app.connect('items-removed', items_removed)	
 	gtk.main()

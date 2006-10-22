@@ -70,6 +70,7 @@ class MainWindow:
 		self._bar_owner = U_NOBODY
 		self._status_owner = U_NOBODY
 		self._state = S_DEFAULT
+		self._fullscreen = False
 		
 		self._active_filter_name = FeedList.BUILTIN_TAGS[FeedList.ALL]
 		self._active_filter_index = FeedList.ALL
@@ -432,6 +433,35 @@ class MainWindow:
 		#	return self._layout_dock.get_parent_window()
 		self._app.log(str(self._window))
 		return self._window
+		
+	def toggle_fullscreen(self, fullscreen):
+		if not fullscreen:
+			self._notebook.set_show_tabs(True)
+			self._gstreamer_player.toggle_controls(fullscreen)
+			self._window.window.set_cursor(None)
+			if not utils.RUNNING_SUGAR:
+				self.app_window.window.unfullscreen()
+				self._widgetTree.get_widget('bonobodockitem1').show()
+				self._widgetTree.get_widget('bonobodockitem2').show()
+				self._widgetTree.get_widget('appbar').show()
+			else:
+				self._widgetTree.get_widget('toolbar1').show()
+				self._status_view.show()
+		else:
+			self._notebook.set_show_tabs(False)
+			self._gstreamer_player.toggle_controls(fullscreen)
+			pixmap = gtk.gdk.Pixmap(None, 1, 1, 1)
+			color = gtk.gdk.Color()
+			cursor = gtk.gdk.Cursor(pixmap, pixmap, color, color, 0, 0)
+			self._window.window.set_cursor(cursor)
+			if not utils.RUNNING_SUGAR:
+				self._widgetTree.get_widget('bonobodockitem1').hide()
+				self._widgetTree.get_widget('bonobodockitem2').hide()
+				self._widgetTree.get_widget('appbar').hide()
+				self.app_window.window.fullscreen()
+			else:
+				self._widgetTree.get_widget('toolbar1').hide()
+				self._status_view.hide()
 
 	def on_about_activate(self,event):
 		try:
@@ -735,7 +765,11 @@ class MainWindow:
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if keyname == 'k':
 				self.search_entry.grab_focus()
-			
+		if keyname == 'f':
+			if self._notebook.get_current_page() == N_PLAYER:
+				self._fullscreen = not self._fullscreen
+				self.toggle_fullscreen(self._fullscreen)
+		
 	def on_mark_entry_as_viewed_activate(self,event):
 		try:
 			entry = self.entry_list_view.get_selected()['entry_id']
