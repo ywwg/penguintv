@@ -1750,7 +1750,9 @@ class ptvDB:
 		return True
 		
 	def get_unplayed_media(self, set_viewed=False):
-		self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file FROM media WHERE download_status=? AND viewed=0',(D_DOWNLOADED,))
+		"""media_id, entry_id, feed_id, file, entry_title, feed_title
+		    0          1         2       3        4            5"""
+		self._db_execute(self._c, u'SELECT media.id, media.entry_id, media.feed_id, media.file, entries.title FROM media INNER JOIN entries ON media.entry_id = entries.id WHERE media.download_status=? AND media.viewed=0',(D_DOWNLOADED,))
 		list=self._c.fetchall()
 		playlist=[]
 		if set_viewed:
@@ -1762,7 +1764,13 @@ class ptvDB:
 			self._db.commit()
 		else:
 			playlist = list
-		return playlist 
+			
+		retval = []
+		for row in playlist:
+			feed_title = self.get_feed_title(row[2])
+			retval.append(row+[feed_title])
+			
+		return retval
 		
 	def pause_all_downloads(self):
 		self._db_execute(self._c, u'SELECT entry_id FROM media WHERE download_status=?',(D_DOWNLOADING,))

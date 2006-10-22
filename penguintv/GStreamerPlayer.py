@@ -56,6 +56,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._seek_scale.connect('value-changed', self._on_seek_value_changed)
 		self._controls_vbox.pack_start(self._seek_scale, False)
 		
+		hbox = gtk.HBox()
 		button_box = gtk.HButtonBox()
 		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
 		
@@ -107,7 +108,11 @@ class GStreamerPlayer(gobject.GObject):
 		button.connect("clicked", self._on_next_clicked)
 		button_box.add(button)
 		
-		self._controls_vbox.pack_start(button_box, False)
+		hbox.pack_start(button_box)
+		self._time_label = gtk.Label("")
+		hbox.pack_start(self._time_label, False)
+		
+		self._controls_vbox.pack_start(hbox, False)
 		main_vbox.pack_start(self._controls_vbox, False)
 		self._hpaned.add1(main_vbox)
 		

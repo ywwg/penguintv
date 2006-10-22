@@ -515,10 +515,12 @@ class PenguinTVApp:
 			self.do_resume_download(item)
 		elif action=="play":
 			media = self.db.get_media(item)
+			entry = self.db.get_entry(media['entry_id'])
+			feed_title = self.db.get_feed_title(entry['feed_id'])
 			self.db.set_entry_read(media['entry_id'],True)
 			self.db.set_media_viewed(item,True)
 			if utils.is_known_media(media['file']):
-				self._player.play(media['file'])
+				self._player.play(media['file'], feed_title + " &#8211; " + entry['title'])
 			else:
 				gnome.url_show(media['file'])
 			self.feed_list_view.update_feed_list(None,['readinfo'])
@@ -800,25 +802,27 @@ class PenguinTVApp:
 		self._entry_list_view.populate_entries(feed)
 		self.feed_list_view.update_feed_list(feed,['readinfo'],{'unread_count':0})
 
-	def play_entry(self,entry):
-		media = self.db.get_entry_media(entry)
-		self.db.set_entry_read(entry, True)
+	def play_entry(self,entry_id):
+		media = self.db.get_entry_media(entry_id)
+		entry = self.db.get_entry(entry_id)
+		feed_title = self.db.get_feed_title(entry['feed_id'])
+		self.db.set_entry_read(entry_id, True)
 		filelist=[]
 		if media:
 			for medium in media:
-				filelist.append(medium['file'])
+				filelist.append(medium['file'], feed_title + " &#8211; " + entry['title'])
 				self.db.set_media_viewed(medium['media_id'],True)
-		self._player.play(filelist)
+		self._player.play_list(filelist)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
-		self.update_entry_list(entry)
+		self.update_entry_list(entry_id)
 		
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
-		playlist = [item[3] for item in playlist]
 		playlist.reverse()
-		self._player.play(playlist)
-		for item in playlist:
-			self.feed_list_view.update_feed_list(item[3],['readinfo'])
+		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4]] for item in playlist])
+		print playlist,"eh?"
+		for row in playlist:
+			self.feed_list_view.update_feed_list(row[1],['readinfo'])
 
 	def refresh_feed(self,feed):
 		#if event.state & gtk.gdk.SHIFT_MASK:
@@ -1274,7 +1278,9 @@ class PenguinTVApp:
 					self.db.set_media_viewed(d.media['media_id'], True)
 					self.feed_list_view.update_feed_list(None,['readinfo'])
 					self.update_entry_list()
-					self._player.play(d.media['file'])
+					entry = self.db.get_entry(d.media['entry_id'])
+					feed_title = self.db.get_feed_title(entry['feed_id'])
+					self._player.play(d.media['file'], feed_title + " &#8211; " + entry['title'])
 				else:
 					self.db.set_entry_read(d.media['entry_id'],False)
 					self.db.set_media_viewed(d.media['media_id'],False)

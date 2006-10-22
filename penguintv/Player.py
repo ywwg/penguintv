@@ -4,6 +4,7 @@
 import subProcess
 import utils
 import os
+import urllib
 from types import *
 
 class Player:
@@ -27,7 +28,10 @@ class Player:
 			print "Warning: couldn't append to playlist file"			
 		pass
 		
-	def play(self, files):
+	def play(self, f, title=None):
+		self.play_list([[f,title]])
+	
+	def play_list(self, files):
 		cmdline = self.cmdline
 		try:
 			playlist = open(self.media_dir+"/recovery_playlist.m3u" , "a")
@@ -35,12 +39,9 @@ class Player:
 		except:
 			print "Warning: couldn't append to playlist file"
 			
-		if type(files) != list:
-			files = [files]
-			
 		players={}
 
-		for f in files:
+		for f,t in files:
 			if os.path.isdir(f):
 				for root,dirs,filelist in os.walk(f):
 					for filen in filelist:
@@ -71,8 +72,9 @@ class Player:
 			if self._gst_player is None:
 				print "no gstreamer player to call"
 			else:
-				for f in files:
-					self._gst_player.queue_file('file://'+f)
+				for f,t in files:
+					print "queueing up",f,t
+					self._gst_player.queue_file('file://'+urllib.quote(f),t)
 		else:
 			for player in players.keys():
 				cmdline=player+" "
