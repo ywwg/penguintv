@@ -107,34 +107,6 @@ try:
 except:
 	sys.exit("Need python-xml")
 	
-something_disabled = False	
-	
-try:
-	import PyLucene
-except:
-	print "PyLucene not installed or not installed correctly: Search will be disabled"
-	something_disabled = True
-	
-try:
-	import gconf
-except:
-	print "gconf not installed or not installed correctly: Gconf support will be disabled"
-	something_disabled = True
-	
-try:
-	import pygst
-	pygst.require("0.10")
-	import gst	
-except:
-	print "gstreamer .10 or greater not installed or not installed correctly: Built-in player will be disabled"
-	something_disabled = True
-	
-if something_disabled:
-	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
-	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
-	
-
-	
 from penguintv import utils
 
 locales = []
@@ -233,9 +205,44 @@ if "install" in sys.argv:
 		
 #	if  BUILD_MOZ:
 	print """By default, penguintv will use the gtkhtml renderrer.  If you want to use mozilla instead, run the command:
-gconftool-2 -s -t string /apps/penguintv/renderrer MOZILLA
-Please note that the mozilla renderrer requires a recent version of xulrunner.  If clicking on links inside PenguinTV has no
-effect, you need to upgrade the mozilla component."""
+gconftool-2 -s -t string /apps/penguintv/renderrer MOZILLA"""
 
+print ""
+something_disabled = False	
+	
+try:
+	import PyLucene
+except:
+	print "WARNING: PyLucene not installed or not installed correctly: Search will be disabled"
+	something_disabled = True
+	
+try:
+	import gconf
+except:
+	print "WARNING: gconf not installed or not installed correctly: Gconf support will be disabled"
+	something_disabled = True
+	
+try:
+	import pygst
+	pygst.require("0.10")
+	import gst	
+except:
+	print "WARNING: gstreamer .10 or greater not installed or not installed correctly: Built-in player will be disabled"
+	something_disabled = True
+	
+try:
+	import gtkmozembed
+	print """WARNING: mozilla was found, but I don't know what version it is.  If clicking links in PenguinTV
+     has no effect, your version of gtkmozembed is based on a version of mozilla that is too old."""
+except:
+	print "WARNING: mozilla not installed or not installed correctly.  Planet View will be disabled"
+	
+if something_disabled:
+	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
+	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
 
-
+print """
+WARNING: This is an unstable version of PenguinTV.  While it works fairly well, there may be bugs,
+and I may need to change the database schema in the future.  Furthermore, do not run old and new
+versions of PenguinTV together -- they will not be able to keep track of downloaded media correctly."""
+	

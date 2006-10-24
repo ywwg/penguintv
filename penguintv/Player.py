@@ -27,6 +27,9 @@ class Player:
 		except:
 			print "Warning: couldn't append to playlist file"			
 		pass
+	
+	def using_internal_player(self):
+		return self._gst_player != None	
 		
 	def play(self, f, title=None):
 		self.play_list([[f,title]])
@@ -68,13 +71,8 @@ class Player:
 					players[player]=[f]
 		playlist.close()
 		
-		if utils.HAS_GSTREAMER:
-			if self._gst_player is None:
-				print "no gstreamer player to call"
-			else:
-				for f,t in files:
-					self._gst_player.queue_file('file://'+urllib.quote(f),t)
-		else:
+		if self._gst_player is None:
+			print "not using gstreamer"
 			for player in players.keys():
 				cmdline=player+" "
 				for filename in players[player]:
@@ -82,6 +80,10 @@ class Player:
 				cmdline+="&"
 				#print "running: "+str(cmdline)
 				subProcess.subProcess(cmdline)
+		else:
+			for f,t in files:
+				self._gst_player.queue_file('file://'+urllib.quote(f),t)
+			
 			
 class NoDir(Exception):
 	def __init__(self,durr):

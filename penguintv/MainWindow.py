@@ -58,7 +58,7 @@ class MainWindow:
 	COLUMN_BOLD = 2
 	COLUMN_STICKY_FLAG = 3
 
-	def __init__(self, app, glade_prefix):
+	def __init__(self, app, glade_prefix, use_internal_player = False):
 		self._app = app
 		self._mm = self._app.mediamanager
 		self._db = self._app.db #this and app are always in the same thread
@@ -71,6 +71,10 @@ class MainWindow:
 		self._status_owner = U_NOBODY
 		self._state = S_DEFAULT
 		self._fullscreen = False
+		
+		self._use_internal_player = False
+		if utils.HAS_GSTREAMER and use_internal_player:
+			self._use_internal_player = True
 		
 		self._active_filter_name = FeedList.BUILTIN_TAGS[FeedList.ALL]
 		self._active_filter_index = FeedList.ALL
@@ -148,7 +152,7 @@ class MainWindow:
 				self.search_container.hide_all()
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
-		if utils.HAS_GSTREAMER:
+		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
 				
@@ -248,7 +252,7 @@ class MainWindow:
 		vbox = gtk.VBox()
 		self._notebook.append_page(vbox, label)
 		
-		if utils.HAS_GSTREAMER:
+		if self._use_internal_player:
 			p_vbox = gtk.VBox()
 			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(self._db, p_vbox)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
@@ -791,7 +795,7 @@ class MainWindow:
 			
 	def _on_notebook_realized(self, widget):
 		self._notebook.show_page(N_FEEDS)
-		if utils.HAS_GSTREAMER:
+		if self._use_internal_player:
 			self._gstreamer_player.load()
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
@@ -937,7 +941,7 @@ class MainWindow:
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
 		self._notebook.show_only(N_FEEDS)
-		if utils.HAS_GSTREAMER:
+		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
 		#can't reset changing_layout because app hasn't updated pointers yet
@@ -1166,7 +1170,7 @@ class MainWindow:
 		self.on_filter_changed()
 		
 	def finish(self):
-		if utils.HAS_GSTREAMER:
+		if self._use_internal_player:
 			self._gstreamer_player.finish()
 		self.desensitize()
 			

@@ -141,11 +141,14 @@ class PenguinTVApp:
 		self._threaded_searcher = None
 		self._waiting_for_search = False
 		self._state = DEFAULT
-		
+				
 		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout', 'standard')
 		if utils.RUNNING_SUGAR: window_layout='planet' #always use planet on sugar platform
 		
-		self.main_window = MainWindow.MainWindow(self,self.glade_prefix) 
+		#stupid gconf will default to false if the key doesn't exist.  And of course the schema usually
+		#doesn't work until they re-login...
+		use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
+		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player) 
 		self.main_window.layout=window_layout
 		
 	def log(self, message):
@@ -282,8 +285,8 @@ class PenguinTVApp:
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
 	def save_settings(self):
-		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position',self.main_window.feed_pane.get_position())
-		self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position',self.main_window.entry_pane.get_position())
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.main_window.feed_pane.get_position())
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.main_window.entry_pane.get_position())
 		if self.main_window.app_window is not None:
 			x,y=self.main_window.app_window.get_position()
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x',x)
@@ -315,6 +318,7 @@ class PenguinTVApp:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',self.feed_list_view.filter_name)
 		else:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',"")
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self._player.using_internal_player())
 	
 	def resume_resumable(self):
 		list = self.db.get_resumable_media()

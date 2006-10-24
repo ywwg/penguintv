@@ -36,6 +36,7 @@ if utils.HAS_LUCENE:
 	import Lucene
 if utils.HAS_GCONF:
 	import gconf
+	import gobject
 
 NEW = 0
 EXISTS = 1

@@ -1,7 +1,7 @@
 char *s = N_(" ");
 char *s = N_(" megabytes");
 char *s = N_(" minutes");
-char *s = N_("(c)2005 Owen Williams");
+char *s = N_("(c)2006 Owen Williams");
 char *s = N_("0 bytes");
 char *s = N_("<b>Add Feed</b>");
 char *s = N_("<b>BitTorrent Options</b>");

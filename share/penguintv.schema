@@ -259,6 +259,42 @@
      </locale>
    </schema>
    
+    <schema>
+     <key>/schemas/apps/penguintv/sync_delete</key>
+     <applyto>/apps/penguintv/sync_delete</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>False</default>
+     <locale name="C">
+	<short>Delete files on destination</short>
+	<long>Delete files on the destination that no longer exist in the database.  Default False</long>
+     </locale>
+   </schema>
+   
+    <schema>
+     <key>/schemas/apps/penguintv/sync_audio_only</key>
+     <applyto>/apps/penguintv/sync_audio_only</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>False</default>
+     <locale name="C">
+	<short>Synchronize audio only</short>
+	<long>Copy only audio files when synchronizing. Default False</long>
+     </locale>
+   </schema>
+   
+    <schema>
+     <key>/schemas/apps/penguintv/sync_dest_dir</key>
+     <applyto>/apps/penguintv/sync_dest_dir</applyto>
+     <owner>penguintv</owner>
+     <type>string</type>
+     <default>/</default>
+     <locale name="C">
+	<short>Destination Folder</short>
+	<long>This is the folder that PenguinTV will synchronize to.</long>
+     </locale>
+   </schema>
+   
    <schema>
      <key>/schemas/apps/penguintv/fancy_feedlist</key>
      <applyto>/apps/penguintv/fancy_feedlist</applyto>
@@ -266,8 +302,20 @@
      <type>bool</type>
      <default>False</default>
      <locale name="C">
-	<short>HTML renderrer</short>
+	<short>Fancy feedlist</short>
 	<long>If enabled, the feedlist will be fancier and take up more space per row.  Default False</long>
+     </locale>
+   </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/use_internal_player</key>
+     <applyto>/apps/penguintv/use_internal_player</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>True</default>
+     <locale name="C">
+	<short>Use internal media player</short>
+	<long>If enabled, PenguinTV will use its internal gstreamer player to play media.  Default True</long>
      </locale>
    </schema>
 
