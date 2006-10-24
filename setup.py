@@ -1,9 +1,11 @@
-try:
-	from Pyrex.Distutils import build_ext
-	BUILD_MOZ=True
-except:
-	print "pyrex not found, mozilla building disabled"
-	BUILD_MOZ=False
+#this file is a catastrophe. I'm sorry.
+
+#try:
+#	from Pyrex.Distutils import build_ext
+#	BUILD_MOZ=True
+#except:
+#	print "pyrex not found, mozilla building disabled"
+BUILD_MOZ=False
 
 
 from distutils.core import setup
@@ -100,15 +102,38 @@ except:
 	sys.exit("Need gnome-vfs python bindings")	
 	
 try:
-	import PyLucene
-except:
-	sys.exit("Need PyLucene")
-	
-try:
 	from xml.sax import saxutils
 	test = saxutils.DefaultHandler
 except:
 	sys.exit("Need python-xml")
+	
+something_disabled = False	
+	
+try:
+	import PyLucene
+except:
+	print "PyLucene not installed or not installed correctly: Search will be disabled"
+	something_disabled = True
+	
+try:
+	import gconf
+except:
+	print "gconf not installed or not installed correctly: Gconf support will be disabled"
+	something_disabled = True
+	
+try:
+	import pygst
+	pygst.require("0.10")
+	import gst	
+except:
+	print "gstreamer .10 or greater not installed or not installed correctly: Built-in player will be disabled"
+	something_disabled = True
+	
+if something_disabled:
+	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
+	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
+	
+
 	
 from penguintv import utils
 
@@ -176,15 +201,14 @@ if BUILD_MOZ:
 		BUILD_MOZ=False
 	
 if BUILD_MOZ==False:
-	in_f = file("share/penguintv.schema.in")
-	out_f = open("share/penguintv.schema","w")
-	line=" "
-	while len(line)>0:
-		line = in_f.readline()
-		line = line.replace("$$RENDERRER$$","GTKHTML")
-		out_f.write(line)
-
-	out_f.close()
+	#in_f = file("share/penguintv.schema.in")
+	#out_f = open("share/penguintv.schema","w")
+	#line=" "
+	#while len(line)>0:
+	#	line = in_f.readline()
+	#	line = line.replace("$$RENDERRER$$","GTKHTML")
+	#	out_f.write(line)
+	#out_f.close()
 	setup(name = "PenguinTV", 
 	version = utils.VERSION,
 	description      = 'GNOME-compatible podcast and videoblog reader',
@@ -207,10 +231,11 @@ if "install" in sys.argv:
 	else:
 		print sp.outdata
 		
-	if  BUILD_MOZ:
-		print """By default, penguintv will use the gtkhtml renderrer.  If you want to use mozilla instead, run the command:
-gconftool-2 -s -t string /apps/penguintv/renderrer DEMOCRACY_MOZ
-Please note that the mozilla renderrer is experimental"""
+#	if  BUILD_MOZ:
+	print """By default, penguintv will use the gtkhtml renderrer.  If you want to use mozilla instead, run the command:
+gconftool-2 -s -t string /apps/penguintv/renderrer MOZILLA
+Please note that the mozilla renderrer requires a recent version of xulrunner.  If clicking on links inside PenguinTV has no
+effect, you need to upgrade the mozilla component."""
 
 
 

@@ -73,7 +73,6 @@ class Player:
 				print "no gstreamer player to call"
 			else:
 				for f,t in files:
-					print "queueing up",f,t
 					self._gst_player.queue_file('file://'+urllib.quote(f),t)
 		else:
 			for player in players.keys():

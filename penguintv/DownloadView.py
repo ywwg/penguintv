@@ -209,6 +209,10 @@ class DownloadView:
 											  item.status,
 											  status_markup])
 			
+		#make sure both lists are sorted the same way
+		id_list = [row[D_MEDIA_ID] for row in self._downloads_liststore]
+		self._downloads.sort(lambda x,y: id_list.index(x.media['media_id']) - id_list.index(y.media['media_id']))
+			
 	def _get_pixbuf(self, feed_id):
 		"""from feedlist.py"""
 		filename = os.path.join(self._db.home,'.penguintv','icons',str(feed_id)+'.*')

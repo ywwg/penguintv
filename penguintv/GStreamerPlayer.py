@@ -249,11 +249,6 @@ class GStreamerPlayer(gobject.GObject):
 			return
 		if self._current_file < 0: self._current_file = 0
 		filename, title, current = list(model[self._current_file])
-		#except:
-		#	if self._current_file > 0:
-		#		self._current_file-=1
-		#		self.play()
-		#	return
 		if self._last_file != self._current_file:
 			self._last_file = self._current_file
 			selection = self._queue_listview.get_selection()
@@ -261,7 +256,7 @@ class GStreamerPlayer(gobject.GObject):
 			for row in model:
 				i+=1
 				if i == self._current_file:
-					row[2] = "*"
+					row[2] = "&#8226;"
 				else:
 					row[2] = ""
 			self._ready_new_file(filename)
@@ -297,21 +292,25 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def next(self):
 		model = self._queue_listview.get_model()
+		selection = self._queue_listview.get_selection()
 		if self._current_file >= len(model):
 			return
 		self._pipeline.set_state(gst.STATE_READY)
 		self._current_file += 1
+		selection.select_path((self._current_file,))
 		
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		self.play()
 		
 	def prev(self):
+		selection = self._queue_listview.get_selection()
 		self._pipeline.set_state(gst.STATE_READY)
 		if self._current_file <= 0:
 			self._current_file = 0
 			self.seek(0)
 		self._current_file -= 1
+		selection.select_path((self._current_file,))
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		self.play()
@@ -405,8 +404,7 @@ class GStreamerPlayer(gobject.GObject):
 				
 	def _ready_new_file(self, uri):
 		"""load a new uri into the pipeline and prepare the pipeline for playing"""
-		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
-			self._pipeline.set_state(gst.STATE_READY)
+		self._pipeline.set_state(gst.STATE_READY)
 		self._pipeline.set_property('uri',uri)
 		self._x_overlay = None #reset so we grab again when we start playing
 		
@@ -421,11 +419,10 @@ class GStreamerPlayer(gobject.GObject):
 		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
 		pad = self._v_sink.get_pad('sink')
 		if pad is None:
-			print "didn't get pad"
+			print "didn't get pad for resize info"
 			return
  		caps = pad.get_negotiated_caps()
- 		if caps is None:
- 			print "didn't get caps"
+ 		if caps is None: #no big deal, this might be audio only
  			return
   		s = caps[0]
   		movie_aspect = float(s['width']) / s['height']
@@ -484,7 +481,7 @@ class GStreamerPlayer(gobject.GObject):
 		i = -1
 		for row in model:
 			i+=1
-			if i == self._current_file: row[2] = "*"
+			if i == self._current_file: row[2] = "&#8226;" #bullet
 			else: row[2] = ""
 		#save, because they may get overwritten when we play and pause
 		pos, dur = self._media_position, self._media_duration
@@ -527,8 +524,10 @@ class GStreamerPlayer(gobject.GObject):
 					for row in model:
 						i+=1
 						if playing_filename == row[0]:
+							print "moving current file from", paths_to_copy[0][0],
 							self._last_file = self._current_file = i
-							row[2]="*"
+							print "to",i
+							row[2]="&#8226;" #bullet
 						else:
 							row[2]=""							
 				else:

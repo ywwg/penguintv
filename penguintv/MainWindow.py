@@ -801,11 +801,8 @@ class MainWindow:
 	#	self._gstreamer_player.seek_to_saved_position()
  
  	def on_play_entry_activate(self, event):
- 		try:
-			entry = self.entry_list_view.get_selected()['entry_id']
-			self._app.play_entry(entry)
-		except:
-			pass
+ 		entry = self.entry_list_view.get_selected()['entry_id']
+		self._app.play_entry(entry)
 				
 	def on_play_unviewed_activate(self, event):
 		self._app.play_unviewed()
@@ -1243,7 +1240,7 @@ class MainWindow:
 		self._download_view.update_downloads()
 		self._update_notebook_tabs(len(progresses)+len(queued)+len(paused))
 		
-	def download_finished(self, d):
+	def download_finished(self): #FIXME: convert to gobject signal one day
 		self._download_view.update_downloads()
 		
 	def _update_notebook_tabs(self, number):

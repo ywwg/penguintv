@@ -1674,10 +1674,13 @@ class ptvDB:
 		ret = self._c.fetchone()
 		return ret[0]
 		
-	def get_media_for_download(self):
-		self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE (download_status==? OR download_status==?) AND viewed=0',(D_NOT_DOWNLOADED,D_RESUMABLE))
+	def get_media_for_download(self, resume_paused = True):
+		if resume_paused:
+			self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE (download_status=? OR download_status==?) AND viewed=0',(D_NOT_DOWNLOADED,D_RESUMABLE))
+		else:
+			self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE download_status=? AND viewed=0',(D_NOT_DOWNLOADED,))
 		list=self._c.fetchall()
-		self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE download_status==?',(D_ERROR,))
+		self._db_execute(self._c, u'SELECT id, length, entry_id, feed_id FROM media WHERE download_status=?',(D_ERROR,))
 		list=list+self._c.fetchall()
 		newlist=[]
 		for item in list:
@@ -1768,7 +1771,7 @@ class ptvDB:
 		retval = []
 		for row in playlist:
 			feed_title = self.get_feed_title(row[2])
-			retval.append(row+[feed_title])
+			retval.append(row+(feed_title,))
 			
 		return retval
 		

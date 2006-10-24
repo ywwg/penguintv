@@ -388,7 +388,7 @@ class PenguinTVApp:
 	
 	def _auto_download_unviewed(self):
 		"""Automatically download any unviewed media.  Runs every five minutes when auto-polling, so make sure is good"""
-		download_list=self.db.get_media_for_download()
+		download_list=self.db.get_media_for_download(False) #don't resume paused downloads
 		if len(download_list)==0:
 			return #no need to bother
 		total_size=0
@@ -810,7 +810,7 @@ class PenguinTVApp:
 		filelist=[]
 		if media:
 			for medium in media:
-				filelist.append(medium['file'], feed_title + " &#8211; " + entry['title'])
+				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title']])
 				self.db.set_media_viewed(medium['media_id'],True)
 		self._player.play_list(filelist)
 		self.feed_list_view.update_feed_list(None,['readinfo'])
@@ -820,7 +820,6 @@ class PenguinTVApp:
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
 		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4]] for item in playlist])
-		print playlist,"eh?"
 		for row in playlist:
 			self.feed_list_view.update_feed_list(row[1],['readinfo'])
 
@@ -1191,6 +1190,7 @@ class PenguinTVApp:
 	def delete_media(self, media_id):
 		"""Deletes specific media id"""
 		self.db.delete_media(media_id)
+		self.main_window.download_finished()
 		self.mediamanager.generate_playlist()
 		self.db.set_media_viewed(media_id,True)
 		self.update_disk_usage()
@@ -1222,8 +1222,7 @@ class PenguinTVApp:
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
 		   callback tells the thread to stop working.  how to make this better?"""
 		   
-		if self.mediamanager.has_downloader(item['media_id']):
-			self.mediamanager.get_downloader(item['media_id']).stop()
+		self.mediamanager.stop_download(item['media_id'])
 		self.db.set_media_download_status(item['media_id'],ptvDB.D_NOT_DOWNLOADED)
 		self.delete_media(item['media_id']) #marks as viewed
 		self.main_window.update_download_progress()
@@ -1243,9 +1242,10 @@ class PenguinTVApp:
 			self._populate_feeds(self._done_populating, FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		self.feed_list_view.do_filter() #to remove active downloads from the list
+		self.main_window.download_finished()
 		
 	def do_pause_download(self, media_id):
-		self.mediamanager.get_downloader(media_id).stop(True) #pause it
+		self.mediamanager.get_downloader(media_id).pause()
 		self.db.set_media_download_status(media_id,ptvDB.D_RESUMABLE)
 		self.db.set_media_viewed(media_id,0)
 		self.db.set_entry_read(media_id,0)
@@ -1285,7 +1285,7 @@ class PenguinTVApp:
 					self.db.set_entry_read(d.media['entry_id'],False)
 					self.db.set_media_viewed(d.media['media_id'],False)
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)	
-			self.main_window.download_finished(d)
+			self.main_window.download_finished() #FIXME: convert to gobject signal one day
 		if self._exiting:
 			self.feed_list_view.do_filter() #to remove active downloads from the list
 			return

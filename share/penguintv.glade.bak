@@ -1320,7 +1320,7 @@ j@v2v.cc
 		      <child>
 			<widget class="GtkMenuItem" id="import_opml">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">_Import OPML...</property>
+			  <property name="label" translatable="yes">_Import Subscriptions...</property>
 			  <property name="use_underline">True</property>
 			  <signal name="activate" handler="on_import_opml_activate" last_modification_time="Tue, 16 Aug 2005 13:26:24 GMT"/>
 			</widget>
@@ -1329,7 +1329,7 @@ j@v2v.cc
 		      <child>
 			<widget class="GtkMenuItem" id="export_opml">
 			  <property name="visible">True</property>
-			  <property name="label" translatable="yes">_Export OPML...</property>
+			  <property name="label" translatable="yes">_Export Subscriptions...</property>
 			  <property name="use_underline">True</property>
 			  <signal name="activate" handler="on_export_opml_activate" last_modification_time="Tue, 16 Aug 2005 13:27:00 GMT"/>
 			</widget>
@@ -1415,7 +1415,7 @@ j@v2v.cc
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">_Standard Layout</property>
 			  <property name="use_underline">True</property>
-			  <property name="active">False</property>
+			  <property name="active">True</property>
 			  <signal name="activate" handler="on_standard_layout_activate" last_modification_time="Sat, 18 Feb 2006 16:12:56 GMT"/>
 			</widget>
 		      </child>
@@ -1425,7 +1425,7 @@ j@v2v.cc
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">_Horizontal Layout</property>
 			  <property name="use_underline">True</property>
-			  <property name="active">False</property>
+			  <property name="active">True</property>
 			  <property name="group">standard_layout</property>
 			  <signal name="activate" handler="on_horizontal_layout_activate" last_modification_time="Sat, 18 Feb 2006 15:47:51 GMT"/>
 			</widget>
@@ -1436,7 +1436,7 @@ j@v2v.cc
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">_Vertical Layout</property>
 			  <property name="use_underline">True</property>
-			  <property name="active">False</property>
+			  <property name="active">True</property>
 			  <property name="group">standard_layout</property>
 			  <signal name="activate" handler="on_vertical_layout_activate" last_modification_time="Sat, 18 Feb 2006 16:12:56 GMT"/>
 			</widget>
@@ -1491,7 +1491,7 @@ j@v2v.cc
 			  <accelerator key="r" modifiers="GDK_CONTROL_MASK | GDK_SHIFT_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image340">
+			    <widget class="GtkImage" id="image349">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-refresh</property>
 			      <property name="icon_size">1</property>
@@ -1512,7 +1512,7 @@ j@v2v.cc
 			  <signal name="activate" handler="on_refresh_feeds_with_errors_activate" last_modification_time="Sat, 02 Sep 2006 19:42:09 GMT"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image341">
+			    <widget class="GtkImage" id="image350">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-refresh</property>
 			      <property name="icon_size">1</property>
@@ -1549,7 +1549,7 @@ j@v2v.cc
 			  <accelerator key="d" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image342">
+			    <widget class="GtkImage" id="image351">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-go-down</property>
 			      <property name="icon_size">1</property>
@@ -1571,7 +1571,7 @@ j@v2v.cc
 			  <accelerator key="p" modifiers="GDK_CONTROL_MASK | GDK_SHIFT_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image343">
+			    <widget class="GtkImage" id="image352">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-media-play</property>
 			      <property name="icon_size">1</property>
@@ -1640,7 +1640,7 @@ j@v2v.cc
 			  <accelerator key="f" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image344">
+			    <widget class="GtkImage" id="image353">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-add</property>
 			      <property name="icon_size">1</property>
@@ -1670,7 +1670,7 @@ j@v2v.cc
 			  <signal name="activate" handler="on_remove_feed_activate" last_modification_time="Wed, 27 Jul 2005 03:45:51 GMT"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image345">
+			    <widget class="GtkImage" id="image354">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-remove</property>
 			      <property name="icon_size">1</property>
@@ -1710,7 +1710,7 @@ j@v2v.cc
 			  <accelerator key="r" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image346">
+			    <widget class="GtkImage" id="image355">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-refresh</property>
 			      <property name="icon_size">1</property>
@@ -1763,7 +1763,7 @@ j@v2v.cc
 			  <signal name="activate" handler="on_feed_properties_activate" last_modification_time="Tue, 29 Aug 2006 17:29:56 GMT"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image347">
+			    <widget class="GtkImage" id="image356">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-properties</property>
 			      <property name="icon_size">1</property>
@@ -1798,7 +1798,7 @@ j@v2v.cc
 			  <accelerator key="d" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image348">
+			    <widget class="GtkImage" id="image357">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-go-down</property>
 			      <property name="icon_size">1</property>
@@ -1820,7 +1820,7 @@ j@v2v.cc
 			  <accelerator key="p" modifiers="GDK_CONTROL_MASK" signal="activate"/>
 
 			  <child internal-child="image">
-			    <widget class="GtkImage" id="image349">
+			    <widget class="GtkImage" id="image358">
 			      <property name="visible">True</property>
 			      <property name="stock">gtk-media-play</property>
 			      <property name="icon_size">1</property>
