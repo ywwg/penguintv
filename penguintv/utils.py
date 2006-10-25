@@ -35,7 +35,7 @@ else:
 		HAS_GCONF = True
 	except:
 		HAS_GCONF = False
-
+		
 try:
 	import pygst
 	pygst.require("0.10")
@@ -47,7 +47,7 @@ except:
 ##DEBUG!
 #HAS_LUCENE=False
 
-VERSION="2.5"
+VERSION="2.51"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 

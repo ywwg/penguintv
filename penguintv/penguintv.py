@@ -447,13 +447,15 @@ class PenguinTVApp:
 		new_set = sets.Set(new_tags)
 		removed_tags = list(old_set.difference(new_set))
 		added_tags = list(new_set.difference(old_set))
-		if len(removed_tags) == 1 and len(added_tags) == 1: #assume renaming
-			self.db.rename_tag(removed_tags[0], added_tags[0])
-		else:
-			for tag in removed_tags:
-				self.db.remove_tag_from_feed(feed_id, tag)
-			for tag in added_tags:
-				self.db.add_tag_for_feed(feed_id, tag)	
+		#if len(removed_tags) == 1 and len(added_tags) == 1: #assume renaming
+		#assume made a GIANT ASS out of you and me.  It renames a tag even if we didn't select
+		#all the feeds with those tags!  whoops!  don't do that again.
+		#	self.db.rename_tag(removed_tags[0], added_tags[0])
+		#else:
+		for tag in removed_tags:
+			self.db.remove_tag_from_feed(feed_id, tag)
+		for tag in added_tags:
+			self.db.add_tag_for_feed(feed_id, tag)	
 		if removed_tags or added_tags:
 			self.feed_list_view.set_selected(feed_id)
 		self.main_window.update_filters()

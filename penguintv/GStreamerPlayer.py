@@ -297,6 +297,7 @@ class GStreamerPlayer(gobject.GObject):
 			return
 		self._pipeline.set_state(gst.STATE_READY)
 		self._current_file += 1
+		selection.unselect_all()
 		selection.select_path((self._current_file,))
 		
 		self._seek_scale.set_range(0,1)
@@ -310,6 +311,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._current_file = 0
 			self.seek(0)
 		self._current_file -= 1
+		selection.unselect_all()
 		selection.select_path((self._current_file,))
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
@@ -398,6 +400,7 @@ class GStreamerPlayer(gobject.GObject):
 			self.__is_exposed = True
 			model = self._queue_listview.get_model()
 			if len(model) > 0:
+				self._prepare_display()
 				self._seek_to_saved_position()
 				
 	###utility functions###
@@ -409,8 +412,17 @@ class GStreamerPlayer(gobject.GObject):
 		self._x_overlay = None #reset so we grab again when we start playing
 		
 	def _prepare_display(self):
+		#self._v_sink.set_state(gst.STATE_READY)
+		#can't set state to ready or all hell breaks loose (crashes, video freeze, etc)
+		
+		#try:
 		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
 		self._v_sink.set_property('force-aspect-ratio', True)
+		#except:
+		#	realsink = self._v_sink.get_by_interface(gst.interfaces.XOverlay)
+		#	if realsink is not None:	
+		#		realsink.set_xwindow_id(self._drawing_area.window.xid)
+		#		realsink.set_property('force-aspect-ratio', True)
 		self._resized_pane = False
 		
 	def _resize_pane(self):
@@ -453,6 +465,9 @@ class GStreamerPlayer(gobject.GObject):
 			print e
 		
 	def _get_video_sink(self):
+		#if utils.HAS_GCONF:
+		#	sinks = ["gconfvideosink","ximagesink"]
+		#else:
 		sinks = ["xvimagesink","glimagesink","sdlimagesink","ximagesink"]
 		for sink_str in sinks:
 			try:
