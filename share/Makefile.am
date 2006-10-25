@@ -7,7 +7,6 @@ activity_PYTHON =         \
 	penguintv.schema \
 	gtkhtml.css \
 	mozilla.css \
-	mozilla-planet.css
+	mozilla-planet.css 
 
-install-data-local:
-		sugar-setup-activity $(srcdir)/penguintv_olpc_icon.svg
+EXTRA_DIST = penguintv_olpc_icon.svg
