@@ -135,7 +135,7 @@ class MainWindow:
 			self._status_view = None
 			self._disk_usage_widget = None
 			self.app_window = None
-			
+
 			vbox = gtk.VBox()
 			
 			vbox.pack_start(self._load_toolbar(), False, False)
@@ -149,9 +149,12 @@ class MainWindow:
 			dock_widget.show_all()
 			if not utils.HAS_LUCENE:
 				#remove UI elements that don't apply without search
+				self._app.log("hiding search container")
 				self.search_container.hide_all()
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
+		if not utils.HAS_LUCENE:
+			self.search_container.hide_all()
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
@@ -731,8 +734,8 @@ class MainWindow:
 		y_offset = self._filter_selector_button.get_allocation().height
 		if self.app_window is not None:
 			x2,y2 = self._filter_selector_button.translate_coordinates(self.app_window, 0, 0)
-		else: #olpc has no appwindow
-			x2,y2 = self._filter_selector_button.translate_coordinates(self._layout_dock, 0, 0)
+		else: #olpc has no appwindow, it has a 'window' that's the old dock_widget
+			x2,y2 = self._filter_selector_button.translate_coordinates(self._window, 0, 0)
 		x += x2
 		y += y2 + y_offset
 		return (x,y,True)	
@@ -795,6 +798,9 @@ class MainWindow:
 			
 	def _on_notebook_realized(self, widget):
 		self._notebook.show_page(N_FEEDS)
+		if not utils.HAS_LUCENE:
+			self.search_container.hide_all()
+		
 		if self._use_internal_player:
 			self._gstreamer_player.load()
 			if self._gstreamer_player.get_queue_count() > 0:
@@ -941,6 +947,8 @@ class MainWindow:
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
 		self._notebook.show_only(N_FEEDS)
+		if not utils.HAS_LUCENE:
+			self.search_container.hide_all()
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)

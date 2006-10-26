@@ -11,7 +11,6 @@ class PenguinTVActivity(Activity):
 		app.main_window.Show(self)
 		gobject.idle_add(app.post_show_init) #lets window appear first)
 		self.connect('destroy',self.do_quit, app)
-		self.connect('focus-out-event', app.main_window.on_app_focus_out_event)
 	
 	def do_quit(self, event, app):
 		app.do_quit()

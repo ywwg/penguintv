@@ -16,7 +16,7 @@ gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
 _=gettext.gettext
 
-
+#this no longer works :(
 RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None #imagine a question mark
 #RUNNING_SUGAR = True
 

@@ -78,19 +78,21 @@ class GStreamerPlayer(gobject.GObject):
 		
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
-		button = gtk.Button("")
-		button.set_image(image)
-		button.set_property('can-focus', False)
-		button.connect("clicked", self._on_play_clicked)
-		button_box.add(button)
-		
+		self._play_pause_button = gtk.Button("")
+		self._play_pause_button.set_image(image)
+		self._play_pause_button.set_property('can-focus', False)
+		self._play_pause_button.connect("clicked", self._on_play_pause_toggle_clicked)
+		button_box.add(self._play_pause_button)
+	
 		image = gtk.Image()
-		image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
+		image.set_from_stock("gtk-media-stop",gtk.ICON_SIZE_BUTTON)
 		button = gtk.Button("")
 		button.set_image(image)
 		button.set_property('can-focus', False)
-		button.connect("clicked", self._on_pause_clicked)
+		button.connect("clicked", self._on_stop_clicked)
 		button_box.add(button)
+		#this is not working
+		button.set_sensitive(False)
 		
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-forward",gtk.ICON_SIZE_BUTTON)
@@ -239,8 +241,14 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def play_pause_toggle(self):
 		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+			self._play_pause_button.set_image(image)
 			self.pause()
 		else:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
+			self._play_pause_button.set_image(image)
 			self.play()
 		
 	def play(self, notick=False):
@@ -260,8 +268,7 @@ class GStreamerPlayer(gobject.GObject):
 				else:
 					row[2] = ""
 			self._ready_new_file(filename)
-		self._prepare_display()
-		
+			self._prepare_display()
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		self._media_duration = -1
 		if not notick:
@@ -272,11 +279,20 @@ class GStreamerPlayer(gobject.GObject):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_PAUSED)
+		#how to safely release XV when paused?  Right now we monopolize the port
+		#this doesn't work
+		#self._v_sink.set_state(gst.STATE_READY)
 		
 	def stop(self):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
+		self._last_file = -1
+		self._seek_scale.set_range(0,1)
+		self._seek_scale.set_value(0)
+		image = gtk.Image()
+		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+		self._play_pause_button.set_image(image)
 		
 	def ff(self):
 		new_pos = self._media_position+15000000000L #15 seconds I think
@@ -332,6 +348,10 @@ class GStreamerPlayer(gobject.GObject):
 	def _on_play_clicked(self, b): self.play()
 		
 	def _on_pause_clicked(self, b): self.pause()
+	
+	def _on_play_pause_toggle_clicked(self, b): self.play_pause_toggle()
+	
+	def _on_stop_clicked(self, b): self.stop()
 		
 	def _on_rewind_clicked(self, b): self.rew()
 		
@@ -400,7 +420,7 @@ class GStreamerPlayer(gobject.GObject):
 			self.__is_exposed = True
 			model = self._queue_listview.get_model()
 			if len(model) > 0:
-				self._prepare_display()
+				#self._prepare_display()
 				self._seek_to_saved_position()
 				
 	###utility functions###
@@ -411,18 +431,37 @@ class GStreamerPlayer(gobject.GObject):
 		self._pipeline.set_property('uri',uri)
 		self._x_overlay = None #reset so we grab again when we start playing
 		
-	def _prepare_display(self):
-		#self._v_sink.set_state(gst.STATE_READY)
-		#can't set state to ready or all hell breaks loose (crashes, video freeze, etc)
-		
-		#try:
+	def _prepare_display(self, compat=False):
+		print "preparing display"
+		#if type(self._v_sink) != GstXVImageSink and not compat:
+		#do this right at some point: if we are using a substandard sink
+		#and we're not being specifically told to use it, try the better one
+		if 'gstximagesink' in str(type(self._v_sink)).lower() and not compat:
+			print "was usingcompat sink.  Try getting the better one"
+			self._v_sink = self._get_video_sink()
+			self._pipeline.set_property('video-sink',self._v_sink)
+		if compat:
+			self._v_sink = self._get_video_sink(True)
+			self._pipeline.set_property('video-sink',self._v_sink)
+			
+		#according to totem this helps set things up (bacon-video-widget-gst-0.10:4290)
+		bus = self._pipeline.get_bus()
+		self._v_sink.set_bus(bus)
+		self._v_sink.set_state(gst.STATE_READY)	
+			
+		change_return, state, pending = self._v_sink.get_state(gst.SECOND * 10)
+		if change_return != gst.STATE_CHANGE_SUCCESS:
+			if 'gstximagesink' in str(type(self._v_sink)).lower():
+				print "couldn't find a valid video sink (do something!)"
+				return
+			#well that didn't work, try again with compatibility sink
+			self._v_sink = self._get_video_sink(True)
+			self._pipeline.set_property('video-sink',self._v_sink)
+			self._prepare_display(True)
+			return
+				
 		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
 		self._v_sink.set_property('force-aspect-ratio', True)
-		#except:
-		#	realsink = self._v_sink.get_by_interface(gst.interfaces.XOverlay)
-		#	if realsink is not None:	
-		#		realsink.set_xwindow_id(self._drawing_area.window.xid)
-		#		realsink.set_property('force-aspect-ratio', True)
 		self._resized_pane = False
 		
 	def _resize_pane(self):
@@ -464,21 +503,23 @@ class GStreamerPlayer(gobject.GObject):
 		except Exception, e:
 			print e
 		
-	def _get_video_sink(self):
-		#if utils.HAS_GCONF:
-		#	sinks = ["gconfvideosink","ximagesink"]
-		#else:
-		sinks = ["xvimagesink","glimagesink","sdlimagesink","ximagesink"]
+	def _get_video_sink(self, compat=False):
+		print "getting new sink",compat
+		if compat:
+			sinks = ["ximagesink"]
+		else:
+			sinks = ["xvimagesink","ximagesink"]
 		for sink_str in sinks:
 			try:
 				v_sink = gst.element_factory_make(sink_str, "v_sink")
 				break
 			except:
 				print "couldn't init ",sink_str
-		print "video sink:", sink_str
+		print "default video sink:", sink_str
 		return v_sink
 		
 	def _on_gst_message(self, bus, message):
+		#print str(message)
 		if message.type == gst.MESSAGE_STATE_CHANGED:
 			prev, new, pending = message.parse_state_changed()
 			if new == gst.STATE_PLAYING:

@@ -211,6 +211,7 @@ class PenguinTVApp:
 				self._populate_feeds(self._done_populating)
 		else:
 			self._populate_feeds(self._done_populating)
+
 		if self._autoresume:
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
