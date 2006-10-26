@@ -91,8 +91,6 @@ class GStreamerPlayer(gobject.GObject):
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_stop_clicked)
 		button_box.add(button)
-		#this is not working
-		button.set_sensitive(False)
 		
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-forward",gtk.ICON_SIZE_BUTTON)
@@ -270,6 +268,9 @@ class GStreamerPlayer(gobject.GObject):
 			self._ready_new_file(filename)
 			self._prepare_display()
 		self._pipeline.set_state(gst.STATE_PLAYING)
+		image = gtk.Image()
+		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+		self._play_pause_button.set_image(image)
 		self._media_duration = -1
 		if not notick:
 			gobject.timeout_add(1000, self._tick)
@@ -284,6 +285,8 @@ class GStreamerPlayer(gobject.GObject):
 		#self._v_sink.set_state(gst.STATE_READY)
 		
 	def stop(self):
+		#this does release the port, but I hate having a stop button on a computer
+		#because it doesn't make sense.
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
@@ -444,11 +447,8 @@ class GStreamerPlayer(gobject.GObject):
 			self._v_sink = self._get_video_sink(True)
 			self._pipeline.set_property('video-sink',self._v_sink)
 			
-		#according to totem this helps set things up (bacon-video-widget-gst-0.10:4290)
-		bus = self._pipeline.get_bus()
-		self._v_sink.set_bus(bus)
 		self._v_sink.set_state(gst.STATE_READY)	
-			
+		#	
 		change_return, state, pending = self._v_sink.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			if 'gstximagesink' in str(type(self._v_sink)).lower():
@@ -516,6 +516,9 @@ class GStreamerPlayer(gobject.GObject):
 			except:
 				print "couldn't init ",sink_str
 		print "default video sink:", sink_str
+		#according to totem this helps set things up (bacon-video-widget-gst-0.10:4290)
+		bus = self._pipeline.get_bus()
+		v_sink.set_bus(bus)
 		return v_sink
 		
 	def _on_gst_message(self, bus, message):
