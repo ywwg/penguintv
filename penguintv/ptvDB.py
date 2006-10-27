@@ -1490,14 +1490,20 @@ class ptvDB:
 		if result[0] >= 0:
 			pointed_feed = result[0]
 			#this is where we perform a search
-			entries =  self.search(result[1],pointed_feed)[1]
-			if len(entries)==0:
+			s_entries =  self.search(result[1],pointed_feed)[1]
+			if len(s_entries)==0:
 				return []
-			entries.sort(lambda x,y: int(y[2] - x[2]))
+			s_entries.sort(lambda x,y: int(y[2] - x[2]))
+			entries = []
+			#gonna be slow :(
+			for entry_id,title, fakedate, feed_id in s_entries:
+				self._db_execute(c, """SELECT read FROM entries WHERE id=? LIMIT 1""",(entry_id,))
+				readinfo = self._c.fetchone()[0]
+				entries.append([entry_id, title, fakedate, readinfo, feed_id])
 			self._filtered_entries[feed_index] = entries
 			return entries
 	
-		self._db_execute(c, """SELECT id,title,fakedate,read FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
+		self._db_execute(c, """SELECT id,title,fakedate,read,feed_id FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
 		result = c.fetchall()
 		
 		if result=="":

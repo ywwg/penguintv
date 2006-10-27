@@ -239,14 +239,8 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def play_pause_toggle(self):
 		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
-			image = gtk.Image()
-			image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
-			self._play_pause_button.set_image(image)
 			self.pause()
 		else:
-			image = gtk.Image()
-			image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
-			self._play_pause_button.set_image(image)
 			self.play()
 		
 	def play(self, notick=False):
@@ -269,7 +263,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._prepare_display()
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		image = gtk.Image()
-		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+		image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
 		self._play_pause_button.set_image(image)
 		self._media_duration = -1
 		if not notick:
@@ -280,6 +274,9 @@ class GStreamerPlayer(gobject.GObject):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_PAUSED)
+		image = gtk.Image()
+		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+		self._play_pause_button.set_image(image)
 		#how to safely release XV when paused?  Right now we monopolize the port
 		#this doesn't work
 		#self._v_sink.set_state(gst.STATE_READY)
@@ -531,7 +528,15 @@ class GStreamerPlayer(gobject.GObject):
 		if message.type == gst.MESSAGE_EOS:
 			self.next()
 		elif message.type == gst.MESSAGE_ERROR:
-			print str(message)
+			gerror, debug = message.parse_error()
+			print "GSTREAMER ERROR:",debug
+			#dialog = gtk.Dialog(title=_("Player Error"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			#label = gtk.Label(_("The player had a gstreamer error:\n")+str(debug))
+			#dialog.vbox.pack_start(label, True, True, 0)
+			#label.show()
+			#response = dialog.run()
+			#dialog.hide()
+			#del dialog
 			
 	def _seek_to_saved_position(self):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
@@ -548,8 +553,7 @@ class GStreamerPlayer(gobject.GObject):
 		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			print "some problem changing state to play"
-		self._pipeline.set_state(gst.STATE_PAUSED)	
-		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
+		self.pause()
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			print "some problem changing state to pause"
 		self._media_position, self._media_duration = pos, dur
