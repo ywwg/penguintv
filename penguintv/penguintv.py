@@ -158,7 +158,10 @@ class PenguinTVApp:
 			
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
-		self._player = Player.Player(self.main_window.get_gst_player())
+		gst_player = self.main_window.get_gst_player()
+		self._player = Player.Player(gst_player)
+		if gst_player is not None:
+			gst_player.connect('item-not-supported', self._on_item_not_supported)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
 		self._update_thread = self.DBUpdaterThread(self._polling_callback)
 		self._update_thread.start()
@@ -829,6 +832,9 @@ class PenguinTVApp:
 		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4]] for item in playlist])
 		for row in playlist:
 			self.feed_list_view.update_feed_list(row[1],['readinfo'])
+			
+	def _on_item_not_supported(self, player, filename, name):
+		self._player.play(filename, name, force_external=True) #retry, force external player
 
 	def refresh_feed(self,feed):
 		#if event.state & gtk.gdk.SHIFT_MASK:

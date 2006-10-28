@@ -257,7 +257,7 @@ class MainWindow:
 		
 		if self._use_internal_player:
 			p_vbox = gtk.VBox()
-			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(self._db, p_vbox)
+			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
@@ -820,7 +820,7 @@ class MainWindow:
 	def on_play_unviewed_clicked(self, event):
 		self._app.play_unviewed()
 		
-	def _on_player_item_queued(self, player):
+	def _on_player_item_queued(self, player, filename, name):
 		self._notebook.show_page(N_PLAYER)	
 		#if player.get_queue_count() == 1:
 		#	try:
@@ -1321,6 +1321,7 @@ class NotebookManager(gtk.Notebook):
 				self.get_nth_page(i).show_all()
 			else:
 				self.get_nth_page(i).hide_all()
+		self.set_current_page(n)
 		self.set_show_tabs(False)
 					
 class ShouldntHappenError(Exception):

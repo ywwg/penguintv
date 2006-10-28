@@ -587,7 +587,7 @@ def htmlify_media(medium, mm):
 								 utils.html_command('retry',medium['media_id'])+' '+
 								 utils.html_command('tryresume:',medium['media_id'])+' '+
 								 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
-	ret.append('</div>')								 
+	ret.append('</div>')
 	return ret
 
 class HTMLimgParser(htmllib.HTMLParser):

@@ -31,10 +31,10 @@ class Player:
 	def using_internal_player(self):
 		return self._gst_player != None	
 		
-	def play(self, f, title=None):
-		self.play_list([[f,title]])
+	def play(self, f, title=None, force_external=False):
+		self.play_list([[f,title]], force_external)
 	
-	def play_list(self, files):
+	def play_list(self, files, force_external = False):
 		cmdline = self.cmdline
 		try:
 			playlist = open(self.media_dir+"/recovery_playlist.m3u" , "a")
@@ -71,8 +71,10 @@ class Player:
 					players[player]=[f]
 		playlist.close()
 		
-		if self._gst_player is None:
-			print "not using gstreamer"
+		if self._gst_player is not None and not force_external:
+			for f,t in files:
+				self._gst_player.queue_file(f,t)
+		else:
 			for player in players.keys():
 				cmdline=player+" "
 				for filename in players[player]:
@@ -80,10 +82,6 @@ class Player:
 				cmdline+="&"
 				#print "running: "+str(cmdline)
 				subProcess.subProcess(cmdline)
-		else:
-			for f,t in files:
-				self._gst_player.queue_file('file://'+urllib.quote(f),t)
-			
 			
 class NoDir(Exception):
 	def __init__(self,durr):

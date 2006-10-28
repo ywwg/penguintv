@@ -5,24 +5,22 @@
 import pygst
 pygst.require("0.10")
 import gst
+from gst.extend.discoverer import Discoverer
 
 import pygtk
 pygtk.require("2.0")
 import gtk 
 import gobject
 
-import ptvDB
 import utils
 
-import os,os.path
+import sys,os,os.path
 import pickle
-
-import traceback
+import urllib
 
 class GStreamerPlayer(gobject.GObject):
-	def __init__(self, db, layout_dock):
+	def __init__(self, layout_dock):
 		gobject.GObject.__init__(self)
-		self._db = db	
 		self._layout_dock = layout_dock
 		self._media_duration = 0
 		self._media_position = 0
@@ -33,7 +31,10 @@ class GStreamerPlayer(gobject.GObject):
 		self.__is_exposed = False
 		self._x_overlay = None
 		
-		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+		self._error_dialog = GStreamerErrorDialog()
+		
+		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str,str])
+		gobject.signal_new('item-not-supported', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str,str])
 		gobject.signal_new('items-removed', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 		
 	###public functions###
@@ -202,9 +203,10 @@ class GStreamerPlayer(gobject.GObject):
 		self._media_duration = pickle.load(playlist)
 		l = pickle.load(playlist)
 		model = self._queue_listview.get_model()
-		for filename, name in l:
-			model.append([filename, name, ""])
-			self.emit('item-queued')
+		for uri, name in l:
+			model.append([uri, name, ""])
+			filename = gst.uri_get_location(uri)
+			self.emit('item-queued', filename, name)
 		if self.__is_exposed:
 			self._seek_to_saved_position()
 		playlist.close()
@@ -222,18 +224,36 @@ class GStreamerPlayer(gobject.GObject):
 		pickle.dump(self._media_position, playlist)
 		pickle.dump(self._media_duration, playlist)
 		l = []
-		for filename, name, current in self._queue_listview.get_model():
-			l.append([filename,name])
+		for uri, name, current in self._queue_listview.get_model():
+			l.append([uri,name])
 		pickle.dump(l, playlist)
 		playlist.close()
 		
 	def queue_file(self, filename, name=None):
+		try:
+			os.stat(filename)
+		except:
+			print "file not found",filename
+			return
+
 		if name is None:
 			name = os.path.split(filename)[1]
-		model = self._queue_listview.get_model()
-		model.append([filename, name, ""])
-		self.emit('item-queued')
 		
+		#thanks gstfile.py
+		self.current = Discoverer(filename)
+		self.current.connect('discovered', self._discovered, filename, name)
+		self.current.discover()	
+			
+	def _discovered(self, discoverer, ismedia, filename, name):
+		if ismedia:
+			print "media type is ok"
+			model = self._queue_listview.get_model()
+			uri = 'file://'+urllib.quote(filename)
+			model.append([uri, name, ""])
+			self.emit('item-queued', filename, name)
+		else:
+			self.emit('item-not-supported', filename, name)
+	
 	def get_queue_count(self):
 		return len(self._queue_listview.get_model())
 		
@@ -248,7 +268,7 @@ class GStreamerPlayer(gobject.GObject):
 		if len(model) == 0:
 			return
 		if self._current_file < 0: self._current_file = 0
-		filename, title, current = list(model[self._current_file])
+		uri, title, current = list(model[self._current_file])
 		if self._last_file != self._current_file:
 			self._last_file = self._current_file
 			selection = self._queue_listview.get_selection()
@@ -259,7 +279,8 @@ class GStreamerPlayer(gobject.GObject):
 					row[2] = "&#8226;"
 				else:
 					row[2] = ""
-			self._ready_new_file(filename)
+			if not self._ready_new_uri(uri):
+				return
 			self._prepare_display()
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		image = gtk.Image()
@@ -424,12 +445,31 @@ class GStreamerPlayer(gobject.GObject):
 				self._seek_to_saved_position()
 				
 	###utility functions###
+	def _get_video_sink(self, compat=False):
+		print "getting new sink",compat
+		if compat:
+			sinks = ["ximagesink"]
+		else:
+			sinks = ["xvimagesink","ximagesink"]
+		for sink_str in sinks:
+			try:
+				v_sink = gst.element_factory_make(sink_str, "v_sink")
+				break
+			except:
+				print "couldn't init ",sink_str
+		print "default video sink:", sink_str
+		#according to totem this helps set things up (bacon-video-widget-gst-0.10:4290)
+		bus = self._pipeline.get_bus()
+		v_sink.set_bus(bus)
+		return v_sink
+
 				
-	def _ready_new_file(self, uri):
+	def _ready_new_uri(self, uri):
 		"""load a new uri into the pipeline and prepare the pipeline for playing"""
 		self._pipeline.set_state(gst.STATE_READY)
 		self._pipeline.set_property('uri',uri)
 		self._x_overlay = None #reset so we grab again when we start playing
+		return True
 		
 	def _prepare_display(self, compat=False):
 		print "preparing display"
@@ -482,62 +522,7 @@ class GStreamerPlayer(gobject.GObject):
   		else:
   			self._hpaned.set_position(max_width)
   		self._resized_pane = True
-		
-	def _tick(self):
-		self.__no_seek = True
-		self._update_seek_bar()
-		self.__no_seek = False
-		return self._pipeline.get_state()[1] == gst.STATE_PLAYING
-
-	def _update_seek_bar(self):
-		try:
-			self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
-			#print self._media_position
-			if self._media_position > self._media_duration:
-				self._media_duration = self._pipeline.query_duration(gst.FORMAT_TIME)[0]
-				self._seek_scale.set_range(0,self._media_duration)
-			self._seek_scale.set_value(self._media_position)
-		except Exception, e:
-			print e
-		
-	def _get_video_sink(self, compat=False):
-		print "getting new sink",compat
-		if compat:
-			sinks = ["ximagesink"]
-		else:
-			sinks = ["xvimagesink","ximagesink"]
-		for sink_str in sinks:
-			try:
-				v_sink = gst.element_factory_make(sink_str, "v_sink")
-				break
-			except:
-				print "couldn't init ",sink_str
-		print "default video sink:", sink_str
-		#according to totem this helps set things up (bacon-video-widget-gst-0.10:4290)
-		bus = self._pipeline.get_bus()
-		v_sink.set_bus(bus)
-		return v_sink
-		
-	def _on_gst_message(self, bus, message):
-		#print str(message)
-		if message.type == gst.MESSAGE_STATE_CHANGED:
-			prev, new, pending = message.parse_state_changed()
-			if new == gst.STATE_PLAYING:
-				if not self._resized_pane:
-					self._resize_pane()
-		if message.type == gst.MESSAGE_EOS:
-			self.next()
-		elif message.type == gst.MESSAGE_ERROR:
-			gerror, debug = message.parse_error()
-			print "GSTREAMER ERROR:",debug
-			#dialog = gtk.Dialog(title=_("Player Error"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			#label = gtk.Label(_("The player had a gstreamer error:\n")+str(debug))
-			#dialog.vbox.pack_start(label, True, True, 0)
-			#label.show()
-			#response = dialog.run()
-			#dialog.hide()
-			#del dialog
-			
+  		
 	def _seek_to_saved_position(self):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
 		play, wait for it to play, pause, wait for it to pause, and then seek"""
@@ -563,6 +548,44 @@ class GStreamerPlayer(gobject.GObject):
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
 		
+	def _tick(self):
+		self.__no_seek = True
+		self._update_seek_bar()
+		self.__no_seek = False
+		return self._pipeline.get_state()[1] == gst.STATE_PLAYING
+
+	def _update_seek_bar(self):
+		try:
+			self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
+			#print self._media_position
+			if self._media_position > self._media_duration:
+				self._media_duration = self._pipeline.query_duration(gst.FORMAT_TIME)[0]
+				self._seek_scale.set_range(0,self._media_duration)
+			self._seek_scale.set_value(self._media_position)
+		except Exception, e:
+			print e
+		
+	def _on_gst_message(self, bus, message):
+		#print str(message)
+		if message.type == gst.MESSAGE_STATE_CHANGED:
+			prev, new, pending = message.parse_state_changed()
+			if new == gst.STATE_PLAYING:
+				if not self._resized_pane:
+					self._resize_pane()
+		if message.type == gst.MESSAGE_EOS:
+			self.next()
+		elif message.type == gst.MESSAGE_ERROR:
+			gerror, debug = message.parse_error()
+			print "GSTREAMER ERROR:",debug
+			self._error_dialog.show_error(debug)
+			#dialog = gtk.Dialog(title=_("Player Error"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			#label = gtk.Label(_("The player had a gstreamer error:\n")+str(debug))
+			#dialog.vbox.pack_start(label, True, True, 0)
+			#label.show()
+			#response = dialog.run()
+			#dialog.hide()
+			#del dialog
+			
 	###drag and drop###
 		
 	def _on_queue_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
@@ -578,7 +601,7 @@ class GStreamerPlayer(gobject.GObject):
 				path, pos = treeview.get_dest_row_at_pos(x, y)
 				target_iter = model.get_iter(path)
 				
-				playing_filename = model[self._current_file][0]
+				playing_uri = model[self._current_file][0]
 				
 				if self.checkSanity(model, iter_to_copy, target_iter):
 					self.iterCopy(model, target_iter, row, pos)
@@ -586,7 +609,7 @@ class GStreamerPlayer(gobject.GObject):
 					i=-1
 					for row in model:
 						i+=1
-						if playing_filename == row[0]:
+						if playing_uri == row[0]:
 							print "moving current file from", paths_to_copy[0][0],
 							self._last_file = self._current_file = i
 							print "to",i
@@ -614,9 +637,40 @@ class GStreamerPlayer(gobject.GObject):
 			new_iter = target_model.insert_before(target_iter, row)
 		elif pos == gtk.TREE_VIEW_DROP_AFTER:
 			new_iter = target_model.insert_after(target_iter, row)		
-	
-	
+			
+class GStreamerErrorDialog(gtk.Window):
+	def __init__(self, type=gtk.WINDOW_TOPLEVEL):
+		gtk.Window.__init__(self, type)
+		self._last_message = ""
+		self._label = gtk.Label()
 		
+		#gtk preparation
+		vbox = gtk.VBox()
+		vbox.pack_start(self._label, True, True, 0)
+		hbox = gtk.HBox()
+		l = gtk.Label("")
+		hbox.pack_start(l, True)
+		button = gtk.Button(stock='gtk-ok')
+		button.connect('clicked', self._on_ok_clicked)
+		hbox.pack_start(button, False)
+		vbox.pack_start(hbox, False)
+		self.add(vbox)
+		self.connect('delete-event', self._on_delete_event)
+		
+	def show_error(self, error_msg):
+		if error_msg == self._last_message:
+			return
+		self._last_message = error_msg
+		self._label.set_text(error_msg)
+		self.show_all()
+			
+	def _on_ok_clicked(self, button):
+		self.hide()
+			
+	def _on_delete_event(self, widget, event):
+		return self.hide_on_delete()
+	
+#########app
 def do_quit(self, widget, player):
 	print "finish"
 	player.finish()
@@ -624,6 +678,9 @@ def do_quit(self, widget, player):
 	
 def items_removed(player):
 	print player.get_queue_count()
+	
+def item_not_supported(player, filename, name):
+	print filename,name, "not supported"
 	
 fullscreen = False
 def on_app_key_press_event(widget, event, player, window):
@@ -647,18 +704,20 @@ def on_app_key_press_event(widget, event, player, window):
 		
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program 
-	db = ptvDB.ptvDB()
-	
 	window = gtk.Window()
-	app = GStreamerPlayer(db, window)
+	app = GStreamerPlayer(window)
 	app.Show()
-	try:
-		app.load()
-	except:
-		print "error loading playlist"
+	#try:
+	app.load()
+	#except:
+	#	print "error loading playlist"
 	window.connect('delete-event', do_quit, app)
 	window.connect('key-press-event', on_app_key_press_event, app, window)
 	#window.connect('expose-event', app_realized, app)
 	app.connect('items-removed', items_removed)	
+	app.connect('item-not-supported', item_not_supported)
+	for item in sys.argv[1:]:
+		print item
+		app.queue_file(item)
 	gtk.main()
 	

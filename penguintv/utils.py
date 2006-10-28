@@ -44,8 +44,6 @@ try:
 except:
 	HAS_GSTREAMER = False
 		
-##DEBUG!
-#HAS_LUCENE=False
 
 VERSION="2.51"
 #DEBUG
