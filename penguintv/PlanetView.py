@@ -251,7 +251,7 @@ class PlanetView:
 		html = ""
 		unreads = []
 
-		i=-1
+		i=self._first_entry-1
 		for entry_id in self._entrylist[self._first_entry:last_entry]:
 			i+=1
 			entry_html, item = self._load_entry(entry_id)
