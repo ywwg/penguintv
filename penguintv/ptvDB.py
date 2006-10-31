@@ -564,7 +564,7 @@ class ptvDB:
 			s = sha.new()
 			#this is lame I know.  We shouldn't ever get a collision here though!
 			s.update(filter_name+query)
-			self._db_execute(self._c, u'INSERT INTO feeds (id,title,url,feed_pointer,description,polled,pollfail,modified,pollfreq,lastpoll,newatlast) VALUES (NULL,?, ?,?,?,0,0, 0,1800,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
+			self._db_execute(self._c, u'INSERT INTO feeds (id,title,url,feed_pointer,description,polled,pollfail,modified,pollfreq,lastpoll,newatlast) VALUES (NULL,?, ?,?,?,0,0, 0,21600,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
 			self._db.commit()
 			self._db_execute(self._c, u'SELECT id FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
 			return self._c.fetchone()[0]

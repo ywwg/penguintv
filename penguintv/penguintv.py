@@ -831,6 +831,7 @@ class PenguinTVApp:
 		playlist.reverse()
 		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4]] for item in playlist])
 		for row in playlist:
+			print "updating readinfo for",row[1]
 			self.feed_list_view.update_feed_list(row[1],['readinfo'])
 			
 	def _on_item_not_supported(self, player, filename, name):

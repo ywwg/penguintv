@@ -244,7 +244,8 @@ class DownloadView:
 		return p
 		
 	def on_stop_toolbutton_clicked(self, widget):
-		tree,selected = self._downloads_listview.get_selection().get_selected_rows()
+		selection = self._downloads_listview.get_selection()
+		tree,selected = selection.get_selected_rows()
 		medialist = []
 		for index in selected: #build a list to avoid race conditions
 			medialist.append(self._downloads[index[0]].media)
@@ -252,18 +253,23 @@ class DownloadView:
 			print "stopping",medium['url']
 			self._app.do_cancel_download(medium)
 		self.update_downloads()
+		selection.unselect_all()
 		
 	def on_pause_toolbutton_clicked(self, widget):
-		tree,selected = self._downloads_listview.get_selection().get_selected_rows()
+		selection = self._downloads_listview.get_selection()
+		tree,selected = selection.get_selected_rows()
 		for index in selected:
 			self._app.do_pause_download(self._downloads_liststore[index[0]][D_MEDIA_ID])
 		self.update_downloads()
+		selection.unselect_all()
 
 	def on_resume_toolbutton_clicked(self, widget):
-		tree,selected = self._downloads_listview.get_selection().get_selected_rows()
+		selection = self._downloads_listview.get_selection()
+		tree,selected = selection.get_selected_rows()
 		for index in selected:
 			self._app.do_resume_download(self._downloads_liststore[index[0]][D_MEDIA_ID])
 		self.update_downloads()
+		selection.unselect_all()
 		
 	def on_download_list_row_activated(self, treeview, path, viewcolumn):
 		d = self._downloads[path[0]]

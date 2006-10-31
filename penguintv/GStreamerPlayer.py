@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 #a basic gstreamer-based player.  Can run standalone or inside the widget of your choice
 #much help from the mesk player code, totem, and most of all, google.com/codesearch
+#Copyright 2006, Owen Williams
+#License: GPL
 
 import pygst
 pygst.require("0.10")
@@ -12,7 +14,11 @@ pygtk.require("2.0")
 import gtk 
 import gobject
 
-import utils
+import locale
+import gettext
+
+locale.setlocale(locale.LC_ALL, '')
+_=gettext.gettext
 
 import sys,os,os.path
 import pickle
@@ -24,8 +30,8 @@ class GStreamerPlayer(gobject.GObject):
 		self._layout_dock = layout_dock
 		self._media_duration = 0
 		self._media_position = 0
-		self._last_file = -1
-		self._current_file = 0 #index to tree model
+		self._last_index = -1
+		self._current_index = 0 #index to tree model
 		self._resized_pane = False
 		self.__no_seek = False
 		self.__is_exposed = False
@@ -122,7 +128,7 @@ class GStreamerPlayer(gobject.GObject):
 		s_w.set_shadow_type(gtk.SHADOW_IN)
 		s_w.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		self._queue_listview = gtk.TreeView()
-		model = gtk.ListStore(str, str, str) #filename, title to display, current track indicator
+		model = gtk.ListStore(str, str, str) #uri, title to display, current track indicator
 		self._queue_listview.set_model(model)
 		
 		column = gtk.TreeViewColumn(_(""))
@@ -168,7 +174,6 @@ class GStreamerPlayer(gobject.GObject):
 		bus.connect('message', self._on_gst_message)
 
 		self._layout_dock.show_all()
-		#self._external_window.hide_all()
 		
 	def get_widget(self):
 		return self._layout_dock
@@ -197,8 +202,8 @@ class GStreamerPlayer(gobject.GObject):
 			print "error reading playlist"
 			return
 			
-		self._current_file = pickle.load(playlist)
-		self._last_file = -1
+		self._current_index = pickle.load(playlist)
+		self._last_index = -1
 		self._media_position = pickle.load(playlist)
 		self._media_duration = pickle.load(playlist)
 		l = pickle.load(playlist)
@@ -220,7 +225,7 @@ class GStreamerPlayer(gobject.GObject):
 			print "error writing playlist"
 			return
 			
-		pickle.dump(self._current_file, playlist)
+		pickle.dump(self._current_index, playlist)
 		pickle.dump(self._media_position, playlist)
 		pickle.dump(self._media_duration, playlist)
 		l = []
@@ -241,19 +246,9 @@ class GStreamerPlayer(gobject.GObject):
 		
 		#thanks gstfile.py
 		self.current = Discoverer(filename)
-		self.current.connect('discovered', self._discovered, filename, name)
+		self.current.connect('discovered', self._on_type_discovered, filename, name)
 		self.current.discover()	
 			
-	def _discovered(self, discoverer, ismedia, filename, name):
-		if ismedia:
-			print "media type is ok"
-			model = self._queue_listview.get_model()
-			uri = 'file://'+urllib.quote(filename)
-			model.append([uri, name, ""])
-			self.emit('item-queued', filename, name)
-		else:
-			self.emit('item-not-supported', filename, name)
-	
 	def get_queue_count(self):
 		return len(self._queue_listview.get_model())
 		
@@ -267,15 +262,15 @@ class GStreamerPlayer(gobject.GObject):
 		model = self._queue_listview.get_model()
 		if len(model) == 0:
 			return
-		if self._current_file < 0: self._current_file = 0
-		uri, title, current = list(model[self._current_file])
-		if self._last_file != self._current_file:
-			self._last_file = self._current_file
+		if self._current_index < 0: self._current_index = 0
+		uri, title, current = list(model[self._current_index])
+		if self._last_index != self._current_index:
+			self._last_index = self._current_index
 			selection = self._queue_listview.get_selection()
 			i = -1
 			for row in model:
 				i+=1
-				if i == self._current_file:
+				if i == self._current_index:
 					row[2] = "&#8226;"
 				else:
 					row[2] = ""
@@ -303,12 +298,12 @@ class GStreamerPlayer(gobject.GObject):
 		#self._v_sink.set_state(gst.STATE_READY)
 		
 	def stop(self):
-		#this does release the port, but I hate having a stop button on a computer
+		#this should release the port, but I hate having a stop button on a computer
 		#because it doesn't make sense.
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
-		self._last_file = -1
+		self._last_index = -1
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		image = gtk.Image()
@@ -322,7 +317,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.seek(new_pos)
 		
 	def rew(self):
-		new_pos = self._media_position-5000000000L #3 seconds I think
+		new_pos = self._media_position-5000000000L #5 seconds I think
 		if new_pos < 0:
 			new_pos = 0
 		self.seek(new_pos)
@@ -330,12 +325,12 @@ class GStreamerPlayer(gobject.GObject):
 	def next(self):
 		model = self._queue_listview.get_model()
 		selection = self._queue_listview.get_selection()
-		if self._current_file >= len(model):
+		if self._current_index >= len(model):
 			return
 		self._pipeline.set_state(gst.STATE_READY)
-		self._current_file += 1
+		self._current_index += 1
 		selection.unselect_all()
-		selection.select_path((self._current_file,))
+		selection.select_path((self._current_index,))
 		
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
@@ -344,12 +339,12 @@ class GStreamerPlayer(gobject.GObject):
 	def prev(self):
 		selection = self._queue_listview.get_selection()
 		self._pipeline.set_state(gst.STATE_READY)
-		if self._current_file <= 0:
-			self._current_file = 0
+		if self._current_index <= 0:
+			self._current_index = 0
 			self.seek(0)
-		self._current_file -= 1
+		self._current_index -= 1
 		selection.unselect_all()
-		selection.select_path((self._current_file,))
+		selection.select_path((self._current_index,))
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		self.play()
@@ -382,11 +377,23 @@ class GStreamerPlayer(gobject.GObject):
 	
 	def _on_prev_clicked(self, b): self.prev()
 	
+	def _on_type_discovered(self, discoverer, ismedia, filename, name):
+		if ismedia:
+			model = self._queue_listview.get_model()
+			uri = 'file://'+urllib.quote(filename)
+			model.append([uri, name, ""])
+			self.emit('item-queued', filename, name)
+		else:
+			self.emit('item-not-supported', filename, name)
+	
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()
+		
+		current_uri = model[self._current_index][0]
+		
 		iter_list = []
 		for path in paths:
-			if path[0] == self._current_file:
+			if path[0] == self._current_index:
 				self.prev()
 				self.stop()
 			iter_list.append(model.get_iter(path))
@@ -394,12 +401,12 @@ class GStreamerPlayer(gobject.GObject):
 		for i in iter_list:
 			model.remove(i)
 			
-		if self._current_file >= len(model):
-			self._current_file = len(model) - 1
-			self.stop()
 		if len(model) == 0:
-			self._last_file = -1
-			self._current_file = 0
+			self._last_index = -1
+			self._current_index = 0
+		else:
+			self._current_index = [r[0] for r in model].index(current_uri)
+			self._last_index = self._current_index
 		self.emit('items-removed')
 		
 	def _on_seek_value_changed(self, widget):
@@ -410,8 +417,8 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def _on_queue_row_activated(self, treeview, path, view_column):
 		self.stop()
-		self._last_file = -1
-		self._current_file = path[0]
+		self._last_index = -1
+		self._current_index = path[0]
 		self.play()
 		
 	def _on_key_press_event(self, widget, event):
@@ -463,7 +470,6 @@ class GStreamerPlayer(gobject.GObject):
 		v_sink.set_bus(bus)
 		return v_sink
 
-				
 	def _ready_new_uri(self, uri):
 		"""load a new uri into the pipeline and prepare the pipeline for playing"""
 		self._pipeline.set_state(gst.STATE_READY)
@@ -530,7 +536,7 @@ class GStreamerPlayer(gobject.GObject):
 		i = -1
 		for row in model:
 			i+=1
-			if i == self._current_file: row[2] = "&#8226;" #bullet
+			if i == self._current_index: row[2] = "&#8226;" #bullet
 			else: row[2] = ""
 		#save, because they may get overwritten when we play and pause
 		pos, dur = self._media_position, self._media_duration
@@ -578,13 +584,6 @@ class GStreamerPlayer(gobject.GObject):
 			gerror, debug = message.parse_error()
 			print "GSTREAMER ERROR:",debug
 			self._error_dialog.show_error(debug)
-			#dialog = gtk.Dialog(title=_("Player Error"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			#label = gtk.Label(_("The player had a gstreamer error:\n")+str(debug))
-			#dialog.vbox.pack_start(label, True, True, 0)
-			#label.show()
-			#response = dialog.run()
-			#dialog.hide()
-			#del dialog
 			
 	###drag and drop###
 		
@@ -601,7 +600,7 @@ class GStreamerPlayer(gobject.GObject):
 				path, pos = treeview.get_dest_row_at_pos(x, y)
 				target_iter = model.get_iter(path)
 				
-				playing_uri = model[self._current_file][0]
+				playing_uri = model[self._current_index][0]
 				
 				if self.checkSanity(model, iter_to_copy, target_iter):
 					self.iterCopy(model, target_iter, row, pos)
@@ -611,7 +610,7 @@ class GStreamerPlayer(gobject.GObject):
 						i+=1
 						if playing_uri == row[0]:
 							print "moving current file from", paths_to_copy[0][0],
-							self._last_file = self._current_file = i
+							self._last_index = self._current_index = i
 							print "to",i
 							row[2]="&#8226;" #bullet
 						else:
@@ -694,15 +693,6 @@ def on_app_key_press_event(widget, event, player, window):
 		else:
 			window.window.unfullscreen()
 		
-#loaded = False
-#def app_realized(widget, event, app):
-#	global loaded
-#	if not loaded:
-#		loaded = True
-#		print "load"
-#		app.load()
-		
-		
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	window = gtk.Window()
 	app = GStreamerPlayer(window)
@@ -717,7 +707,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	app.connect('items-removed', items_removed)	
 	app.connect('item-not-supported', item_not_supported)
 	for item in sys.argv[1:]:
-		print item
 		app.queue_file(item)
 	gtk.main()
 	
