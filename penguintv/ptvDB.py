@@ -94,32 +94,35 @@ class ptvDB:
 	entry_flag_cache = {}
 	
 	def __init__(self, polling_callback=None):#,username,password):	
+		if utils.RUNNING_SUGAR:
+			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
+		else:
+			self.home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
-			self.home=os.getenv('HOME')
-			os.stat(os.path.join(self.home,".penguintv"))
+			os.stat(self.home)
 		except:
 			try:
-				os.mkdir(os.path.join(self.home,".penguintv"))
+				os.mkdir(self.home)
 			except:
-				raise DBError, "error creating directories: "+os.path.join(self.home,".penguintv")
+				raise DBError, "error creating directories: "+self.home
 		try:
-			os.stat(os.path.join(self.home,".penguintv",'icons'))
+			os.stat(os.path.join(self.home,'icons'))
 		except:
-			os.mkdir(os.path.join(self.home,".penguintv",'icons'))
+			os.mkdir(os.path.join(self.home,'icons'))
 		try:	
 			#also change db connection in pool poll
-			if os.path.isfile(os.path.join(self.home,".penguintv","penguintv3.db")) == False:
-				if os.path.isfile(os.path.join(self.home,".penguintv","penguintv2.db")):
+			if os.path.isfile(os.path.join(self.home,"penguintv3.db")) == False:
+				if os.path.isfile(os.path.join(self.home,"penguintv2.db")):
 					try: 
-						shutil.copyfile(os.path.join(self.home,".penguintv","penguintv2.db"), os.path.join(self.home,".penguintv","penguintv3.db"))
+						shutil.copyfile(os.path.join(self.home,"penguintv2.db"), os.path.join(self.home,"penguintv3.db"))
 					except:
 						raise DBError,"couldn't create new database file"
-				elif os.path.isfile(os.path.join(self.home,".penguintv","penguintv.db")):
+				elif os.path.isfile(os.path.join(self.home,"penguintv.db")):
 					try: 
-						shutil.copyfile(os.path.join(self.home,".penguintv","penguintv.db"), os.path.join(self.home,".penguintv","penguintv3.db"))
+						shutil.copyfile(os.path.join(self.home,"penguintv.db"), os.path.join(self.home,"penguintv3.db"))
 					except:
 						raise DBError,"couldn't create new database file"
-			self._db=sqlite.connect(os.path.join(self.home,".penguintv","penguintv3.db"), timeout=10	)
+			self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10	)
 			self._db.isolation_level="DEFERRED"
 		except:
 			raise DBError,"error connecting to database"
@@ -448,13 +451,13 @@ class ptvDB:
 	def clean_file_media(self):
 		"""walks the media dir, and deletes anything that doesn't have an entry in the database.
 		Also deletes dirs with only a playlist or with nothing"""
-		media_dir = os.path.join(self.home,".penguintv","media")
+		media_dir = os.path.join(self.home,"media")
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
 			if root!=media_dir:
 				for file in files:
 					if file != "playlist.m3u":
-						self._db_execute(self._c, u"SELECT id FROM media WHERE file=?",(root+"/"+file,))
+						self._db_execute(self._c, u"SELECT id FROM media WHERE file=?",(os.path.join(root, file),))
 						result = self._c.fetchone()
 						if result is None:
 							print "deleting "+os.path.join(root,file)
@@ -601,7 +604,7 @@ class ptvDB:
 		#result = self._c.fetchone()
 		#print(result)
 		
-		filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.*')
+		filename = os.path.join(self.home, 'icons',str(feed_id)+'.*')
 		result = glob.glob(filename)
 		for r in result:
 			print "deleting icon:",r
@@ -931,7 +934,7 @@ class ptvDB:
 		#else...
 		
 		#see if we need to get an image
-		filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.*')
+		filename = os.path.join(self.home, 'icons',str(feed_id)+'.*')
 		result = glob.glob(filename)
 		result = [r for r in result if r[-4:].upper()!="NONE"]
 		if len(result)==0:
@@ -941,7 +944,7 @@ class ptvDB:
 				try: href = data['channel']['link']+'/favicon.ico'
 				except: pass
 			if href!="":
-				filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.'+href.split('.')[-1])
+				filename = os.path.join(self.home, 'icons',str(feed_id)+'.'+href.split('.')[-1])
 				try:
 					os.stat(filename)
 				except:
@@ -950,11 +953,11 @@ class ptvDB:
 						self._db_execute(c, u"""UPDATE feeds SET image=? WHERE id=?""",(href,feed_id))
 						db.commit()
 					except:
-						f = open(os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.none'),'w')
+						f = open(os.path.join(self.home, 'icons',str(feed_id)+'.none'),'w')
 						f.write("")
 						f.close()
 			else:
-				f = open(os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.none'),'w')
+				f = open(os.path.join(self.home, 'icons',str(feed_id)+'.none'),'w')
 				f.write("")
 				f.close()
 		else:
@@ -964,7 +967,7 @@ class ptvDB:
 			try:
 				href = data['channel']['image']['href']
 				if href != old_img and href != "":
-					filename = os.path.join(self.home, '.penguintv','icons',str(feed_id)+'.'+href.split('.')[-1])
+					filename = os.path.join(self.home, 'icons',str(feed_id)+'.'+href.split('.')[-1])
 					print "removing old icon",result[0]
 					os.remove(result[0])
 					urllib.urlretrieve(href, filename)
@@ -2219,7 +2222,7 @@ class ptvDB:
 		
 	def write_term_frequency_table(self):
 		terms = self.searcher.get_popular_terms(max_terms=0,fields=['entry_title','entry_description'])
-		f = open(self.home+"/.penguintv/pop_search_terms.pickle","w")
+		f = open(self.home+"/pop_search_terms.pickle","w")
 		pickle.dump(terms,f)
 		f.close()
 		#self._db_execute(self._c, u'DELETE FROM terms')
@@ -2232,7 +2235,7 @@ class ptvDB:
 		
 	def get_recent_popular_terms(self):
 		pop_terms = []
-		f = open(self.home+"/.penguintv/pop_search_terms.pickle")
+		f = open(self.home+"/pop_search_terms.pickle")
 		old_terms = pickle.load(f)
 		#old_terms = old_terms[:100]
 		#print old_terms

@@ -14,6 +14,7 @@ import SimpleHTTPServer
 import urllib
 import threading
 import random
+import logging
 
 try:
 	import gtkmozembed
@@ -79,14 +80,14 @@ class PlanetView:
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
 		if self._renderer == GTKHTML:
-			self._app.log("not supported (need AJAX, believe it or not)")
+			logging.error("not supported (need AJAX, believe it or not)")
 			print "not supported (need AJAX, believe it or not)"
 			return
 		elif self._renderer == MOZILLA:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
-			gtkmozembed.set_profile_path(os.path.join(os.getenv('HOME'),".penguintv"), 'gecko')
+			gtkmozembed.set_profile_path(self._db.home, 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)
@@ -111,7 +112,7 @@ class PlanetView:
 			except:
 				PlanetView.PORT += 1
 		if PlanetView.PORT==8050:
-			self._app.log("tried a lot of ports without success.  Problem?")
+			logging.warning("tried a lot of ports without success.  Problem?")
 			print "tried a lot of ports without success.  Problem?"
 		t = threading.Thread(None, self._update_server.serve_forever)
 		t.setDaemon(True)

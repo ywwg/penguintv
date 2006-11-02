@@ -115,7 +115,7 @@ class EntryView:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
-			gtkmozembed.set_profile_path(os.path.join(os.getenv('HOME'),".penguintv"), 'gecko')
+			gtkmozembed.set_profile_path(self._db.home, 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)

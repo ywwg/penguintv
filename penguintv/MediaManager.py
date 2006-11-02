@@ -61,15 +61,15 @@ class MediaManager:
 			self.app_callback_progress = progress_callback
 		else:
 			self.app_callback_progress = self._basic_progress_callback	
-		try:
-			home=os.getenv('HOME')
-			os.stat(home+'/.penguintv/media')
+		home=self.db.home
+		try:	
+			os.stat(os.path.join(home,'media'))
 		except:
 			try:
-				os.mkdir(home+'/.penguintv/media')
+				os.mkdir(os.path.join(home, 'media'))
 			except:
-				raise NoDir, "error creating " +home+'/.penguintv/media'
-		self.media_dir = home+'/.penguintv/media'
+				raise NoDir, "error creating " +home+'/media'
+		self.media_dir = os.path.join(home, 'media')
 	
 	def finish(self):
 		self.quitting = True
@@ -125,18 +125,18 @@ class MediaManager:
 			filename = os.path.basename(media['url'])
 			filen, ext = os.path.splitext(filename)
 			ext = ext.split('?')[0] #grrr lugradio...
-			media['file']=self.media_dir+"/"+utils.get_dated_dir()+"/"+filen+ext
+			media['file']=os.path.join(self.media_dir, utils.get_dated_dir(), filen+ext)
 			dated_dir = os.path.split(os.path.split(media['file'])[0])[1]
 			try: #make sure
-				os.stat(self.media_dir+"/"+dated_dir)
+				os.stat(os.path.join(self.media_dir, dated_dir))
 			except:
-				os.mkdir(self.media_dir+"/"+dated_dir)
+				os.mkdir(os.path.join(self.media_dir, dated_dir))
 			if self.db.media_exists(media['file']): #if the filename is in the db, rename
-				media['file']=self.media_dir+"/"+utils.get_dated_dir()+"/"+filen+"-"+self.get_id()+ext
+				media['file']=os.path.join(self.media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext)
 			else:
 				try:
 					os.stat(media['file'])  #if this raises exception, the file doesn't exist and we're ok
-					media['file']=self.media_dir+"/"+utils.get_dated_dir()+"/"+filen+"-"+self.get_id()+ext #if not, get new name
+					media['file']=os.path.join(self.media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext) #if not, get new name
 				except:
 					pass #we're ok
 			
@@ -250,7 +250,7 @@ class MediaManager:
 		size = 0
 		try:
 			#filelist = glob.glob(self.media_dir+"/*")
-			for f in utils.GlobDirectoryWalker(self.media_dir+"/"):
+			for f in utils.GlobDirectoryWalker(os.path.join(self.media_dir, "")):
 				size = size+os.stat(f)[6]
 		except:
 			pass
@@ -259,13 +259,13 @@ class MediaManager:
 	def generate_playlist(self):
 		dated_dir = utils.get_dated_dir()
 		try:
-			os.stat(self.media_dir+"/"+dated_dir)
+			os.stat(os.path.join(self.media_dir, dated_dir))
 		except:
-			os.mkdir(self.media_dir+"/"+dated_dir)
-		f = open(self.media_dir+"/"+dated_dir+"/playlist.m3u",'w')
+			os.mkdir(os.path.join(self.media_dir, dated_dir))
+		f = open(os.path.join(self.media_dir, dated_dir, "playlist.m3u"),'w')
 		f.write('#EXTM3U\n')
 		
-		for item in glob.glob(self.media_dir+"/"+dated_dir+"/*"):
+		for item in glob.glob(os.path.join(self.media_dir, dated_dir, "*")):
 			filename = os.path.split(item)[1]
 			if filename != "playlist.m3u":
 				f.write(filename+"\n")
@@ -282,10 +282,10 @@ class MediaManager:
 		dated_dir = os.path.split(os.path.split(media['file'])[0])[1]
 			
 		try:
-			os.stat(self.media_dir+"/"+dated_dir+"/playlist.m3u")
-			f = open(self.media_dir+"/"+dated_dir+"/playlist.m3u",'a')
+			os.stat(os.path.join(self.media_dir, dated_dir, "playlist.m3u"))
+			f = open(os.path.join(self.media_dir, dated_dir, "playlist.m3u"),'a')
 		except:
-			f = open(self.media_dir+"/"+dated_dir+"/playlist.m3u",'w')
+			f = open(os.path.join(self.media_dir, dated_dir, "playlist.m3u"),'w')
 			f.write('#EXTM3U\n')
 		
 		f.write(os.path.split(media['file'])[1]+"\n")

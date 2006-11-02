@@ -66,8 +66,8 @@ class BTDownloader(Downloader):
 		if self.media['size']!=self._totalsize:
 			self.media['size']=self._totalsize
 			change = 1
-		if self.media['file']!=self._media_dir+"/"+dated_dir+"/"+str(default):
-			self.media['file']=self._media_dir+"/"+dated_dir+"/"+str(default)
+		if self.media['file']!=os.path.join(self._media_dir, dated_dir, str(default)):
+			self.media['file']=os.path.join(self._media_dir, dated_dir, str(default))
 			change = 1
 		if change:
 			db = ptvDB.ptvDB()
@@ -75,7 +75,7 @@ class BTDownloader(Downloader):
 			db.set_media_size(self.media['media_id'],self.media['size'])
 			db.finish()
 			del db
-		return self._media_dir+"/"+dated_dir+"/"+str(default)
+		return os.path.join(self._media_dir, dated_dir, str(default))
 	
 	def _display(self, dict):
 		if dict.has_key('downTotal'):

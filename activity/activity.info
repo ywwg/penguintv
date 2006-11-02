@@ -1,0 +1,8 @@
+[Activity]
+name = PenguinTV
+service_name = com.ywwg.PenguinTV
+id = com.ywwg.PenguinTV
+exec = sugar-activity-factory com.ywwg.PenguinTV ptv.PenguinTVActivity
+icon = activity-penguintv
+activity_version = 2.5.olpc
+show_launcher = yes

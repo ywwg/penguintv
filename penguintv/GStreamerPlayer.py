@@ -195,7 +195,10 @@ class GStreamerPlayer(gobject.GObject):
 			self._sidepane_vbox.hide()
 			
 	def load(self):
-		home = os.path.join(os.getenv('HOME'), '.penguintv')
+		if os.environ.has_key('SUGAR_PROFILE'):
+			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
+		else:
+			home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
 			playlist = open(os.path.join(home, 'gst_playlist.pickle'), 'r')
 		except:
@@ -444,6 +447,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._x_overlay = self._pipeline.get_by_interface(gst.interfaces.XOverlay)
 		if self._x_overlay is not None:
 			self._x_overlay.expose()
+		self._v_sink.expose()
 		if not self.__is_exposed:
 			self.__is_exposed = True
 			model = self._queue_listview.get_model()

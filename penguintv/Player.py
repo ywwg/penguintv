@@ -3,7 +3,7 @@
 
 import subProcess
 import utils
-import os
+import os, os.path
 import urllib
 from types import *
 
@@ -11,21 +11,24 @@ class Player:
 	def __init__(self, gst_player=None):
 		self._gst_player = gst_player
 		self.cmdline = 'totem --enqueue'
+		if utils.RUNNING_SUGAR:
+			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
+		else:
+			home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
-			home=os.getenv('HOME')
-			os.stat(home+'/.penguintv/media')
+			os.stat(os.path.join(home, 'media'))
 		except:
 			try:
-				os.mkdir(home+'/.penguintv/media')
+				os.mkdir(os.path.join(home, 'media'))
 			except:
-				raise NoDir, "error creating " +home+'/.penguintv/media'
-		self.media_dir = home+'/.penguintv/media'
+				raise NoDir, "error creating " +os.path.join(home,'/media')
+		self.media_dir = os.path.join(home, 'media')
 		try:
-			playlist = open(self.media_dir+"/recovery_playlist.m3u" , "w")
+			playlist = open(os.path.join(self.media_dir,"recovery_playlist.m3u") , "w")
 			playlist.write("#EXTM3U\n")
 			playlist.close()
 		except:
-			print "Warning: couldn't append to playlist file"			
+			print "Warning: couldn't append to playlist file", os.path.join(self.media_dir,"recovery_playlist.m3u")
 		pass
 	
 	def using_internal_player(self):
@@ -37,10 +40,10 @@ class Player:
 	def play_list(self, files, force_external = False):
 		cmdline = self.cmdline
 		try:
-			playlist = open(self.media_dir+"/recovery_playlist.m3u" , "a")
+			playlist = open(os.path.join(self.media_dir,"recovery_playlist.m3u") , "a")
 			playlist.write("#"*20+"\n")
 		except:
-			print "Warning: couldn't append to playlist file"
+			print "Warning: couldn't append to playlist file", os.path.join(self.media_dir,"recovery_playlist.m3u")
 			
 		players={}
 
@@ -52,7 +55,7 @@ class Player:
 						if os.path.isfile(next) and utils.is_known_media(filen):
 							head,filename = os.path.split(next)
 							dated_dir = os.path.split(head)[1]
-							playlist.write(dated_dir+"/"+filename+"\n")
+							playlist.write(os.path.join(dated_dir, filename)+"\n")
 							
 							player = utils.get_play_command_for(filen)
 							if players.has_key(player):
@@ -63,7 +66,7 @@ class Player:
 			elif os.path.isfile(f):
 				head,filename = os.path.split(f)
 				dated_dir = os.path.split(head)[1]
-				playlist.write(dated_dir+"/"+filename+"\n")
+				playlist.write(os.path.join(dated_dir,filename)+"\n")
 				player = utils.get_play_command_for(f)
 				if players.has_key(player):
 					players[player].append(f)

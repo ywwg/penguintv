@@ -114,7 +114,6 @@ class MainWindow:
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
 		#sys.stderr.write("show,"+str(dock_widget))
-		self._app.log("Show, please...")
 		
 		if not EntryView.MOZ_OK and self.layout == "planet":
 			print "requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)"
@@ -139,7 +138,6 @@ class MainWindow:
 			vbox = gtk.VBox()
 			
 			vbox.pack_start(self._load_toolbar(), False, False)
-			self._app.log("loading layout "+self.layout)
 			self._layout_dock = self.load_notebook()
 			self._layout_dock.add(self.load_layout())
 			vbox.pack_start(self._notebook)
@@ -149,7 +147,6 @@ class MainWindow:
 			dock_widget.show_all()
 			if not utils.HAS_LUCENE:
 				#remove UI elements that don't apply without search
-				self._app.log("hiding search container")
 				self.search_container.hide_all()
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
@@ -288,8 +285,6 @@ class MainWindow:
 		self._notebook.set_current_page(page)
 		
 	def load_layout(self):
-		#self._app.log("load_layout")
-				
 		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
@@ -319,23 +314,23 @@ class MainWindow:
 				print "too many tries"
 				self._app.do_quit()
 				sys.exit(2)
-			try:
-				if self.layout != "planet":
-					self.entry_view = EntryView.EntryView(components, self._app, self, x)
-				else:
-					self.entry_view = PlanetView.PlanetView(components, self._app, self, self._db, x)
-			except Exception, e:
+			#try:
+			if self.layout != "planet":
+				self.entry_view = EntryView.EntryView(components, self._app, self, x)
+			else:
+				self.entry_view = PlanetView.PlanetView(components, self._app, self, self._db, x)
+			#except Exception, e:
 			#	print e
-				if renderer == EntryView.DEMOCRACY_MOZ:
-					if  _FORCE_DEMOCRACY_MOZ:
-						load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
-					else:
-						print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
-						print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
-						load_renderer(EntryView.GTKHTML,recur+1)
-				else:
-					print "Error loading renderer"
-					self._app.do_quit()
+			#	if renderer == EntryView.DEMOCRACY_MOZ:
+			#		if  _FORCE_DEMOCRACY_MOZ:
+			#			load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
+			#		else:
+			#			print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
+			#			print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
+			#			load_renderer(EntryView.GTKHTML,recur+1)
+			#	else:
+			#		print "Error loading renderer"
+			#		self._app.do_quit()
 		load_renderer(renderer)
 		if self.layout != "planet":
 			self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
@@ -415,7 +410,6 @@ class MainWindow:
 		return self._layout_container
 			
 	def Hide(self):
-		self._app.log("hiding")
 		if self.app_window:
 			self.app_window.hide()
 		del self._widgetTree
@@ -436,9 +430,7 @@ class MainWindow:
 		#if self.app_window is not None:
 		#	return self.app_window
 		#else:
-		#	self._app.log(str(self._layout_dock.get_parent_window()))
 		#	return self._layout_dock.get_parent_window()
-		self._app.log(str(self._window))
 		return self._window
 		
 	def toggle_fullscreen(self, fullscreen):

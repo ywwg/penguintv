@@ -17,6 +17,7 @@ import urlparse
 import threading
 import sys, os, os.path
 import gc
+import logging
 import traceback
 import urllib
 import time
@@ -79,7 +80,7 @@ LOADING_FEEDS      = 4
 DONE_LOADING_FEEDS = 5
 
 class PenguinTVApp:
-	def __init__(self, logfile=None):
+	def __init__(self):
 		self._socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
 		if not self._socket.is_server:
 			#just pass the arguments and quit
@@ -92,34 +93,23 @@ class PenguinTVApp:
 		if len(sys.argv)>1:
 			self._for_import.append(sys.argv[1])
 			
-		try:
-			self.glade_prefix = os.path.join(utils.GetPrefix(),"share","penguintv")
-			os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
-		except:
+		found_glade = False
+		for p in (os.path.join(utils.GetPrefix(),"share","penguintv"),
+				  os.path.join(utils.GetPrefix(),"share"),
+				  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
+				  os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")):
 			try:
-				self.glade_prefix = os.path.join(utils.GetPrefix(),"share")
+				self.glade_prefix = p
 				os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
+				found_glade = True
+				break
 			except:
-				try:
-					self.glade_prefix = os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share")
-					os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
-				except:
-					try:
-						self.glade_prefix = os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")
-						os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
-					except:
-						print "error finding glade file."
-						sys.exit()
+				continue
+		if not found_glade:
+			print "error finding glade file."
+			sys.exit()
 						
-		if logfile is not None:
-			try:
-				f = os.stat(logfile)
-				self._logfile = open(logfile,"a")	
-			except:
-				self._logfile = open(logfile,"w")
-			self.log("penguintv "+utils.VERSION+" startup")
-		else:
-			self._logfile = None
+		logging.info("penguintv "+utils.VERSION+" startup")
 			
 		self.db = ptvDB.ptvDB(self._polling_callback)
 		self._firstrun = self.db.maybe_initialize_db()
@@ -151,11 +141,6 @@ class PenguinTVApp:
 		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player) 
 		self.main_window.layout=window_layout
 		
-	def log(self, message):
-		if self._logfile is not None:
-			self._logfile.write(message+"\n")
-			self._logfile.flush()
-			
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
 		gst_player = self.main_window.get_gst_player()

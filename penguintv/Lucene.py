@@ -14,15 +14,18 @@ ENTRY_LIMIT=100
 
 class Lucene:
 	def __init__(self):
+		if utils.RUNNING_SUGAR:
+			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
+		else:
+			self.home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
-			self.home=os.getenv('HOME')
-			os.stat(os.path.join(self.home,".penguintv"))
+			os.stat(self.home)
 		except:
 			try:
-				os.mkdir(os.path.join(self.home, ".penguintv"))
+				os.mkdir(self.home)
 			except:
-				raise DBError, "error creating directories: "+os.path.join(self.home,".penguintv")
-		self._storeDir = os.path.join(self.home,".penguintv","search_store")
+				raise DBError, "error creating directories: "+self.home
+		self._storeDir = os.path.join(self.home,"search_store")
 		
 		self.needs_index = False
 		
@@ -36,7 +39,7 @@ class Lucene:
 			try:
 				os.remove(os.path.join(self._storeDir,"NEEDSREINDEX"))
 			except:
-				print "Error removing NEEDSREINDEX... check permisions inside ~/.penguintv"
+				print "Error removing NEEDSREINDEX... check permisions inside %s" % (self.home)
 		
 		if not os.path.exists(self._storeDir):
 			os.mkdir(self._storeDir)
@@ -57,9 +60,9 @@ class Lucene:
 		
 	def _get_db(self):
 		try:	
-			if os.path.isfile(os.path.join(self.home,".penguintv","penguintv3.db")) == False:
+			if os.path.isfile(os.path.join(self.home,"penguintv3.db")) == False:
 				raise DBError,"database file missing"
-			db=sqlite.connect(os.path.join(self.home,".penguintv","penguintv3.db"), timeout=10	)
+			db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10	)
 			db.isolation_level="DEFERRED"
 			return db
 		except:

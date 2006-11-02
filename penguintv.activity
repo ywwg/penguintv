@@ -1,7 +1,0 @@
-[Activity]
-name = PenguinTV
-id = org.laptop.sugar.PenguinTV
-python_module = ptv.PenguinTVActivity.PenguinTVActivity
-default_type = _penguintv_olpc._udp
-show_launcher = yes
-icon = penguintv_olpc_icon

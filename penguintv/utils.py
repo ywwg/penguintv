@@ -17,7 +17,7 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 #this no longer works :(
-RUNNING_SUGAR = os.getenv('SUGAR_NICK_NAME') is not None #imagine a question mark
+RUNNING_SUGAR = os.environ.has_key('SUGAR_PROFILE')
 #RUNNING_SUGAR = True
 
 if RUNNING_SUGAR:

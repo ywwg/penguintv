@@ -679,7 +679,7 @@ class FeedList:
 		return title
 		
 	def _get_pixbuf(self, feed_id):
-		filename = os.path.join(self._db.home,'.penguintv','icons',str(feed_id)+'.*')
+		filename = os.path.join(self._db.home,'icons',str(feed_id)+'.*')
 		result = glob.glob(filename)
 		if len(result)==0:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
