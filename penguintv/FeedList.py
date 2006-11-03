@@ -129,7 +129,10 @@ class FeedList:
 		
 		#init style
 		if self._fancy:
-			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
+			if utils.RUNNING_SUGAR:
+				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
+			else:
+				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
 			
 	def populate_feeds(self,callback=None, subset=ALL):

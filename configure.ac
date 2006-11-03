@@ -8,4 +8,5 @@ Makefile
 share/Makefile
 penguintv/Makefile
 penguintv/ptvbittorrent/Makefile
+activity/Makefile
 ])

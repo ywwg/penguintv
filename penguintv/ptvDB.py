@@ -37,7 +37,7 @@ if utils.HAS_LUCENE:
 if utils.HAS_GCONF:
 	import gconf
 	import gobject
-
+	
 NEW = 0
 EXISTS = 1
 MODIFIED = 2
@@ -95,6 +95,7 @@ class ptvDB:
 	
 	def __init__(self, polling_callback=None):#,username,password):	
 		if utils.RUNNING_SUGAR:
+			import sugar
 			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			self.home = os.path.join(os.getenv('HOME'), ".penguintv")

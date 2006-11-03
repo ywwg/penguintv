@@ -196,6 +196,7 @@ class GStreamerPlayer(gobject.GObject):
 			
 	def load(self):
 		if os.environ.has_key('SUGAR_PROFILE'):
+			import sugar
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			home = os.path.join(os.getenv('HOME'), ".penguintv")

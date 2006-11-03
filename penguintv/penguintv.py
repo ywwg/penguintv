@@ -204,17 +204,21 @@ class PenguinTVApp:
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
 		if self._firstrun:
-			try:
-				glade_prefix = utils.GetPrefix()+"/share/penguintv"
-				os.stat(glade_prefix+"/defaultsubs.opml")
-			except:
-				try:				
-					glade_prefix = utils.GetPrefix()+"/share"
-					os.stat(glade_prefix+"/defaultsubs.opml")
+			found_subs = False
+			for path in (os.path.join(utils.GetPrefix(), "share" ,"penguintv"),
+						 os.path.join(utils.GetPrefix(), "share"),
+						 os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")):
+				try:
+					subs_path = path
+					os.stat(os.path.join(subs_path,"defaultsubs.opml"))
+					found_subs = True
+					break
 				except:
-					print "ptvdb: error finding default subscription file."
-					sys.exit()
-			f = open(glade_prefix+"/defaultsubs.opml", "r")
+					continue
+			if not found_subs:
+				print "ptvdb: error finding default subscription file."
+				sys.exit()
+			f = open(os.path.join(subs_path,"defaultsubs.opml"), "r")
 			self.main_window.display_status_message(_("Polling feeds for the first time..."))
 			self.import_opml(f)
 		return False #for idler	

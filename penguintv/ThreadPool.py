@@ -1,7 +1,11 @@
 # Written by Owen Williams
 # see LICENSE for license information
 import threading
-import PyLucene
+try:
+	import PyLucene
+	HAS_LUCENE = True
+except:
+	HAS_LUCENE = False
 from time import sleep
 
 # Ensure booleans exist (not needed for Python 2.2.1 or higher)
@@ -190,7 +194,14 @@ class ThreadPoolThread(threading.Thread):
         
         self.__isDying = True
         
-class LuceneThreadPoolThread(PyLucene.PythonThread):
+if HAS_LUCENE:
+	l_threadclass = PyLucene.PythonThread
+else:
+	l_threadclass = threading.Thread
+	
+#this class will never get called if we don't have lucene, but we need to declare it
+#even if we don't have the library (no preprocessors in python)
+class LuceneThreadPoolThread(l_threadclass):
 
     """ Pooled thread class. """
     
@@ -200,7 +211,7 @@ class LuceneThreadPoolThread(PyLucene.PythonThread):
 
         """ Initialize the thread and remember the pool. """
         
-        PyLucene.PythonThread.__init__(self,name=n)
+        l_threadclass.__init__(self,name=n)
         self.__pool = pool
         self.__isDying = False
         

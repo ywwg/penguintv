@@ -1987,22 +1987,7 @@ j@v2v.cc
 		</packing>
 	      </child>
 
-	      <child>
-		<widget class="GtkToolButton" id="toolbutton1">
-		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Stop All Active Downloads</property>
-		  <property name="stock_id">gtk-stop</property>
-		  <property name="visible_horizontal">True</property>
-		  <property name="visible_vertical">True</property>
-		  <property name="is_important">False</property>
-		  <signal name="clicked" handler="on_stop_downloads_clicked" last_modification_time="Thu, 16 Mar 2006 15:27:27 GMT"/>
-		</widget>
-		<packing>
-		  <property name="expand">False</property>
-		  <property name="homogeneous">True</property>
-		</packing>
-	      </child>
-
+	     
 	      <child>
 		<widget class="GtkToolButton" id="play_unviewed">
 		  <property name="visible">True</property>

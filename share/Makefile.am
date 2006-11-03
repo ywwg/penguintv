@@ -9,4 +9,4 @@ activity_PYTHON =         \
 	mozilla.css \
 	mozilla-planet.css 
 
-EXTRA_DIST = penguintv_olpc_icon.svg
+#EXTRA_DIST = penguintv_olpc_icon.svg

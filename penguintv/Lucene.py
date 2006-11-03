@@ -15,6 +15,7 @@ ENTRY_LIMIT=100
 class Lucene:
 	def __init__(self):
 		if utils.RUNNING_SUGAR:
+			import sugar
 			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			self.home = os.path.join(os.getenv('HOME'), ".penguintv")

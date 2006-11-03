@@ -16,9 +16,16 @@ gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
 _=gettext.gettext
 
-#this no longer works :(
-RUNNING_SUGAR = os.environ.has_key('SUGAR_PROFILE')
-#RUNNING_SUGAR = True
+RUNNING_SUGAR = os.environ.has_key('SUGAR_PENGUINTV')
+
+#f = open('/home/owen/penguintv.log','a')
+#f.write("------------------------")
+#f.write(str(RUNNING_SUGAR)+'\n')
+#if RUNNING_SUGAR:
+#	import sugar
+#	f.write(str(sugar.env.get_profile_path())+'\n')
+#f.write("------------------------")
+#f.close()
 
 if RUNNING_SUGAR:
 	#I do this in case we're running in a python environment that has lucene
