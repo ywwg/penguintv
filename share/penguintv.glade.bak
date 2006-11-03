@@ -158,7 +158,7 @@
       </child>
 
       <child>
-	<widget class="GtkHBox" id="hbox18">
+	<widget class="GtkHBox" id="tag_hbox">
 	  <property name="visible">True</property>
 	  <property name="homogeneous">False</property>
 	  <property name="spacing">0</property>
@@ -1980,22 +1980,6 @@ j@v2v.cc
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
 		  <signal name="clicked" handler="on_download_unviewed_clicked" last_modification_time="Thu, 11 Aug 2005 14:20:34 GMT"/>
-		</widget>
-		<packing>
-		  <property name="expand">False</property>
-		  <property name="homogeneous">True</property>
-		</packing>
-	      </child>
-
-	      <child>
-		<widget class="GtkToolButton" id="toolbutton1">
-		  <property name="visible">True</property>
-		  <property name="tooltip" translatable="yes">Stop All Active Downloads</property>
-		  <property name="stock_id">gtk-stop</property>
-		  <property name="visible_horizontal">True</property>
-		  <property name="visible_vertical">True</property>
-		  <property name="is_important">False</property>
-		  <signal name="clicked" handler="on_stop_downloads_clicked" last_modification_time="Thu, 16 Mar 2006 15:27:27 GMT"/>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
@@ -4210,7 +4194,7 @@ j@v2v.cc
 	      <property name="can_focus">True</property>
 	      <property name="label" translatable="yes">All Feeds</property>
 	      <property name="use_underline">True</property>
-	      <property name="relief">GTK_RELIEF_NONE</property>
+	      <property name="relief">GTK_RELIEF_NORMAL</property>
 	      <property name="focus_on_click">True</property>
 	      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Mon, 16 Oct 2006 20:19:30 GMT"/>
 	    </widget>
@@ -4573,7 +4557,7 @@ j@v2v.cc
 		      <property name="can_focus">True</property>
 		      <property name="label" translatable="yes">All Feeds</property>
 		      <property name="use_underline">True</property>
-		      <property name="relief">GTK_RELIEF_NONE</property>
+		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
 		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Mon, 16 Oct 2006 20:19:30 GMT"/>
 		    </widget>
@@ -4963,7 +4947,7 @@ j@v2v.cc
 		      <property name="can_focus">True</property>
 		      <property name="label" translatable="yes">All Feeds</property>
 		      <property name="use_underline">True</property>
-		      <property name="relief">GTK_RELIEF_NONE</property>
+		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
 		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Mon, 16 Oct 2006 20:19:30 GMT"/>
 		    </widget>
@@ -7044,7 +7028,7 @@ j@v2v.cc
 		      <property name="can_focus">True</property>
 		      <property name="label" translatable="yes">All Feeds</property>
 		      <property name="use_underline">True</property>
-		      <property name="relief">GTK_RELIEF_NONE</property>
+		      <property name="relief">GTK_RELIEF_NORMAL</property>
 		      <property name="focus_on_click">True</property>
 		      <signal name="button_press_event" handler="on_filter_selector_button_press_event" last_modification_time="Mon, 16 Oct 2006 20:19:30 GMT"/>
 		    </widget>

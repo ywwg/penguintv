@@ -27,6 +27,8 @@ class AddFeedDialog:
 				self._xml.signal_connect(key, getattr(self,key))
 		self._feed_url_widget = self._xml.get_widget("feed_url")
 		self._edit_tags_widget = self._xml.get_widget("edit_tags_widget")
+		self._tag_hbox = self._xml.get_widget('tag_hbox')
+		self._label = self._xml.get_widget('add_feed_label')
 				
 	def show(self):
 		self._feed_url_widget.grab_focus()
@@ -34,6 +36,9 @@ class AddFeedDialog:
 		self._feed_url_widget.set_text("")
 		self.set_location()
 		self._edit_tags_widget.set_text("")
+		if utils.RUNNING_SUGAR:
+			self._tag_hbox.hide()
+			self._label.set_text(_('Please enter the URL of the feed you would like to add'))
 	
 	#ripped from straw
 	def set_location(self):
