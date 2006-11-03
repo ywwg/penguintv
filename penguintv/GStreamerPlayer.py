@@ -195,7 +195,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._sidepane_vbox.hide()
 			
 	def load(self):
-		if os.environ.has_key('SUGAR_PROFILE'):
+		if os.environ.has_key('SUGAR_PENGUINTV'):
 			import sugar
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
@@ -222,7 +222,11 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def save(self):
 		"""pauses, saves state, and cleans up gstreamer"""
-		home = os.path.join(os.getenv('HOME'), '.penguintv')
+		if os.environ.has_key('SUGAR_PENGUINTV'):
+			import sugar
+			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
+		else:
+			home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
 			playlist = open(os.path.join(home, 'gst_playlist.pickle'), 'w')
 		except:
