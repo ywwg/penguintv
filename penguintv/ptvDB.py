@@ -678,7 +678,6 @@ class ptvDB:
 				feeds = [row[0] for row in data]
 			else:
 				return
-		print "creating a threadpool for polling",utils.HAS_LUCENE
 		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = utils.HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
