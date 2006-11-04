@@ -8,7 +8,12 @@ import gobject
 import utils
 
 import os, os.path
-import PyLucene
+try:
+	import PyLucene
+	threadclass = PyLucene.PythonThread
+except:
+	import threading
+	threadclass = threading.Thread
 
 class SynchronizeDialog:
 	def __init__(self, gladefile, db):
@@ -127,9 +132,9 @@ class SynchronizeDialog:
 		gobject.timeout_add(100,_sync_gen().next)
 		sync.start()
 		
-	class _sync_thread(PyLucene.PythonThread):
+	class _sync_thread(threadclass):
 		def __init__(self, dest_dir, delete=False, audio=False):
-			PyLucene.PythonThread.__init__(self)
+			threadclass.__init__(self)
 			self._dest_dir = dest_dir
 			self._delete = delete
 			self._audio = audio

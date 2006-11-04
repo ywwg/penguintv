@@ -48,7 +48,7 @@
 	      <property name="right_padding">0</property>
 
 	      <child>
-		<widget class="GtkLabel" id="label1">
+		<widget class="GtkLabel" id="add_feed_label">
 		  <property name="visible">True</property>
 		  <property name="label" translatable="yes">Please enter the URL of the feed you would like to add; and any tags you would like to apply to this feed, separated by commas:</property>
 		  <property name="use_underline">False</property>

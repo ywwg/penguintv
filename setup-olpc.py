@@ -2,7 +2,7 @@
 
 import os
 import sys
-import zipfile
+import tarfile
 
 from sugar.activity.bundle import Bundle
 
@@ -23,17 +23,14 @@ orig_path = os.getcwd()
 os.chdir(get_source_path())
 
 bundle = Bundle(get_source_path())
-zipname = '%s-%d.zip' % (bundle.get_name(), bundle.get_activity_version())
-bundle_zip = zipfile.ZipFile(zipname, 'w')
+tarball_name = '%s-%d.tar.gz' % (bundle.get_name(), bundle.get_activity_version())
+bundle_tar_gz = tarfile.open(tarball_name, "w:gz")
 
 for filename in manifest_generator():
 	arcname = os.path.join(get_bundle_dir(), filename)
-	try:
-		bundle_zip.write(filename, arcname)
-	except IOError, e:
-		print filename,"is a directory, skipping"
-		if e.errno != 21:
-			raise e
+	info = bundle_tar_gz.gettarinfo(filename, arcname)
+	bundle_tar_gz.addfile(info, open(filename, 'rb'))
 	
-bundle_zip.close()
+bundle_tar_gz.close()
+	
 os.chdir(orig_path)

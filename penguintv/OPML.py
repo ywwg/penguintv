@@ -1,4 +1,4 @@
-5# Released under the GNU Lesser General Public License, v2.1 or later
+# Released under the GNU Lesser General Public License, v2.1 or later
 # Copyright (c) 2002 Juri Pakaste <juri@iki.fi>
 # $Id: OPML.py,v 1.2 2006/04/04 21:46:10 ywwg Exp $
 

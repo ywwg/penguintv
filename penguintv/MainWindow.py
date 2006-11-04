@@ -199,7 +199,7 @@ class MainWindow:
 			self._progress.set_fraction(p)
 			
 	def _load_app_window(self):
-		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv') #MAGIC
+		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv')
 		notebook_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
 		
@@ -253,18 +253,18 @@ class MainWindow:
 		vbox = gtk.VBox()
 		self._notebook.append_page(vbox, label)
 		
+		p_vbox = gtk.VBox()
 		if self._use_internal_player:
-			p_vbox = gtk.VBox()
 			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
-			if utils.RUNNING_SUGAR:
-				self._player_label = gtk.Label(_('Player'))
-			else:
-				self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
-			self._player_label.set_property('use-markup',True)
-			self._notebook.append_page(p_vbox, self._player_label)
 			self._gstreamer_player.Show()
+		if utils.RUNNING_SUGAR:
+			self._player_label = gtk.Label(_('Player'))
+		else:
+			self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
+		self._player_label.set_property('use-markup',True)
+		self._notebook.append_page(p_vbox, self._player_label)
 		
 		if utils.RUNNING_SUGAR:
 			self._downloads_label = gtk.Label(_('Downloads'))
@@ -1294,10 +1294,8 @@ class NotebookManager(gtk.Notebook):
 		gtk.Notebook.append_page(self, widget, label)
 	
 	def show_page(self, n):
-		if not self._pages_showing.has_key(n):
-			return
-		if self._pages_showing[n] == True:
-			return
+		if not self._pages_showing.has_key(n): return
+		if self._pages_showing[n] == True: return
 		self._pages_showing[n] = True
 		self.get_nth_page(n).show_all()
 		showing_count = 0
@@ -1308,8 +1306,8 @@ class NotebookManager(gtk.Notebook):
 			self.set_show_tabs(True)
 					
 	def hide_page(self, n):
-		if self._pages_showing[n] == False:
-			return
+		if not self._pages_showing.has_key(n): return
+		if self._pages_showing[n] == False: return
 		self._pages_showing[n] = False
 		self.get_nth_page(n).hide()
 		showing_count = 0
@@ -1325,6 +1323,7 @@ class NotebookManager(gtk.Notebook):
 			self.set_current_page(self._default_page)
 					
 	def show_only(self, n):
+		if not self._pages_showing.has_key(n): return
 		self._default_page = n
 		for i in range(0,self.get_n_pages()):
 			self._pages_showing[i] = i==n

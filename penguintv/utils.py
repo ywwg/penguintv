@@ -3,7 +3,6 @@
 import os,sys,time, pwd
 import string
 import fnmatch
-import gnomevfs
 import urllib
 import HTMLParser
 import string
@@ -23,16 +22,32 @@ if RUNNING_SUGAR:
 	#and/or gconf but we want to pretend they aren't there
 	HAS_LUCENE = False
 	HAS_GCONF = False
+	HAS_GNOMEVFS = False
+	HAS_PYXML = False
 else:
 	try:
+		import PyLucene
 		HAS_LUCENE = True
 	except:
 		HAS_LUCENE = False
 		
 	try:
+		import gconf
 		HAS_GCONF = True
 	except:
 		HAS_GCONF = False
+		
+	try:
+		import gnomevfs
+		HAS_GNOMEVFS = True
+	except:
+		HAS_GNOMEVFS = False
+		
+	try:
+		from xml.sax.saxutils import DefaultHandler
+		HAS_PYXML = True
+	except:
+		HAS_PYXML = False
 		
 try:
 	import pygst
@@ -41,9 +56,8 @@ try:
 	HAS_GSTREAMER = True
 except:
 	HAS_GSTREAMER = False
-		
-
-VERSION="2.51"
+	
+VERSION="2.53"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 
@@ -111,13 +125,16 @@ def get_play_command_for(filename):
 			print "error getting type, using kfmclient"
 			return "kfmclient exec "
 	else: #GNOME -- notice how short and sweet this is in comparison :P
-		try:
-			mimetype = gnomevfs.get_mime_type(urllib.quote(filename)) #fix for penny arcade filenames
-			full_qual_prog = gnomevfs.mime_get_default_application(mimetype)[2]
-		except:
-			print "unknown type, using gnome-open"
-			return "gnome-open "
-	
+		if HAS_GNOMEVFS:
+			try:
+				mimetype = gnomevfs.get_mime_type(urllib.quote(filename)) #fix for penny arcade filenames
+				full_qual_prog = gnomevfs.mime_get_default_application(mimetype)[2]
+			except:
+				print "unknown type, using gnome-open"
+				return "gnome-open "
+		else:
+			# :(
+			return "echo "
 	try:
 		path, program = os.path.split(full_qual_prog)
 	except:
@@ -269,19 +286,24 @@ def desktop_has_file_handler(filename):
 		# to use anyway.
 		return True
 	else:
-		# Otherwise, use GNOMEVFS to find the appropriate handler
-		handler = gnomevfs.mime_get_default_application(gnomevfs.get_mime_type(urllib.quote(filename))) #PA fix
-		if handler is not None:
+		if HAS_GNOMEVFS:
+			# Otherwise, use GNOMEVFS to find the appropriate handler
+			handler = gnomevfs.mime_get_default_application(gnomevfs.get_mime_type(urllib.quote(filename))) #PA fix
+			if handler is not None:
+				return True
+			return False
+		else: #FIXME: olpc doesn't know what the fuck... pretend yes and let error get caught later
 			return True
-		return False
 		
 def is_file_media(filename):
 	"""Returns true if this is a media file (audio or video) and false if it is any other type of file"""
 	if is_kde():
 		mime_magic = kio.KMimeMagic()
 		mimetype = str(mime_magic.findFileType(filename).mimeType())
-	else:
+	elif HAS_GNOMEVFS:
 		mimetype = gnomevfs.get_mime_type(urllib.quote(filename))
+	else:
+		return False
 	print mimetype
 	valid_mimes=['video','audio','mp4','realmedia','m4v','mov']
 	for mime in valid_mimes:

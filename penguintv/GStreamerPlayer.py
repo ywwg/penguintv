@@ -196,7 +196,7 @@ class GStreamerPlayer(gobject.GObject):
 			
 	def load(self):
 		if os.environ.has_key('SUGAR_PENGUINTV'):
-			import sugar
+			import sugar.env
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			home = os.path.join(os.getenv('HOME'), ".penguintv")
@@ -333,10 +333,11 @@ class GStreamerPlayer(gobject.GObject):
 	def next(self):
 		model = self._queue_listview.get_model()
 		selection = self._queue_listview.get_selection()
-		if self._current_index >= len(model):
-			return
 		self._pipeline.set_state(gst.STATE_READY)
 		self._current_index += 1
+		if self._current_index >= len(model):
+			self._current_index = 0
+		
 		selection.unselect_all()
 		selection.select_path((self._current_index,))
 		
@@ -397,6 +398,7 @@ class GStreamerPlayer(gobject.GObject):
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()
 		
+		print "saving current row",self._current_index
 		current_uri = model[self._current_index][0]
 		
 		iter_list = []
@@ -572,7 +574,7 @@ class GStreamerPlayer(gobject.GObject):
 	def _update_seek_bar(self):
 		try:
 			self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
-			#print self._media_position
+			#print self._media_duration
 			if self._media_position > self._media_duration:
 				self._media_duration = self._pipeline.query_duration(gst.FORMAT_TIME)[0]
 				self._seek_scale.set_range(0,self._media_duration)

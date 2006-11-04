@@ -20,6 +20,11 @@ import gc
 import logging
 import traceback
 import urllib
+try:
+	import gnome.ui
+	HAS_GNOME=True
+except:
+	HAS_GNOME=False
 import time
 import sets
 import string
@@ -29,7 +34,6 @@ timeoutsocket.setDefaultSocketTimeout(30)
 import pygtk
 pygtk.require('2.0')
 import gtk
-import gnome.ui
 import gtk.glade
 import gobject
 import locale
@@ -137,7 +141,10 @@ class PenguinTVApp:
 		
 		#stupid gconf will default to false if the key doesn't exist.  And of course the schema usually
 		#doesn't work until they re-login...
-		use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
+		if not utils.RUNNING_SUGAR:
+			use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
+		else:
+			use_internal_player = True
 		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player) 
 		self.main_window.layout=window_layout
 		
@@ -210,7 +217,11 @@ class PenguinTVApp:
 						 os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")):
 				try:
 					subs_path = path
-					os.stat(os.path.join(subs_path,"defaultsubs.opml"))
+					if utils.HAS_PYXML:
+						subs_name = "defaultsubs.opml"
+					else:
+						subs_name = "defaultsubs.txt"
+					os.stat(os.path.join(subs_path,subs_name))
 					found_subs = True
 					break
 				except:
@@ -218,9 +229,9 @@ class PenguinTVApp:
 			if not found_subs:
 				print "ptvdb: error finding default subscription file."
 				sys.exit()
-			f = open(os.path.join(subs_path,"defaultsubs.opml"), "r")
+			f = open(os.path.join(subs_path,subs_name), "r")
 			self.main_window.display_status_message(_("Polling feeds for the first time..."))
-			self.import_opml(f)
+			self.import_subscriptions(f, utils.HAS_PYXML)
 		return False #for idler	
 		
 	def _load_settings(self):
@@ -513,6 +524,15 @@ class PenguinTVApp:
 		elif action=="resume" or action=="tryresume":
 			self.do_resume_download(item)
 		elif action=="play":
+			if utils.RUNNING_SUGAR and not utils.HAS_GSTREAMER:
+				dialog = gtk.Dialog(title=_("Enclosures Disabled"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+				label = gtk.Label("Launching enclosed files is disabled on olpc until a mime system is developed. \n If you install GStreamer PenguinTV can use that. (email owen-olpc@ywwg.com for more info)")
+				dialog.vbox.pack_start(label, True, True, 0)
+				label.show()
+				response = dialog.run()
+				dialog.hide()
+				del dialog
+				return
 			media = self.db.get_media(item)
 			entry = self.db.get_entry(media['entry_id'])
 			feed_title = self.db.get_feed_title(entry['feed_id'])
@@ -521,7 +541,8 @@ class PenguinTVApp:
 			if utils.is_known_media(media['file']):
 				self._player.play(media['file'], feed_title + " &#8211; " + entry['title'])
 			else:
-				gnome.url_show(media['file'])
+				if HAS_GNOME:
+					gnome.url_show(media['file'])
 			self.feed_list_view.update_feed_list(None,['readinfo'])
 			self.update_entry_list()
 		elif action=="downloadqueue":
@@ -555,7 +576,8 @@ class PenguinTVApp:
 				os.system('konqueror --select ' + reveal_url + ' &')
 			else:
 				reveal_url = "file:"+os.path.split(urllib.quote(parsed_url[1]+parsed_url[2]))[0]
-				gnome.url_show(reveal_url)
+				if HAS_GNOME:
+					gnome.url_show(reveal_url)
 		elif action=="http":
 			try:
 				if len(http_arguments)>0:
@@ -574,10 +596,12 @@ class PenguinTVApp:
 			quoted_url = urllib.quote(parsed_url[1]+parsed_url[2])
 			#however don't quote * (yahoo news don't like it quoted)
 			quoted_url = string.replace(quoted_url,"%2A","*")
-			gnome.url_show(parsed_url[0]+"://"+quoted_url+http_arguments+anchor)
+			if HAS_GNOME:
+				gnome.url_show(parsed_url[0]+"://"+quoted_url+http_arguments+anchor)
 		elif action=="file":
 			print parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2])
-			gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
+			if HAS_GNOME:
+				gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			
 	def download_entry(self, entry):
 		self.mediamanager.download_entry(entry)
@@ -685,7 +709,7 @@ class PenguinTVApp:
 			args = args | ptvDB.A_AUTOTUNE
 		self.do_poll_multiple(None, args)
 			
-	def import_opml(self, f):
+	def import_subscriptions(self, f, opml=True):
 		def import_gen(f):
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
 			label = gtk.Label(_("Loading the feeds from the OPML file"))
@@ -696,7 +720,7 @@ class PenguinTVApp:
 			bar.show()
 			response = dialog.show()
 
-			gen = self.db.import_OPML(f)
+			gen = self.db.import_subscriptions(f, opml)
 			newfeeds = []
 			oldfeeds = []
 			feed_count=-1.0
@@ -824,7 +848,17 @@ class PenguinTVApp:
 			self.feed_list_view.update_feed_list(row[1],['readinfo'])
 			
 	def _on_item_not_supported(self, player, filename, name):
-		self._player.play(filename, name, force_external=True) #retry, force external player
+		if not utils.RUNNING_SUGAR:
+			self._player.play(filename, name, force_external=True) #retry, force external player
+		else:
+			dialog = gtk.Dialog(title=_("Unknown file type"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label("Gstreamer did not recognize this file. (email owen-olpc@ywwg.com for more info)")
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+			return
 
 	def refresh_feed(self,feed):
 		#if event.state & gtk.gdk.SHIFT_MASK:
@@ -1390,7 +1424,7 @@ class PenguinTVApp:
 		for filename in self._for_import:
 			try:
 				f = open(filename)
-				self.import_opml(f)
+				self.import_subscriptions(f)
 			except Exception, e:
 				print "not a valid file",e
 		self._for_import = []
@@ -1464,7 +1498,7 @@ class PenguinTVApp:
 		else:
 			try:
 				f = open(data)
-				self.import_opml(f)
+				self.import_subscriptions(f)
 			except Exception, e:
 				print "not a valid file: ",e
 				
@@ -1488,7 +1522,6 @@ class PenguinTVApp:
 	
 			""" Until told to quit, retrieve the next task and execute
 				it, calling the callback if any.  """
-				
 			if self.db == None:
 				self.db = ptvDB.ptvDB(self.polling_callback)
 						
@@ -1510,7 +1543,8 @@ class PenguinTVApp:
 			self.__isDying = True
 				
 def main():
-	gnome.init("PenguinTV", utils.VERSION)
+	if HAS_GNOME:
+		gnome.init("PenguinTV", utils.VERSION)
 	app = PenguinTVApp()    # Instancing of the GUI
 	if not app._socket.is_server:
 		sys.exit(0)
@@ -1535,34 +1569,45 @@ def main():
 			print "Unable to initialize KDE"
 			sys.exit(1)	
 	gtk.main() 
+
+def do_quit(self, event, app):
+	app.do_quit()
         
 if __name__ == '__main__': # Here starts the dynamic part of the program 
-	gnome.init("PenguinTV", utils.VERSION)
-	app = PenguinTVApp()    # Instancing of the GUI
-	if not app._socket.is_server:
-		sys.exit(0)
-	app.main_window.Show() 
-	gobject.idle_add(app.post_show_init) #lets window appear first)
-	gtk.gdk.threads_init()
-#	import profile
-#	profile.run('gtk.main()', 'pengprof')
-	if utils.is_kde():
-		try:
-			from kdecore import KApplication, KCmdLineArgs, KAboutData
-			from kdeui import KMainWindow
-			import kio
+	if HAS_GNOME:
+		gnome.init("PenguinTV", utils.VERSION)
+		app = PenguinTVApp()    # Instancing of the GUI
+		if not app._socket.is_server:
+			sys.exit(0)
+		app.main_window.Show() 
+		gobject.idle_add(app.post_show_init) #lets window appear first)
+		gtk.gdk.threads_init()
+	#	import profile
+	#	profile.run('gtk.main()', 'pengprof')
+		if utils.is_kde():
+			try:
+				from kdecore import KApplication, KCmdLineArgs, KAboutData
+				from kdeui import KMainWindow
+				import kio
 
-			description = "test kde"
-			version     = "1.0"
-			aboutData   = KAboutData ("", "",\
-			    version, description, KAboutData.License_GPL,\
-			    "(C) 2006 Owen Williams")
-			KCmdLineArgs.init (sys.argv, aboutData)
-			app = KApplication ()
-			
-		except:
-			print "Unable to initialize KDE"
-			sys.exit(1)
+				description = "test kde"
+				version     = "1.0"
+				aboutData   = KAboutData ("", "",\
+				    version, description, KAboutData.License_GPL,\
+				    "(C) 2006 Owen Williams")
+				KCmdLineArgs.init (sys.argv, aboutData)
+				app = KApplication ()
+				
+			except:
+				print "Unable to initialize KDE"
+				sys.exit(1)
+	else: #no gnome, no gnomeapp
+		window = gtk.Window()
+		gtk.gdk.threads_init()
+		app = PenguinTVApp()
+		app.main_window.Show(window)
+		gobject.idle_add(app.post_show_init)
+		window.connect('delete-event', do_quit, app)
 	gtk.main()
 	
 class CantChangeState(Exception):

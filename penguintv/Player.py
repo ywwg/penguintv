@@ -12,7 +12,7 @@ class Player:
 		self._gst_player = gst_player
 		self.cmdline = 'totem --enqueue'
 		if utils.RUNNING_SUGAR:
-			import sugar
+			import sugar.env
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			home = os.path.join(os.getenv('HOME'), ".penguintv")

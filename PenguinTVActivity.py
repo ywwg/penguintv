@@ -8,7 +8,7 @@ try:
 except:
 	logging.warning("Trying to load bundled pycurl libraries")
 	
-	path = os.path.join(os.path.abspath(sys.argv[0]), "activities", "ptv.activity"))
+	path = os.path.join(os.path.abspath(sys.argv[0]), "activities", "ptv.activity")
 	
 	os.environ['LD_LIBRARY_PATH'] += ':'+os.path.join(path, 'lib')
 	os.environ['PYTHONPATH'] += ':'+os.path.join(path, 'site-packages')

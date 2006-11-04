@@ -5,7 +5,6 @@ from pysqlite2 import dbapi2 as sqlite
 from math import floor,ceil
 import pysqlite2
 import feedparser
-import OPML
 import time
 import string
 import sha
@@ -37,6 +36,8 @@ if utils.HAS_LUCENE:
 if utils.HAS_GCONF:
 	import gconf
 	import gobject
+if utils.HAS_PYXML:
+	import OPML
 	
 NEW = 0
 EXISTS = 1
@@ -95,7 +96,7 @@ class ptvDB:
 	
 	def __init__(self, polling_callback=None):#,username,password):	
 		if utils.RUNNING_SUGAR:
-			import sugar
+			import sugar.env
 			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			self.home = os.path.join(os.getenv('HOME'), ".penguintv")
@@ -677,7 +678,7 @@ class ptvDB:
 				feeds = [row[0] for row in data]
 			else:
 				return
-		
+		print "creating a threadpool for polling",utils.HAS_LUCENE
 		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = utils.HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
@@ -2122,6 +2123,8 @@ class ptvDB:
 		return result
 		
 	def export_OPML(self,stream):
+		if not HAS_PYXML:
+			return
 		self._db_execute(self._c, u'SELECT title, description, url FROM feeds ORDER BY UPPER(title)')
 		result = self._c.fetchall()
 		dataList = []
@@ -2142,39 +2145,67 @@ class ptvDB:
 		o.output(stream)
 		stream.close()
 		
-	def import_OPML(self, stream):
+	def import_subscriptions(self, stream, opml = True):
 		"""A generator which first yields the number of feeds, and then the feedids as they
 		are inserted, and finally -1 on completion"""
-		
-		try:
-			p = OPML.parse(stream)
-		except:
-			exc_type, exc_value, exc_traceback = sys.exc_info()
-			error_msg = ""
-			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
-				error_msg += s
-			print error_msg
-			stream.close()
+		if not utils.HAS_PYXML and opml == True:
 			yield (-1,0)
-		added_feeds=[]
-		yield (1,len(p.outlines))
-		for o in OPML.outline_generator(p.outlines):
+			yield (1,0)
+			yield (-1,0)
+			return
+		if opml:
 			try:
-				feed_id=self.insertURL(o['xmlUrl'],o['text'])
-				#added_feeds.append(feed_id)
-				yield (1,feed_id)
-			except FeedAlreadyExists, f:
-				yield (0,f.feed)
+				p = OPML.parse(stream)
 			except:
 				exc_type, exc_value, exc_traceback = sys.exc_info()
 				error_msg = ""
 				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 					error_msg += s
 				print error_msg
+				stream.close()
 				yield (-1,0)
-		stream.close()
-		#return added_feeds
-		yield (-1,0)
+			added_feeds=[]
+			yield (1,len(p.outlines))
+			for o in OPML.outline_generator(p.outlines):
+				try:
+					feed_id=self.insertURL(o['xmlUrl'],o['text'])
+					#added_feeds.append(feed_id)
+					yield (1,feed_id)
+				except FeedAlreadyExists, f:
+					yield (0,f.feed)
+				except:
+					exc_type, exc_value, exc_traceback = sys.exc_info()
+					error_msg = ""
+					for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
+						error_msg += s
+					print error_msg
+					yield (-1,0)
+			stream.close()
+			#return added_feeds
+			yield (-1,0)
+		else: #just a list in a file
+			url_list = []
+			count = 0
+			for url in stream.readlines():
+				count+=1
+				url_list.append(url)
+			stream.close()
+			yield (1,len(url_list))
+			for url in url_list:
+				try:
+					feed_id=self.insertURL(url)
+					yield (1,feed_id)
+				except FeedAlreadyExists, f:
+					yield (0,f.feed)
+				except:
+					exc_type, exc_value, exc_traceback = sys.exc_info()
+					error_msg = ""
+					for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
+						error_msg += s
+					print error_msg
+					yield (-1,0)
+			yield (-1,0)
+				
 		
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
 		if not utils.HAS_LUCENE:

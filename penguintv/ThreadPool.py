@@ -164,7 +164,7 @@ class ThreadPoolThread(threading.Thread):
     def __init__(self, pool, n="ThreadPoolThread"):
 
         """ Initialize the thread and remember the pool. """
-        
+
         threading.Thread.__init__(self,name=n)
         self.__pool = pool
         self.__isDying = False
@@ -210,7 +210,7 @@ class LuceneThreadPoolThread(l_threadclass):
     def __init__(self, pool, n="LuceneThreadPoolThread"):
 
         """ Initialize the thread and remember the pool. """
-        
+
         l_threadclass.__init__(self,name=n)
         self.__pool = pool
         self.__isDying = False

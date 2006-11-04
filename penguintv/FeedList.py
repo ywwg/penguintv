@@ -382,6 +382,7 @@ class FeedList:
 			except:
 				print "Error finding feed for update"
 			need_filter = True
+			self._widget.columns_autosize()
 			
 		if 'icon' in update_what:
 			feed[STOCKID] = self._get_icon(flag)
