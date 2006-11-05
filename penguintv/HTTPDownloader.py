@@ -43,7 +43,7 @@ class HTTPDownloader(Downloader):
 			else:
 				fp = open(self.media['file'], "wb")
 			curl = pycurl.Curl()
-			curl.setopt(pycurl.URL, str(self.media['url'])) #cause it's unicode or some shit which is not a string or some junk
+			curl.setopt(pycurl.URL, str(self.media['url']).strip()) #cause it's unicode or some shit which is not a string or some junk.  Also strip whitespace
 			curl.setopt(pycurl.FOLLOWLOCATION, 1)
 			curl.setopt(pycurl.MAXREDIRS, 5)
 			curl.setopt(pycurl.CONNECTTIMEOUT, 30)
@@ -97,7 +97,7 @@ class HTTPDownloader(Downloader):
 				self.message = ""
 				self._finished_callback()
 			else:
-				print "some downloading error "+str(data),"data[0]:",data[0]
+				print "some downloading error "+str(data),self.media
 				self.media['errormsg']=data
 				self.status = FAILURE
 				self.message = data

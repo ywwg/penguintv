@@ -46,24 +46,72 @@ class GStreamerPlayer(gobject.GObject):
 	###public functions###
 		
 	def Show(self):
-		self._hpaned = gtk.HPaned()
 		main_vbox = gtk.VBox()
+		
+		vbox = gtk.VBox()
+		self._hpaned = gtk.HPaned()
 		self._player_vbox = gtk.VBox()
 		self._drawing_area = gtk.DrawingArea()
 		color = gtk.gdk.Color(0,0,0)
 		self._drawing_area.modify_bg(gtk.STATE_NORMAL, color)
 		self._drawing_area.connect('expose-event', self._on_drawing_area_exposed)
 		self._player_vbox.pack_start(self._drawing_area)
-		main_vbox.pack_start(self._player_vbox)
+		vbox.pack_start(self._player_vbox, True)
 		
-		self._controls_vbox = gtk.VBox()
 		self._seek_scale = gtk.HScale()
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_draw_value(False)
 		self._seek_scale.connect('value-changed', self._on_seek_value_changed)
-		self._controls_vbox.pack_start(self._seek_scale, False)
+		vbox.pack_start(self._seek_scale, False)
 		
-		hbox = gtk.HBox()
+		self._hpaned.add1(vbox)
+		
+		self._sidepane_vbox = gtk.VBox()
+		s_w = gtk.ScrolledWindow()
+		s_w.set_shadow_type(gtk.SHADOW_IN)
+		s_w.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		self._queue_listview = gtk.TreeView()
+		model = gtk.ListStore(str, str, str) #uri, title to display, current track indicator
+		self._queue_listview.set_model(model)
+		
+		column = gtk.TreeViewColumn(_(""))
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer, True)
+		column.set_attributes(renderer, markup=2)
+		self._queue_listview.append_column(column)
+		
+		column = gtk.TreeViewColumn(_("Playlist"))
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer, True)
+		column.set_attributes(renderer, markup=1)
+		self._queue_listview.append_column(column)
+		self._queue_listview.connect('row-activated', self._on_queue_row_activated)
+		self._queue_listview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
+		#dnd reorder
+		self._TARGET_TYPE_REORDER = 80
+		drop_types = [('reorder',gtk.TARGET_SAME_WIDGET, self._TARGET_TYPE_REORDER)]
+		#for removing items from favorites and reordering
+		self._queue_listview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_MOVE)
+		self._queue_listview.enable_model_drag_dest(drop_types, gtk.gdk.ACTION_MOVE)
+		self._queue_listview.connect('drag-data-received', self._on_queue_drag_data_received)
+		
+		s_w.add(self._queue_listview)
+		self._sidepane_vbox.pack_start(s_w, True)
+		button_box = gtk.HButtonBox()
+		button_box.set_property('layout-style', gtk.BUTTONBOX_END)
+		button = gtk.Button(stock='gtk-remove')
+		button.connect("clicked", self._on_remove_clicked)
+		button_box.add(button)
+		self._sidepane_vbox.pack_start(button_box, False)
+		
+		self._hpaned.add2(self._sidepane_vbox)
+		
+		main_vbox.add(self._hpaned)
+		
+		
+		
+		self._controls_hbox = gtk.HBox()
+		self._controls_hbox.set_spacing(6)
 		button_box = gtk.HButtonBox()
 		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
 		
@@ -115,54 +163,13 @@ class GStreamerPlayer(gobject.GObject):
 		button.connect("clicked", self._on_next_clicked)
 		button_box.add(button)
 		
-		hbox.pack_start(button_box)
+		self._controls_hbox.pack_start(button_box, False)
 		self._time_label = gtk.Label("")
-		hbox.pack_start(self._time_label, False)
+		self._time_label.set_alignment(0.0,0.5)
+		self._controls_hbox.pack_start(self._time_label, True)
 		
-		self._controls_vbox.pack_start(hbox, False)
-		main_vbox.pack_start(self._controls_vbox, False)
-		self._hpaned.add1(main_vbox)
-		
-		self._sidepane_vbox = gtk.VBox()
-		s_w = gtk.ScrolledWindow()
-		s_w.set_shadow_type(gtk.SHADOW_IN)
-		s_w.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-		self._queue_listview = gtk.TreeView()
-		model = gtk.ListStore(str, str, str) #uri, title to display, current track indicator
-		self._queue_listview.set_model(model)
-		
-		column = gtk.TreeViewColumn(_(""))
-		renderer = gtk.CellRendererText()
-		column.pack_start(renderer, True)
-		column.set_attributes(renderer, markup=2)
-		self._queue_listview.append_column(column)
-		
-		column = gtk.TreeViewColumn(_("Playlist"))
-		renderer = gtk.CellRendererText()
-		column.pack_start(renderer, True)
-		column.set_attributes(renderer, markup=1)
-		self._queue_listview.append_column(column)
-		self._queue_listview.connect('row-activated', self._on_queue_row_activated)
-		self._queue_listview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
-		#dnd reorder
-		self._TARGET_TYPE_REORDER = 80
-		drop_types = [('reorder',gtk.TARGET_SAME_WIDGET, self._TARGET_TYPE_REORDER)]
-		#for removing items from favorites and reordering
-		self._queue_listview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_MOVE)
-		self._queue_listview.enable_model_drag_dest(drop_types, gtk.gdk.ACTION_MOVE)
-		self._queue_listview.connect('drag-data-received', self._on_queue_drag_data_received)
-		
-		s_w.add(self._queue_listview)
-		self._sidepane_vbox.pack_start(s_w, True)
-		button_box = gtk.HButtonBox()
-		button_box.set_property('layout-style', gtk.BUTTONBOX_END)
-		button = gtk.Button(stock='gtk-remove')
-		button.connect("clicked", self._on_remove_clicked)
-		button_box.add(button)
-		self._sidepane_vbox.pack_start(button_box, False)
-		
-		self._hpaned.add2(self._sidepane_vbox)
-		self._layout_dock.add(self._hpaned)
+		main_vbox.pack_start(self._controls_hbox, False)
+		self._layout_dock.add(main_vbox)
 		
 		#Gstreamer init
 		self._pipeline = gst.element_factory_make("playbin", "ptv_bin")
@@ -188,10 +195,12 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def toggle_controls(self, show_controls):
 		if not show_controls:
-			self._controls_vbox.show()
+			self._controls_hbox.show()
+			self._seek_scale.show()
 			self._sidepane_vbox.show()
 		else:
-			self._controls_vbox.hide()
+			self._controls_hbox.hide()
+			self._seek_scale.hide()
 			self._sidepane_vbox.hide()
 			
 	def load(self):
@@ -221,9 +230,9 @@ class GStreamerPlayer(gobject.GObject):
 		playlist.close()
 		
 	def save(self):
-		"""pauses, saves state, and cleans up gstreamer"""
+		"""saves playlist"""
 		if os.environ.has_key('SUGAR_PENGUINTV'):
-			import sugar
+			import sugar.env
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
 			home = os.path.join(os.getenv('HOME'), ".penguintv")
@@ -392,6 +401,7 @@ class GStreamerPlayer(gobject.GObject):
 			uri = 'file://'+urllib.quote(filename)
 			model.append([uri, name, ""])
 			self.emit('item-queued', filename, name)
+			self.save()
 		else:
 			self.emit('item-not-supported', filename, name)
 	
@@ -564,10 +574,12 @@ class GStreamerPlayer(gobject.GObject):
 			self._media_duration = 1
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
+		self._update_time_label()
 		
 	def _tick(self):
 		self.__no_seek = True
 		self._update_seek_bar()
+		self._update_time_label()
 		self.__no_seek = False
 		return self._pipeline.get_state()[1] == gst.STATE_PLAYING
 
@@ -579,8 +591,18 @@ class GStreamerPlayer(gobject.GObject):
 				self._media_duration = self._pipeline.query_duration(gst.FORMAT_TIME)[0]
 				self._seek_scale.set_range(0,self._media_duration)
 			self._seek_scale.set_value(self._media_position)
+			
 		except Exception, e:
 			print e
+			
+	def _update_time_label(self):
+		def nano_to_string(long_val):
+			seconds = long_val/1000000000
+			minutes = seconds / 60
+			seconds = seconds % 60
+			return "%i:%.2i" % (minutes,seconds)
+			
+		self._time_label.set_text(nano_to_string(self._media_position)+" / "+nano_to_string(self._media_duration))
 		
 	def _on_gst_message(self, bus, message):
 		#print str(message)
@@ -708,13 +730,10 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	window = gtk.Window()
 	app = GStreamerPlayer(window)
 	app.Show()
-	#try:
 	app.load()
-	#except:
-	#	print "error loading playlist"
 	window.connect('delete-event', do_quit, app)
 	window.connect('key-press-event', on_app_key_press_event, app, window)
-	#window.connect('expose-event', app_realized, app)
+	window.resize(640,480)
 	app.connect('items-removed', items_removed)	
 	app.connect('item-not-supported', item_not_supported)
 	for item in sys.argv[1:]:

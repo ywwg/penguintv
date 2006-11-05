@@ -217,7 +217,8 @@ class PenguinTVApp:
 			found_subs = False
 			for path in (os.path.join(utils.GetPrefix(), "share" ,"penguintv"),
 						 os.path.join(utils.GetPrefix(), "share"),
-						 os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")):
+						 os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share"),
+						 os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
 				try:
 					subs_path = path
 					if utils.HAS_PYXML:
