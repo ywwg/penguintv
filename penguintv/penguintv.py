@@ -99,6 +99,7 @@ class PenguinTVApp:
 			
 		found_glade = False
 		
+		
 		for p in (os.path.join(utils.GetPrefix(),"share","penguintv"),
 				  os.path.join(utils.GetPrefix(),"share"),
 				  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
