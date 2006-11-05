@@ -2,7 +2,6 @@ activity/activity.info
 activity/activity-penguintv.svg
 activity/localized/PLACEHOLDER
 __init__.py
-penguintv.activity
 PenguinTVActivity.py
 penguintv/AddFeedDialog.py
 penguintv/AddSearchTagDialog.py

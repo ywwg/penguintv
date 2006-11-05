@@ -98,10 +98,12 @@ class PenguinTVApp:
 			self._for_import.append(sys.argv[1])
 			
 		found_glade = False
+		
 		for p in (os.path.join(utils.GetPrefix(),"share","penguintv"),
 				  os.path.join(utils.GetPrefix(),"share"),
 				  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
-				  os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share")):
+				  os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share"),
+				  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
 			try:
 				self.glade_prefix = p
 				os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
