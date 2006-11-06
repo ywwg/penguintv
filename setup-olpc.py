@@ -6,6 +6,8 @@ import zipfile
 
 from sugar.activity.bundle import Bundle
 
+BUNDLE_NAME="ptv"
+
 def manifest_generator():
 	f = open('./MANIFEST-OLPC')
 	for line in f.readlines():
@@ -15,9 +17,7 @@ def get_source_path():
 	return os.path.dirname(os.path.abspath(__file__))
 	
 def get_bundle_dir():
-	#bundle_name = os.path.basename(get_source_path())
-	bundle_name = "ptv"
-	return bundle_name + '.activity' 
+	return BUNDLE_NAME + '.activity' 
 		
 orig_path = os.getcwd()
 os.chdir(get_source_path())
