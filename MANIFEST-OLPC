@@ -86,15 +86,10 @@ share/mozilla.css
 share/mozilla-planet.css
 share/penguintv.glade
 share/penguintvicon.png
-lib/libcrypto.so.0.9.8b
 lib/libcrypto.so.6
 lib/libcurl.so.3
-lib/libcurl.so.3.0.0
 lib/libidn.so.11
-lib/libidn.so.11.5.19
 lib/libsqlite3.so.0
-lib/libsqlite3.so.0.8.6
-lib/libssl.so.0.9.8b
 lib/libssl.so.6
 site-packages/pycurl.so
 site-packages/pysqlite2/__init__.py

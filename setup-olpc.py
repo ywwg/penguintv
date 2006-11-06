@@ -2,7 +2,7 @@
 
 import os
 import sys
-import tarfile
+import zipfile
 
 from sugar.activity.bundle import Bundle
 
@@ -23,14 +23,13 @@ orig_path = os.getcwd()
 os.chdir(get_source_path())
 
 bundle = Bundle(get_source_path())
-tarball_name = '%s-%d.tar.gz' % (bundle.get_name(), bundle.get_activity_version())
-bundle_tar_gz = tarfile.open(tarball_name, "w:gz")
+zipfile_name = '%s-%d.xo' % (bundle.get_name(), bundle.get_activity_version())
+bundle_zip = zipfile.ZipFile(zipfile_name, "w", zipfile.ZIP_DEFLATED)
 
 for filename in manifest_generator():
 	arcname = os.path.join(get_bundle_dir(), filename)
-	info = bundle_tar_gz.gettarinfo(filename, arcname)
-	bundle_tar_gz.addfile(info, open(filename, 'rb'))
+	bundle_zip.write(filename, arcname)
 	
-bundle_tar_gz.close()
+bundle_zip.close()
 	
 os.chdir(orig_path)
