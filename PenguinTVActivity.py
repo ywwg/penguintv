@@ -9,15 +9,20 @@ try:
 except:
 	logging.warning("Trying to load bundled pycurl libraries")
 	
+	#import ourselves so we can get __file__
 	import PenguinTVActivity
+	
+	#where the hell are we?
 	activity_root = os.path.split(PenguinTVActivity.__file__)[0]
-	if os.environ.has_key('LD_RUN_PATH'):
-		os.environ['LD_RUN_PATH'] += ':'+os.path.join(activity_root, 'lib')
-	else:
-		os.environ['LD_RUN_PATH'] = os.path.join(activity_root, 'lib')
+	
+	#chdir here so that relative RPATHs line up ('./lib')
+	os.chdir(activity_root) 
+	
+	#append to sys.path for the python packages
 	sys.path.append(os.path.join(activity_root, 'site-packages'))
-	#os.environ['PYTHONPATH'] += ':'+os.path.join(activity_root, 'site-packages')
-	import pycurl #if it fails now, let it fail
+	
+	#try again. if it fails now, let it fail
+	import pycurl 
 os.environ['SUGAR_PENGUINTV'] = '1' #set up variable so that utils knows we are running_sugar
 
 from penguintv import penguintv

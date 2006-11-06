@@ -300,7 +300,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._play_pause_button.set_image(image)
 		self._media_duration = -1
 		if not notick:
-			gobject.timeout_add(1000, self._tick)
+			gobject.timeout_add(500, self._tick)
 		#self._pipeline.get_property('stream-info')
 		
 	def pause(self):

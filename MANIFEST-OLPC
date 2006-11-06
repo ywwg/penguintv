@@ -98,9 +98,5 @@ lib/libssl.so.0.9.8b
 lib/libssl.so.6
 site-packages/pycurl.so
 site-packages/pysqlite2/__init__.py
-site-packages/pysqlite2/__init__.pyc
-site-packages/pysqlite2/__init__.pyo
 site-packages/pysqlite2/_sqlite.so
 site-packages/pysqlite2/dbapi2.py
-site-packages/pysqlite2/dbapi2.pyc
-site-packages/pysqlite2/dbapi2.pyo
