@@ -366,6 +366,8 @@ class FeedList:
 			selected = self.get_selected()
 			if not update_data.has_key('title'):
 				update_data['title'] = self._db.get_feed_title(feed_id)
+			old_title_len = len(feed[TITLE])
+			new_title_len = len(update_data['title'])
 			feed[TITLE] = update_data['title']
 			if self._fancy:
 				try: feed[FIRSTENTRYTITLE] = self._db.get_entrylist(feed_id)[0][1]
@@ -382,7 +384,9 @@ class FeedList:
 			except:
 				print "Error finding feed for update"
 			need_filter = True
-			self._widget.columns_autosize()
+			#columns_autosize produces a flicker, so only do it if we need to
+			if abs(new_title_len - old_title_len) > 5:
+				self._widget.columns_autosize()
 			
 		if 'icon' in update_what:
 			feed[STOCKID] = self._get_icon(flag)
@@ -533,7 +537,8 @@ class FeedList:
 			else: #if it's not the selected feed
 				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
 					passed_filter = False #see ya
-			feed[VISIBLE] = passed_filter #note, this seems to change the selection!
+			if feed[VISIBLE] != passed_filter:
+				feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
 			
 	def _load_visible_details(self):
