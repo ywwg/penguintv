@@ -18,8 +18,8 @@
    xml:space="preserve"
    sodipodi:version="0.32"
    inkscape:version="0.44"
-   sodipodi:docname="stock-media-play.svg"
-   sodipodi:docbase="/home/owen/src/penguintv/svn/penguintv/trunk/share/icons"><metadata
+   sodipodi:docname="stock-media-pause.svg"
+   sodipodi:docbase="/home/owen/penguintv/share/icons"><metadata
    id="metadata10"><rdf:RDF><cc:Work
        rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
          rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
@@ -40,25 +40,30 @@
    id="base"
    inkscape:window-x="205"
    inkscape:window-y="77"
-   inkscape:current-layer="Icon" />
+   inkscape:current-layer="Icon"
+   showguides="true"
+   inkscape:guide-bbox="true" />
 <path
    d="M 60.001,37.498 C 60.001,49.925 49.925,59.999 37.502,59.999 C 25.075,59.999 14.999,49.925 14.999,37.498 C 14.999,25.071 25.075,15.001 37.502,15.001 C 49.925,15.001 60.001,25.071 60.001,37.498 z "
    id="path3"
    style="fill:none;stroke:white;stroke-width:3.5" />
 
-<path
-   sodipodi:type="star"
-   style="opacity:1;fill:none;fill-opacity:1;fill-rule:evenodd;stroke:white;stroke-width:3.79900169;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1"
-   id="path2762"
-   sodipodi:sides="3"
-   sodipodi:cx="32.370094"
-   sodipodi:cy="27.157408"
-   sodipodi:r1="15.070828"
-   sodipodi:r2="7.5354142"
-   sodipodi:arg1="0"
-   sodipodi:arg2="1.0471976"
-   inkscape:flatsided="true"
-   inkscape:rounded="0"
-   inkscape:randomized="0"
-   d="M 47.440923,27.157408 L 24.83468,40.209128 L 24.83468,14.105687 L 47.440923,27.157408 z "
-   transform="matrix(0.920582,0,0,0.922008,6.878802,12.46065)" /></svg>
+<g
+   id="g3091"
+   transform="translate(1.34343,9.536743e-7)"><rect
+     rx="2.0358562"
+     ry="2.0358546"
+     y="24.266945"
+     x="27.524328"
+     height="26.466108"
+     width="4.071713"
+     id="rect3011"
+     style="fill:white;fill-opacity:1;fill-rule:evenodd;stroke:white;stroke-width:1.00000012;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /><rect
+     rx="2.0358562"
+     ry="2.0358546"
+     y="24.266945"
+     x="40.717098"
+     height="26.466108"
+     width="4.071713"
+     id="rect3089"
+     style="fill:white;fill-opacity:1;fill-rule:evenodd;stroke:white;stroke-width:1.00000012;stroke-linecap:round;stroke-linejoin:round;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1" /></g></svg>

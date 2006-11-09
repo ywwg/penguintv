@@ -2060,7 +2060,7 @@ j@v2v.cc
 		  <property name="is_important">False</property>
 
 		  <child>
-		    <widget class="GtkLabel" id="label8">
+		    <widget class="GtkLabel" id="using_label">
 		      <property name="visible">True</property>
 		      <property name="label" translatable="yes">Using: </property>
 		      <property name="use_underline">False</property>

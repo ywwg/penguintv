@@ -4,7 +4,7 @@
 #import penguintv
 import gtk
 import urllib, urlparse
-import timeoutsocket
+import socket
 import gettext
 import HTMLParser
 import os.path
@@ -44,7 +44,7 @@ class AddFeedDialog:
 	def set_location(self):
 		def _clipboard_cb(cboard, text, data=None):
 			if text:
-				if text[0:5] == "http:":
+				if text[0:4] == "http":
 					self._feed_url_widget.set_text(text)
 				elif text[0:5] == "feed:":
 					self._feed_url_widget.set_text(text[5:])
@@ -151,14 +151,17 @@ class AddFeedDialog:
 		urllib._urlopener = my_url_opener(gtk.glade.XML(self._app.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
 		url_stream = None
 		try:
+			print "first try:",url
 			url_stream = urllib.urlopen(url)	
-		except timeoutsocket.Timeout:
+		except socket.timeout:
 			raise BadFeedURL,"The website took too long to respond, and the connection timed out."
 		except IOError, e:
+			print "ioerror"
 			if "No such file or directory" in e:
 				return self._correct_url("http://"+url)
 			raise BadFeedURL,"There was an error loading the url."
 		except Exception, e:
+			print "general error"
 			raise BadFeedURL,"There was an error loading the url."
 		title = url
 		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
@@ -186,6 +189,7 @@ class AddFeedDialog:
 			url_stream = urllib.urlopen(url)
 		
 		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
+		print "mimetype",mimetype
 		handled_mimetypes = ['application/atom+xml','application/rss+xml','application/rdf+xml','application/xml','text/xml', 'text/plain']
 		if mimetype in handled_mimetypes:
 			pass
@@ -212,7 +216,7 @@ class AddFeedDialog:
 						if m in available_versions:
 							pos_url = p.alt_tags[m]
 							#first clean it up
-							if pos_url[:5]!="http:": #maybe the url is not fully qualified (fix for metaphilm.com)
+							if pos_url[:4]!="http": #maybe the url is not fully qualified (fix for metaphilm.com)
 								if pos_url[0:2] == '//': #fix for gnomefiles.org
 									pos_url = "http:"+pos_url
 								elif pos_url[0] == '/': #fix for lwn.net.  Maybe we should do more proper base detection?

@@ -20,9 +20,9 @@ import gettext
 import sets
 import pickle
 
-import timeoutsocket
+import socket
 import smtplib
-timeoutsocket.setDefaultSocketTimeout(30)
+socket.setdefaulttimeout(30.0)
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')

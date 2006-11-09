@@ -497,8 +497,9 @@ class PlanetView:
 			#SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
 			#going against comments and overriding :)  We have to get around timeoutsocket manually
 			#or else it doesn't work.  There's some sort of bug in timeoutsocket that's messing us up.
-			SocketServer.BaseServer.__init__(self, server_address, RequestHandlerClass)
-			self.socket = socket._no_timeoutsocket(self.address_family, self.socket_type)
+			#SocketServer.BaseServer.__init__(self, server_address, RequestHandlerClass)
+			#self.socket = socket._no_timeoutsocket(self.address_family, self.socket_type)
+			SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
 			self.server_bind()
 			self.server_activate()
 			self._key = ""

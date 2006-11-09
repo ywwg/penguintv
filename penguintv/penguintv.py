@@ -28,8 +28,8 @@ except:
 import time
 import sets
 import string
-import timeoutsocket
-timeoutsocket.setDefaultSocketTimeout(30)
+import socket
+socket.setdefaulttimeout(30.0)
 
 import pygtk
 pygtk.require('2.0')

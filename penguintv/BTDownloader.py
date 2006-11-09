@@ -9,7 +9,7 @@ import time
 import os, os.path
 import ptvDB
 import utils
-import timeoutsocket
+import socket
 
 #Downloader API:
 #constructor takes:  media, params, resume, queue, progress_callback, finished_callback
@@ -41,7 +41,7 @@ class BTDownloader(Downloader):
 		
 		try:
 			download.download(params,  self._chooseFile, self._display, self._normalize_finished, self._error, self._done, 80, self._newpath)
-		except timeoutsocket.Timeout, detail:
+		except socket.timeout, detail:
 			self.media['errormsg'] = str(detail)
 			self.status = FAILURE
 			self.message = detail
