@@ -131,7 +131,7 @@ class PenguinTVApp:
 		self._exiting=0
 		self._auto_download = False
 		self._auto_download_limiter = False
-		self._auto_download_limit=1024*1024
+		self._auto_download_limit=50*1024
 		self._saved_filter = FeedList.ALL
 		self._saved_search = ""
 		self._showing_search = False
@@ -284,7 +284,12 @@ class PenguinTVApp:
 		self._auto_download_limiter = val
 		self.window_preferences.set_auto_download_limiter(val)
 		
-		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit', 1024*1024)
+		
+		if utils.RUNNING_SUGAR:
+			default_max = 50*1024
+		else:
+			default_max = 1024*1024
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit', default_max)
 		self._auto_download_limit = val
 		self.window_preferences.set_auto_download_limit(val)
 		

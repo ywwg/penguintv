@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Generator: Adobe Illustrator 12.0.1, SVG Export Plug-In . SVG Version: 6.00 Build 51448)  -->
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://web.resource.org/cc/"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   version="1.1"
+   id="Icon"
+   width="75"
+   height="75"
+   viewBox="0 0 75 75"
+   overflow="visible"
+   enable-background="new 0 0 75 75"
+   xml:space="preserve"
+   sodipodi:version="0.32"
+   inkscape:version="0.44"
+   sodipodi:docname="stock-go-down.svg"
+   sodipodi:docbase="/home/owen/src/penguintv/svn/penguintv/trunk/share"><metadata
+   id="metadata10"><rdf:RDF><cc:Work
+       rdf:about=""><dc:format>image/svg+xml</dc:format><dc:type
+         rdf:resource="http://purl.org/dc/dcmitype/StillImage" /></cc:Work></rdf:RDF></metadata><defs
+   id="defs8" /><sodipodi:namedview
+   inkscape:cy="28.302674"
+   inkscape:cx="33.325342"
+   inkscape:zoom="3.4732669"
+   inkscape:window-height="628"
+   inkscape:window-width="919"
+   inkscape:pageshadow="2"
+   inkscape:pageopacity="0"
+   guidetolerance="10.0"
+   gridtolerance="10.0"
+   objecttolerance="10.0"
+   borderopacity="1.0"
+   bordercolor="#666666"
+   pagecolor="white"
+   id="base"
+   inkscape:window-x="240"
+   inkscape:window-y="147"
+   inkscape:current-layer="Icon" />
+<path
+   d="M 14.999,37.502 C 14.999,25.075 25.075,15.001 37.498,15.001 C 49.925,15.001 60.001,25.075 60.001,37.502 C 60.001,49.929 49.925,59.999 37.498,59.999 C 25.075,59.999 14.999,49.929 14.999,37.502 z "
+   id="path3"
+   style="fill:none;stroke:white;stroke-width:3.5" />
+<polyline
+   points="34.442,46.733 42.979,38.194   34.442,29.66 "
+   id="polyline5"
+   transform="matrix(0,1,-1,0,75.6965,-1.2105)"
+   style="fill:none;stroke:white;stroke-width:3.5;stroke-linecap:round" />
+</svg>

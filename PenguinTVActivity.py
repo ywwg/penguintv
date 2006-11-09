@@ -33,6 +33,7 @@ class PenguinTVActivity(Activity):
 		app = penguintv.PenguinTVApp()
 		app.main_window.Show(self)
 		app.post_show_init()
+		self.set_title('PenguinTV')
 		self.connect('destroy',self.do_quit, app)
 	
 	def do_quit(self, event, app):

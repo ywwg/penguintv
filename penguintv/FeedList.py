@@ -298,7 +298,7 @@ class FeedList:
 		if update_data is None:
 			update_data = {}
 			
-		if self._fancy and 'readinfo' in update_what and 'title' not in update_what:
+		if 'readinfo' in update_what and 'title' not in update_what:
 			update_what.append('title') #need this too
 		
 		try:
@@ -331,7 +331,7 @@ class FeedList:
 		if 'icon' in update_what and 'pollfail' not in update_what:
 			update_what.append('pollfail')	 #we need that data for icon updates
 			
-		if 'image' in update_what:
+		if 'image' in update_what and self._fancy:
 			feed[PIXBUF] = self._get_pixbuf(feed_id)
 			
 		if 'pollfail' in update_what:	

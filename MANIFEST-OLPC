@@ -86,6 +86,7 @@ share/mozilla.css
 share/mozilla-planet.css
 share/penguintv.glade
 share/penguintvicon.png
+share/icons/olpc/scalable/stock-go-down.svg
 lib/libcrypto.so.6
 lib/libcurl.so.3
 lib/libidn.so.11

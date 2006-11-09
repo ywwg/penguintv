@@ -2018,11 +2018,11 @@ j@v2v.cc
 
 	      <child>
 		<widget class="GtkToolButton" id="preferences_toolbutton">
-		  <property name="tooltip" translatable="yes">Play Unviewed Media</property>
+		  <property name="tooltip" translatable="yes">Preferences</property>
 		  <property name="stock_id">gtk-preferences</property>
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
-		  <property name="is_important">True</property>
+		  <property name="is_important">False</property>
 		  <signal name="clicked" handler="on_preferences_activate" last_modification_time="Tue, 26 Sep 2006 23:03:04 GMT"/>
 		</widget>
 		<packing>

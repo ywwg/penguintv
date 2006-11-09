@@ -462,8 +462,8 @@ class GStreamerPlayer(gobject.GObject):
 	def _on_drawing_area_exposed(self, widget, event):
 		if self._x_overlay is None:
 			self._x_overlay = self._pipeline.get_by_interface(gst.interfaces.XOverlay)
-		if self._x_overlay is not None:
-			self._x_overlay.expose()
+		#if self._x_overlay is not None:
+		#	self._x_overlay.expose()
 		self._v_sink.expose()
 		if not self.__is_exposed:
 			self.__is_exposed = True

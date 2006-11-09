@@ -156,7 +156,7 @@ class MainWindow:
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:
-			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar1','penguintv')
+			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'toolbar1','penguintv')
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
@@ -174,6 +174,21 @@ class MainWindow:
 			pref_button = self._widgetTree.get_widget('preferences_toolbutton')
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
+			from gtk import IconTheme
+			theme = IconTheme()
+			theme.append_search_path(os.path.join(self._glade_prefix, "share","icons"))
+			print "hi"
+			print theme.get_search_path()
+			print theme.has_icon('stock-go-down')
+			print theme.has_icon('stock-remove')
+			self._widgetTree.get_widget('feed_add_button').set_stock_id(None)
+			self._widgetTree.get_widget('feed_add_button').set_icon_name('stock-add')
+			self._widgetTree.get_widget('feed_remove').set_stock_id(None)
+			self._widgetTree.get_widget('feed_remove').set_icon_name('stock-remove')
+			self._widgetTree.get_widget('feeds_poll').set_stock_id(None)
+			self._widgetTree.get_widget('feeds_poll').set_icon_name('stock-continue')
+			self._widgetTree.get_widget('download_unviewed').set_stock_id(None)
+			self._widgetTree.get_widget('download_unviewed').set_icon_name('stock-go-down')
 		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
 	
 		return toolbar
