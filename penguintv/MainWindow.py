@@ -174,13 +174,8 @@ class MainWindow:
 			pref_button = self._widgetTree.get_widget('preferences_toolbutton')
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
-			from gtk import IconTheme
-			theme = IconTheme()
-			theme.append_search_path(os.path.join(self._glade_prefix, "share","icons"))
-			print "hi"
-			print theme.get_search_path()
-			print theme.has_icon('stock-go-down')
-			print theme.has_icon('stock-remove')
+			theme = gtk.icon_theme_get_default()
+			theme.append_search_path(os.path.join(self._glade_prefix, "icons"))
 			self._widgetTree.get_widget('feed_add_button').set_stock_id(None)
 			self._widgetTree.get_widget('feed_add_button').set_icon_name('stock-add')
 			self._widgetTree.get_widget('feed_remove').set_stock_id(None)
@@ -189,7 +184,16 @@ class MainWindow:
 			self._widgetTree.get_widget('feeds_poll').set_icon_name('stock-continue')
 			self._widgetTree.get_widget('download_unviewed').set_stock_id(None)
 			self._widgetTree.get_widget('download_unviewed').set_icon_name('stock-go-down')
+			self._widgetTree.get_widget('play_unviewed').set_stock_id(None)
+			self._widgetTree.get_widget('play_unviewed').set_icon_name('stock-media-play')
+			self._widgetTree.get_widget('preferences_toolbutton').set_stock_id(None)
+			self._widgetTree.get_widget('preferences_toolbutton').set_icon_name('stock-preferences')
 		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
+		self._disk_usage_widget.set_use_markup(True)
+		if utils.RUNNING_SUGAR:
+			l = self._widgetTree.get_widget('using_label')
+			l.set_use_markup(True)
+			l.set_markup(_('<span color="#FFFFFF">Using: </span>'))
 	
 		return toolbar
 		
@@ -1236,7 +1240,10 @@ class MainWindow:
 	def update_disk_usage(self, size):
 		if self._disk_usage_widget is None:
 			return
-		self._disk_usage_widget.set_text(utils.format_size(size))
+		if utils.RUNNING_SUGAR:
+			self._disk_usage_widget.set_markup('<span color="#FFFFFF">'+utils.format_size(size)+"</span>")
+		else:
+			self._disk_usage_widget.set_markup(utils.format_size(size))
 
 	def update_download_progress(self):
 		progresses = self._mm.get_download_list(Downloader.DOWNLOADING)

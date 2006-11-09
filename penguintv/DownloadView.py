@@ -56,6 +56,15 @@ class DownloadView:
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				widget_tree.signal_connect(key, getattr(self, key))
+				
+		if utils.RUNNING_SUGAR:
+			widget_tree.get_widget('stop_toolbutton').set_stock_id(None)
+			widget_tree.get_widget('stop_toolbutton').set_icon_name('stock-close')
+			widget_tree.get_widget('pause_toolbutton').set_stock_id(None)
+			widget_tree.get_widget('pause_toolbutton').set_icon_name('stock-media-pause')
+			widget_tree.get_widget('resume_toolbutton').set_stock_id(None)
+			widget_tree.get_widget('resume_toolbutton').set_icon_name('stock-go-down')
+				
 		self._widget = widget_tree.get_widget('download_view')
 		self._resume_button = widget_tree.get_widget('resume_toolbutton')
 		self._resume_button.set_sensitive(False)
