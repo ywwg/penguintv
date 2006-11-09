@@ -99,58 +99,66 @@ class Lucene:
 		db.close()
 		
 		print "indexing feeds"
-		for feed_id, title, description in feeds:
+		def feed_index_generator(feeds):			
+			for feed_id, title, description in feeds:
+				try:
+					doc = Document()
+					 
+					doc.add(Field("feed_id", str(feed_id), 
+												   Field.Store.YES,
+		                                           Field.Index.UN_TOKENIZED))
+					doc.add(Field("feed_title", title,
+		                                           Field.Store.YES,
+		                                           Field.Index.TOKENIZED))   
+					doc.add(Field("feed_description", description,
+		                                           Field.Store.NO,
+		                                           Field.Index.TOKENIZED))       
+					writer.addDocument(doc)  
+				except Exception, e:
+					print "Failed in indexDocs:", e      
+				#sleep(0)   #http://twistedmatrix.com/pipermail/twisted-python/2005-July/011052.html           
+				yield None
+		
+		for i in feed_index_generator(feeds):
 			if self._quitting:
 				return index_interrupt()
-			try:
-				doc = Document()
-				 
-				doc.add(Field("feed_id", str(feed_id), 
-											   Field.Store.YES,
-	                                           Field.Index.UN_TOKENIZED))
-				doc.add(Field("feed_title", title,
-	                                           Field.Store.YES,
-	                                           Field.Index.TOKENIZED))   
-				doc.add(Field("feed_description", description,
-	                                           Field.Store.NO,
-	                                           Field.Index.TOKENIZED))       
-				writer.addDocument(doc)  
-			except Exception, e:
-				print "Failed in indexDocs:", e      
-			sleep(0)   #http://twistedmatrix.com/pipermail/twisted-python/2005-July/011052.html           
+
 		
 		print  "indexing entries"
-		
-		for entry_id, feed_id, title, description, fakedate in entries:
+		def entry_index_generator(entries):
+			for entry_id, feed_id, title, description, fakedate in entries:
+				try:
+					doc = Document()
+					p = HTMLDataParser()
+					p.feed(description)
+					description = p.data
+					doc.add(Field("entry_id", str(entry_id), 
+												   Field.Store.YES,
+		                                           Field.Index.UN_TOKENIZED))
+					doc.add(Field("entry_feed_id", str(feed_id), 
+												   Field.Store.YES,
+		                                           Field.Index.UN_TOKENIZED))	                                           
+					
+					time = DateTools.timeToString(long(fakedate)*1000, DateTools.Resolution.HOUR)
+					doc.add(Field("date", time, 
+												   Field.Store.YES,
+		                                          Field.Index.UN_TOKENIZED))	                                           
+		            
+					doc.add(Field("entry_title",title,
+		                                           Field.Store.YES,
+		                                           Field.Index.TOKENIZED))   
+					doc.add(Field("entry_description", description,
+		                                           Field.Store.NO,
+		                                           Field.Index.TOKENIZED))       
+					writer.addDocument(doc)  
+				except Exception, e:
+					print "Failed in indexDocs:", e    
+				#sleep(.005)
+				yield None
+				
+		for i in entry_index_generator(entries):
 			if self._quitting:
 				return index_interrupt()
-			try:
-				doc = Document()
-				p = HTMLDataParser()
-				p.feed(description)
-				description = p.data
-				doc.add(Field("entry_id", str(entry_id), 
-											   Field.Store.YES,
-	                                           Field.Index.UN_TOKENIZED))
-				doc.add(Field("entry_feed_id", str(feed_id), 
-											   Field.Store.YES,
-	                                           Field.Index.UN_TOKENIZED))	                                           
-				
-				time = DateTools.timeToString(long(fakedate)*1000, DateTools.Resolution.HOUR)
-				doc.add(Field("date", time, 
-											   Field.Store.YES,
-	                                          Field.Index.UN_TOKENIZED))	                                           
-	            
-				doc.add(Field("entry_title",title,
-	                                           Field.Store.YES,
-	                                           Field.Index.TOKENIZED))   
-				doc.add(Field("entry_description", description,
-	                                           Field.Store.NO,
-	                                           Field.Index.TOKENIZED))       
-				writer.addDocument(doc)  
-			except Exception, e:
-				print "Failed in indexDocs:", e    
-			sleep(0)
 				
 		print "optimizing"
 		writer.optimize()

@@ -561,6 +561,10 @@ class GStreamerPlayer(gobject.GObject):
 			else: row[2] = ""
 		#save, because they may get overwritten when we play and pause
 		pos, dur = self._media_position, self._media_duration
+		volume = self._pipeline.get_property('volume')
+		#temporarily mute to avoid little bloops during this hack
+		self._pipeline.set_property('volume',0)
+
 		self.play(True)
 		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
@@ -574,6 +578,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._media_duration = 1
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
+		self._pipeline.set_property('volume',volume)
 		self._update_time_label()
 		
 	def _tick(self):
