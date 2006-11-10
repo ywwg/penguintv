@@ -492,16 +492,10 @@ class PlanetView:
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
 		
-	class MyTCPServer(SocketServer.TCPServer):
+	class MyTCPServer(SocketServer.ForkingTCPServer):
 		def __init__(self, server_address, RequestHandlerClass):
-			#SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
-			#going against comments and overriding :)  We have to get around timeoutsocket manually
-			#or else it doesn't work.  There's some sort of bug in timeoutsocket that's messing us up.
-			#SocketServer.BaseServer.__init__(self, server_address, RequestHandlerClass)
-			#self.socket = socket._no_timeoutsocket(self.address_family, self.socket_type)
 			SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
-			self.server_bind()
-			self.server_activate()
+			
 			self._key = ""
 			self.generate_key()
 			

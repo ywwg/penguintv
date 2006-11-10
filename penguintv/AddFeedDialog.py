@@ -151,17 +151,14 @@ class AddFeedDialog:
 		urllib._urlopener = my_url_opener(gtk.glade.XML(self._app.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
 		url_stream = None
 		try:
-			print "first try:",url
 			url_stream = urllib.urlopen(url)	
 		except socket.timeout:
 			raise BadFeedURL,"The website took too long to respond, and the connection timed out."
 		except IOError, e:
-			print "ioerror"
 			if "No such file or directory" in e:
 				return self._correct_url("http://"+url)
 			raise BadFeedURL,"There was an error loading the url."
 		except Exception, e:
-			print "general error"
 			raise BadFeedURL,"There was an error loading the url."
 		title = url
 		if urllib._urlopener.failed_auth == my_url_opener.FAILED:
@@ -189,7 +186,6 @@ class AddFeedDialog:
 			url_stream = urllib.urlopen(url)
 		
 		mimetype = url_stream.info()['Content-Type'].split(';')[0].strip()
-		print "mimetype",mimetype
 		handled_mimetypes = ['application/atom+xml','application/rss+xml','application/rdf+xml','application/xml','text/xml', 'text/plain']
 		if mimetype in handled_mimetypes:
 			pass
