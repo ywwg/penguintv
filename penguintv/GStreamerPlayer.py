@@ -538,6 +538,9 @@ class GStreamerPlayer(gobject.GObject):
 		if pad is None:
 			print "didn't get pad for resize info"
 			return
+		
+		self._resized_pane = True	
+			
  		caps = pad.get_negotiated_caps()
  		if caps is None: #no big deal, this might be audio only
  			self._hpaned.set_position(min_width)
@@ -556,8 +559,6 @@ class GStreamerPlayer(gobject.GObject):
   		else:
   			print "setting to",new_display_width
   			self._hpaned.set_position(int(new_display_width))
-  			
-  		self._resized_pane = True
   		
 	def _seek_to_saved_position(self):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
