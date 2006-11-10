@@ -532,22 +532,31 @@ class GStreamerPlayer(gobject.GObject):
 		#get video width and height so we can resize the pane
 		#see totem
 		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
+		min_width = 200
+		
 		pad = self._v_sink.get_pad('sink')
 		if pad is None:
 			print "didn't get pad for resize info"
 			return
  		caps = pad.get_negotiated_caps()
  		if caps is None: #no big deal, this might be audio only
+ 			self._hpaned.set_position(min_width)
  			return
   		s = caps[0]
   		movie_aspect = float(s['width']) / s['height']
   		display_height = self._drawing_area.get_allocation().height
-  		max_width = self._hpaned.get_allocation().width - 100 #-100 for the list box
+  		max_width = self._hpaned.get_allocation().width - 200 #-200 for the list box
   		new_display_width = float(display_height)*movie_aspect
-  		if new_display_width <= max_width:
-  			self._hpaned.set_position(int(new_display_width))
-  		else:
+  		if new_display_width >= max_width:
+  			print "setting to max"
   			self._hpaned.set_position(max_width)
+  		elif new_display_width <= min_width:
+  			print "setting to min"
+  			self._hpaned.set_position(min_width)
+  		else:
+  			print "setting to",new_display_width
+  			self._hpaned.set_position(int(new_display_width))
+  			
   		self._resized_pane = True
   		
 	def _seek_to_saved_position(self):
@@ -576,6 +585,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.seek(self._media_position)
 		if self._media_duration <= 0:
 			self._media_duration = 1
+		self._resize_pane()
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
 		self._pipeline.set_property('volume',volume)

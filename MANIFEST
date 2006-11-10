@@ -48,7 +48,6 @@ penguintv/FeedList.py
 penguintv/__init__.py
 penguintv/OPML.py
 penguintv/EditTagsMultiDialog.py
-penguintv/timeoutsocket.py
 penguintv/ThreadPool.py
 penguintv/penguintv.py
 penguintv/RenameFeedDialog.py

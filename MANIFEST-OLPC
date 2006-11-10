@@ -76,7 +76,6 @@ penguintv/subProcess.py
 penguintv/SynchronizeDialog.py
 penguintv/test.py
 penguintv/ThreadPool.py
-penguintv/timeoutsocket.py
 penguintv/UpdateTasksManager.py
 penguintv/utils.py
 share/defaultsubs.opml
