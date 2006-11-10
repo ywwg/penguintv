@@ -1268,8 +1268,8 @@ j@v2v.cc
 </property>
   <property name="translator_credits" translatable="yes" comments="TRANSLATORS: Replace this string with your names, one name per line.">None yet</property>
   <property name="logo">penguintvicon.png</property>
-  <signal name="close" handler="on_about_close" last_modification_time="Fri, 29 Jul 2005 14:22:22 GMT"/>
-  <signal name="destroy_event" handler="on_about_close" last_modification_time="Sun, 20 Aug 2006 15:17:27 GMT"/>
+  <signal name="destroy_event" handler="on_about_destroy" last_modification_time="Fri, 10 Nov 2006 17:58:41 GMT"/>
+  <signal name="response" handler="on_about_response" last_modification_time="Fri, 10 Nov 2006 17:58:51 GMT"/>
 </widget>
 
 <widget class="GnomeApp" id="app">

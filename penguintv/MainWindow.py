@@ -84,18 +84,12 @@ class MainWindow:
 		self._window_rename_feed.hide()
 		self._window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_edit_tags_single",'penguintv'),self._app)
 		self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
-		self._about_box_widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
-		self._about_box = self._about_box_widgets.get_widget('aboutdialog1')
+		
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
 		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
 		self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
 		
-		try:
-			self._about_box.set_version(utils.VERSION)
-		except:
-			pass #fc3 workaround (doesn't have aboutbox class)
-		self._about_box.hide()
 		#most of the initialization is done on Show()
 
 #	def __getitem__(self, key):
@@ -490,14 +484,15 @@ class MainWindow:
 				self._status_view.hide()
 
 	def on_about_activate(self,event):
-		try:
-			self._about_box.run()
-		except:
-			pass #fc3 workaround
+		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
+		about_box = widgets.get_widget('aboutdialog1')
+		about_box.set_version(utils.VERSION)
+		about_box.connect('response', self.on_about_response)
+		about_box.show_all()
 		
-	def on_about_close(self, event):
-		self._about_box.hide()
-		
+	def on_about_response(self, widget, event):
+		widget.destroy()
+
 	def on_app_delete_event(self,event,data):
 		self._app.do_quit()
 		
