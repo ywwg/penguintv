@@ -93,7 +93,8 @@ class EntryList:
 					print e
 					print "rows: ",rows," item:",item
 		self._entrylist.clear()
-		self._app.display_custom_entry("")
+		#self._app.display_custom_entry("")
+		self._app.display_entry(None)
 		
 		def populate_gen():
 			i=-1

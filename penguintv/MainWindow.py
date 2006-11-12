@@ -314,7 +314,7 @@ class MainWindow:
 			fancy = True
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
-		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "MOZILLA") #stupid misspelling (renderrer != renderer)
+		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "GTKHTML") #stupid misspelling (renderrer != renderer)
 		
 		if renderer_str == "GTKHTML":
 			renderer = EntryView.GTKHTML

@@ -312,20 +312,18 @@ class EntryView:
 					pass
 			self._current_entry = item	
 			self._currently_blank = False
+			if item['feed_id'] != self._auth_info[0]:
+				feed_info = self._db.get_feed_info(item['feed_id'])
+				if feed_info['auth_feed']:
+					self._auth_info = (item['feed_id'],feed_info['auth_userpass'], feed_info['auth_domain'])
+				else:
+					self._auth_info = (-1, "","")
 		else:
+			self._currently_blank = True
 			if self._renderer == GTKHTML:
-				self._currently_blank = True
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
-				
-				
-		if item['feed_id'] != self._auth_info[0]:
-			feed_info = self._db.get_feed_info(item['feed_id'])
-			if feed_info['auth_feed']:
-				self._auth_info = (item['feed_id'],feed_info['auth_userpass'], feed_info['auth_domain'])
-			else:
-				self._auth_info = (-1, "","")
-		
+	
 		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
 			if item is not None:
 				#no comments in css { } please!

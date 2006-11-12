@@ -2043,7 +2043,11 @@ class ptvDB:
 		current_tags = self.get_tags_for_feed(feed_id)
 		if current_tags:
 			if tag not in current_tags and len(tag)>0:
-				self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type, favorite) VALUES (?,?,?,0)',(tag,feed_id, T_TAG))
+				self._db_execute(self._c, u'SELECT favorite FROM tags WHERE tag=? LIMIT 1',(tag,))
+				favorite = self._c.fetchone()
+				try: favorite = favorite[0]
+				except: favorite = 0
+				self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type, favorite) VALUES (?,?,?,?)',(tag,feed_id, T_TAG, favorite))
 				self._db.commit()
 		else:
 			self._db_execute(self._c, u'INSERT INTO tags (tag, feed_id, type, favorite) VALUES (?,?,?,0)',(tag,feed_id, T_TAG))
