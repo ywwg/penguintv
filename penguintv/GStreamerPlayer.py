@@ -408,7 +408,6 @@ class GStreamerPlayer(gobject.GObject):
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()
 		
-		print "saving current row",self._current_index
 		current_uri = model[self._current_index][0]
 		
 		iter_list = []
