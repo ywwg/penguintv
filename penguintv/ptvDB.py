@@ -1405,7 +1405,7 @@ class ptvDB:
 			existing_media = old_media
 			
 			old_media = [medium['url'] for medium in old_media]
-			new_media = [m['href'] for m in item['enclosures']]
+			new_media = [m['url'] for m in item['enclosures']]
 			
 			old_media = utils.uniquer(old_media)
 			old_media.sort()

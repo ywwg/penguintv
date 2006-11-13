@@ -57,7 +57,7 @@ try:
 except:
 	HAS_GSTREAMER = False
 	
-VERSION="2.53"
+VERSION="2.56"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 
