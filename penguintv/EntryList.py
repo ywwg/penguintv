@@ -194,6 +194,15 @@ class EntryList:
 		if entry_id == self._last_entry:
 			return True
 			
+	def mark_as_viewed(self, entry_id=None):
+		index = self.find_index_of_item(entry_id)
+		if index is not None:
+			entry = self._entrylist[index]
+			if entry[FLAG] & ptvDB.F_UNVIEWED:
+				entry[FLAG] -= ptvDB.F_UNVIEWED
+				entry[MARKEDUPTITLE] = self._get_markedup_title(entry[TITLE],entry[FLAG])
+		 		entry[ICON] = self._get_icon(entry[FLAG])
+			
 	def show_search_results(self, entries, query):
 		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
 		self._search_query = query

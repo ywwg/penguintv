@@ -19,6 +19,7 @@ import locale
 import gettext
 import sets
 import pickle
+import traceback
 
 import socket
 import smtplib
@@ -48,7 +49,7 @@ BOOL    = 1
 INT     = 2
 STRING  = 3
 
-MAX_ARTICLES = 1000
+MAX_ARTICLES = 100
 
 _common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
 
@@ -164,7 +165,8 @@ class ptvDB:
 		
 	def _db_execute(self, c, command, args=()):
 		#if "MEDIA" in command.upper() and "SELECT" not in command.upper(): 
-		#print command, args
+		#traceback.print_stack()
+		print command, args
 		try:
 			return c.execute(command, args)
 		except Exception, e:
@@ -1468,7 +1470,7 @@ class ptvDB:
 		return self._c.fetchone()[0]
 	
 	def get_entry(self, entry_id):
-		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date FROM entries WHERE id=?""",(entry_id,))
+		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read FROM entries WHERE id=?""",(entry_id,))
 		result = self._c.fetchone()
 		
 		entry_dic={}
@@ -1479,6 +1481,7 @@ class ptvDB:
 			entry_dic['description']=result[3]
 			entry_dic['feed_id']= result[4]
 			entry_dic['date'] = result[5]
+			entry_dic['read'] = result[6]
 			entry_dic['entry_id'] = entry_id
 		except TypeError: #this error occurs when feed or item is wrong
 			raise NoEntry, entry_id
@@ -2126,7 +2129,7 @@ class ptvDB:
 		return result
 		
 	def export_OPML(self,stream):
-		if not HAS_PYXML:
+		if not utils.HAS_PYXML:
 			return
 		self._db_execute(self._c, u'SELECT title, description, url FROM feeds ORDER BY UPPER(title)')
 		result = self._c.fetchall()

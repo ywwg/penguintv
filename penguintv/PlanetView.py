@@ -160,7 +160,10 @@ class PlanetView:
 			if entry_id not in self._entrylist: #not this feed
 				return
 			self._load_entry(entry_id, True)
-		
+			
+	def mark_as_viewed(self, entry_id=None):
+		print "doesn't apply in planet view, right?"
+	
 	def show_search_results(self, entries, query):
 		if entries is None:
 			self.display_custom_entry(_("No entries match those search criteria"))

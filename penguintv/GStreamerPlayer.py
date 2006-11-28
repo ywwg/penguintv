@@ -532,6 +532,7 @@ class GStreamerPlayer(gobject.GObject):
 		#see totem
 		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
 		min_width = 200
+		max_width = self._hpaned.get_allocation().width - 200 #-200 for the list box
 		
 		pad = self._v_sink.get_pad('sink')
 		if pad is None:
@@ -542,21 +543,18 @@ class GStreamerPlayer(gobject.GObject):
 			
  		caps = pad.get_negotiated_caps()
  		if caps is None: #no big deal, this might be audio only
- 			self._hpaned.set_position(min_width)
+ 			self._hpaned.set_position(max_width / 2)
  			return
   		s = caps[0]
   		movie_aspect = float(s['width']) / s['height']
   		display_height = self._drawing_area.get_allocation().height
-  		max_width = self._hpaned.get_allocation().width - 200 #-200 for the list box
+  		
   		new_display_width = float(display_height)*movie_aspect
   		if new_display_width >= max_width:
-  			print "setting to max"
   			self._hpaned.set_position(max_width)
   		elif new_display_width <= min_width:
-  			print "setting to min"
   			self._hpaned.set_position(min_width)
   		else:
-  			print "setting to",new_display_width
   			self._hpaned.set_position(int(new_display_width))
   		
 	def _seek_to_saved_position(self):

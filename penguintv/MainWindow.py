@@ -567,11 +567,8 @@ class MainWindow:
 			self._feed_filter_properties_dialog.show()
 		
 	def on_download_entry_activate(self, event):
-		try:
-			entry = self.entry_list_view.get_selected()['entry_id']
-			self._app.download_entry(entry)
-		except:
-			pass
+		entry = self.entry_list_view.get_selected()['entry_id']
+		self._app.download_entry(entry)
 			
 	def on_download_unviewed_activate(self, event):
 		self._app.download_unviewed()
@@ -580,11 +577,8 @@ class MainWindow:
 		self._app.download_unviewed()
 			
 	def on_delete_entry_media_activate(self,event):
-		try:
-			selected = self.entry_list_view.get_selected()['entry_id']
-			self._app.delete_entry_media(selected)
-		except:
-			pass
+		selected = self.entry_list_view.get_selected()['entry_id']
+		self._app.delete_entry_media(selected)
 			
 	def on_delete_feed_media_activate(self,event):
 		selected = self.feed_list_view.get_selected()
@@ -792,19 +786,13 @@ class MainWindow:
 				self.toggle_fullscreen(self._fullscreen)
 		
 	def on_mark_entry_as_viewed_activate(self,event):
-		try:
-			entry = self.entry_list_view.get_selected()['entry_id']
-			self._app.mark_entry_as_viewed(entry)
-		except:
-			pass
+		entry = self.entry_list_view.get_selected()['entry_id']
+		self._app.mark_entry_as_viewed(entry)
 		
 	def on_mark_entry_as_unviewed_activate(self,event):
-		try:
-			entry = self.entry_list_view.get_selected()['entry_id']
-			self._app.mark_entry_as_unviewed(entry)
-		except:
-			pass
-
+		entry = self.entry_list_view.get_selected()['entry_id']
+		self._app.mark_entry_as_unviewed(entry)
+		
 	def on_mark_feed_as_viewed_activate(self,event):
 		feed = self.feed_list_view.get_selected()
 		if feed:

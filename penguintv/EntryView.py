@@ -312,12 +312,12 @@ class EntryView:
 					pass
 			self._current_entry = item	
 			self._currently_blank = False
-			if item['feed_id'] != self._auth_info[0]:
+			if item['feed_id'] != self._auth_info[0] and self._auth_info[0] != -2:
 				feed_info = self._db.get_feed_info(item['feed_id'])
 				if feed_info['auth_feed']:
 					self._auth_info = (item['feed_id'],feed_info['auth_userpass'], feed_info['auth_domain'])
 				else:
-					self._auth_info = (-1, "","")
+					self._auth_info = (-2, "","")
 		else:
 			self._currently_blank = True
 			if self._renderer == GTKHTML:
@@ -372,7 +372,7 @@ class EntryView:
 			except:
 				pass
 			
-		if self._auth_info[0] != -1:	
+		if self._auth_info[0] >= 0:	
 			try:
 				p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
 				p.feed(html)

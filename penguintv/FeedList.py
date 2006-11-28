@@ -258,15 +258,15 @@ class FeedList:
 								 pollfail, 
 								 m_first_entry_title]
 			try:
-				if i % (len(db_feedlist)/20) == 0:
-					self.do_filter()
+				if i % (len(db_feedlist)/10) == 0:
+					self.filter_all()
 					self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
 			except:
 				pass
 			yield True
 		
 		if not self._cancel_load[0]:
-			self.do_filter()
+			self.filter_all()
 			if self._fancy:
 				gobject.idle_add(self._load_visible_details().next)
 			if selected:
@@ -350,13 +350,14 @@ class FeedList:
 					feed[FLAG] = feed[FLAG] + ptvDB.F_UNVIEWED
 			else:
 				if feed[FLAG] & ptvDB.F_UNVIEWED:
-					feed[FLAG] = feed[FLAG]-ptvDB.F_UNVIEWED
+					feed[FLAG] = feed[FLAG] - ptvDB.F_UNVIEWED
 			feed[UNREAD]   = update_data['unread_count']
 			feed[TOTAL]    = len(update_data['flag_list'])
+
+			readinfo_string = "("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")"			
 			if self._fancy:
-				feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")\n",flag)
-			else:
-				feed[READINFO] = self._get_markedup_title("("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")",flag)
+				readinfo_string += "\n"
+			feed[READINFO] = self._get_markedup_title(readinfo_string,flag)
 				
 			if self._filter_unread:
 		 		if unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
@@ -399,10 +400,71 @@ class FeedList:
 			 		need_filter = True	
 			
 		if need_filter and self._state != S_SEARCH:#not self._showing_search:
-			self.do_filter()
+			self._filter_one(feed)
+			
+	def mark_entries_read(self, num_to_mark, feed_id=None):
+	
+		"""alters the number of unread entries by num_to_mark.  if negative,
+		marks some as unread"""
+		
+		s = self._widget.get_selection().get_selected()
+		assert s is not None
+		model, iter = s
+		if iter is None:
+			return None
+		path = model.get_path(iter)
+		index = path[0]
+		selected = model[index][FEEDID]
+
+		#there's some trickiness here.  The model for the selection is
+		#self._feed_filter, not self._feedlist, so we can't write to items
+		#in that model.  We have to go back and find where this feed is in the
+		#original model.
+
+		if feed_id is None:
+			feed = self._feedlist[self.find_index_of_item(selected)]
+		else:
+			feed = self._feedlist[self.find_index_of_item(feed_id)]
+
+		#print feed[UNREAD],feed[TOTAL],num_to_mark
+
+		#sanity check
+		if feed[UNREAD] - num_to_mark < 0 or feed[UNREAD] - num_to_mark > feed[TOTAL]:
+			print "WARNING: trying to mark more or less than we have"
+			self.update_feed_list(feed[FEEDID], ['readinfo'])
+			return
+			
+		feed[UNREAD] -= num_to_mark
+		
+		if feed[UNREAD] == 0 and feed[FLAG] & ptvDB.F_UNVIEWED:
+			feed[FLAG] -= ptvDB.F_UNVIEWED
+			
+		if feed[UNREAD] > 0 and feed[FLAG] & ptvDB.F_UNVIEWED == 0:
+			feed[FLAG] += ptvDB.F_UNVIEWED
+		
+		readinfo_string = "("+str(feed[UNREAD])+"/"+str(feed[TOTAL])+")"
+		
+		if self._fancy:
+			readinfo_string += "\n"
+			feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],
+															   feed[FIRSTENTRYTITLE],
+															   feed[UNREAD], 
+															   feed[TOTAL], 
+															   feed[FLAG], 
+															   feed[FEEDID] == selected)
+		else:
+			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE], feed[FLAG])
+			
+		feed[READINFO] = self._get_markedup_title(readinfo_string,feed[FLAG])
+				
+		if self._filter_unread:
+			if unviewed==0 and self.filter_test_feed(feed_id):
+				self._filter_one(feed)
 		
 	def show_search_results(self, results=[]):
+		
 		"""shows the feeds in the list 'results'"""
+		
 		if self._state != S_SEARCH:
 			print "not in search state, returning"
 			return
@@ -493,7 +555,7 @@ class FeedList:
 		self._unset_state(data)
 		self._state = newstate
 			
-	def do_filter(self,keep_misfiltered=True):
+	def filter_all(self,keep_misfiltered=True):
 		if self.filter_setting == SEARCH:
 			print "not filtering, we have search results"
 			return #not my job
@@ -513,7 +575,7 @@ class FeedList:
 			elif self.filter_setting == ALL:
 				passed_filter = True
 			else:
-				tags = self._db.get_tags_for_feed(feed[2])
+				tags = self._db.get_tags_for_feed(feed[FEEDID])
 				if tags:
 					if self.filter_name in tags:
 						passed_filter = True
@@ -539,6 +601,52 @@ class FeedList:
 					passed_filter = False #see ya
 			if feed[VISIBLE] != passed_filter:
 				feed[VISIBLE] = passed_filter #note, this seems to change the selection!
+		self._feed_filter.refilter()
+
+	def _filter_one(self,feed, keep_misfiltered=True):
+		if self.filter_setting == SEARCH:
+			print "not filtering, we have search results"
+			return #not my job
+	
+		selected = self.get_selected()
+		s_index = self.find_index_of_item(selected)
+		feed_index = self.find_index_of_item(feed[FEEDID])
+		
+		flag = feed[FLAG]
+		passed_filter = False
+		
+		if self.filter_setting == DOWNLOADED:
+			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
+				passed_filter = True
+		elif self.filter_setting == ALL:
+			passed_filter = True
+		else:
+			tags = self._db.get_tags_for_feed(feed[FEEDID])
+			if tags:
+				if self.filter_name in tags:
+					passed_filter = True
+		#so now we know if we passed the main filter, but we need to test for special cases where we keep it anyway
+		#also, we still need to test for unviewed
+		if feed_index == s_index and selected is not None:  #if it's the selected feed, we have to be careful
+			if keep_misfiltered: 
+				#some cases when we want to keep the current feed visible
+				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
+					passed_filter = True  #keep it
+					self._selecting_misfiltered=True
+				elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
+					passed_filter = True
+					self._selecting_misfiltered=True
+				elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
+					passed_filter = True
+					self._selecting_misfiltered=True
+			if not passed_filter:
+				self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
+				self._app.display_feed(-1)
+		else: #if it's not the selected feed
+			if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
+				passed_filter = False #see ya
+		if feed[VISIBLE] != passed_filter:
+			feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
 			
 	def _load_visible_details(self):
@@ -611,7 +719,7 @@ class FeedList:
 		#	print "hope we also changed state"
 		#	self._app.set_state(penguintv.DEFAULT)
 			
-		self.do_filter(False)
+		self.filter_all(False)
 		if self._fancy:
 			if not self._loading_details:
 				gobject.idle_add(self._load_visible_details().next)
@@ -644,7 +752,7 @@ class FeedList:
 		if self._state == S_SEARCH:
 			return 
 		self._filter_unread = active
-		self.do_filter(False)
+		self.filter_all(False)
 		self._va.set_value(0)
 			
 	def clear_list(self):
@@ -806,7 +914,7 @@ class FeedList:
 				self._app.display_feed(item, -2)
 				if self._selecting_misfiltered and item!=None:
 					self._selecting_misfiltered = False
-					gobject.timeout_add(250, self.do_filter)
+					gobject.timeout_add(250, self.filter_all)
 			try:
 				if self._feedlist[self.find_index_of_item(item)][POLLFAIL]:
 					self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")

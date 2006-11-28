@@ -486,10 +486,8 @@ class PenguinTVApp:
 		if entry_id is not None:
 			item = self.db.get_entry(entry_id)
 			media = self.db.get_entry_media(entry_id)
-			read = self.db.get_entry_read(entry_id)
 			if media:
 				item['media']=media
-			item['read'] = read
 		else:
 			self._entry_view.display_item()
 			return
@@ -498,8 +496,10 @@ class PenguinTVApp:
 			if item['read']==0 and set_read==1:
 				self.db.set_entry_read(entry_id,1)
 				#self._entry_list_view.update_entry_list(entry_id, item)
-				self._entry_list_view.update_entry_list(entry_id)
-				self.feed_list_view.update_feed_list(item['feed_id'],['readinfo','icon'])
+				#self._entry_list_view.update_entry_list(entry_id)
+				self._entry_list_view.mark_as_viewed(entry_id)
+				#self.feed_list_view.update_feed_list(item['feed_id'],['readinfo','icon'])
+				self.feed_list_view.mark_entries_read(1, feed_id=item['feed_id'])
 				for f in self.db.get_pointer_feeds(item['feed_id']):
 					self.feed_list_view.update_feed_list(f,['readinfo','icon'])
 				#return #we will get called again when update_entry_list runs
@@ -651,7 +651,6 @@ class PenguinTVApp:
 			self.mediamanager.download(d[0])
 			self.db.set_media_viewed(d[0],False)
 			self.feed_list_view.update_feed_list(d[3],['icon'])
-			self.feed_list_view.do_filter()
 			self._entry_list_view.update_entry_list(d[2])
 			yield True
 		yield False
@@ -806,7 +805,8 @@ class PenguinTVApp:
 		self.db.set_entry_read(entry,True)
 		if update_entrylist: #hack for PlanetView
 			self.update_entry_list(entry)
-		self.feed_list_view.update_feed_list(None,['readinfo'])
+		#self.feed_list_view.update_feed_list(None,['readinfo'])
+		self.feed_list_view.mark_entries_read(1)
 		
 	def mark_entrylist_as_viewed(self, entrylist, update_entrylist=True):
 		if len(entrylist) == 0:
@@ -815,7 +815,8 @@ class PenguinTVApp:
 		for e in entrylist:
 			if update_entrylist: #hack for PlanetView
 				self.update_entry_list(e)
-		self.feed_list_view.update_feed_list(None,['readinfo'])
+		#self.feed_list_view.update_feed_list(None,['readinfo'])
+		self.feed_list_view.mark_entries_read(len(entrylist))
 			
 	def mark_entry_as_unviewed(self,entry):
 		media = self.db.get_entry_media(entry)
@@ -827,8 +828,9 @@ class PenguinTVApp:
 		else:
 			self.db.set_entry_read(entry, 0)
 			self.update_entry_list(entry)
-		self.feed_list_view.update_feed_list(None,['readinfo'])
-
+		#self.feed_list_view.update_feed_list(None,['readinfo'])
+		self.feed_list_view.mark_entries_read(-1)
+		
 	def mark_feed_as_viewed(self,feed):
 		self.db.mark_feed_as_viewed(feed)
 		self._entry_list_view.populate_entries(feed)
@@ -1272,7 +1274,7 @@ class PenguinTVApp:
 		self.delete_media(item['media_id']) #marks as viewed
 		self.main_window.update_download_progress()
 		if self._exiting:
-			self.feed_list_view.do_filter() #to remove active downloads from the list
+			self.feed_list_view.filter_all() #to remove active downloads from the list
 			return
 		try:
 			feed_id = self.db.get_entry(item['entry_id'])['feed_id']
@@ -1286,7 +1288,7 @@ class PenguinTVApp:
 			self.main_window.search_container.set_sensitive(False)
 			self._populate_feeds(self._done_populating, FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
-		self.feed_list_view.do_filter() #to remove active downloads from the list
+		self.feed_list_view.filter_all() #to remove active downloads from the list
 		self.main_window.download_finished()
 		
 	def do_pause_download(self, media_id):
@@ -1332,7 +1334,7 @@ class PenguinTVApp:
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)	
 			self.main_window.download_finished() #FIXME: convert to gobject signal one day
 		if self._exiting:
-			self.feed_list_view.do_filter() #to remove active downloads from the list
+			self.feed_list_view.filter_all() #to remove active downloads from the list
 			return
 		try:
 			feed_id = self.db.get_entry(d.media['entry_id'])['feed_id']
@@ -1348,7 +1350,7 @@ class PenguinTVApp:
 			self.feed_list_view.resize_columns()
 		except:
 			print "some other error"
-		self.feed_list_view.do_filter() #to remove active downloads from the list
+		self.feed_list_view.filter_all() #to remove active downloads from the list
 			
 	def rename_feed(self, feed_id, name):
 		if len(name)==0:
