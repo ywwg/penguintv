@@ -612,6 +612,10 @@ class PenguinTVApp:
 			quoted_url = string.replace(quoted_url,"%2A","*")
 			if HAS_GNOME:
 				gnome.url_show(parsed_url[0]+"://"+quoted_url+http_arguments+anchor)
+			elif utils.RUNNING_SUGAR:
+				from sugar.activity import ActivityFactory
+				activity = ActivityFactory.create("org.laptop.WebActivity")
+				activity.execute("load-uri", [parsed_url[0]+"://"+quoted_url+http_arguments+anchor])
 		elif action=="file":
 			print parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2])
 			if HAS_GNOME:
