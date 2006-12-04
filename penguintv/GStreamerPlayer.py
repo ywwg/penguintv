@@ -24,6 +24,11 @@ import sys,os,os.path
 import pickle
 import urllib
 
+if os.environ.has_key('SUGAR_PENGUINTV'):
+	RUNNING_SUGAR = True
+else:
+	RUNNING_SUGAR = False
+
 class GStreamerPlayer(gobject.GObject):
 	def __init__(self, layout_dock):
 		gobject.GObject.__init__(self)
@@ -204,7 +209,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._sidepane_vbox.hide()
 			
 	def load(self):
-		if os.environ.has_key('SUGAR_PENGUINTV'):
+		if RUNNING_SUGAR:
 			import sugar.env
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
@@ -231,7 +236,7 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def save(self):
 		"""saves playlist"""
-		if os.environ.has_key('SUGAR_PENGUINTV'):
+		if RUNNING_SUGAR:
 			import sugar.env
 			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
 		else:
@@ -399,6 +404,8 @@ class GStreamerPlayer(gobject.GObject):
 		if ismedia:
 			model = self._queue_listview.get_model()
 			uri = 'file://'+urllib.quote(filename)
+			if RUNNING_SUGAR:
+				name = '<span size="x-small">'+name+'</span>'
 			model.append([uri, name, ""])
 			self.emit('item-queued', filename, name)
 			self.save()

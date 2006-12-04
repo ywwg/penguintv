@@ -142,8 +142,8 @@ class MainWindow:
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
-		if utils.RUNNING_SUGAR:
-			self._filter_container.hide_all()
+		#if utils.RUNNING_SUGAR:
+		#	self._filter_container.hide_all()
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
@@ -168,6 +168,11 @@ class MainWindow:
 			pref_button = self._widgetTree.get_widget('preferences_toolbutton')
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
+			
+			debug_exit_button = self._widgetTree.get_widget('debug_exit_toolbutton')
+			debug_exit_button.set_property('visible',True)
+			debug_exit_button.set_property('label',_("Exit (DEBUG)"))
+			
 			theme = gtk.icon_theme_get_default()
 			theme.append_search_path(os.path.join(self._glade_prefix, "icons"))
 			self._widgetTree.get_widget('feed_add_button').set_stock_id(None)
@@ -258,10 +263,7 @@ class MainWindow:
 	def load_notebook(self):
 		self._notebook = NotebookManager()
 		self._notebook.set_property('tab-border',0)
-		if utils.RUNNING_SUGAR:
-			label = gtk.Label(_('Feeds'))
-		else:
-			label = gtk.Label(_('<span size="small">Feeds</span>'))
+		label = gtk.Label(_('<span size="small">Feeds</span>'))
 		label.set_property('use-markup',True)
 		vbox = gtk.VBox()
 		self._notebook.append_page(vbox, label)
@@ -272,17 +274,11 @@ class MainWindow:
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()
-		if utils.RUNNING_SUGAR:
-			self._player_label = gtk.Label(_('Player'))
-		else:
-			self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
+		self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
 		self._player_label.set_property('use-markup',True)
 		self._notebook.append_page(p_vbox, self._player_label)
 		
-		if utils.RUNNING_SUGAR:
-			self._downloads_label = gtk.Label(_('Downloads'))
-		else:
-			self._downloads_label = gtk.Label(_('<span size="small">Downloads</span>'))
+		self._downloads_label = gtk.Label(_('<span size="small">Downloads</span>'))
 		self._downloads_label.set_property('use-markup',True)
 		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._db, self._glade_prefix+'/penguintv.glade')
 		self._notebook.append_page(self._download_view.get_widget(), self._downloads_label)
@@ -311,7 +307,7 @@ class MainWindow:
 		
 		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
 		if utils.RUNNING_SUGAR:
-			fancy = True
+			fancy = False
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
 		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "GTKHTML") #stupid misspelling (renderrer != renderer)
@@ -324,6 +320,8 @@ class MainWindow:
 			renderer = EntryView.MOZILLA
 		else:
 			renderer = EntryView.GTKHTML
+		if utils.RUNNING_SUGAR:
+			renderer = EntryView.MOZILLA
 			
 		if not EntryView.MOZ_OK:
 			renderer = EntryView.GTKHTML
@@ -802,8 +800,8 @@ class MainWindow:
 		self._notebook.show_page(N_FEEDS)
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
-		if utils.RUNNING_SUGAR:
-			self._filter_container.hide_all()
+		#if utils.RUNNING_SUGAR:
+		#	self._filter_container.hide_all()
 	
 		if self._use_internal_player:
 			self._gstreamer_player.load()
@@ -832,25 +830,22 @@ class MainWindow:
 		#		player.play()
 		#	except:
 		#		pass #fails while loading
-		if utils.RUNNING_SUGAR:
-			self._player_label.set_markup(_('Player (%d)') % player.get_queue_count())
-		else:
-			self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
+		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		
 	def _on_player_items_removed(self, player):
 		if player.get_queue_count() == 0:
 			self._notebook.hide_page(N_PLAYER)
 			player.stop()
-		if utils.RUNNING_SUGAR:
-			self._player_label.set_markup(_('Player (%d)') % player.get_queue_count())
-		else:
-			self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
+		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		
 	def on_preferences_activate(self, event):
 		self._app.window_preferences.show()
 		
 	def on_quit2_activate(self,event):
 		self._app.do_quit() #make the program quit, dumbass
+		#DEBUG for exit_toolbutton
+		if utils.RUNNING_SUGAR:
+			gtk.main_quit()
 		
 	def on_refresh_activate(self, event):
 		feed = self.feed_list_view.get_selected()
@@ -957,8 +952,8 @@ class MainWindow:
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
-		if utils.RUNNING_SUGAR:
-			self._filter_container.hide_all()			
+		#if utils.RUNNING_SUGAR:
+		#	self._filter_container.hide_all()			
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
@@ -1272,10 +1267,7 @@ class MainWindow:
 		if number == 0:
 			self._notebook.hide_page(N_DOWNLOADS)
 		else:
-			if utils.RUNNING_SUGAR:
-				self._downloads_label.set_markup(_('Downloads (%d)') % number)
-			else:
-				self._downloads_label.set_markup(_('<span size="small">Downloads (%d)</span>') % number)
+			self._downloads_label.set_markup(_('<span size="small">Downloads (%d)</span>') % number)
 			self._notebook.show_page(N_DOWNLOADS)
 				
 	def desensitize(self):

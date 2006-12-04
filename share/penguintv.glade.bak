@@ -2032,6 +2032,20 @@ j@v2v.cc
 	      </child>
 
 	      <child>
+		<widget class="GtkToolButton" id="debug_exit_toolbutton">
+		  <property name="stock_id">gtk-close</property>
+		  <property name="visible_horizontal">True</property>
+		  <property name="visible_vertical">True</property>
+		  <property name="is_important">False</property>
+		  <signal name="clicked" handler="on_debug_exit_toolbutton_clicked" last_modification_time="Sun, 03 Dec 2006 16:22:18 GMT"/>
+		</widget>
+		<packing>
+		  <property name="expand">False</property>
+		  <property name="homogeneous">True</property>
+		</packing>
+	      </child>
+
+	      <child>
 		<widget class="GtkToolItem" id="toolitem1">
 		  <property name="visible">True</property>
 		  <property name="visible_horizontal">True</property>
@@ -3345,7 +3359,6 @@ j@v2v.cc
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
   <property name="urgency_hint">False</property>
-  <signal name="delete_event" handler="on_window_edit_search_tags_delete_event" last_modification_time="Thu, 24 Aug 2006 14:05:03 GMT"/>
 
   <child>
     <widget class="GtkVBox" id="vbox12">

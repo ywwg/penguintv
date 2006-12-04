@@ -13,7 +13,7 @@
 #from sizer import formatting
 
 
-import urlparse
+#import urlparse loaded as needed
 import threading
 import sys, os, os.path
 import gc
@@ -39,9 +39,6 @@ import gobject
 import locale
 import gettext
 	
-import HTMLParser
-import feedparser
-
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -352,25 +349,32 @@ class PenguinTVApp:
 		
 	def do_quit(self):
 		"""save and shut down all our threads"""
+		logging.info('ptv quitting')
 		self._exiting=1
 		self._entry_view.finish()
 		self.feed_list_view.interrupt()
 		self._update_thread.goAway()
 		self._updater_thread_db.finish()
 		self.main_window.finish()
+		logging.info('stopping downloads')
 		self.stop_downloads()
+		logging.info('saving settings')
 		self.save_settings()
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
 		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3]] for c in self.feed_list_view.get_feed_cache()]
 		self.db.set_feed_cache(adjusted_cache)
+		logging.info('stopping db')
 		self.db.finish()	
+		logging.info('stopping mediamanager')
 		self.mediamanager.finish()
 		#while threading.activeCount()>1:
 		#	print threading.enumerate()
 		#	print str(threading.activeCount())+" threads active..."
 		#	time.sleep(1)
+		logging.info('stopping socket')
 		self._socket.close()
-		gtk.main_quit()
+		if not utils.RUNNING_SUGAR:
+			gtk.main_quit()
 		
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
@@ -515,6 +519,7 @@ class PenguinTVApp:
 	
 	def activate_link(self, link):
 		"""links can be basic hrefs, or they might be custom penguintv commands"""
+		import urlparse
 		parsed_url = urlparse.urlparse(link)
 		action=parsed_url[0] #protocol
 		http_arguments=parsed_url[4]
@@ -1592,8 +1597,8 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		app.main_window.Show() 
 		gobject.idle_add(app.post_show_init) #lets window appear first)
 		gtk.gdk.threads_init()
-	#	import profile
-	#	profile.run('gtk.main()', 'pengprof')
+		#import profile
+		#profile.run('gtk.main()', '/tmp/penguintv-prof')
 		if utils.is_kde():
 			try:
 				from kdecore import KApplication, KCmdLineArgs, KAboutData

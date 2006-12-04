@@ -9,6 +9,8 @@ import string
 import locale
 import gettext
 
+from subprocess import Popen, PIPE, STDOUT
+
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -445,5 +447,47 @@ def html_entity_unfixer(text):
 #	escape_chars="""+-&|!(){}[]^"~*?:\\"""
 #	text = text.replace(
 
+def get_disk_free(f="/"):
+	
+	"""returns free disk space in kilobytes for 
+	   the disk that contains file f, defaulting to root.  
+	   Returns 0 on error"""
+	
+	os.stat(f) #if this fails it will raise exactly the right error
+	
+	cmd = "df -k " + f
+	
+	p = Popen(cmd, shell=True, 
+		      stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+						 
+	lines = p.stdout.readlines()
+	
+	try:
+		return int(lines[1].split()[3])
+	except:
+		return 0
+		
+def get_disk_total(f="/"):
+	
+	"""returns total disk space in kilobytes for 
+	   the disk that contains file f, defaulting to root.
+	   Returns 0 on error"""
+	
+	os.stat(f) #if this fails it will raise exactly the right error
+	
+	cmd = "df -k " + f
+	
+	p = Popen(cmd, shell=True, 
+		      stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
+						 
+	lines = p.stdout.readlines()
+	
+	try:
+		return int(lines[1].split()[1])
+	except:
+		return 0
+
+
 if is_kde():
 	import kio
+

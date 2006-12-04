@@ -23,10 +23,10 @@ MAX_WIDTH  = 48
 MAX_HEIGHT = 48
 MIN_SIZE   = 24
 
-if utils.RUNNING_SUGAR:
-	MAX_WIDTH  = 32
-	MAX_HEIGHT = 32
-	MIN_SIZE   = 0
+#if utils.RUNNING_SUGAR:
+#	MAX_WIDTH  = 32
+#	MAX_HEIGHT = 32
+#	MIN_SIZE   = 0
 
 class DownloadView:
 	def __init__(self, app, mm, db, gladefile):

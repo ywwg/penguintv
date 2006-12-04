@@ -11,8 +11,8 @@ import glob
 import copy
 
 import Downloader
-import BTDownloader
-import HTTPDownloader
+#import BTDownloader  loaded when needed
+#import HTTPDownloader  loaded when needed
 
 from utils import format_size
 
@@ -156,6 +156,7 @@ class MediaManager:
 				'--maxport', str(self.bt_settings['max_port']),
 				'--max_upload_rate', str(self.bt_settings['ul_limit'])]
 				
+			import BTDownloader
 			downloader = BTDownloader.BTDownloader(media, self.media_dir, params,True, queue, self.callback_progress,self.callback_finished)
 			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
@@ -170,6 +171,7 @@ class MediaManager:
 						media['file']=media['file']+real_ext
 				except:
 					print "ERROR couldn't guess mimetype, leaving filename alone"
+			import HTTPDownloader
 			downloader = HTTPDownloader.HTTPDownloader(media, self.media_dir, None, resume, queue, self.callback_progress, self.callback_finished)
 			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)

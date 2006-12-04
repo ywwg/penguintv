@@ -41,10 +41,10 @@ MAX_WIDTH  = 48
 MAX_HEIGHT = 48
 MIN_SIZE   = 24
 
-if utils.RUNNING_SUGAR:
-	MAX_WIDTH  = 32
-	MAX_HEIGHT = 32
-	MIN_SIZE   = 1
+#if utils.RUNNING_SUGAR:
+#	MAX_WIDTH  = 32
+#	MAX_HEIGHT = 32
+#	MIN_SIZE   = 1
 
 class FeedList:
 	def __init__(self, widget_tree, app, db, fancy=False):
@@ -257,16 +257,18 @@ class FeedList:
 								 visible, 
 								 pollfail, 
 								 m_first_entry_title]
-			try:
-				if i % (len(db_feedlist)/10) == 0:
-					self.filter_all()
-					self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
-			except:
-				pass
+#			try:
+				#if i % (len(db_feedlist)/10) == 0:
+				#	self.filter_all()
+			self._filter_one(self._feedlist[i])
+
+			self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
+#			except:
+#				pass
 			yield True
 		
 		if not self._cancel_load[0]:
-			self.filter_all()
+			#self.filter_all()
 			if self._fancy:
 				gobject.idle_add(self._load_visible_details().next)
 			if selected:
@@ -788,6 +790,8 @@ class FeedList:
 	def _get_markedup_title(self, title, flag):
 		if not title:
 			return _("Please wait...")
+		if utils.RUNNING_SUGAR:
+			title='<span size="x-small">'+title+'</span>'
 		try:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					title="<b>"+utils.my_quote(title)+"</b>"
@@ -846,10 +850,16 @@ class FeedList:
 				first_entry_title = first_entry_title[0:first_entry_title.find("<")] + "..."
 				
 			#selected = self.get_selected()
+#			if utils.RUNNING_SUGAR:
+#				if not selected:
+#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span color="#777777" size="xx-small"><i>'+first_entry_title+'</i></span>'
+#				else:
+#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span size="xx-small"><i>'+first_entry_title+'</i></span>'
+#			else:
 			if not selected:
-				title = utils.my_quote(title)+'\n<span color="#777777" size="smaller"><i>'+first_entry_title+'</i></span>'
+				title = utils.my_quote(title)+'\n<span color="#777777" size="x-small"><i>'+first_entry_title+'</i></span>'
 			else:
-				title = utils.my_quote(title)+'\n<span size="smaller"><i>'+first_entry_title+'</i></span>'
+				title = utils.my_quote(title)+'\n<span size="x-small"><i>'+first_entry_title+'</i></span>'
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 				title="<b>"+title+'</b>'
 		except:

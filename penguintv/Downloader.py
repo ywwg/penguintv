@@ -6,7 +6,7 @@ STOPPED           = 4
 PAUSED            = 5
 FAILURE           = -1
 
-import traceback
+#import traceback
 import gobject
 
 class Downloader:

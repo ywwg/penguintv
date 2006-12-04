@@ -4,6 +4,8 @@
 #progress of our downloads, and prevent those UI updates from making it to the screen
 #OH NOES!
 
+import logging
+
 from EntryView import *
 import ptvDB
 import utils
@@ -508,12 +510,15 @@ class PlanetView:
 		def serve_forever(self):
 			while 1:
 				self.handle_request()
+				logging.info('tcp handling request')
 				if self._quitting:
+					logging.info('quitting tcp server')
 					return
 				if len(self._updates)>0:
 					#We must have posted an update.  So pop it (unlike in the request handler,
 					#changes actually have an effect here!)
 					self._updates.pop(0)
+					logging.info('tcp popped update (%i left)' % (len(self._updates)))
 					
 		def finish(self):
 			self._quitting = True
@@ -527,6 +532,7 @@ class PlanetView:
 			
 		def push_update(self, update):
 			self._updates.append(update)
+			logging.info('tcp update pushed (total %i)' % (len(self._updates)))
 			
 		def peek_update(self):
 			return self._updates[0]

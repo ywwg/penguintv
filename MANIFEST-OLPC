@@ -3,6 +3,7 @@ activity/activity-penguintv.svg
 activity/localized/PLACEHOLDER
 __init__.py
 PenguinTVActivity.py
+ptv_profile.py
 penguintv/AddFeedDialog.py
 penguintv/AddSearchTagDialog.py
 penguintv/BTDownloader.py
@@ -30,7 +31,6 @@ penguintv/Makefile.am
 penguintv/Makefile.in
 penguintv/MediaManager.py
 penguintv/OPML.py
-penguintv/output
 penguintv/penguintv.py
 penguintv/PlanetView.py
 penguintv/Player.py

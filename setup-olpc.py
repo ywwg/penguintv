@@ -4,7 +4,11 @@ import os
 import sys
 import zipfile
 
-from sugar.activity.bundle import Bundle
+try:
+	from sugar.activity.bundle import Bundle
+	HAS_SUGAR = True
+except:
+	HAS_SUGAR = False
 
 BUNDLE_NAME="ptv"
 
@@ -22,8 +26,11 @@ def get_bundle_dir():
 orig_path = os.getcwd()
 os.chdir(get_source_path())
 
-bundle = Bundle(get_source_path())
-zipfile_name = '%s-%d.xo' % (bundle.get_name(), bundle.get_activity_version())
+if HAS_SUGAR:
+	bundle = Bundle(get_source_path())
+	zipfile_name = '%s-%d.xo' % (bundle.get_name(), bundle.get_activity_version())
+else:
+	zipfile_name = 'bundle.xo'
 bundle_zip = zipfile.ZipFile(zipfile_name, "w", zipfile.ZIP_DEFLATED)
 
 for filename in manifest_generator():

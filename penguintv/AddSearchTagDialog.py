@@ -7,7 +7,6 @@ import gettext
 
 import utils
 import LoginDialog
-import feedparser
 
 _=gettext.gettext
 

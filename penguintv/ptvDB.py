@@ -4,11 +4,11 @@
 from pysqlite2 import dbapi2 as sqlite
 from math import floor,ceil
 import pysqlite2
-import feedparser
+#import feedparser  loaded when needed
 import time
 import string
 import sha
-import urllib, urllib2, urlparse
+import urllib, urllib2#, urlparse loaded as needed
 from types import *
 import threading
 import ThreadPool
@@ -18,11 +18,10 @@ import glob
 import locale
 import gettext
 import sets
-import pickle
 import traceback
 
 import socket
-import smtplib
+
 socket.setdefaulttimeout(30.0)
 
 locale.setlocale(locale.LC_ALL, '')
@@ -166,7 +165,7 @@ class ptvDB:
 	def _db_execute(self, c, command, args=()):
 		#if "MEDIA" in command.upper() and "SELECT" not in command.upper(): 
 		#traceback.print_stack()
-		print command, args
+		#print command, args
 		try:
 			return c.execute(command, args)
 		except Exception, e:
@@ -731,6 +730,7 @@ class ptvDB:
 		url,modified,etag=data
 		
 		try:
+			import feedparser
 			feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 			if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
 				data = feedparser.parse(url)
@@ -869,6 +869,7 @@ class ptvDB:
 			data = c.fetchone()
 			url,modified,etag=data
 			try:
+				import feedparser
 				feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 				if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
 					data = feedparser.parse(url)
@@ -1229,6 +1230,10 @@ class ptvDB:
 					#need to add media that's in enclosures but not in db after that process
 					
 					if len(added) > 0:
+						print "found new media in feed", feed_id
+						print "existing set:",db_enc
+						print "enclosures:",item['enclosures']
+						print "I think added:",added
 						for media in item['enclosures']: #add the rest
 							#self._db_execute(c, u'SELECT url FROM media WHERE url=?',(media['href'],))
 							#dburl = c.fetchone()
@@ -1547,6 +1552,7 @@ class ptvDB:
 		except: return None
 		
 	def get_feed_info(self, feed_id):
+		import urlparse
 		self._db_execute(self._c, """SELECT title, description, url, link, feed_pointer, lastpoll, pollfreq FROM feeds WHERE id=?""",(feed_id,))
 		try:
 			result = self._c.fetchone()
@@ -1582,6 +1588,7 @@ class ptvDB:
 			url=self._c.fetchone()[0]
 			
 			try:
+				import feedparser
 				feedparser.disableWellFormedCheck=1
 				data = feedparser.parse(url)
 			except:
@@ -2259,6 +2266,7 @@ class ptvDB:
 			print e
 		
 	def write_term_frequency_table(self):
+		import pickle
 		terms = self.searcher.get_popular_terms(max_terms=0,fields=['entry_title','entry_description'])
 		f = open(self.home+"/pop_search_terms.pickle","w")
 		pickle.dump(terms,f)
@@ -2272,6 +2280,7 @@ class ptvDB:
 		#self._db.commit()
 		
 	def get_recent_popular_terms(self):
+		import pickle
 		pop_terms = []
 		f = open(self.home+"/pop_search_terms.pickle")
 		old_terms = pickle.load(f)

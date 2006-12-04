@@ -3,17 +3,19 @@
 
 #import penguintv
 import gtk
-import urllib, urlparse
+#import urllib , urlparse loaded as needed
 import socket
 import gettext
-import HTMLParser
 import os.path
 import traceback
 import sys
 
+#loaded as needed
+#import feedparser
+#import HTMLParser 
+
 import utils
 import LoginDialog
-import feedparser
 
 _=gettext.gettext
 
@@ -118,6 +120,11 @@ class AddFeedDialog:
 	def _correct_url(self,url):
 		"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Also does http auth.  returns
 		the correct url and a title"""
+		
+		import feedparser
+		import HTMLParser
+		import urlparse
+		import urllib
 		
 		class my_url_opener(urllib.FancyURLopener):
 			"""Little class to pop up a login window"""

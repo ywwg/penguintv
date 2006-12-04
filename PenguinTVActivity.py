@@ -38,9 +38,23 @@ class PenguinTVActivity(Activity):
 	
 	def do_quit(self, event, app):
 		app.do_quit()
+		logging.info('deleting app now')
 		del app
 
 if __name__ == '__main__': # Here starts the dynamic part of the program
+
+	def do_quit(self, event, app):
+		app.do_quit()
+
+	window = gtk.Window()
+	gtk.gdk.threads_init()
+	app = penguintv.PenguinTVApp()
+	app.main_window.Show(window)
+	gobject.idle_add(app.post_show_init)
+	window.connect('delete-event', do_quit, app)
+	gtk.main()
+	
+def main(): #another way to run the program
 
 	def do_quit(self, event, app):
 		app.do_quit()
