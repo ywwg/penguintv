@@ -144,6 +144,7 @@ class PlanetView:
 				self._auth_info = (feed_id,feed_info['auth_userpass'], feed_info['auth_domain'])
 			else:
 				self._auth_info = (-1, "","")
+			self._update_server.clear_updates()
 		#always update title in case it changed... it's a cheap lookup
 		self._feed_title = self._db.get_feed_title(feed_id)
 		self._entrylist = [e[0] for e in db_entrylist]
@@ -190,6 +191,7 @@ class PlanetView:
 		self._entrylist = []
 		self._readinfo  = None
 		self._render("<html><body></body></html")
+		self._update_server.clear_updates()
 		
 	def _unset_state(self):
 		self.clear_entries()
@@ -360,7 +362,7 @@ class PlanetView:
 					xmlHttp.onreadystatechange=stateChanged 
 					try
 					{
-						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.generate_key()+"""",true)
+						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""",true)
 						xmlHttp.send(null)
 					} 
 					catch (error) 
@@ -379,10 +381,14 @@ class PlanetView:
 				    { 
 				    	if (xmlHttp.responseText.length > 0)
 				    	{
-					    	response_array = xmlHttp.responseText.split(" ")
-					    	entry_id = response_array[0]
-					    	split_point = xmlHttp.responseText.indexOf(" ")
-							document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
+					    	response_array = xmlHttp.responseText.split("\\n")
+							for (line in response_array)
+							{
+								line_split = response_array[line].split(" ")
+								entry_id = line_split[0]
+					    		split_point = response_array[line].indexOf(" ")
+								document.getElementById(entry_id).innerHTML=response_array[line].substring(split_point)
+							}
 							//keep refreshing
 							//refresh_entries(0) //don't queue timer
 						}
@@ -514,11 +520,13 @@ class PlanetView:
 				if self._quitting:
 					logging.info('quitting tcp server')
 					return
-				if len(self._updates)>0:
+				#if len(self._updates)>0:
 					#We must have posted an update.  So pop it (unlike in the request handler,
 					#changes actually have an effect here!)
-					self._updates.pop(0)
-					logging.info('tcp popped update (%i left)' % (len(self._updates)))
+					#self._updates.pop(0)
+					#self._updates = []
+					#print "popped all"
+					#logging.info('popped all')
 					
 		def finish(self):
 			self._quitting = True
@@ -531,11 +539,20 @@ class PlanetView:
 			return self._key
 			
 		def push_update(self, update):
+			remove_list = [u for u in self._updates if u.split(" ")[0] == update.split(" ")[0]]
+			for item in remove_list:
+				self._updates.remove(item)
 			self._updates.append(update)
 			logging.info('tcp update pushed (total %i)' % (len(self._updates)))
 			
 		def peek_update(self):
 			return self._updates[0]
+			
+		def peek_all(self):
+			return "\n".join(self._updates)
+
+		def clear_updates(self):
+			self._updates = []
 			
 		def update_count(self):
 			return len(self._updates)
@@ -543,6 +560,10 @@ class PlanetView:
 	class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):	
 		"""for some reason, any variable I change in this class changes RIGHT FUCKING BACK
 		as soon as it exits.  So we don't actually pop the value here"""
+
+		def __init__(self, request, client_address, server):
+			SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, request, client_address, server)
+			
 		def do_GET(self):
 			key = self.path[1:] #strip leading /
 			if key != self.server.get_key():
@@ -551,6 +572,5 @@ class PlanetView:
 			if self.server.update_count()==0:
 				self.wfile.write("")
 			else:
-				update = self.server.peek_update()
+				update = self.server.peek_all()
 				self.wfile.write(update)
-				
