@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 #this file is a catastrophe. I'm sorry.
 
 #try:
@@ -5,12 +7,21 @@
 #	BUILD_MOZ=True
 #except:
 #	print "pyrex not found, mozilla building disabled"
-BUILD_MOZ=False
 
+import sys,os
+try:
+	from sugar.activity import bundlebuilder
+	print "build activity bundle"
+	bundlebuilder.start()
+	sys.exit(0)
+except:
+	pass #not building for olpc
+
+BUILD_MOZ=False
 
 from distutils.core import setup
 from distutils.extension import Extension
-import sys,os
+
 from penguintv import subProcess as my_subProcess
 import subprocess #<-- ^-- oh god the buggy possibilities
 import locale, gettext
