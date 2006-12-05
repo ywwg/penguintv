@@ -13,9 +13,12 @@ try:
 	from sugar.activity import bundlebuilder
 	print "build activity bundle"
 	bundlebuilder.start()
+	BUILT_SUGAR = True
+except Exception,e:
+	BUILT_SUGAR = False #not building for olpc
+	
+if BUILT_SUGAR:
 	sys.exit(0)
-except:
-	pass #not building for olpc
 
 BUILD_MOZ=False
 
