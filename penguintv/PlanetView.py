@@ -384,7 +384,7 @@ class PlanetView:
 					    	split_point = xmlHttp.responseText.indexOf(" ")
 							document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
 							//keep refreshing
-							refresh_entries(0) //don't queue timer
+							//refresh_entries(0) //don't queue timer
 						}
 					} 
 				} 
