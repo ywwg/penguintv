@@ -26,9 +26,6 @@ penguintv/__init__.py
 penguintv/LoginDialog.py
 penguintv/Lucene.py
 penguintv/MainWindow.py
-penguintv/Makefile
-penguintv/Makefile.am
-penguintv/Makefile.in
 penguintv/MediaManager.py
 penguintv/OPML.py
 penguintv/penguintv.py
@@ -51,9 +48,6 @@ penguintv/ptvbittorrent/Encrypter.py
 penguintv/ptvbittorrent/fakeopen.py
 penguintv/ptvbittorrent/HTTPHandler.py
 penguintv/ptvbittorrent/__init__.py
-penguintv/ptvbittorrent/Makefile
-penguintv/ptvbittorrent/Makefile.am
-penguintv/ptvbittorrent/Makefile.in
 penguintv/ptvbittorrent/NatCheck.py
 penguintv/ptvbittorrent/parseargs.py
 penguintv/ptvbittorrent/PiecePicker.py
