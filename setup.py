@@ -11,7 +11,6 @@
 import sys,os
 try:
 	from sugar.activity import bundlebuilder
-	print "build activity bundle"
 	bundlebuilder.start()
 	BUILT_SUGAR = True
 except Exception,e:

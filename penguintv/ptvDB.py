@@ -1210,8 +1210,9 @@ class ptvDB:
 								 time.mktime(item['date_parsed']),item['guid'],item['link'],'0', status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
-					self._db_execute(c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
-									(status[1],D_NOT_DOWNLOADED,D_ERROR))
+					#self._db_execute(c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
+					#				(status[1],D_NOT_DOWNLOADED,D_ERROR))
+					self._db_execute(c, u'SELECT url FROM media WHERE entry_id=?', (status[1],))
 					db_enc = c.fetchall()
 					db_enc = [c_i[0] for c_i in db_enc]
 					f_enc = [f_i['url'] for f_i in item['enclosures']]
@@ -1224,9 +1225,9 @@ class ptvDB:
 					
 					if len(removed)>0:
 						qmarks = "?,"*(len(removed)-1)+"?"
-						self._db_execute(c, u'DELETE FROM media WHERE url IN ('+qmarks+')', tuple(removed))
+						self._db_execute(c, u'DELETE FROM media WHERE url IN ('+qmarks+') AND (download_status=? OR download_status=?)', tuple(removed)+(D_NOT_DOWNLOADED,D_ERROR))
 					
-					#need to  delete media that isn't in enclosures only andis not downloaded 
+					#need to  delete media that isn't in enclosures only and is not downloaded 
 					#need to add media that's in enclosures but not in db after that process
 					
 					if len(added) > 0:

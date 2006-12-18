@@ -169,9 +169,9 @@ class MainWindow:
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
 			
-			debug_exit_button = self._widgetTree.get_widget('debug_exit_toolbutton')
-			debug_exit_button.set_property('visible',True)
-			debug_exit_button.set_property('label',_("Exit (DEBUG)"))
+			#debug_exit_button = self._widgetTree.get_widget('debug_exit_toolbutton')
+			#debug_exit_button.set_property('visible',False)
+			#debug_exit_button.set_property('label',_("Exit (DEBUG)"))
 			
 			theme = gtk.icon_theme_get_default()
 			theme.append_search_path(os.path.join(self._glade_prefix, "icons"))
@@ -843,9 +843,9 @@ class MainWindow:
 		
 	def on_quit2_activate(self,event):
 		self._app.do_quit() #make the program quit, dumbass
-		#DEBUG for exit_toolbutton
-		if utils.RUNNING_SUGAR:
-			gtk.main_quit()
+		##DEBUG for exit_toolbutton
+		#if utils.RUNNING_SUGAR:
+		#	gtk.main_quit()
 		
 	def on_refresh_activate(self, event):
 		feed = self.feed_list_view.get_selected()
