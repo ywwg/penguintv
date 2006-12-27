@@ -62,6 +62,7 @@ except:
 VERSION="2.56"
 #DEBUG
 _USE_KDE_OVERRIDE=False
+HAS_LUCENE=False
 
 def format_size(size):
 	if size > 1000000000:
@@ -463,7 +464,7 @@ def get_disk_free(f="/"):
 	lines = p.stdout.readlines()
 	
 	try:
-		return int(lines[1].split()[3])
+		return int(lines[1].split()[3]) * 1024
 	except:
 		return 0
 		
@@ -483,7 +484,7 @@ def get_disk_total(f="/"):
 	lines = p.stdout.readlines()
 	
 	try:
-		return int(lines[1].split()[1])
+		return int(lines[1].split()[1]) * 1024
 	except:
 		return 0
 

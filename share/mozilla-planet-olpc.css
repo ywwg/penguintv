@@ -1,0 +1,89 @@
+body {
+        margin-left: 24px;
+        margin-right: 24px;
+       // background-color: #fffe92;
+       font-size: 12pt;
+}
+
+.heading { 
+	background-color: #f0f0ff; 
+	border-width:1px; 
+	border-style: solid; 
+	padding:10pt; 
+	margin:10pt;
+	font-size: 16pt; 
+}
+
+//#nav_bar {
+    // border-width: 2px;
+     //border-style: solid;
+//}
+
+.feed_title {
+        font-size: 16pt;
+        font-weight: bold;
+        text-align: center;
+        padding: 12pt;
+}
+
+.entry_new {
+      border-width: 3px;
+      border-style: solid;
+      border-color: #333;
+      background-color: #f5f7fa;
+      margin-top: 12pt;
+      padding: 6pt;
+}
+
+.entry_old {
+      border-width: 2px;
+      border-style: solid;
+      border-color: #777;
+      background-color: #e0e3e8;
+      margin-top: 12pt;
+      padding: 6pt;
+}
+
+.stitle {
+	font-size: 14pt; 
+	font-weight:bold; 
+//	font-family: Sans-Serif; 
+	padding-bottom:20pt;
+}
+
+.sdate {
+	font-size:8pt; 
+	color: #444;
+	font-style: italic;
+}
+
+.content {
+	padding-left:20pt;
+	margin-top:12pt;
+}
+
+.media {
+	background-color:#ddd; 
+	border-color:#000000; 
+	border-width:2px; 
+	border-style: solid; 
+	padding:8pt; 
+	margin:8pt; 
+}
+
+dd { 
+	padding-left: 20pt; 
+}  
+
+q { font-style: italic;}
+
+blockquote { 
+	display: block; 
+	color: #444444; 
+	background-color:#EEEEFF; 
+	border-color:#DDDDDD; 
+	border-width:2px; 
+	border-style: solid; 
+	padding:12pt; 
+	margin:12pt;
+}

@@ -414,12 +414,22 @@ class PenguinTVApp:
 			return #no need to bother
 		total_size=0
 		disk_usage = self.mediamanager.get_disk_usage()
+		disk_free = utils.get_disk_free(self.mediamanager.media_dir)
+		disk_total = utils.get_disk_total(self.mediamanager.media_dir)
 		download_list.sort(lambda x,y: int(y[1]-x[1]))
 
 		at_least_one=False
 		for d in download_list:                #skip anything that puts us over the limit
 			if self._auto_download_limiter and disk_usage + total_size+int(d[1]) > self._auto_download_limit*1024: 
 				continue
+			
+			if utils.RUNNING_SUGAR:
+				if disk_free - (total_size + int(d[1])) < disk_total * .3:
+					continue
+			else:
+				#for regular machines, 5 percent
+				if disk_free - (total_size + int(d[1])) < disk_total * .05:
+					continue
 			total_size=total_size+int(d[1])
 			self.mediamanager.download(d[0])
 			self.feed_list_view.update_feed_list(d[3],['icon'])

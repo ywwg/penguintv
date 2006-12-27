@@ -86,7 +86,10 @@ class PlanetView:
 			print "not supported (need AJAX, believe it or not)"
 			return
 		elif self._renderer == MOZILLA:
-			f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
+			if utils.RUNNING_SUGAR:
+				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet-olpc.css"))
+			else:
+				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
 			gtkmozembed.set_profile_path(self._db.home, 'gecko')

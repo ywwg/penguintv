@@ -39,6 +39,11 @@ class PreferencesDialog:
 				
 	def show(self):
 		self._window.show_all()
+		if utils.RUNNING_SUGAR:
+			self.auto_download_limiter_widget.hide()
+			self.auto_download_limit_widget.hide()
+			self.limiter_hbox_widget.hide()
+		        
 		
 	def hide(self):
 		self._window.hide()	

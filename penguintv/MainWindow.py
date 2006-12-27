@@ -138,6 +138,7 @@ class MainWindow:
 			vbox.pack_start(self._status_view, False, False)
 			dock_widget.add(vbox)
 			dock_widget.show_all()
+			self._widgetTree.get_widget('debug_exit_toolbutton').hide()
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -169,8 +170,8 @@ class MainWindow:
 			pref_button.set_property('visible',True)
 			pref_button.set_property('label',_("Preferences"))
 			
-			#debug_exit_button = self._widgetTree.get_widget('debug_exit_toolbutton')
-			#debug_exit_button.set_property('visible',False)
+			debug_exit_button = self._widgetTree.get_widget('debug_exit_toolbutton')
+			debug_exit_button.set_property('visible',False)
 			#debug_exit_button.set_property('label',_("Exit (DEBUG)"))
 			
 			theme = gtk.icon_theme_get_default()

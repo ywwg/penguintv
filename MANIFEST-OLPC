@@ -75,8 +75,7 @@ penguintv/utils.py
 share/defaultsubs.opml
 share/defaultsubs.txt
 share/gtkhtml.css
-share/mozilla.css
-share/mozilla-planet.css
+share/mozilla-planet-olpc.css
 share/penguintv.glade
 share/penguintvicon.png
 share/icons/stock-go-down.svg
