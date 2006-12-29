@@ -315,9 +315,8 @@ class GStreamerPlayer(gobject.GObject):
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
 		self._play_pause_button.set_image(image)
-		#how to safely release XV when paused?  Right now we monopolize the port
-		#this doesn't work
-		#self._v_sink.set_state(gst.STATE_READY)
+		#how to safely release XV when paused?  Right now if we release while
+		#paused we crash.  can only release when stopped
 		
 	def stop(self):
 		#this should release the port, but I hate having a stop button on a computer
@@ -331,7 +330,13 @@ class GStreamerPlayer(gobject.GObject):
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
 		self._play_pause_button.set_image(image)
-		
+		if 'gstxvimagesink' in str(type(self._v_sink)).lower():
+			#release the xv port
+			self._pipeline.unlink(self._v_sink)
+			self._v_sink.set_state(gst.STATE_NULL)
+			self._v_sink = self._get_video_sink(True)
+			self._pipeline.set_property('video-sink',self._v_sink)
+			
 	def ff(self):
 		new_pos = self._media_position+15000000000L #15 seconds I think
 		if new_pos > self._media_duration:
@@ -510,7 +515,7 @@ class GStreamerPlayer(gobject.GObject):
 		#do this right at some point: if we are using a substandard sink
 		#and we're not being specifically told to use it, try the better one
 		if 'gstximagesink' in str(type(self._v_sink)).lower() and not compat:
-			print "was usingcompat sink.  Try getting the better one"
+			print "was using compat sink.  Try getting the better one"
 			self._v_sink = self._get_video_sink()
 			self._pipeline.set_property('video-sink',self._v_sink)
 		if compat:
