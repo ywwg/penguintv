@@ -17,12 +17,27 @@ S_DEFAULT = 0
 S_SEARCH  = 1
 #S_ACTIVE  = 2
 
-class EntryList:
-	def __init__(self, widget_tree, app, main_window, entry_view, db):
+class EntryList(gobject.GObject):
+	
+	__gsignals__ = {
+        'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
+       	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_PYOBJECT])),
+		'no-entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           []),
+		'entrylist-resized': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT]))
+    }	
+	
+	def __init__(self, widget_tree, feed_list_view, main_window, db):
+		gobject.GObject.__init__(self)
 		self._widget = widget_tree.get_widget("entrylistview")
-		self._app = app
 		self._main_window = main_window
-		self._entry_view = entry_view
 		self._entrylist = gtk.ListStore(str, str, int, int, str, int, int) #title, markeduptitle, entry_id, index, icon, flag, feed
 		self._db = db
 		self._feed_id=None
@@ -31,7 +46,6 @@ class EntryList:
 		self._search_results = []
 		self._state = S_DEFAULT
 		self.presently_selecting = False
-		
 		
 		#build list view
 		self._widget.set_model(self._entrylist)
@@ -60,6 +74,15 @@ class EntryList:
 		#signals
 		self._widget.get_selection().connect("changed", self.item_selection_changed)
 		self._widget.connect("row-activated", self.on_row_activated)
+		
+		feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+		feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		
+	def __feedlist_feed_selected_cb(self, o, feed_id):
+		self.populate_entries(feed_id)
+		
+	def __feedlist_none_selected_cb(self, o):
+		self.populate_entries(None)
 		
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:
@@ -93,24 +116,27 @@ class EntryList:
 					print e
 					print "rows: ",rows," item:",item
 		self._entrylist.clear()
-		#self._app.display_custom_entry("")
-		self._app.display_entry(None)
+		self.emit('no-entry-selected')
 		
 		def populate_gen():
 			i=-1
 			for entry_id,title,date,read,placeholder in db_entrylist:
+				#gtk.gdk.threads_enter()
 				i=i+1	
 				flag = self._db.get_entry_flag(entry_id)
 				icon = self._get_icon(flag)
 				markeduptitle = self._get_markedup_title(title, flag)
 				self._entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id])
 				if i % 100 == 99:
+					#gtk.gdk.threads_leave()
 					yield True
 				if i == 25 and not dont_autopane: #ie, DO auto_pane please
 					#this way we don't push the list way out because 
 					#of something we can't even see
 					gobject.idle_add(self.auto_pane)
+					#gtk.gdk.threads_leave()
 					yield True
+			#gtk.gdk.threads_enter()
 			if i<25 and not dont_autopane: #ie, DO auto_pane please
 				gobject.idle_add(self.auto_pane)
 			self._vadjustment.set_value(0)
@@ -122,10 +148,7 @@ class EntryList:
 				else:	
 					selection.unselect_all()
 			self._widget.columns_autosize()
-			
-			#if not dont_autopane:
-			#	self._app.display_entry(None)
-			
+			#gtk.gdk.threads_leave()
 			yield False
 		if len(db_entrylist) > 300: #only use an idler when the list is getting long
 			gobject.idle_add(populate_gen().next)
@@ -137,14 +160,12 @@ class EntryList:
 		"""Automatically adjusts the pane width to match the column width"""
 		#If the second column exists, this cause the first column to shrink,
 		#and then we can set the pane to the same size
-		if self._main_window.layout == "widescreen" and self._main_window.app_window is not None:			
-			column = self._widget.get_column(0)
-			new_width = column.get_width()+10
-			listnview_width = self._main_window.app_window.get_size()[0] - self._main_window.feed_pane.get_position()
-			if listnview_width - new_width < 400: #ie, entry view will be tiny
-				self._main_window.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
-			elif new_width > 20: #MAGIC NUMBER
-				self._main_window.entry_pane.set_position(new_width)
+		
+		column = self._widget.get_column(0)
+		new_width = column.get_width()+10
+		
+		self.emit('entrylist-resized', new_width)
+		
 		return False
 		
 	def _get_icon(self, flag):
@@ -211,7 +232,7 @@ class EntryList:
 		self._search_results = entries
 		self._entrylist.clear()
 		if len(entries) == 0:
-			self._app.display_entry(None)
+			self.emit('no-entry-selected')
 			return
 		
 		i=-1
@@ -293,7 +314,7 @@ class EntryList:
 		
 		count = j
 		if count > 1:
-			self._app.display_entry(None)
+			self.emit('no-entry-selected')
 		if count > 0:
 			self._widget.scroll_to_cell(first)
 		return count
@@ -311,10 +332,9 @@ class EntryList:
 		self._last_entry = selected['entry_id']
 		#print "selected item: "+str(selected) #CONVENIENT
 		#if self._showing_search:
-		if self._state == S_SEARCH:
-			self._app.select_feed(selected['feed_id'])
+		
 		if selection.count_selected_rows()==1:
-			self._app.display_entry(selected['entry_id'], query=self._search_query)
+			self.emit('entry-selected', selected['entry_id'], selected['feed_id'], )
 		self.presently_selecting = False
 			
 	def get_selected(self, selection=None):
@@ -353,7 +373,7 @@ class EntryList:
 		index = path[0]
 		model = treeview.get_model()
 		item = self._db.get_entry(model[index][ENTRY_ID])
-		self._app.activate_link(item['link'])
+		self.emit('link-activated', item['link'])
 		
 	def do_context_menu(self, event):
 		"""pops up a context menu for the item where the mouse is positioned"""

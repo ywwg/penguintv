@@ -8,11 +8,10 @@ import gobject
 import utils
 
 import os, os.path
-try:
+if utils.HAS_LUCENE:
 	import PyLucene
 	threadclass = PyLucene.PythonThread
-except:
-	import threading
+else:
 	threadclass = threading.Thread
 
 class SynchronizeDialog:

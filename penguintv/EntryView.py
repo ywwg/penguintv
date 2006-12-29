@@ -29,8 +29,20 @@ DEMOCRACY_MOZ=2
 S_DEFAULT = 0
 S_SEARCH  = 1
 
-class EntryView:
-	def __init__(self, widget_tree, app, main_window, renderer=GTKHTML):
+class EntryView(gobject.GObject):
+
+	__gsignals__ = {
+		'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
+        'link-activated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_PYOBJECT]))
+    }	
+
+	def __init__(self, widget_tree, feed_list_view, entry_list_view, 
+				 app, main_window, renderer=GTKHTML):
+		gobject.GObject.__init__(self)
 		self._app = app
 		self._db = self._app.db
 		self._mm = self._app.mediamanager
@@ -150,24 +162,32 @@ class EntryView:
 			
 		html_dock.show_all()
 		#self.display_custom_entry("<html></html>")
-			
+		
+		#signals
+		feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		entry_list_view.connect('no-entry-selected', self.__entrylist_none_selected_cb)
+		
+	def __feedlist_none_selected_cb(self, o):
+		self.display_item()
+		
+	def __entrylist_none_selected_cb(self, o):
+		self.display_item()
+	
 	def on_url(self, view, url):
 		if url == None:
 			url = ""
 		self._main_window.display_status_message(url)
-		return
 		
 	def _moz_link_message(self, data):
 		self._main_window.display_status_message(self._moz.get_link_message())
 
 	def _link_clicked(self, document, link):
 		link = link.strip()
-		self._app.activate_link(link)
-		return
+		self.emit('link-activated', link)
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
-		self._app.activate_link(link)
+		self.emit('link-activated', link)
 		return True #don't load url please
 	
 	def _moz_realize(self, widget, realized):
@@ -175,7 +195,7 @@ class EntryView:
 		 
 	def _dmoz_link_clicked(self, link):
 		link = link.strip()
-		self._app.activate_link(link)
+		self.emit('link-activated', link)
 		return False #don't load url please (different from regular moz!)
 		
 	def _gconf_reset_moz_font(self, client, *args, **kwargs):
@@ -229,7 +249,7 @@ class EntryView:
 		if entry_id != self._current_entry['entry_id'] or self._currently_blank:
 			return	
 		#assemble the updated info and display
-		self._app.display_entry(self._current_entry['entry_id'])
+		self.emit('entry-selected', self._current_entry['entry_id'], -1)
 		
 	def display_custom_entry(self, message):
 		if self._renderer==GTKHTML:

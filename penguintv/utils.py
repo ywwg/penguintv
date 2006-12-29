@@ -62,7 +62,6 @@ except:
 VERSION="2.56"
 #DEBUG
 _USE_KDE_OVERRIDE=False
-HAS_LUCENE=False
 
 def format_size(size):
 	if size > 1000000000:

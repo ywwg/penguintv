@@ -745,8 +745,6 @@ class ptvDB:
 		"""a wrapper function that returns the index along with the result
 		so we can sort.  Each poller needs its own db connection for locking reasons"""
 		
-		db = self._db 
-		
 		poll_arguments = 0
 		result = 0
 		pollfail = False
@@ -765,6 +763,9 @@ class ptvDB:
 			if recurse < 2:
 				time.sleep(5)
 				print "trying again..."
+				self._db.close()
+				self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10)
+				self._c = self._db.cursor()
 				return self._process_feed(feed_id, args, total, data, recurse+1) #and reconnect
 			print "can't get lock, giving up"
 			return (feed_id,{'pollfail':True}, total)

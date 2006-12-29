@@ -150,6 +150,7 @@ class PenguinTVApp:
 		
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
+		#gtk.gdk.threads_enter()
 		gst_player = self.main_window.get_gst_player()
 		self._player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -195,6 +196,8 @@ class PenguinTVApp:
 		self._entry_list_view = self.main_window.entry_list_view
 		self._entry_view = self.main_window.entry_view
 		
+		self._connect_signals()
+		
 		self.main_window.search_container.set_sensitive(False)
 		if utils.HAS_LUCENE:
 			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
@@ -233,7 +236,22 @@ class PenguinTVApp:
 			f = open(os.path.join(subs_path,subs_name), "r")
 			self.main_window.display_status_message(_("Polling feeds for the first time..."))
 			self.import_subscriptions(f, utils.HAS_PYXML)
+		#gtk.gdk.threads_leave()
 		return False #for idler	
+		
+	def _connect_signals(self):
+		self._entry_list_view.connect('entry-selected', self.__entry_selected_cb)
+		self.feed_list_view.connect('state-change', self.__feedlist_state_change_cb)
+		self._entry_view.connect('entry-selected', self.__entry_selected_cb)
+		
+	def __entry_selected_cb(self, o, entry_id, feed_id):
+		if self._state == MANUAL_SEARCH or self._state == TAG_SEARCH and feed_id != -1:
+			self.select_feed(feed_id)
+		#we're not passing the query for highlighting purposes here
+		self.display_entry(entry_id)
+		
+	def __feedlist_state_change_cb(self, o, new_state):
+		self.set_state(new_state)
 		
 	def _load_settings(self):
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 60)
@@ -338,13 +356,16 @@ class PenguinTVApp:
 		
 	def _resumer_generator(self, list):
 		for medium in list:
+			#gtk.gdk.threads_enter()
 			#if self.pausing_all_downloads: #bail
 			#	yield False
 			#print "resuming "+str(medium['file'])
 			self.mediamanager.download(medium['media_id'], False, True) #resume please
 			self.db.set_entry_read(medium['entry_id'],False)
 			self.feed_list_view.update_feed_list(medium['feed_id'],['icon'])
+			#gtk.gdk.threads_leave()
 			yield True
+		#gtk.gdk.threads_leave()
 		yield False
 		
 	def do_quit(self):
@@ -384,7 +405,7 @@ class PenguinTVApp:
 		#way of saying "I've got a new frequency, stop the old timer and start the new one."  so it checks to
 		#see that the frequency it 'was setup' with is the same as the current frequency.  If not, exit with
 		#False to stop the timer.
-
+		
 		if was_setup is not None:
 			if self.feed_refresh_method==REFRESH_AUTO:
 				if was_setup==0: #initial poll
@@ -393,6 +414,9 @@ class PenguinTVApp:
 			else:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
+
+		#gtk.gdk.threads_enter()
+
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
 		task_id = self._db_updater.queue_task(self._updater_thread_db.poll_multiple, (arguments,feeds))
@@ -403,6 +427,8 @@ class PenguinTVApp:
 		self._polling_taskid = self._gui_updater.queue_task(self.update_disk_usage, None, task_id, False) #because this is also waiting
 		if self._auto_download == True:
 			self._polling_taskid = self._gui_updater.queue_task(self._auto_download_unviewed, None, task_id)
+			
+		#gtk.gdk.threads_leave()
 		if was_setup!=0:
 			return True
 		return False
@@ -492,9 +518,9 @@ class PenguinTVApp:
 		self.main_window.display_status_message(_("Loading Feeds..."))
 		self.feed_list_view.populate_feeds(callback, subset)
 					
-	def display_feed(self, feed_id, selected_entry=-1):
-		"""used by other classes so they don't all need to know about EntryList"""
-		self._entry_list_view.populate_entries(feed_id,selected_entry)
+	#def display_feed(self, feed_id, selected_entry=-1):
+	#	"""used by other classes so they don't all need to know about EntryList"""
+	#	self._entry_list_view.populate_entries(feed_id,selected_entry)
 		
 	def display_entry(self, entry_id, set_read=1, query=""):
 		if entry_id is not None:
@@ -667,11 +693,14 @@ class PenguinTVApp:
 
 	def _downloader_generator(self, download_list):
 		for d in download_list:
+			#gtk.gdk.threads_enter()
 			self.mediamanager.download(d[0])
 			self.db.set_media_viewed(d[0],False)
 			self.feed_list_view.update_feed_list(d[3],['icon'])
 			self._entry_list_view.update_entry_list(d[2])
+			#gtk.gdk.threads_leave()
 			yield True
+		#gtk.gdk.threads_leave()			
 		yield False
 	
 	def export_opml(self):
@@ -738,6 +767,7 @@ class PenguinTVApp:
 			
 	def import_subscriptions(self, f, opml=True):
 		def import_gen(f):
+			#gtk.gdk.threads_enter()
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
 			label = gtk.Label(_("Loading the feeds from the OPML file"))
 			dialog.vbox.pack_start(label, True, True, 0)
@@ -752,7 +782,9 @@ class PenguinTVApp:
 			oldfeeds = []
 			feed_count=-1.0
 			i=1.0
+			#gtk.gdk.threads_leave()
 			for feed in gen:
+				#gtk.gdk.threads_enter()
 				#status, value
 				if feed_count == -1:
 					#first yield is the total count
@@ -763,6 +795,7 @@ class PenguinTVApp:
 				if self._exiting:
 					dialog.hide()
 					del dialog
+					#gtk.gdk.threads_leave()
 					yield False
 				#self.feed_list_view.add_feed(feed)
 				if feed[0]==1:
@@ -771,7 +804,9 @@ class PenguinTVApp:
 					oldfeeds.append(feed[1])
 				bar.set_fraction(i/feed_count)
 				i+=1.0
+				#gtk.gdk.threads_leave()
 				yield True
+			#gtk.gdk.threads_enter()
 			if len(newfeeds)>10:
 				#it's faster to just start over if we have a lot of feeds to add
 				self.main_window.search_container.set_sensitive(False)
@@ -795,24 +830,31 @@ class PenguinTVApp:
 				self.feed_list_view.set_selected(newfeeds[0])
 			elif len(oldfeeds)==1:
 				self.feed_list_view.set_selected(oldfeeds[0])
+			#gtk.gdk.threads_leave()
 			yield False
 		#schedule the import pseudo-threadidly
 		gobject.idle_add(import_gen(f).next)
 					
 	def __first_poll_marking_list(self, list, saved_auto=False):
 		def marking_gen(list):
+			#gtk.gdk.threads_enter()
 			self.main_window.display_status_message(_("Finishing OPML import"))
 			selected = self.feed_list_view.get_selected()
+			#gtk.gdk.threads_leave()
 			for feed in list:
+				#gtk.gdk.threads_enter()
 				self._first_poll_marking(feed)
 				self.feed_list_view.update_feed_list(feed,['readinfo','icon','title'])
 				if feed == selected:
 					self._entry_list_view.update_entry_list()
+				#gtk.gdk.threads_leave()
 				yield True
+			#gtk.gdk.threads_enter()
 			self.main_window.display_status_message("")
 			if saved_auto:
 				self._auto_download_unviewed()
 				self._reset_auto_download()
+			#gtk.gdk.threads_leave()
 			yield False
 		
 		gobject.idle_add(marking_gen(list).next)
@@ -1104,6 +1146,9 @@ class PenguinTVApp:
 			self.feed_list_view = self.main_window.feed_list_view
 			self._entry_list_view = self.main_window.entry_list_view
 			self._entry_view = self.main_window.entry_view
+			
+			self._connect_signals()
+			
 			self.main_window.changing_layout = False
 			self._populate_feeds(self._done_populating)
 			while gtk.events_pending(): #wait for pop to be done, _then_ select
@@ -1269,6 +1314,7 @@ class PenguinTVApp:
 		entrylist = self.db.get_entrylist(feed_id)
 		if entrylist:
 			for entry in entrylist:
+				#gtk.gdk.threads_enter()
 				medialist = self.db.get_entry_media(entry[0])
 				if medialist:
 					for medium in medialist:
@@ -1276,11 +1322,17 @@ class PenguinTVApp:
 							#self._db_updater.queue_task(self._updater_thread_db.set_media_viewed, medium['media_id'])
 							self.delete_media(medium['media_id'])
 				self._entry_view.update_if_selected(entry[0])
+				#gtk.gdk.threads_leave()
 				yield True
+			#gtk.gdk.threads_enter()
 			self.update_entry_list()
 			self.mediamanager.generate_playlist()
 			self.update_disk_usage()
+		else:
+			pass
+			#gtk.gdk.threads_enter()
 		self.feed_list_view.update_feed_list(feed_id, ['readinfo','icon'])
+		#gtk.gdk.threads_leave()
 		yield False
 		
 	def do_cancel_download(self, item):
@@ -1551,12 +1603,16 @@ class PenguinTVApp:
 	
 			""" Until told to quit, retrieve the next task and execute
 				it, calling the callback if any.  """
+				
 			if self.db == None:
 				self.db = ptvDB.ptvDB(self.polling_callback)
 						
 			while self.__isDying == False:
 				while self.updater.updater_gen().next():
-					pass
+					if self.updater.exception is not None:
+						print "detected an error, restarting threaded db"
+						self.db._db.close()
+						self.db = ptvDB.ptvDB(self.polling_callback)
 				time.sleep(self.threadSleepTime)
 						
 		def get_db(self):

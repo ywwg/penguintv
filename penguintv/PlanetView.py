@@ -4,11 +4,6 @@
 #progress of our downloads, and prevent those UI updates from making it to the screen
 #OH NOES!
 
-import logging
-
-from EntryView import *
-import ptvDB
-import utils
 
 import socket
 import SocketServer
@@ -18,10 +13,16 @@ import threading
 import random
 import logging
 
+import gobject
+
 try:
 	import gtkmozembed
 except:
 	pass
+
+from EntryView import *
+import ptvDB
+import utils
 	
 ENTRIES_PER_PAGE = 10
 
@@ -29,12 +30,29 @@ ENTRIES_PER_PAGE = 10
 S_DEFAULT=0
 S_SEARCH=1
 
-class PlanetView:
+class PlanetView(gobject.GObject):
 	"""PlanetView implementes the api for entrylist and entryview, so that the main program doesn't
 	need to know that the two objects are actually the same"""
 	
 	PORT = 8000
-	def __init__(self, widget_tree, app, main_window, db, renderer=GTKHTML):
+	
+	__gsignals__ = {
+       	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_PYOBJECT])),
+		#
+		#unused by planetview, but part of entrylist API
+		#
+        'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
+		'no-entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           [])
+    }	                       
+	
+	def __init__(self, widget_tree, feed_list_view, app, main_window, db, renderer=GTKHTML):
+		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
 		
@@ -122,6 +140,16 @@ class PlanetView:
 		t = threading.Thread(None, self._update_server.serve_forever)
 		t.setDaemon(True)
 		t.start()
+		
+		#signals
+		feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+		feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		
+	def __feedlist_feed_selected_cb(self, o, feed_id):
+		self.populate_entries(feed_id)
+		
+	def __feedlist_none_selected_cb(self, o):
+		self.populate_entries(None)
 		
 	#entrylist functions
 	def populate_if_selected(self, feed_id):
@@ -475,7 +503,7 @@ class PlanetView:
 			self._first_entry += ENTRIES_PER_PAGE
 			self._render_entries()
 		else:
-			self._app.activate_link(link)
+			self.emit('link-activated', link)
 		return True #don't load url please
 		
 	def _moz_realize(self, widget, realized):

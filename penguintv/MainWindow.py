@@ -335,9 +335,11 @@ class MainWindow:
 				sys.exit(2)
 			#try:
 			if self.layout != "planet":
-				self.entry_view = EntryView.EntryView(components, self._app, self, x)
+				self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
+									 				   self.entry_list_view, self._app, self, x)
 			else:
-				self.entry_view = PlanetView.PlanetView(components, self._app, self, self._db, x)
+				self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
+								                        self._app, self, self._db, x)
 			#except Exception, e:
 			#	print e
 			#	if renderer == EntryView.DEMOCRACY_MOZ:
@@ -350,15 +352,27 @@ class MainWindow:
 			#	else:
 			#		print "Error loading renderer"
 			#		self._app.do_quit()
-		load_renderer(renderer)
+		
 		if self.layout != "planet":
-			self.entry_list_view = EntryList.EntryList(components,self._app, self, self.entry_view, self._db)			
+			self.entry_list_view = EntryList.EntryList(components, self.feed_list_view, self, self._db)
+			load_renderer(renderer)
 		else:
+			load_renderer(renderer)
 			self.entry_list_view = self.entry_view
 			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				components.signal_connect(key, getattr(self, key))
+				
+		#some more signals
+		self.feed_list_view.connect('link-activated', self.__link_activated_cb)
+
+		if self.layout != "planet":
+			self.entry_list_view.connect('entrylist-resized', self.__entrylistview_list_resized_cb)
+			#if we connected this in planetview, we'd activate links twice
+			self.entry_list_view.connect('link-activated', self.__link_activated_cb)
+		
+		self.entry_view.connect('link-activated', self.__link_activated_cb)
 				
 		#major WIDGETS
 		self.feed_pane = components.get_widget('feed_pane')
@@ -481,6 +495,18 @@ class MainWindow:
 			else:
 				self._widgetTree.get_widget('toolbar1').hide()
 				self._status_view.hide()
+
+
+	def __link_activated_cb(self, o, link):
+		self._app.activate_link(link)
+				
+	def __entrylistview_list_resized_cb(self, entrylistview, new_width):
+		if self.layout == "widescreen" and self.app_window is not None:			
+			listnview_width = self.app_window.get_size()[0] - self.feed_pane.get_position()
+			if listnview_width - new_width < 400: #ie, entry view will be tiny
+				self.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
+			elif new_width > 20: #MAGIC NUMBER
+				self.entry_pane.set_position(new_width)
 
 	def on_about_activate(self,event):
 		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
@@ -971,6 +997,8 @@ class MainWindow:
 		   update, we don't overwrite what's there."""	
 		if self._status_view is None:
 			return
+		
+		#gtk.gdk.threads_enter()
 			
 		current_text = self._status_view.get_status().get_text()
 	
@@ -992,7 +1020,8 @@ class MainWindow:
 			#	self._status_view.set_status(m)				
 			#elif update_category == U_DOWNLOAD and self._status_owner == U_DOWNLOAD:
 			#	self._status_view.set_status(m)
-			
+		
+		#gtk.gdk.threads_leave()	
 		return False #in case of timeouts
 		
 	def update_progress_bar(self, p, update_category=U_STANDARD):

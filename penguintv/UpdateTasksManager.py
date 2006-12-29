@@ -26,6 +26,7 @@ class UpdateTasksManager:
 		self.updater_running = False
 		self.my_tasks = []
 		self.name = name
+		self.exception = None
 		
 	def get_task_id(self):
 		cur_time = int(time.time())
@@ -94,6 +95,7 @@ class UpdateTasksManager:
 		"""Generator that empties that queue and yields on each iteration"""
 		skipped=0
 		while self.task_count() > 0: #just run forever
+			self.exception = False
 			var = self.peek_task(skipped)
 			if var is None: #ran out of tasks
 				skipped=0
@@ -110,7 +112,8 @@ class UpdateTasksManager:
 							func(args)
 						else:
 							func()
-					except:
+					except Exception, e:
+						self.exception = e
 						exc_type, exc_value, exc_traceback = sys.exc_info()
 						error_msg = ""
 						for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
@@ -131,7 +134,8 @@ class UpdateTasksManager:
 						func(args)
 					else:
 						func()
-				except:
+				except Exception, e:
+					self.exception = e
 					exc_type, exc_value, exc_traceback = sys.exc_info()
 					error_msg = ""
 					for s in traceback.format_exception(exc_type, exc_value, exc_traceback):

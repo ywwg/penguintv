@@ -41,13 +41,25 @@ MAX_WIDTH  = 48
 MAX_HEIGHT = 48
 MIN_SIZE   = 24
 
-#if utils.RUNNING_SUGAR:
-#	MAX_WIDTH  = 32
-#	MAX_HEIGHT = 32
-#	MIN_SIZE   = 1
+class FeedList(gobject.GObject):
 
-class FeedList:
+	__gsignals__ = {
+        'link-activated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_PYOBJECT])),
+		'feed-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT])),
+		'no-feed-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           []),
+		'state-change': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT]))
+	}
+                           
 	def __init__(self, widget_tree, app, db, fancy=False):
+		gobject.GObject.__init__(self)
 		self._app = app
 		self._db = db
 		self._scrolled_window = widget_tree.get_widget('feed_scrolled_window')
@@ -124,7 +136,7 @@ class FeedList:
 		#signals are MANUAL ONLY
 		self._widget.get_selection().connect("changed", self._item_selection_changed)
 		self._widget.connect("row-activated", self.on_row_activated)
-		#applies to mousewheel ONLY
+		#applies to mousewheel ONLY, stop trying this (leaving for future note)
 		#self._scrolled_window.connect("scroll-event", self.on_feedlistview_scroll_event)
 		
 		#init style
@@ -168,7 +180,7 @@ class FeedList:
 		
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
-			
+		#gtk.gdk.threads_enter()
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self._db.get_feed_cache()
@@ -179,7 +191,10 @@ class FeedList:
 		blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		blank_pixbuf.fill(0xffffff00)
 		
+		#gtk.gdk.threads_leave()
+		
 		for feed_id,title in db_feedlist:
+			#gtk.gdk.threads_enter()
 			if self._cancel_load[0]:
 				break
 			i=i+1
@@ -265,6 +280,7 @@ class FeedList:
 			self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
 #			except:
 #				pass
+			#gtk.gdk.threads_leave()
 			yield True
 		
 		if not self._cancel_load[0]:
@@ -272,7 +288,9 @@ class FeedList:
 			if self._fancy:
 				gobject.idle_add(self._load_visible_details().next)
 			if selected:
+				#gtk.gdk.threads_enter()
 				self.set_selected(selected)
+				#gtk.gdk.threads_leave()
 			if callback is not None:
 				try: callback()
 				except: pass
@@ -460,8 +478,8 @@ class FeedList:
 		feed[READINFO] = self._get_markedup_title(readinfo_string,feed[FLAG])
 				
 		if self._filter_unread:
-			if unviewed==0 and self.filter_test_feed(feed_id):
-				self._filter_one(feed)
+			#if unviewed==0 and self.filter_test_feed(feed_id):
+			self._filter_one(feed)
 		
 	def show_search_results(self, results=[]):
 		
@@ -514,7 +532,8 @@ class FeedList:
 		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
 			highlight_count = self._app.highlight_entry_results(showing_feed)
 			if highlight_count == 0:
-				self._app.display_feed(showing_feed)
+				#self._app.display_feed(showing_feed)
+				self.emit('feed-selected', showing_feed)
 		
 	def _unset_state(self, data=True):
 		if self._state == S_SEARCH:
@@ -534,13 +553,15 @@ class FeedList:
 				i_list.append(id_list.index(f[FEEDID]))
 			self._feedlist.reorder(i_list)
 			if showing_feed is not None:
-				self._app.display_feed(showing_feed)
+				#self._app.display_feed(showing_feed)
+				self.emit('feed-selected', showing_feed)
 				if not self.filter_test_feed(showing_feed):
 					self._app.main_window.set_active_filter(ALL)
 				self.set_selected(showing_feed)
 			elif gonna_filter == False:
 				self._app.main_window.set_active_filter(ALL)
-				self._app.display_entry(None)
+				#self._app.display_entry(None)
+				self.emit('no-feed-selected')
 
 	
 	def set_state(self, newstate, data=None):
@@ -562,11 +583,13 @@ class FeedList:
 			print "not filtering, we have search results"
 			return #not my job
 	
+		#gtk.gdk.threads_enter()
 		selected = self.get_selected()
 		index = self.find_index_of_item(selected)
 			
 		i=-1
 		for feed in self._feedlist:
+
 			i=i+1
 			flag = feed[FLAG]
 			passed_filter = False
@@ -597,13 +620,16 @@ class FeedList:
 						self._selecting_misfiltered=True
 				if not passed_filter:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
-					self._app.display_feed(-1)
+					#self._app.display_feed(-1)
+					self.emit('no-feed-selected')
 			else: #if it's not the selected feed
 				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
 					passed_filter = False #see ya
 			if feed[VISIBLE] != passed_filter:
 				feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
+		#gtk.gdk.threads_leave()
+		return False
 
 	def _filter_one(self,feed, keep_misfiltered=True):
 		if self.filter_setting == SEARCH:
@@ -643,7 +669,8 @@ class FeedList:
 					self._selecting_misfiltered=True
 			if not passed_filter:
 				self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
-				self._app.display_feed(-1)
+				#self._app.display_feed(-1)
+				self.emit('no-feed-selected')
 		else: #if it's not the selected feed
 			if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
 				passed_filter = False #see ya
@@ -654,6 +681,7 @@ class FeedList:
 	def _load_visible_details(self):
 		self._loading_details = True
 		for row in self._feedlist:
+			#gtk.gdk.threads_enter()
 			if self._cancel_load[1]:
 				break
 			if row[VISIBLE] and not row[DETAILS_LOADED]:
@@ -670,6 +698,7 @@ class FeedList:
 																  row[TOTAL],
 																  row[FLAG], 
 																  row[FEEDID] == selected)
+				#gtk.gdk.threads_leave()
 				yield True
 		if self._cancel_load[1]:
 			self._cancel_load[1] = False
@@ -708,7 +737,8 @@ class FeedList:
 			dialog.run()
 			dialog.hide()
 			del dialog
-		self._app.activate_link(link)
+		#self._app.activate_link(link)
+		self.emit('link-activated', link)
 		
 	def resize_columns(self, pane_size=0):
 		self._widget.columns_autosize()
@@ -735,7 +765,8 @@ class FeedList:
 			self.interrupt()
 			while gtk.events_pending():
 				gtk.main_iteration()
-		self._app.set_state(penguintv.LOADING_FEEDS)
+		#self._app.set_state(penguintv.LOADING_FEEDS)
+		self.emit('state-change', penguintv.LOADING_FEEDS)
 		self._fancy = fancy
 		if self._fancy:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
@@ -744,7 +775,8 @@ class FeedList:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
 			self._widget.set_property('rules-hint', False)
 		if self._state == S_SEARCH:
-			self._app.set_state(penguintv.DEFAULT)
+			#self._app.set_state(penguintv.DEFAULT)
+			self.emit('state-change', penguintv.DEFAULT)
 		self._app.write_feed_cache()
 		self.clear_list()
 		self.populate_feeds(self._app._done_populating)
@@ -915,13 +947,17 @@ class FeedList:
 				if not self._app.entrylist_selecting_right_now():
 					highlight_count = self._app.highlight_entry_results(item)
 					if highlight_count == 0:
-						self._app.display_feed(item)
+						#self._app.display_feed(item)
+						self.emit('feed-selected', item)
 				return
 			if item == self._last_selected:
-				self._app.display_feed(item)
+				#self._app.display_feed(item)
+				self.emit('feed-selected', item)
 			else:
 				self._last_selected = item
-				self._app.display_feed(item, -2)
+				#print "wtf is this negative 2 shit (feedlistview)"
+				#self._app.display_feed(item, -2)
+				self.emit('feed-selected', item)
 				if self._selecting_misfiltered and item!=None:
 					self._selecting_misfiltered = False
 					gobject.timeout_add(250, self.filter_all)
