@@ -21,7 +21,6 @@ import sets
 import traceback
 
 import socket
-
 socket.setdefaulttimeout(30.0)
 
 locale.setlocale(locale.LC_ALL, '')
@@ -125,7 +124,7 @@ class ptvDB:
 					except:
 						raise DBError,"couldn't create new database file"
 			self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10	)
-			self._db.isolation_level="DEFERRED"
+			self._db.isolation_level="IMMEDIATE"
 		except:
 			raise DBError,"error connecting to database"
 		
@@ -679,7 +678,7 @@ class ptvDB:
 				feeds = [row[0] for row in data]
 			else:
 				return
-		pool = ThreadPool.ThreadPool(6,"ptvDB", lucene_compat = utils.HAS_LUCENE)
+		pool = ThreadPool.ThreadPool(5,"ptvDB", lucene_compat = utils.HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
 			if self._cancel_poll_multiple or self._exiting:
@@ -731,7 +730,7 @@ class ptvDB:
 		
 		try:
 			import feedparser
-			feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
+			#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 			if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
 				data = feedparser.parse(url)
 			else:
@@ -747,7 +746,6 @@ class ptvDB:
 		
 		poll_arguments = 0
 		result = 0
-		pollfail = False
 		old_image = self.get_feed_image(feed_id)
 		try:
 			#poll_arguments = args[1]
@@ -771,11 +769,11 @@ class ptvDB:
 			return (feed_id,{'pollfail':True}, total)
 		except FeedPollError,e:
 			print e
-			pollfail = True
 			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
 			print e
-			return (feed_id,{'ioerror':e}, total)
+			#we got an ioerror, but we won't take it out on the feed
+			return (feed_id,{'ioerror':e, 'pollfail':False}, total)
 		except:
 			print "other error polling feed:",feed_id
 			exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -783,7 +781,6 @@ class ptvDB:
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 				error_msg += s
 			print error_msg
-			pollfail = True
 			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
@@ -819,7 +816,7 @@ class ptvDB:
 					self.reindex()
 					
 				update_data['flag_list']=flag_list
-				update_data['pollfail']=pollfail
+				update_data['pollfail']=False
 				
 		return (feed_id,update_data, total)
 			
@@ -849,14 +846,14 @@ class ptvDB:
 		print "look a callback"
 		print data
 		
-	def poll_feed(self, feed_id, arguments=0, db=None, preparsed=None):
+	def poll_feed(self, feed_id, arguments=0, preparsed=None):
 		"""polls a feed and returns the number of new articles and a flag list.  Optionally, one can pass
 			a feedparser dictionary in the preparsed argument and avoid network operations"""
-		if db is None:
-			db = self._db
-		c = db.cursor()
 		
 		#print "poll:",feed_id, arguments
+		
+		db = self._db
+		c = self._c
 		
 		if preparsed is None:
 			#feed_id = self._resolve_pointed_feed(feed_id, c)
@@ -881,7 +878,6 @@ class ptvDB:
 					self._set_new_update_freq(db, c, feed_id, 0)
 				self._db_execute(c, """UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 				db.commit()
-				c.close()
 				print e
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 		else:
@@ -890,7 +886,6 @@ class ptvDB:
 					self._set_new_update_freq(db, c, feed_id, 0)
 				self._db_execute(c, """UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 				db.commit()
-				c.close()
 				#print "it's -1"
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 			elif preparsed == -2:
@@ -911,14 +906,12 @@ class ptvDB:
 					self._set_new_update_freq(db, c, feed_id, 0)
 				self._db_execute(c, """UPDATE feeds SET pollfail=0 WHERE id=?""",(feed_id,))
 				db.commit()
-				c.close()
 				return 0
 			if data['status'] == 404: #whoops
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
 					self._set_new_update_freq(db, c, feed_id, 0)
 				self._db_execute(c, """UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 				db.commit()
-				c.close()
 				raise FeedPollError,(feed_id,"404 not found: "+str(url))
 
 		if len(data['channel']) == 0 or len(data['items']) == 0:
@@ -926,14 +919,16 @@ class ptvDB:
 				if isinstance(data['bozo_exception'],urllib2.URLError):
 					e = data['bozo_exception'][0]
 					errno = e[0]
-					if e[0] == -3: #failure in name resolution
+					if e[0] in [-3, #failure in name resolution   
+								114, #Operation already in progress
+								11]:  #Resource temporarily unavailable
+						print "ioerror",e,"errno:",e[0]
 						raise IOError(e)	
 			
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
 				self._set_new_update_freq(db, c, feed_id, 0)
 			self._db_execute(c, """UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 			db.commit()
-			c.close()
 			raise FeedPollError,(feed_id,"empty feed")
 			
 		#else...
@@ -1038,7 +1033,6 @@ class ptvDB:
 			#f.close()	
 			self._db_execute(c, """UPDATE feeds SET pollfail=1 WHERE id=?""",(feed_id,))
 			db.commit()	
-			c.close()		 
 			raise FeedPollError,(feed_id,"error updating title and description of feed")
 			
 		self._db_execute(c, u'SELECT link FROM feeds WHERE id=?',(feed_id,))
@@ -1284,7 +1278,6 @@ class ptvDB:
 		db.commit()
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
 			self._set_new_update_freq(db,c, feed_id, new_items)
-		c.close()
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
 				self.reindex()

@@ -95,7 +95,7 @@ class UpdateTasksManager:
 		"""Generator that empties that queue and yields on each iteration"""
 		skipped=0
 		while self.task_count() > 0: #just run forever
-			self.exception = False
+			self.exception = None
 			var = self.peek_task(skipped)
 			if var is None: #ran out of tasks
 				skipped=0

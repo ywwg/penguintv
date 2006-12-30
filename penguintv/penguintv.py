@@ -14,6 +14,7 @@
 
 
 #import urlparse loaded as needed
+from pysqlite2.dbapi2 import OperationalError as OperationalError
 import threading
 import sys, os, os.path
 import gc
@@ -29,7 +30,7 @@ import time
 import sets
 import string
 import socket
-socket.setdefaulttimeout(30.0)
+#socket.setdefaulttimeout(30.0)
 
 import pygtk
 pygtk.require('2.0')
@@ -156,7 +157,8 @@ class PenguinTVApp:
 		if gst_player is not None:
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
-		self._update_thread = self.DBUpdaterThread(self._polling_callback)
+		self._update_thread = self.DBUpdaterThread(self._polling_callback, 
+												   self._reset_db_updater)
 		self._update_thread.start()
 		self._updater_thread_db = None
 		while self._updater_thread_db==None or self._db_updater == None:
@@ -1537,15 +1539,15 @@ class PenguinTVApp:
 					self._gui_updater.queue_task(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
 					if update_data.has_key('feed_image'):
-						update_what = ['readinfo','icon','pollfail','image']
+						update_what = ['readinfo','icon','image']
 					else:
-						update_what = ['readinfo','icon','pollfail']
+						update_what = ['readinfo','icon']
 					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,update_what,update_data))
 					
 					if not self._showing_search:
 						self._gui_updater.queue_task(self._entry_list_view.populate_if_selected, feed_id)
 				else:
-					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['pollfail'],update_data))
+					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['icon'],update_data))
 		
 	def _poll_update_progress(self, total=0, error = False, errmsg = ""):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
@@ -1583,22 +1585,19 @@ class PenguinTVApp:
 			except Exception, e:
 				print "not a valid file: ",e
 				
-			
+	def _reset_db_updater(self, db):
+		self._updater_thread_db = db
+				
 	class DBUpdaterThread(threadclass):
-		def __init__(self, polling_callback=None):
+		def __init__(self, polling_callback, reset_callback):
 			PenguinTVApp.threadclass.__init__(self)
 			self.__isDying = False
 			self.db = None
 			self.updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.MANUAL, "db updater")
 			self.threadSleepTime = 0.5
-			if polling_callback is None:
-				self.polling_callback = self._polling_callback
-			else:
-				self.polling_callback = polling_callback
+			self.polling_callback = polling_callback
+			self.reset_callback = reset_callback
 			
-		def _polling_callback(self, data):
-			pass
-	        
 		def run(self):
 	
 			""" Until told to quit, retrieve the next task and execute
@@ -1610,9 +1609,11 @@ class PenguinTVApp:
 			while self.__isDying == False:
 				while self.updater.updater_gen().next():
 					if self.updater.exception is not None:
-						print "detected an error, restarting threaded db"
-						self.db._db.close()
-						self.db = ptvDB.ptvDB(self.polling_callback)
+						if isinstance(self.updater.exception, OperationalError):
+							print "detected a database lock error, restarting threaded db"
+							self.db._db.close()
+							self.db = ptvDB.ptvDB(self.polling_callback)
+							self.reset_callback(self.db)
 				time.sleep(self.threadSleepTime)
 						
 		def get_db(self):

@@ -149,7 +149,7 @@ class PlanetView(gobject.GObject):
 		self.populate_entries(feed_id)
 		
 	def __feedlist_none_selected_cb(self, o):
-		self.populate_entries(None)
+		self.clear_entries()
 		
 	#entrylist functions
 	def populate_if_selected(self, feed_id):

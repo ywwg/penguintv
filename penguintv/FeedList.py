@@ -314,7 +314,7 @@ class FeedList(gobject.GObject):
 			feed_id = self._last_feed
 			
 		if update_what is None:
-			update_what = ['readinfo','icon','pollfail','title']
+			update_what = ['readinfo','icon','title']
 		if update_data is None:
 			update_data = {}
 			
@@ -348,19 +348,9 @@ class FeedList(gobject.GObject):
 					downloaded=1				
 			flag = self._pick_important_flag(feed_id, update_data['flag_list'])				
 
-		if 'icon' in update_what and 'pollfail' not in update_what:
-			update_what.append('pollfail')	 #we need that data for icon updates
-			
 		if 'image' in update_what and self._fancy:
 			feed[PIXBUF] = self._get_pixbuf(feed_id)
 			
-		if 'pollfail' in update_what:	
-			if not update_data.has_key('pollfail'):
-				update_data['pollfail'] = self._db.get_feed_poll_fail(feed_id)
-			feed[POLLFAIL] = update_data['pollfail']
-			if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
-				feed[STOCKID]='gtk-dialog-error'
-		
 		if 'readinfo' in update_what:
 			#db_unread_count = self._db.get_unread_count(feed_id) #need it always for FIXME below
 			if not update_data.has_key('unread_count'):
@@ -410,6 +400,9 @@ class FeedList(gobject.GObject):
 				self._widget.columns_autosize()
 			
 		if 'icon' in update_what:
+			if not update_data.has_key('pollfail'):
+				update_data['pollfail'] = self._db.get_feed_poll_fail(feed_id)
+			feed[POLLFAIL] = update_data['pollfail']
 			feed[STOCKID] = self._get_icon(flag)
 			if update_data['pollfail']:
 				if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
@@ -920,6 +913,10 @@ class FeedList(gobject.GObject):
 			
 	def _item_selection_changed(self, selection):
 		item = self.get_selected()
+		
+		if item is None:
+			self.emit('no-feed-selected') 
+		
 		try:
 			feed = self._feedlist[self.find_index_of_item(item)]
 		except:
@@ -935,38 +932,38 @@ class FeedList(gobject.GObject):
 		self._last_feed=item
 		self._select_after_load=None
 		
-		if item:
-			if self._fancy:
-				feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], True)
-		
-			#if self._showing_search:
-			if self._state == S_SEARCH:
-				if item == self._last_selected:
-					return
-				self._last_selected = item
-				if not self._app.entrylist_selecting_right_now():
-					highlight_count = self._app.highlight_entry_results(item)
-					if highlight_count == 0:
-						#self._app.display_feed(item)
-						self.emit('feed-selected', item)
-				return
+		if self._fancy:
+			feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], True)
+	
+		#if self._showing_search:
+		if self._state == S_SEARCH:
 			if item == self._last_selected:
-				#self._app.display_feed(item)
-				self.emit('feed-selected', item)
-			else:
-				self._last_selected = item
-				#print "wtf is this negative 2 shit (feedlistview)"
-				#self._app.display_feed(item, -2)
-				self.emit('feed-selected', item)
-				if self._selecting_misfiltered and item!=None:
-					self._selecting_misfiltered = False
-					gobject.timeout_add(250, self.filter_all)
-			try:
-				if self._feedlist[self.find_index_of_item(item)][POLLFAIL]:
-					self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
-					return
-			except:
-				pass
+				return
+			self._last_selected = item
+			if not self._app.entrylist_selecting_right_now():
+				highlight_count = self._app.highlight_entry_results(item)
+				if highlight_count == 0:
+					#self._app.display_feed(item)
+					self.emit('feed-selected', item)
+			return
+		if item == self._last_selected:
+			#self._app.display_feed(item)
+			self.emit('feed-selected', item)
+		else:
+			self._last_selected = item
+			#print "wtf is this negative 2 shit (feedlistview)"
+			#self._app.display_feed(item, -2)
+			self.emit('feed-selected', item)
+			if self._selecting_misfiltered and item!=None:
+				self._selecting_misfiltered = False
+				gobject.timeout_add(250, self.filter_all)
+		try:
+			if self._feedlist[self.find_index_of_item(item)][POLLFAIL]:
+				self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
+				return
+		except:
+			pass
+			
 		self._app.undisplay_custom_entry()
 			
 	def get_selected(self, selection=None):
