@@ -90,6 +90,10 @@ class MainWindow:
 		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
 		self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
 		
+		#signals
+		self._app.connect('feed-added', self.__feed_added_cb)
+		self._app.connect('feed-removed', self.__feed_removed_cb)
+		
 		#most of the initialization is done on Show()
 
 #	def __getitem__(self, key):
@@ -354,7 +358,7 @@ class MainWindow:
 			#		self._app.do_quit()
 		
 		if self.layout != "planet":
-			self.entry_list_view = EntryList.EntryList(components, self.feed_list_view, self, self._db)
+			self.entry_list_view = EntryList.EntryList(components, self._app, self.feed_list_view, self, self._db)
 			load_renderer(renderer)
 		else:
 			load_renderer(renderer)
@@ -507,6 +511,18 @@ class MainWindow:
 				self.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
 			elif new_width > 20: #MAGIC NUMBER
 				self.entry_pane.set_position(new_width)
+				
+	def __feed_added_cb(self, app, feed_id, success):
+		if success:
+			self.select_feed(feed_id)
+			self.display_status_message(_("Feed Added"))
+			gobject.timeout_add(2000, self.display_status_message, "")
+		else:
+			self.display_status_message(_("Error adding feed"))
+			self.select_feed(feed_id)
+			
+	def __feed_removed_cb(self, app, feed_id):
+		self.update_filters()
 
 	def on_about_activate(self,event):
 		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
@@ -975,6 +991,7 @@ class MainWindow:
 		self._app.save_settings()
 		self._app.write_feed_cache()
 		self._layout_dock.remove(self._layout_container)
+		
 		self._layout_dock.add(self.load_layout())
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -1240,7 +1257,13 @@ class MainWindow:
 		self._filters[index][F_DISPLAY] = new_name
 		
 	def select_feed(self, feed_id):
-		self.set_active_filter(FeedList.ALL)
+		#if we have a tag, pick the first one (really used just when adding
+		#feeds)
+		tags = self._db.get_tags_for_feed(feed_id)
+		if len(tags) > 0:
+			self.set_active_filter(self.get_filter_index(tags[0]))
+		else:
+			self.set_active_filter(FeedList.ALL)
 		self.filter_unread_checkbox.set_active(False)
 		self.feed_list_view.set_selected(feed_id)
 		self.feed_list_view.resize_columns()

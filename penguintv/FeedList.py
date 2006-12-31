@@ -141,6 +141,12 @@ class FeedList(gobject.GObject):
 		#applies to mousewheel ONLY, stop trying this (leaving for future note)
 		#self._scrolled_window.connect("scroll-event", self.on_feedlistview_scroll_event)
 		
+		self._handlers = []
+		h_id = self._app.connect('feed-added', self.__feed_added_cb)
+		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
+		
 		#init style
 		if self._fancy:
 			if utils.RUNNING_SUGAR:
@@ -148,6 +154,20 @@ class FeedList(gobject.GObject):
 			else:
 				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
+			
+	def finalize(self):
+		for disconnector, h_id in self._handlers:
+			disconnector(h_id)
+			
+	def __feed_added_cb(self, app, feed_id, success):
+		if success:
+			self.update_feed_list(feed_id,['readinfo','icon','title','image'])
+		else:
+			self.update_feed_list(feed_id,['icon','pollfail'])
+			
+	def __feed_removed_cb(self, app, feed_id):
+		self.remove_feed(feed_id)
+		self.resize_columns()
 			
 	def populate_feeds(self,callback=None, subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
@@ -446,7 +466,7 @@ class FeedList(gobject.GObject):
 
 		#sanity check
 		if feed[UNREAD] - num_to_mark < 0 or feed[UNREAD] - num_to_mark > feed[TOTAL]:
-			print "WARNING: trying to mark more or less than we have"
+			print "WARNING: trying to mark more or less than we have:", feed[UNREAD], num_to_mark
 			self.update_feed_list(feed[FEEDID], ['readinfo'])
 			return
 			

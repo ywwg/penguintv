@@ -142,13 +142,27 @@ class PlanetView(gobject.GObject):
 		t.start()
 		
 		#signals
-		feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
-		feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		self._handlers = []
+		h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+		self._handlers.append((feed_list_view.disconnect, h_id))
+		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		self._handlers.append((feed_list_view.disconnect, h_id))
+		h_id = self._app.connect('feed-added',self.__feed_added_cb)
+		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
 		
 	def __feedlist_none_selected_cb(self, o):
+		self.clear_entries()
+		
+	def __feed_added_cb(self, app, feed_id, success):
+		if success:
+			self.populate_entries(feed_id)
+			
+	def __feed_removed_cb(self, app, feed_id):
 		self.clear_entries()
 		
 	#entrylist functions
@@ -263,8 +277,13 @@ class PlanetView(gobject.GObject):
 			self._render("<html><body></body></html")
 		else:
 			pass
+	
+	def finalize(self):
+		pass
 		
 	def finish(self):
+		for disconnector, h_id in self._handlers:
+			disconnector(h_id)
 		self._update_server.finish()
 		urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
 		self._render("<html><body></body></html")

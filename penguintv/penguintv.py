@@ -81,8 +81,19 @@ TAG_SEARCH         = 3
 LOADING_FEEDS      = 4
 DONE_LOADING_FEEDS = 5
 
-class PenguinTVApp:
+class PenguinTVApp(gobject.GObject):
+
+	__gsignals__ = {
+        'feed-added': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_BOOLEAN])),
+        'feed-removed': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT]))
+	}
+
 	def __init__(self):
+		gobject.GObject.__init__(self)
 		self._socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
 		if not self._socket.is_server:
 			#just pass the arguments and quit
@@ -755,11 +766,8 @@ class PenguinTVApp:
 			except:
 				pass
 			self.db.delete_feed(feed)
-			self.feed_list_view.remove_feed(feed)
+			self.emit('feed-removed', feed)
 			self.update_disk_usage()
-			self.feed_list_view.resize_columns()
-			self._entry_list_view.clear_entries()
-			self.main_window.update_filters()
 	
 	def poll_feeds(self, args=0):
 		args = args | ptvDB.A_ALL_FEEDS
@@ -1139,6 +1147,8 @@ class PenguinTVApp:
 			old_filter = self.main_window.get_active_filter()[1]
 			self.feed_list_view.interrupt()
 			self.feed_list_view.set_selected(None)
+			self.feed_list_view.finalize()
+			self._entry_list_view.finalize()
 			self._entry_view.finish()
 			while gtk.events_pending(): #make sure everything gets shown
 				gtk.main_iteration()
@@ -1227,7 +1237,6 @@ class PenguinTVApp:
 		try:
 			feed_id = self.db.insertURL(url, title)
 			#change to add_and_select
-			#taskid = self._gui_updater.queue_task(self.main_window.populate_and_select, feed_id)
 			taskid = self._gui_updater.queue_task(self.feed_list_view.add_feed, feed_id)
 			self._gui_updater.queue_task(self.main_window.select_feed, feed_id, taskid, False)
 			taskid2=self._db_updater.queue_task(self._updater_thread_db.poll_feed_trap_errors, (feed_id,self._add_feed_callback), taskid)
@@ -1255,36 +1264,21 @@ class PenguinTVApp:
 	def _add_feed_callback(self, feed, success):
 		if success:
 			self._gui_updater.queue_task(self._add_feed_success, feed['feed_id'])
-			self._gui_updater.queue_task(self._first_poll_marking, feed['feed_id'])
-			self._gui_updater.queue_task(self._entry_list_view.populate_entries, feed['feed_id'])
-			self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed['feed_id'],['readinfo','icon','title','image']))
-			if self._auto_download:
-				self._gui_updater.queue_task(self._auto_download_unviewed)
-			self._gui_updater.queue_task(gobject.idle_add, self._entry_list_view.auto_pane) #oh yeah, queue an idler
+			self._threaded_emit('feed-added', feed['feed_id'], True)
 		else:
-			self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed['feed_id'],['icon','pollfail']))
-			self._gui_updater.queue_task(self._add_feed_error, feed['feed_id'])
-	
+			self._threaded_emit('feed-added', feed['feed_id'], False)
+		
 	def _first_poll_marking(self, feed_id): 
 		"""mark all media read except first one.  called when we first add a feed"""
 		all_feeds_list = self.db.get_media_for_download()
-		this_feed_list = []
-		for item in all_feeds_list:
-			if item[3]==feed_id:
-				this_feed_list.append(item)
+		this_feed_list = [item for item in all_feeds_list if item[3] == feed_id]
 		for item in this_feed_list[1:]:
 			self.db.set_entry_read(item[2],1)
 		
-	def _add_feed_error(self,feed_id):
-		self.main_window.display_status_message(_("Error adding feed"))
-		self.main_window.select_feed(feed_id)
-		return False #for idle_add
-		
 	def _add_feed_success(self, feed_id):
-		self.feed_list_view.update_feed_list(feed_id,['title'])
-		self.main_window.select_feed(feed_id)
-		self.main_window.display_status_message(_("Feed Added"))
-		gobject.timeout_add(2000, self.main_window.display_status_message, "")
+		self._first_poll_marking(feed_id)
+		if self._auto_download:
+			self._auto_download_unviewed()
 			
 	def delete_entry_media(self, entry_id):
 		"""Delete all media for an entry"""
@@ -1585,6 +1579,14 @@ class PenguinTVApp:
 				
 	def _reset_db_updater(self, db):
 		self._updater_thread_db = db
+		
+	def _threaded_emit(self, signal, *args):
+		def do_emit(signal, *args):
+			gtk.gdk.threads_enter()
+			self.emit(signal, *args)
+			gtk.gdk.threads_leave()
+			return False
+		gobject.idle_add(do_emit, signal, *args, **{"priority" : gobject.PRIORITY_HIGH})
 				
 	class DBUpdaterThread(threadclass):
 		def __init__(self, polling_callback, reset_callback):

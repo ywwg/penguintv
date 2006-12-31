@@ -34,7 +34,7 @@ class EntryList(gobject.GObject):
                            ([gobject.TYPE_INT]))
     }	
 	
-	def __init__(self, widget_tree, feed_list_view, main_window, db):
+	def __init__(self, widget_tree, app, feed_list_view, main_window, db):
 		gobject.GObject.__init__(self)
 		self._widget = widget_tree.get_widget("entrylistview")
 		self._main_window = main_window
@@ -75,8 +75,19 @@ class EntryList(gobject.GObject):
 		self._widget.get_selection().connect("changed", self.item_selection_changed)
 		self._widget.connect("row-activated", self.on_row_activated)
 		
-		feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
-		feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		self._handlers = []
+		h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+		self._handlers.append((feed_list_view.disconnect, h_id))
+		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		self._handlers.append((feed_list_view.disconnect, h_id))
+		h_id = app.connect('feed-added', self.__feed_added_cb)
+		self._handlers.append((app.disconnect, h_id))
+		h_id = app.connect('feed-removed', self.__feed_removed_cb)
+		self._handlers.append((app.disconnect, h_id))
+		
+	def finalize(self):
+		for disconnector, h_id in self._handlers:
+			disconnector(h_id)
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
@@ -84,13 +95,19 @@ class EntryList(gobject.GObject):
 	def __feedlist_none_selected_cb(self, o):
 		self.populate_entries(None)
 		
+	def __feed_added_cb(self, app, feed_id, success):
+		if success:
+			self.populate_entries(feed_id)
+			
+	def __feed_removed_cb(self, app, feed_id):
+		self.clear_entries()
+		
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:
 			self.populate_entries(feed_id, -1)
 			
 	def populate_entries(self, feed_id, selected=-1):
 		if self._state == S_SEARCH:
-#		if self._showing_search:
 			if len(self._search_results) > 0: 
 				if feed_id in [s[1] for s in self._search_results]:
 					self.show_search_results(self._search_results, self._search_query)

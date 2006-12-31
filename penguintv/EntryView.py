@@ -164,8 +164,11 @@ class EntryView(gobject.GObject):
 		#self.display_custom_entry("<html></html>")
 		
 		#signals
-		feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
-		entry_list_view.connect('no-entry-selected', self.__entrylist_none_selected_cb)
+		self._handlers = []
+		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+		self._handlers.append((feed_list_view.disconnect, h_id))
+		h_id = entry_list_view.connect('no-entry-selected', self.__entrylist_none_selected_cb)
+		self._handlers.append((entry_list_view.disconnect, h_id))
 		
 	def __feedlist_none_selected_cb(self, o):
 		self.display_item()
@@ -475,6 +478,9 @@ class EntryView(gobject.GObject):
 		return new_value > old_value
 		
 	def finish(self):
+		for disconnector, h_id in self._handlers:
+			disconnector(h_id)
+	
 		#just make it gray for quitting
 		if self._renderer==GTKHTML:
 			self._document_lock.acquire()

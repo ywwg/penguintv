@@ -102,7 +102,9 @@ class AddFeedDialog:
 		self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.
-		self._app.apply_tags_to_feed(feed_id, None, tags)
+		if len(tags) > 0:
+			self._app.apply_tags_to_feed(feed_id, None, tags)
+			self._app.main_window.set_active_filter(self._app.main_window.get_filter_index(tags[0]))
 		self.hide()
 				
 	def on_button_ok_clicked(self,event):
