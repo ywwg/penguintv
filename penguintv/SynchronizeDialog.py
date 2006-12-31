@@ -12,6 +12,7 @@ if utils.HAS_LUCENE:
 	import PyLucene
 	threadclass = PyLucene.PythonThread
 else:
+	import threading
 	threadclass = threading.Thread
 
 class SynchronizeDialog:

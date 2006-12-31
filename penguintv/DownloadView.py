@@ -1,9 +1,10 @@
 #a view that shows the current downloading media, and any unplayed media (For now)
 
 import gtk
-import MediaManager
 import sets, time, os, glob
 
+import IconManager
+import MediaManager
 import ptvDB
 import utils
 
@@ -33,6 +34,7 @@ class DownloadView:
 		self._app = app
 		self._mm = mm
 		self._db = db
+		self._icon_manager = IconManager.IconManager(self._db.home)
 		self._gladefile = gladefile
 		
 		self._downloads = []
@@ -223,16 +225,14 @@ class DownloadView:
 		self._downloads.sort(lambda x,y: id_list.index(x.media['media_id']) - id_list.index(y.media['media_id']))
 			
 	def _get_pixbuf(self, feed_id):
-		"""from feedlist.py"""
-		filename = os.path.join(self._db.home,'icons',str(feed_id)+'.*')
-		result = glob.glob(filename)
-		if len(result)==0:
+		filename = self._icon_manager.get_icon(feed_id)
+		if filename is None:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
 			p.fill(0xffffff00)
 			return p
 	
 		try:
-			p = gtk.gdk.pixbuf_new_from_file(result[0])
+			p = gtk.gdk.pixbuf_new_from_file(filename)
 		except:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
 			p.fill(0xffffff00)
@@ -249,7 +249,7 @@ class DownloadView:
 			height = MIN_SIZE
 			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
-			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
+			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
 		return p
 		
 	def on_stop_toolbutton_clicked(self, widget):

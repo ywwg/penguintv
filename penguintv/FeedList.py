@@ -4,6 +4,7 @@ import penguintv
 import ptvDB
 import utils
 
+import IconManager
 import MainWindow
 
 import traceback, sys, os, re
@@ -62,6 +63,7 @@ class FeedList(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self._app = app
 		self._db = db
+		self._icon_manager = IconManager.IconManager(self._db.home)
 		self._scrolled_window = widget_tree.get_widget('feed_scrolled_window')
 		self._va = self._scrolled_window.get_vadjustment()
 		self._widget = widget_tree.get_widget('feedlistview')
@@ -308,6 +310,7 @@ class FeedList(gobject.GObject):
 		
 		update_what is a bunch of strings saying what we want to update.  it will go to the
 		db for info unless the value is already in update_data"""
+		
 		if feed_id is None:
 			if self._last_feed is None:
 				return
@@ -825,15 +828,14 @@ class FeedList(gobject.GObject):
 		return title
 		
 	def _get_pixbuf(self, feed_id):
-		filename = os.path.join(self._db.home,'icons',str(feed_id)+'.*')
-		result = glob.glob(filename)
-		if len(result)==0:
+		filename = self._icon_manager.get_icon(feed_id)
+		if filename is None:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
 			p.fill(0xffffff00)
 			return p
 	
 		try:
-			p = gtk.gdk.pixbuf_new_from_file(result[0])
+			p = gtk.gdk.pixbuf_new_from_file(filename)
 		except:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
 			p.fill(0xffffff00)
@@ -850,7 +852,7 @@ class FeedList(gobject.GObject):
 			height = MIN_SIZE
 			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
-			p = gtk.gdk.pixbuf_new_from_file_at_size(result[0], width, height)
+			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
 		return p
 		
 	def _get_fancy_markedup_title(self, title, first_entry_title, unread, total, flag, selected):

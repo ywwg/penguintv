@@ -938,11 +938,10 @@ class PenguinTVApp:
 		#	print "shift-- shift delete it"
 		self.main_window.display_status_message(_("Polling Feed..."))
 		task_id = self._db_updater.queue_task(self._updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG+ptvDB.A_DO_REINDEX))
-		self._gui_updater.queue_task(self.feed_list_view.update_feed_list,(feed,['readinfo','icon']), task_id, False)
+		self._gui_updater.queue_task(self.feed_list_view.update_feed_list,(feed,['readinfo','icon','image']), task_id, False)
 		self._gui_updater.queue_task(self._entry_list_view.update_entry_list,None, task_id, False)
 		task_id2 = self._gui_updater.queue_task(self.main_window.display_status_message,_("Feed Updated"), task_id)
 		self._gui_updater.queue_task(gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
-		#self._gui_updater.queue_task(self.feed_list_view.set_selected,selected, task_id)
 		
 	def _unset_state(self, authorize=False):
 		"""gets app ready to display new state by unloading current state.
@@ -1533,21 +1532,20 @@ class PenguinTVApp:
 		if not self._exiting:
 			feed_id,update_data,total = args
 			self._gui_updater.queue_task(self._poll_update_progress,total)
-			if len(update_data)>0: #else don't need to update, nothing changed
+			if len(update_data)>0:
 				if update_data.has_key('ioerror'):
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._gui_updater.queue_task(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
-					if update_data.has_key('feed_image'):
-						update_what = ['readinfo','icon','image']
-					else:
-						update_what = ['readinfo','icon']
-					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,update_what,update_data))
+					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','image'],update_data))
 					
 					if not self._showing_search:
 						self._gui_updater.queue_task(self._entry_list_view.populate_if_selected, feed_id)
 				else:
 					self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['icon'],update_data))
+			else:
+				#check image just in case
+				self._gui_updater.queue_task(self.feed_list_view.update_feed_list, (feed_id,['image']))
 		
 	def _poll_update_progress(self, total=0, error = False, errmsg = ""):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""

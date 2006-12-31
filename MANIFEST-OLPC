@@ -72,6 +72,7 @@ penguintv/test.py
 penguintv/ThreadPool.py
 penguintv/UpdateTasksManager.py
 penguintv/utils.py
+penguintv/IconManager.py
 share/defaultsubs.opml
 share/defaultsubs.txt
 share/gtkhtml.css

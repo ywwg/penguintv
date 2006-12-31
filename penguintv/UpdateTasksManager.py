@@ -94,17 +94,21 @@ class UpdateTasksManager:
 	def updater_gen(self,timed=False):
 		"""Generator that empties that queue and yields on each iteration"""
 		skipped=0
+		waiting_on = []
 		while self.task_count() > 0: #just run forever
 			self.exception = None
 			var = self.peek_task(skipped)
 			if var is None: #ran out of tasks
 				skipped=0
+				waiting_on = []
 				yield True
 				continue
-			func, args, task_id, waitfor, clear_completed =  var
+			func, args, task_id, waitfor, clear_completed = var
 			
 			if waitfor:
-				if self.is_completed(waitfor): #don't pop if false
+				#don't pop if false, and if previous tasks think that task isn't
+				#don't yet then also don't do it (to preserve order)
+				if self.is_completed(waitfor) and waitfor not in waiting_on:
 					try:
 						if type(args) is tuple:
 							func(*args)
@@ -123,6 +127,7 @@ class UpdateTasksManager:
 						self.clear_completed(waitfor)
 					self.pop_task(skipped)
 				else:
+					waiting_on.append(waitfor)
 					if time.time() - task_id > FLUSH_TIME:
 						self.pop_task(skipped)
 					skipped = skipped+1
@@ -146,7 +151,6 @@ class UpdateTasksManager:
 			yield True
 		if not timed:
 			self.updater_running = False
-		#print self.name+" out of updater"
 		yield False		
 		
 

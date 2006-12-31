@@ -188,7 +188,6 @@ class PlanetView(gobject.GObject):
 	def update_entry_list(self, entry_id=None):
 		if entry_id is None:
 			self._entry_store = {}
-			print "updated, rendering entries"
 			self.populate_entries()
 		else:
 			if entry_id not in self._entrylist: #not this feed
@@ -250,7 +249,6 @@ class PlanetView(gobject.GObject):
 		if self._custom_message == message:
 			return
 		self._custom_message = message
-		print "custom"
 		self.populate_entries()
 		
 	def undisplay_custom_entry(self):
@@ -258,7 +256,6 @@ class PlanetView(gobject.GObject):
 			return
 		self._custom_message = ""
 		#print "custom: blank (undisplay)"
-		print "uncustom"
 		self.populate_entries()
 		
 	def display_item(self, item=None, highlight=""):
@@ -547,7 +544,6 @@ class PlanetView(gobject.GObject):
 		def serve_forever(self):
 			while 1:
 				self.handle_request()
-				logging.info('tcp handling request')
 				if self._quitting:
 					logging.info('quitting tcp server')
 					return
@@ -574,7 +570,6 @@ class PlanetView(gobject.GObject):
 			for item in remove_list:
 				self._updates.remove(item)
 			self._updates.append(update)
-			logging.info('tcp update pushed (total %i)' % (len(self._updates)))
 			
 		def peek_update(self):
 			return self._updates[0]

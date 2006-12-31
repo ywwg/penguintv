@@ -74,6 +74,7 @@ penguintv/SynchronizeDialog.py
 penguintv/FilterSelectorDialog.py
 penguintv/PlanetView.py
 penguintv/DownloadView.py
+penguintv/IconManager.py
 feedparser/setup.py
 feedparser/feedparser.py
 feedparser/LICENSE
