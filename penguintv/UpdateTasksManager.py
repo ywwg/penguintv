@@ -39,7 +39,7 @@ class UpdateTasksManager:
 		
 		return float(UpdateTasksManager.id_time)+(UpdateTasksManager.time_appendix/100)
 			
-	def queue_task(self, func, arg=None, waitfor=None, clear_completed=True, priority=0):
+	def queue(self, func, arg=None, waitfor=None, clear_completed=True, priority=0):
 		task_id = self.get_task_id()
 		if priority==1:
 			self.my_tasks.reverse()
@@ -55,13 +55,13 @@ class UpdateTasksManager:
 			#elif manual, do nothing
 		return task_id
 					
-	def peek_task(self, index=0):
+	def peek(self, index=0):
 		if len(self.my_tasks)>index:
 			return self.my_tasks[index]
 		else:
 			return None
 			
-	def pop_task(self, index=0):
+	def pop(self, index=0):
 		return self.my_tasks.pop(index)
 			
 	def task_count(self):
@@ -97,7 +97,7 @@ class UpdateTasksManager:
 		waiting_on = []
 		while self.task_count() > 0: #just run forever
 			self.exception = None
-			var = self.peek_task(skipped)
+			var = self.peek(skipped)
 			if var is None: #ran out of tasks
 				skipped=0
 				waiting_on = []
@@ -125,11 +125,11 @@ class UpdateTasksManager:
 					self.set_completed(task_id)
 					if clear_completed:
 						self.clear_completed(waitfor)
-					self.pop_task(skipped)
+					self.pop(skipped)
 				else:
 					waiting_on.append(waitfor)
 					if time.time() - task_id > FLUSH_TIME:
-						self.pop_task(skipped)
+						self.pop(skipped)
 					skipped = skipped+1
 			else:
 				try:
@@ -147,7 +147,7 @@ class UpdateTasksManager:
 						error_msg += s
 					print error_msg
 				self.set_completed(task_id)
-				self.pop_task(skipped)
+				self.pop(skipped)
 			yield True
 		if not timed:
 			self.updater_running = False

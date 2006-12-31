@@ -2037,7 +2037,7 @@ j@v2v.cc
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
-		  <signal name="clicked" handler="on_debug_exit_toolbutton_clicked" last_modification_time="Sun, 03 Dec 2006 16:22:18 GMT"/>
+		  <signal name="clicked" handler="on_quit2_activate" last_modification_time="Sun, 03 Dec 2006 16:25:32 GMT"/>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
