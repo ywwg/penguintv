@@ -84,6 +84,9 @@ DONE_LOADING_FEEDS = 5
 class PenguinTVApp(gobject.GObject):
 
 	__gsignals__ = {
+		'feed-updated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT])),
         'feed-added': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_BOOLEAN])),
@@ -159,6 +162,9 @@ class PenguinTVApp(gobject.GObject):
 			use_internal_player = True
 		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player) 
 		self.main_window.layout=window_layout
+		
+		#some signals
+		self.connect('feed-added', self.__feed_added_cb)
 		
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
@@ -946,10 +952,7 @@ class PenguinTVApp(gobject.GObject):
 		#	print "shift-- shift delete it"
 		self.main_window.display_status_message(_("Polling Feed..."))
 		task_id = self._db_updater.queue_task(self._updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG+ptvDB.A_DO_REINDEX))
-		self._gui_updater.queue_task(self.feed_list_view.update_feed_list,(feed,['readinfo','icon','image']), task_id, False)
-		self._gui_updater.queue_task(self._entry_list_view.update_entry_list,None, task_id, False)
-		task_id2 = self._gui_updater.queue_task(self.main_window.display_status_message,_("Feed Updated"), task_id)
-		self._gui_updater.queue_task(gobject.timeout_add, (2000, self.main_window.display_status_message, ""), task_id2)
+		self._gui_updater.queue_task(self.emit, ('feed-updated', feed), task_id, False)
 		
 	def _unset_state(self, authorize=False):
 		"""gets app ready to display new state by unloading current state.
@@ -1236,16 +1239,32 @@ class PenguinTVApp(gobject.GObject):
 		feed_id = -1
 		try:
 			feed_id = self.db.insertURL(url, title)
-			#change to add_and_select
-			taskid = self._gui_updater.queue_task(self.feed_list_view.add_feed, feed_id)
-			self._gui_updater.queue_task(self.main_window.select_feed, feed_id, taskid, False)
-			taskid2=self._db_updater.queue_task(self._updater_thread_db.poll_feed_trap_errors, (feed_id,self._add_feed_callback), taskid)
-			
+			#change to add_and_select (can't use signals because order is important)
+			self.feed_list_view.add_feed(feed_id)
+			self.main_window.select_feed(feed_id)
+			self._db_updater.queue_task(self._updater_thread_db.poll_feed_trap_errors, (feed_id,self._db_add_feed_cb))
 		except ptvDB.FeedAlreadyExists, e:
-			self._gui_updater.queue_task(self.main_window.select_feed, e.feed)
+			self.main_window.select_feed(e.feed)
 		self.window_add_feed.hide()
 		return feed_id
 		
+	def _db_add_feed_cb(self, feed, success):
+		self._threaded_emit('feed-updated', feed['feed_id'])
+		self._threaded_emit('feed-added', feed['feed_id'], success)
+		
+	def __feed_added_cb(self, app, feed_id, success):
+		if success:
+			self._first_poll_marking(feed_id)
+			if self._auto_download:
+				self._auto_download_unviewed()
+		
+	def _first_poll_marking(self, feed_id): 
+		"""mark all media read except first one.  called when we first add a feed"""
+		all_feeds_list = self.db.get_media_for_download()
+		this_feed_list = [item for item in all_feeds_list if item[3] == feed_id]
+		for item in this_feed_list[1:]:
+			self.db.set_entry_read(item[2],1)
+	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
 		#print pointed_feed_id, filter_name, query
 		try:
@@ -1260,25 +1279,6 @@ class PenguinTVApp(gobject.GObject):
 	def set_feed_filter(self, pointer_feed_id, filter_name, query):
 		self.db.set_feed_filter(pointer_feed_id, filter_name, query)
 		self.display_feed(pointer_feed_id)
-		
-	def _add_feed_callback(self, feed, success):
-		if success:
-			self._gui_updater.queue_task(self._add_feed_success, feed['feed_id'])
-			self._threaded_emit('feed-added', feed['feed_id'], True)
-		else:
-			self._threaded_emit('feed-added', feed['feed_id'], False)
-		
-	def _first_poll_marking(self, feed_id): 
-		"""mark all media read except first one.  called when we first add a feed"""
-		all_feeds_list = self.db.get_media_for_download()
-		this_feed_list = [item for item in all_feeds_list if item[3] == feed_id]
-		for item in this_feed_list[1:]:
-			self.db.set_entry_read(item[2],1)
-		
-	def _add_feed_success(self, feed_id):
-		self._first_poll_marking(feed_id)
-		if self._auto_download:
-			self._auto_download_unviewed()
 			
 	def delete_entry_media(self, entry_id):
 		"""Delete all media for an entry"""
@@ -1286,7 +1286,6 @@ class PenguinTVApp(gobject.GObject):
 		if medialist:
 			for medium in medialist:
 				if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
-					#self._db_updater.queue_task(self._updater_thread_db.set_media_viewed, medium['media_id'])
 					self.delete_media(medium['media_id'])
 		self._entry_view.update_if_selected(entry_id)
 		self.update_entry_list(entry_id)
@@ -1314,7 +1313,6 @@ class PenguinTVApp(gobject.GObject):
 				if medialist:
 					for medium in medialist:
 						if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
-							#self._db_updater.queue_task(self._updater_thread_db.set_media_viewed, medium['media_id'])
 							self.delete_media(medium['media_id'])
 				self._entry_view.update_if_selected(entry[0])
 				#gtk.gdk.threads_leave()

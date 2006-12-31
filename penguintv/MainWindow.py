@@ -93,8 +93,36 @@ class MainWindow:
 		#signals
 		self._app.connect('feed-added', self.__feed_added_cb)
 		self._app.connect('feed-removed', self.__feed_removed_cb)
-		
+		self._app.connect('feed-updated', self.__feed_updated_cb)
+	
 		#most of the initialization is done on Show()
+		
+	def __link_activated_cb(self, o, link):
+		self._app.activate_link(link)
+				
+	def __entrylistview_list_resized_cb(self, entrylistview, new_width):
+		if self.layout == "widescreen" and self.app_window is not None:			
+			listnview_width = self.app_window.get_size()[0] - self.feed_pane.get_position()
+			if listnview_width - new_width < 400: #ie, entry view will be tiny
+				self.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
+			elif new_width > 20: #MAGIC NUMBER
+				self.entry_pane.set_position(new_width)
+				
+	def __feed_added_cb(self, app, feed_id, success):
+		if success:
+			self.select_feed(feed_id)
+			self.display_status_message(_("Feed Added"))
+			gobject.timeout_add(2000, self.display_status_message, "")
+		else:
+			self.display_status_message(_("Error adding feed"))
+			self.select_feed(feed_id)
+			
+	def __feed_updated_cb(self, app, feed_id):
+		self.display_status_message(_("Feed Updated"))
+		gobject.timeout_add(2000, self.display_status_message, "")
+			
+	def __feed_removed_cb(self, app, feed_id):
+		self.update_filters()
 
 #	def __getitem__(self, key):
 #		return self.widgets.get_widget(key)
@@ -499,30 +527,6 @@ class MainWindow:
 			else:
 				self._widgetTree.get_widget('toolbar1').hide()
 				self._status_view.hide()
-
-
-	def __link_activated_cb(self, o, link):
-		self._app.activate_link(link)
-				
-	def __entrylistview_list_resized_cb(self, entrylistview, new_width):
-		if self.layout == "widescreen" and self.app_window is not None:			
-			listnview_width = self.app_window.get_size()[0] - self.feed_pane.get_position()
-			if listnview_width - new_width < 400: #ie, entry view will be tiny
-				self.entry_pane.set_position(listnview_width-400) #MAGIC NUMBER
-			elif new_width > 20: #MAGIC NUMBER
-				self.entry_pane.set_position(new_width)
-				
-	def __feed_added_cb(self, app, feed_id, success):
-		if success:
-			self.select_feed(feed_id)
-			self.display_status_message(_("Feed Added"))
-			gobject.timeout_add(2000, self.display_status_message, "")
-		else:
-			self.display_status_message(_("Error adding feed"))
-			self.select_feed(feed_id)
-			
-	def __feed_removed_cb(self, app, feed_id):
-		self.update_filters()
 
 	def on_about_activate(self,event):
 		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')

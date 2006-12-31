@@ -80,7 +80,7 @@ class EntryList(gobject.GObject):
 		self._handlers.append((feed_list_view.disconnect, h_id))
 		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
 		self._handlers.append((feed_list_view.disconnect, h_id))
-		h_id = app.connect('feed-added', self.__feed_added_cb)
+		h_id = app.connect('feed-updated', self.__feed_updated_cb)
 		self._handlers.append((app.disconnect, h_id))
 		h_id = app.connect('feed-removed', self.__feed_removed_cb)
 		self._handlers.append((app.disconnect, h_id))
@@ -95,12 +95,13 @@ class EntryList(gobject.GObject):
 	def __feedlist_none_selected_cb(self, o):
 		self.populate_entries(None)
 		
-	def __feed_added_cb(self, app, feed_id, success):
-		if success:
-			self.populate_entries(feed_id)
+	def __feed_updated_cb(self, app, feed_id):
+		if feed_id == self._feed_id:
+			self.update_entry_list()
 			
 	def __feed_removed_cb(self, app, feed_id):
-		self.clear_entries()
+		if feed_id == self._feed_id:
+			self.clear_entries()
 		
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:

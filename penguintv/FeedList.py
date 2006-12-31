@@ -142,7 +142,7 @@ class FeedList(gobject.GObject):
 		#self._scrolled_window.connect("scroll-event", self.on_feedlistview_scroll_event)
 		
 		self._handlers = []
-		h_id = self._app.connect('feed-added', self.__feed_added_cb)
+		h_id = self._app.connect('feed-updated', self.__feed_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
@@ -159,11 +159,8 @@ class FeedList(gobject.GObject):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
 			
-	def __feed_added_cb(self, app, feed_id, success):
-		if success:
-			self.update_feed_list(feed_id,['readinfo','icon','title','image'])
-		else:
-			self.update_feed_list(feed_id,['icon','pollfail'])
+	def __feed_updated_cb(self, app, feed_id):
+		self.update_feed_list(feed_id,['readinfo','icon','title','image'])
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.remove_feed(feed_id)
