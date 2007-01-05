@@ -391,7 +391,7 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_view.finish()
 		self.feed_list_view.interrupt()
 		self._update_thread.goAway()
-		self._updater_thread_db.finish()
+		#self._db_updater.queue(self._updater_thread_db.finish, None)
 		self.main_window.finish()
 		logging.info('stopping downloads')
 		self.stop_downloads()

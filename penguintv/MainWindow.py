@@ -1063,8 +1063,6 @@ class MainWindow:
 		#bring state back to default
 		if self._state == S_MANUAL_SEARCH:
 			self.search_entry.set_text("")
-		if self._state == S_MANUAL_SEARCH or self._state == S_TAG_SEARCH:
-			self.filter_unread_checkbox.set_sensitive(True)
 		if self._state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
@@ -1092,10 +1090,8 @@ class MainWindow:
 		if new_state == S_MANUAL_SEARCH:
 			if self.get_active_filter()[1] != FeedList.SEARCH:	
 				self.set_active_filter(FeedList.SEARCH)
-			self.filter_unread_checkbox.set_sensitive(False)
 		if new_state == S_TAG_SEARCH:
 			self.search_entry.set_text("")
-			self.filter_unread_checkbox.set_sensitive(False)
 		
 		if new_state == S_LOADING_FEEDS:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
@@ -1264,7 +1260,6 @@ class MainWindow:
 			self.set_active_filter(self.get_filter_index(tags[0]))
 		else:
 			self.set_active_filter(FeedList.ALL)
-		self.filter_unread_checkbox.set_active(False)
 		self.feed_list_view.set_selected(feed_id)
 		self.feed_list_view.resize_columns()
 

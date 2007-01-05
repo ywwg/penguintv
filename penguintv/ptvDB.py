@@ -48,7 +48,7 @@ BOOL    = 1
 INT     = 2
 STRING  = 3
 
-MAX_ARTICLES = 100
+MAX_ARTICLES = 1000
 
 _common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
 
@@ -121,11 +121,12 @@ class ptvDB:
 					except:
 						raise DBError,"couldn't create new database file"
 			self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10	)
-			self._db.isolation_level="IMMEDIATE"
+			self._db.isolation_level="DEFERRED"
 		except:
 			raise DBError,"error connecting to database"
 		
 		self._c = self._db.cursor()
+		self._c.execute('PRAGMA synchronous="NORMAL"')
 		self.cache_dirty = True
 		try:
 			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
@@ -183,8 +184,10 @@ class ptvDB:
 				#self.searcher.finish(True) #tell lucene we didn't reindex everything
 			#else:
 			self.searcher.finish(False)
-		#self._c.close() finish gets called out of thread so this is bad
-		#self._db.close()
+		print "compacting database"
+		self._c.execute('VACUUM')
+		self._c.close()
+		self._db.close()
 
 	def maybe_initialize_db(self):
 		try:
@@ -689,6 +692,8 @@ class ptvDB:
 			pool.queueTask(self._pool_poll_feed,(feed,arguments,len(feeds), data),self._poll_mult_cb)
 			
 		polled = 0
+		#grow the cache while we do this operation
+		self._db_execute(self._c, 'PRAGMA cache_size=6000')
 		while polled < len(feeds):
 			if self._exiting:
 				break
@@ -697,6 +702,8 @@ class ptvDB:
 				feed_id, args, total, parsed = self._parse_list.pop(0)
 				self.polling_callback(self._process_feed(feed_id, args, total, parsed))
 			time.sleep(.1)
+		self._db_execute(self._c, 'PRAGMA cache_size=2000')
+		
 			
 		while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 			if self._exiting:
