@@ -1668,7 +1668,7 @@ j@v2v.cc
 		  <property name="visible_horizontal">True</property>
 		  <property name="visible_vertical">True</property>
 		  <property name="is_important">False</property>
-		  <signal name="clicked" handler="on_feed_remove_clicked" last_modification_time="Fri, 22 Jul 2005 23:35:06 GMT"/>
+		  <signal name="clicked" handler="on_remove_feed_activate" last_modification_time="Fri, 22 Jul 2005 23:35:06 GMT"/>
 		</widget>
 		<packing>
 		  <property name="expand">False</property>
