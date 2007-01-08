@@ -634,14 +634,6 @@ class MainWindow:
 	def on_export_opml_activate(self, event):
 		self._app.export_opml()
 		
-	def on_feed_remove_clicked(self,event): 
-		selected = self.feed_list_view.get_selected()
-		if selected:
-			if self._state == S_LOADING_FEEDS:
-				print "Please wait the program has loaded before removing a feed."
-				return 
-			self._app.remove_feed(selected)
-			
 	def on_feedlistview_drag_data_received(self, widget, context, x, y, selection, targetType, time):
 		widget.emit_stop_by_name('drag-data-received')
 		if targetType == self._TARGET_TYPE_TEXT:

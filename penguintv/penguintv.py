@@ -633,8 +633,6 @@ class PenguinTVApp(gobject.GObject):
 			self.mediamanager.download(item)
 			entry_id = self.db.get_entryid_for_media(item)
 			self.db.set_media_viewed(item,False)
-			#self.feed_list_view.update_feed_list(None,['icon'])
-			#self.update_entry_list()
 			feed_id = self.db.get_entry(entry_id)['feed_id']
 			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="resume" or action=="tryresume":
@@ -659,15 +657,11 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
-			#self.feed_list_view.update_feed_list(None,['readinfo'])
-			#self.update_entry_list()
 			self.emit('entry-updated', media['entry_id'], entry['feed_id'])
 		elif action=="downloadqueue":
 			self.mediamanager.unpause_downloads()
 			self.mediamanager.download(item, True)
 			self.db.set_media_viewed(item,False)
-			#self.feed_list_view.update_feed_list(None,['icon'])
-			#self.update_entry_list()
 			entry_id = self.db.get_entryid_for_media(item)
 			feed_id = self.db.get_entry(entry_id)['feed_id']
 			self.emit('entry-updated', entry_id, feed_id)
@@ -687,9 +681,6 @@ class PenguinTVApp(gobject.GObject):
 			self.do_cancel_download(newitem)
 		elif action=="delete":
 			self.delete_media(item)
-			#self.feed_list_view.update_feed_list(None,['readinfo','icon'])
-			#self.update_entry_list()
-			#self._entry_view.update_if_selected(self.db.get_entryid_for_media(item))
 			entry_id = self.db.get_entryid_for_media(item)
 			feed_id = self.db.get_entry(entry_id)['feed_id']
 			self.emit('entry-updated', entry_id, feed_id)
@@ -734,8 +725,6 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager.download_entry(entry_id)
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.emit('entry-updated', entry_id, feed_id)
-		#self.update_entry_list(entry)
-		#self.feed_list_view.update_feed_list(None,['icon'])
 
 	def download_unviewed(self):
 		self.mediamanager.unpause_downloads()
@@ -781,8 +770,6 @@ class PenguinTVApp(gobject.GObject):
 			#gtk.gdk.threads_enter()
 			self.mediamanager.download(d[0])
 			self.db.set_media_viewed(d[0],False)
-			#self.feed_list_view.update_feed_list(d[3],['icon'])
-			#self._entry_list_view.update_entry_list(d[2])
 			self.emit('entry-updated', d[2], d[3])
 			#gtk.gdk.threads_leave()
 			yield True
@@ -980,8 +967,6 @@ class PenguinTVApp(gobject.GObject):
 				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title']])
 				self.db.set_media_viewed(medium['media_id'],True)
 		self._player.play_list(filelist)
-		#self.feed_list_view.update_feed_list(None,['readinfo'])
-		#self.update_entry_list(entry_id)
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
 	def play_unviewed(self):
@@ -1334,9 +1319,6 @@ class PenguinTVApp(gobject.GObject):
 			for medium in medialist:
 				if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
 					self.delete_media(medium['media_id'])
-		#self._entry_view.update_if_selected(entry_id)
-		#self.update_entry_list(entry_id)
-		#self.feed_list_view.update_feed_list(None, ['readinfo','icon'])
 		entry_id = self.db.get_entryid_for_media(entry_id)
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.emit('entry-updated', entry_id, feed_id)
@@ -1393,9 +1375,6 @@ class PenguinTVApp(gobject.GObject):
 		try:
 			feed_id = self.db.get_entry(item['entry_id'])['feed_id']
 			self.emit('entry-updated', item['entry_id'], feed_id)
-			#self._entry_view.update_if_selected(item['entry_id'])
-			#self.update_entry_list(item['entry_id'])
-			#self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
 			print "noentry error, don't worry about it"
 			#print "downloads finished pop"
@@ -1416,8 +1395,6 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager.unpause_downloads()
 		self.mediamanager.download(media_id, False, True) #resume please
 		self.db.set_media_viewed(media_id,False)
-		#self.feed_list_view.update_feed_list(None,['readinfo','icon'])
-		#self.update_entry_list()
 		entry_id = self.db.get_entryid_for_media(media_id)
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.emit('entry-updated', entry_id, feed_id)
@@ -1441,10 +1418,7 @@ class PenguinTVApp(gobject.GObject):
 				if d.status==Downloader.FINISHED_AND_PLAY:
 					self.db.set_entry_read(d.media['entry_id'],True)
 					self.db.set_media_viewed(d.media['media_id'], True)
-					#self.feed_list_view.update_feed_list(None,['readinfo'])
-					#self.update_entry_list()
 					entry = self.db.get_entry(d.media['entry_id'])
-					#self.emit('entry-updated', d.media['entry_id'], entry['feed_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
 					self._player.play(d.media['file'], feed_title + " &#8211; " + entry['title'])
 				else:
@@ -1458,9 +1432,6 @@ class PenguinTVApp(gobject.GObject):
 		try:
 			feed_id = self.db.get_entry(d.media['entry_id'])['feed_id']
 			self.emit('entry-updated', d.media['entry_id'], feed_id)
-			#self._entry_view.update_if_selected(d.media['entry_id'])
-			#self.update_entry_list(d.media['entry_id'])
-			#self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
 			print "noentry error"
 			#print "downloads finished pop"
