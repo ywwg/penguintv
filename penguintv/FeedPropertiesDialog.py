@@ -22,9 +22,11 @@ class FeedPropertiesDialog:
 		self._description_widget = xml.get_widget('description_label')
 		self._last_poll_widget = xml.get_widget('last_poll_label')
 		self._next_poll_widget = xml.get_widget('next_poll_label')
+		self._edit_tags_widget = xml.get_widget('edit_tags_widget')
 		self._old_title = ""
 		self._old_rss = ""
 		self._old_link = ""
+		self._old_tags = []
 		
 		self._feed_id=0
 				
@@ -69,6 +71,15 @@ class FeedPropertiesDialog:
 			d = {'hours':int(floor(delta.seconds/3600)),
 				 'mins':int((delta.seconds-(floor(delta.seconds/3600)*3600))/60)}
 			self._next_poll_widget.set_text(_("in approx %(hours)sh %(mins)sm") % d)
+			
+	def set_tags(self, tags):
+		text = ""
+		if tags:
+			for tag in tags:
+				text=text+tag+", "
+			text = text[0:-2]
+		self._edit_tags_widget.set_text(text)
+		self._old_tags = tags
 		
 	def on_window_feed_properties_delete_event(self, widget, event):
 		return self._window.hide_on_delete()
@@ -78,11 +89,13 @@ class FeedPropertiesDialog:
 		
 	def on_save_values_activate(self, event):
 		new_title = self._title_widget.get_text()
+
 		if new_title != self._old_title:
 			#self._app.db.set_feed_name(self._feed_id,new_title)
 			self._app.rename_feed(self._feed_id, new_title)
 			self._old_title = new_title
 		new_rss = self._rss_widget.get_text()
+
 		if new_rss != self._old_rss:
 			try:
 				self._app.db.set_feed_url(self._feed_id, new_rss)
@@ -99,12 +112,15 @@ class FeedPropertiesDialog:
 				self._rss_widget.grab_focus()
 				return False
 		new_link = self._link_widget.get_text()
+
 		if new_link != self._old_link:
 			self._app.db.set_feed_link(self._feed_id, new_link)
 			self._old_link = new_link
+
+		tags=[tag.strip() for tag in self._edit_tags_widget.get_text().split(',')]
+		self._app.apply_tags_to_feed(self._feed_id, self._old_tags, tags)
 		return True
 		
-				
 	def on_close_button_clicked(self,event):
 		self._finish()
 		

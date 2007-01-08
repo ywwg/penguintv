@@ -169,12 +169,17 @@ class EntryView(gobject.GObject):
 		self._handlers.append((feed_list_view.disconnect, h_id))
 		h_id = entry_list_view.connect('no-entry-selected', self.__entrylist_none_selected_cb)
 		self._handlers.append((entry_list_view.disconnect, h_id))
+		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 	def __feedlist_none_selected_cb(self, o):
 		self.display_item()
 		
 	def __entrylist_none_selected_cb(self, o):
 		self.display_item()
+		
+	def __entry_updated_cb(self, app, entry_id, feed_id):
+		self.update_if_selected(entry_id)		
 	
 	def on_url(self, view, url):
 		if url == None:

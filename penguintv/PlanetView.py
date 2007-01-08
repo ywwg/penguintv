@@ -151,6 +151,8 @@ class PlanetView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
@@ -164,6 +166,11 @@ class PlanetView(gobject.GObject):
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.clear_entries()
+		
+	def __entry_updated_cb(self, app, entry_id, feed_id):
+		self.update_entry_list(entry_id)
+		if feed_id == self._current_feed_id:
+			self.populate_entries(feed_id)
 		
 	#entrylist functions
 	def populate_if_selected(self, feed_id):

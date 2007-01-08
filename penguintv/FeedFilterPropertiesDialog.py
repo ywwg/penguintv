@@ -16,11 +16,13 @@ class FeedFilterPropertiesDialog:
 		self._filter_name_entry = self._xml.get_widget("filter_name_entry")
 		self._query_entry = self._xml.get_widget("query_entry")
 		self._pointed_feed_label = self._xml.get_widget("pointed_feed_label")
+		self._edit_tags_widget = xml.get_widget("edit_tags_widget")
 		self._pointed_feed_id = -1
 		self._feed_id = 0
 		
 		self._old_name = ""
 		self._old_query = ""
+		self._old_tags = []
 		
 	def on_save_values_activate(self, event):
 		title = self._filter_name_entry.get_text()
@@ -40,6 +42,9 @@ class FeedFilterPropertiesDialog:
 				del dialog
 				self._query_entry.grab_focus()
 				return False
+				
+		tags=[tag.strip() for tag in self._edit_tags_widget.get_text().split(',')]
+		self._app.apply_tags_to_feed(self._feed_id, self._old_tags, tags)
 		return True
 				
 	def show(self):
@@ -68,6 +73,15 @@ class FeedFilterPropertiesDialog:
 	def set_filter_name(self, name):
 		self._filter_name_entry.set_text(name)
 		self._old_name = name
+		
+	def set_tags(self, tags):
+		text = ""
+		if tags:
+			for tag in tags:
+				text=text+tag+", "
+			text = text[0:-2]
+		self._edit_tags_widget.set_text(text)
+		self._old_tags = tags
 			
 	def on_close_button_clicked(self,event):
 		if self.on_save_values_activate(None):

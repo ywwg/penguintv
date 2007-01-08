@@ -141,9 +141,11 @@ class FeedList(gobject.GObject):
 		#self._scrolled_window.connect("scroll-event", self.on_feedlistview_scroll_event)
 		
 		self._handlers = []
-		h_id = self._app.connect('feed-updated', self.__feed_updated_cb)
+		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		
 		#init style
@@ -158,12 +160,15 @@ class FeedList(gobject.GObject):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
 			
-	def __feed_updated_cb(self, app, feed_id):
+	def __feed_polled_cb(self, app, feed_id):
 		self.update_feed_list(feed_id,['readinfo','icon','title','image'])
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.remove_feed(feed_id)
 		self.resize_columns()
+		
+	def __entry_updated_cb(self, app, entry_id, feed_id):
+		self.update_feed_list(feed_id,['readinfo','icon'])	
 			
 	def populate_feeds(self,callback=None, subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""

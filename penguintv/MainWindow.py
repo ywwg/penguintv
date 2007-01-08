@@ -38,9 +38,7 @@ N_FEEDS     = 0
 N_PLAYER    = 1
 N_DOWNLOADS = 2
 
-import EditTextTagsDialog
 import EditTagsMultiDialog
-import RenameFeedDialog
 import AddSearchTagDialog
 import EditSearchesDialog
 import FeedFilterDialog
@@ -80,9 +78,6 @@ class MainWindow:
 		self._active_filter_index = FeedList.ALL
 		
 		##other WINDOWS we open
-		self._window_rename_feed = RenameFeedDialog.RenameFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_rename_feed",'penguintv'),self._app) #MAGIC
-		self._window_rename_feed.hide()
-		self._window_edit_tags_single = EditTextTagsDialog.EditTextTagsDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_edit_tags_single",'penguintv'),self._app)
 		self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
 		
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
@@ -93,7 +88,7 @@ class MainWindow:
 		#signals
 		self._app.connect('feed-added', self.__feed_added_cb)
 		self._app.connect('feed-removed', self.__feed_removed_cb)
-		self._app.connect('feed-updated', self.__feed_updated_cb)
+		self._app.connect('feed-polled', self.__feed_polled_cb)
 	
 		#most of the initialization is done on Show()
 		
@@ -117,7 +112,7 @@ class MainWindow:
 			self.display_status_message(_("Error adding feed"))
 			self.select_feed(feed_id)
 			
-	def __feed_updated_cb(self, app, feed_id):
+	def __feed_polled_cb(self, app, feed_id):
 		self.display_status_message(_("Feed Updated"))
 		gobject.timeout_add(2000, self.display_status_message, "")
 			
@@ -593,6 +588,7 @@ class MainWindow:
 			self._feed_properties_dialog.set_description(feed_info['description'])
 			self._feed_properties_dialog.set_link(feed_info['link'])
 			self._feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
+			self._feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
 			if self._app.feed_refresh_method == penguintv.REFRESH_AUTO:
 				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
 			else:
@@ -629,9 +625,6 @@ class MainWindow:
 		if selected:
 			self._app.delete_feed_media(selected)
 			
-	def on_edit_tags_activate(self, event):
-		self._edit_tags()
-		
 	def on_edit_tags_for_all_activate(self, event):
 		"""Bring up mass tag creation window"""
 		window_edit_tags_multi = EditTagsMultiDialog.EditTagsMultiDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_edit_tags_multi",'penguintv'),self._app)
@@ -686,17 +679,6 @@ class MainWindow:
 				separator = gtk.SeparatorMenuItem()
 				menu.append(separator)
 
-			item = gtk.MenuItem(_("Re_name"))
-			item.connect('activate',self.on_rename_feed_activate)
-			if self._state == S_LOADING_FEEDS:
-				item.set_sensitive(False)
-				
-			menu.append(item)
-			
-			item = gtk.MenuItem(_("Edit _Tags"))
-			item.connect('activate',self.on_edit_tags_activate)
-			menu.append(item)
-			
 			item = gtk.ImageMenuItem('gtk-refresh')
 			item.connect('activate',self.on_refresh_activate)
 			if is_filter and not utils.HAS_LUCENE:
@@ -735,6 +717,14 @@ class MainWindow:
 				if not utils.HAS_LUCENE:
 					item.set_sensitive(False)
 				menu.append(item)
+				
+			item = gtk.ImageMenuItem(_("_Remove Feed"))
+			img = gtk.image_new_from_stock('gtk-remove',gtk.ICON_SIZE_MENU)
+			item.set_image(img)
+			item.connect('activate',self.on_remove_feed_activate)
+			if self._state == S_LOADING_FEEDS:
+				item.set_sensitive(False)
+			menu.append(item)
 
 			menu.show_all()
 			menu.popup(None,None,None, event.button,event.time)
@@ -918,19 +908,19 @@ class MainWindow:
 		self.search_container.set_sensitive(True)
 		
 	def on_remove_feed_activate(self, event):
+		assert self._state != S_LOADING_FEEDS
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			if self._state == S_LOADING_FEEDS:
-				print "Please wait the program has loaded before removing a feed."
-				return 
-			self._app.remove_feed(selected)
+			dialog = gtk.Dialog(title=_("Really Delete Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("Are you sure you want to delete this feed?"))
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
+			if response == gtk.RESPONSE_ACCEPT:		
+				self._app.remove_feed(selected)
 		
-	def on_rename_feed_activate(self, widget):
-		feed = self.feed_list_view.get_selected()
-		self._window_rename_feed.set_feed_id(feed)
-		self._window_rename_feed.set_feed_name(self._db.get_feed_title(feed))
-		self._window_rename_feed.show()	
-
 	def on_resume_all_activate(self, event):
 		self._app.resume_resumable()
 		
@@ -1051,13 +1041,6 @@ class MainWindow:
 				self._bar_owner = update_category
 				self._status_view.set_progress_percentage(p)
 		
-	def _edit_tags(self):
-		"""Edit Tags clicked, bring up tag editing dialog"""
-		selected = self.feed_list_view.get_selected()
-		self._window_edit_tags_single.set_feed_id(selected)
-		self._window_edit_tags_single.set_tags(self._db.get_tags_for_feed(selected))
-		self._window_edit_tags_single.show()
-		
 	def _unset_state(self):
 		"""gets app ready to display new state by unloading current state"""
 		#bring state back to default
@@ -1071,7 +1054,7 @@ class MainWindow:
 				self._widgetTree.get_widget("add_feed").set_sensitive(True)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
 				self._widgetTree.get_widget("remove_feed").set_sensitive(True)
-				self._widgetTree.get_widget("rename_feed").set_sensitive(True)
+				self._widgetTree.get_widget("properties").set_sensitive(True)
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
 			
@@ -1102,7 +1085,7 @@ class MainWindow:
 				self._widgetTree.get_widget("add_feed").set_sensitive(False)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
 				self._widgetTree.get_widget("remove_feed").set_sensitive(False)
-				self._widgetTree.get_widget("rename_feed").set_sensitive(False)
+				self._widgetTree.get_widget("properties").set_sensitive(False)
 			
 		self._state = new_state
 

@@ -85,6 +85,7 @@ T_BUILTIN = 3
 
 NOAUTODOWNLOAD="noautodownload"
 NOSEARCH="nosearch"
+NOAUTOEXPIRE="noautoexpire"
 
 DB_FILE="penguintv3.db"
 
@@ -389,7 +390,7 @@ class ptvDB:
 		#the new column is no longer used, but I can't get rid of it
 		self._db_execute(self._c, u"""CREATE TABLE entries
 							(
-							    id INTEGER  PRIMARY KEY,
+							    id INTEGER PRIMARY KEY,
 							        feed_id INT UNSIGNED NOT NULL,
 							        title ,
 							        creator  ,
@@ -398,12 +399,12 @@ class ptvDB:
 							        date DATE,
 							        guid ,
 							        link ,
-											read BOOL NOT NULL,
+									read BOOL NOT NULL,
 							        old BOOL NOT NULL,
 							        new BOOL NOT NULL,
 							        UNIQUE(id)
 							);""")
-		self._db_execute(self._c, u"""CREATE TABLE  media
+		self._db_execute(self._c, u"""CREATE TABLE media
 							(
 								id INTEGER  PRIMARY KEY,
 								entry_id INTEGER UNSIGNED NOT NULL,
@@ -1642,7 +1643,7 @@ class ptvDB:
 		self._db.commit()
 		
 	def get_entryid_for_media(self, media_id):
-		self._db_execute(self._c, u'SELECT entry_id FROM media WHERE id=?',(media_id,))
+		self._db_execute(self._c, u'SELECT entry_id FROM media WHERE id=? LIMIT 1',(media_id,))
 		ret = self._c.fetchone()
 		return ret[0]
 		
@@ -1674,6 +1675,19 @@ class ptvDB:
 		good_feeds = [f for f in feeds if NOAUTODOWNLOAD not in self.get_tags_for_feed(f)]
 		newlist = [l for l in newlist if l[3] in good_feeds]
 		return newlist 
+		
+	def get_deletable_media(self):
+		no_expire = self.get_feeds_for_tag(NOAUTOEXPIRE)
+		if len(no_expire) > 0:
+			qmarks = "?,"*(len(no_expire)-1)+"?"
+			self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 AND feed_id not in ('+qmarks+') ORDER BY download_date', tuple(no_expire))
+		else:
+			self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 ORDER BY download_date')
+		
+		result = self._c.fetchall()
+		if result:
+			return [[r[0],r[1],r[2],r[3],long(r[4])] for r in result]
+		return None
 		
 	def get_resumable_media(self):
 		self._db_execute(self._c, u'SELECT id, file, entry_id, feed_id  FROM media WHERE download_status=?',(D_RESUMABLE,))
@@ -1961,7 +1975,7 @@ class ptvDB:
 			return best_flag
 	
 	def get_feeds_for_tag(self, tag):
-		self._db_execute(self._c, u'SELECT feeds.id FROM feeds INNER JOIN tags ON tags.feed_id=feeds.id WHERE tag=?',(tag,))
+		self._db_execute(self._c, u'SELECT DISTINCT feeds.id FROM feeds INNER JOIN tags ON tags.feed_id=feeds.id WHERE tag=?',(tag,))
 		result = self._c.fetchall()
 		return [r[0] for r in result]
 			

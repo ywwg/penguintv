@@ -84,7 +84,7 @@ DONE_LOADING_FEEDS = 5
 class PenguinTVApp(gobject.GObject):
 
 	__gsignals__ = {
-		'feed-updated': (gobject.SIGNAL_RUN_FIRST, 
+		'feed-polled': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT])),
         'feed-added': (gobject.SIGNAL_RUN_FIRST, 
@@ -92,7 +92,10 @@ class PenguinTVApp(gobject.GObject):
                            ([gobject.TYPE_INT, gobject.TYPE_BOOLEAN])),
         'feed-removed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT]))
+                           ([gobject.TYPE_INT])),
+		'entry-updated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_INT]))
 	}
 
 	def __init__(self):
@@ -459,32 +462,81 @@ class PenguinTVApp(gobject.GObject):
 		return False
 	
 	def _auto_download_unviewed(self):
-		"""Automatically download any unviewed media.  Runs every five minutes when auto-polling, so make sure is good"""
+	
+		"""Automatically download any unviewed media.  Runs every five minutes 
+		when auto-polling, so make sure is good"""
+		
 		download_list=self.db.get_media_for_download(False) #don't resume paused downloads
 		if len(download_list)==0:
 			return #no need to bother
-		total_size=0
+		
+		total_size = 0
+		for d in download_list:
+			total_size=total_size+int(d[1])
+			
+		if self._free_media_space(total_size):
+			for d in download_list:
+				self.mediamanager.download(d[0])
+				self.emit('entry-updated', d[2], d[3])
+		else:
+			print "we were unable to free up enough space."
+		self.update_disk_usage()
+			
+	def _free_media_space(self, size_needed):
+		
+		"""deletes media so that we have at least 'size_needed' bytes of free space.
+		Returns True if successful, returns False if not (ie, too big)"""
+		
+		disk_total = utils.get_disk_total(self.mediamanager.media_dir)
 		disk_usage = self.mediamanager.get_disk_usage()
 		disk_free = utils.get_disk_free(self.mediamanager.media_dir)
-		disk_total = utils.get_disk_total(self.mediamanager.media_dir)
-		download_list.sort(lambda x,y: int(y[1]-x[1]))
-
-		at_least_one=False
-		for d in download_list:                #skip anything that puts us over the limit
-			if self._auto_download_limiter and disk_usage + total_size+int(d[1]) > self._auto_download_limit*1024: 
-				continue
+		
+		
+		#adjust actual free space so we never fill up the drive
+		if utils.RUNNING_SUGAR:
+			free_buffer = disk_total * .3
+		else:
+			free_buffer = disk_total * .05
 			
-			if utils.RUNNING_SUGAR:
-				if disk_free - (total_size + int(d[1])) < disk_total * .3:
-					continue
-			else:
-				#for regular machines, 5 percent
-				if disk_free - (total_size + int(d[1])) < disk_total * .05:
-					continue
-			total_size=total_size+int(d[1])
-			self.mediamanager.download(d[0])
-			self.feed_list_view.update_feed_list(d[3],['icon'])
-			self._entry_list_view.update_entry_list(d[2])
+		size_to_free = 0
+		if self._auto_download_limiter:
+			if self._auto_download_limit*1024 - disk_usage < size_needed:
+				size_to_free = size_needed - (self._auto_download_limit*1024 - disk_usage)
+
+		if disk_free + size_to_free < size_needed + free_buffer:
+			size_to_free = size_needed + free_buffer - disk_free
+			
+		#if the disk isn't big enough, drop it like it's hot...
+		if disk_total - free_buffer < size_needed:
+			return False
+		
+		#if the media ain't big enough, pop it like it's hot...
+		if disk_usage < size_to_free:
+			return False
+		
+		print "we need to delete some media!"	
+			
+		media_to_remove = []
+		removed_size = 0
+		for media_id,entry_id,feed_id,filename,date in self.db.get_deletable_media():
+			size = os.stat(filename)[6]
+			if removed_size >= size_to_free:
+				disk_usage = self.mediamanager.get_disk_usage()
+				if self._auto_download_limiter:
+					if self._auto_download_limit*1024 - disk_usage < size_needed:
+						print "ERROR: didn't free up the space like we thought1"
+						return False
+				if utils.get_disk_free(self.mediamanager.media_dir) < size_needed + free_buffer:
+					print "ERROR: didn't free up the space like we thought2",utils.get_disk_free(self.mediamanager.media_dir)
+					return False
+				return True
+				
+			removed_size += size
+			print "removing:",filename, size,"bytes for a total of",removed_size
+			self.db.delete_media(media_id)
+			self.emit('entry-updated', entry_id, feed_id)
+		print "we never got there, oops"
+		return False
 			
 	def add_search_tag(self, query, tag_name):
 		self.db.add_search_tag(query, tag_name)
@@ -579,10 +631,12 @@ class PenguinTVApp(gobject.GObject):
 		if action == "download":
 			self.mediamanager.unpause_downloads()
 			self.mediamanager.download(item)
-			media = self.db.get_media(item)
+			entry_id = self.db.get_entryid_for_media(item)
 			self.db.set_media_viewed(item,False)
-			self.feed_list_view.update_feed_list(None,['icon'])
-			self.update_entry_list()
+			#self.feed_list_view.update_feed_list(None,['icon'])
+			#self.update_entry_list()
+			feed_id = self.db.get_entry(entry_id)['feed_id']
+			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="resume" or action=="tryresume":
 			self.do_resume_download(item)
 		elif action=="play":
@@ -605,14 +659,18 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
-			self.feed_list_view.update_feed_list(None,['readinfo'])
-			self.update_entry_list()
+			#self.feed_list_view.update_feed_list(None,['readinfo'])
+			#self.update_entry_list()
+			self.emit('entry-updated', media['entry_id'], entry['feed_id'])
 		elif action=="downloadqueue":
 			self.mediamanager.unpause_downloads()
 			self.mediamanager.download(item, True)
 			self.db.set_media_viewed(item,False)
-			self.feed_list_view.update_feed_list(None,['icon'])
-			self.update_entry_list()
+			#self.feed_list_view.update_feed_list(None,['icon'])
+			#self.update_entry_list()
+			entry_id = self.db.get_entryid_for_media(item)
+			feed_id = self.db.get_entry(entry_id)['feed_id']
+			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="queue":
 			print parsed_url		
 		elif action=="stop":
@@ -629,9 +687,12 @@ class PenguinTVApp(gobject.GObject):
 			self.do_cancel_download(newitem)
 		elif action=="delete":
 			self.delete_media(item)
-			self.feed_list_view.update_feed_list(None,['readinfo','icon'])
-			self.update_entry_list()
-			self._entry_view.update_if_selected(self.db.get_entryid_for_media(item))
+			#self.feed_list_view.update_feed_list(None,['readinfo','icon'])
+			#self.update_entry_list()
+			#self._entry_view.update_if_selected(self.db.get_entryid_for_media(item))
+			entry_id = self.db.get_entryid_for_media(item)
+			feed_id = self.db.get_entry(entry_id)['feed_id']
+			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="reveal":
 			if utils.is_kde():
 				reveal_url = "file:" + urllib.quote(parsed_url[1]+parsed_url[2])
@@ -669,10 +730,12 @@ class PenguinTVApp(gobject.GObject):
 			if HAS_GNOME:
 				gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			
-	def download_entry(self, entry):
-		self.mediamanager.download_entry(entry)
-		self.update_entry_list(entry)
-		self.feed_list_view.update_feed_list(None,['icon'])
+	def download_entry(self, entry_id):
+		self.mediamanager.download_entry(entry_id)
+		feed_id = self.db.get_entry(entry_id)['feed_id']
+		self.emit('entry-updated', entry_id, feed_id)
+		#self.update_entry_list(entry)
+		#self.feed_list_view.update_feed_list(None,['icon'])
 
 	def download_unviewed(self):
 		self.mediamanager.unpause_downloads()
@@ -701,15 +764,26 @@ class PenguinTVApp(gobject.GObject):
 			del dialog
 			if response != gtk.RESPONSE_ACCEPT:
 				return
-		gobject.idle_add(self._downloader_generator(download_list).next)
+				
+		if self._free_media_space(total_size):
+			gobject.idle_add(self._downloader_generator(download_list).next)
+		else:
+			dialog = gtk.Dialog(title=_("Not Enough Free Space"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+			label = gtk.Label(_("PenguinTV was unable to free enough disk space to download %(space)s of media.") % {'space':utils.format_size(total_size)})
+			dialog.vbox.pack_start(label, True, True, 0)
+			label.show()
+			response = dialog.run()
+			dialog.hide()
+			del dialog
 
 	def _downloader_generator(self, download_list):
 		for d in download_list:
 			#gtk.gdk.threads_enter()
 			self.mediamanager.download(d[0])
 			self.db.set_media_viewed(d[0],False)
-			self.feed_list_view.update_feed_list(d[3],['icon'])
-			self._entry_list_view.update_entry_list(d[2])
+			#self.feed_list_view.update_feed_list(d[3],['icon'])
+			#self._entry_list_view.update_entry_list(d[2])
+			self.emit('entry-updated', d[2], d[3])
 			#gtk.gdk.threads_leave()
 			yield True
 		#gtk.gdk.threads_leave()			
@@ -747,26 +821,18 @@ class PenguinTVApp(gobject.GObject):
 		dialog.destroy()
 
 	def remove_feed(self, feed):		
-		dialog = gtk.Dialog(title=_("Really Delete Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-		label = gtk.Label(_("Are you sure you want to delete this feed?"))
-		dialog.vbox.pack_start(label, True, True, 0)
-		label.show()
-		response = dialog.run()
-		dialog.hide()
-		del dialog
-		if response == gtk.RESPONSE_ACCEPT:
-			#select entries and get all the media ids, and tell them all to cancel
-			#in case they are downloading
-			try:
-				for entry_id,title,date,read in self.db.get_entrylist(feed):
-					for medium in self.db.get_entry_media(entry_id):
-						if self.mediamanager.has_downloader(medium['media_id']):
-							self.mediamanager.stop_download(medium['media_id'])
-			except:
-				pass
-			self.db.delete_feed(feed)
-			self.emit('feed-removed', feed)
-			self.update_disk_usage()
+		#select entries and get all the media ids, and tell them all to cancel
+		#in case they are downloading
+		try:
+			for entry_id,title,date,read in self.db.get_entrylist(feed):
+				for medium in self.db.get_entry_media(entry_id):
+					if self.mediamanager.has_downloader(medium['media_id']):
+						self.mediamanager.stop_download(medium['media_id'])
+		except:
+			pass
+		self.db.delete_feed(feed)
+		self.emit('feed-removed', feed)
+		self.update_disk_usage()
 	
 	def poll_feeds(self, args=0):
 		args = args | ptvDB.A_ALL_FEEDS
@@ -914,8 +980,9 @@ class PenguinTVApp(gobject.GObject):
 				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title']])
 				self.db.set_media_viewed(medium['media_id'],True)
 		self._player.play_list(filelist)
-		self.feed_list_view.update_feed_list(None,['readinfo'])
-		self.update_entry_list(entry_id)
+		#self.feed_list_view.update_feed_list(None,['readinfo'])
+		#self.update_entry_list(entry_id)
+		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
@@ -942,7 +1009,7 @@ class PenguinTVApp(gobject.GObject):
 		#	print "shift-- shift delete it"
 		self.main_window.display_status_message(_("Polling Feed..."))
 		task_id = self._db_updater.queue(self._updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG+ptvDB.A_DO_REINDEX))
-		self._gui_updater.queue(self.emit, ('feed-updated', feed), task_id, False)
+		self._gui_updater.queue(self.emit, ('feed-polled', feed), task_id, False)
 		
 	def _unset_state(self, authorize=False):
 		"""gets app ready to display new state by unloading current state.
@@ -1231,7 +1298,7 @@ class PenguinTVApp(gobject.GObject):
 		return feed_id
 		
 	def _db_add_feed_cb(self, feed, success):
-		self._threaded_emit('feed-updated', feed['feed_id'])
+		self._threaded_emit('feed-polled', feed['feed_id'])
 		self._threaded_emit('feed-added', feed['feed_id'], success)
 		
 	def __feed_added_cb(self, app, feed_id, success):
@@ -1267,9 +1334,12 @@ class PenguinTVApp(gobject.GObject):
 			for medium in medialist:
 				if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
 					self.delete_media(medium['media_id'])
-		self._entry_view.update_if_selected(entry_id)
-		self.update_entry_list(entry_id)
-		self.feed_list_view.update_feed_list(None, ['readinfo','icon'])
+		#self._entry_view.update_if_selected(entry_id)
+		#self.update_entry_list(entry_id)
+		#self.feed_list_view.update_feed_list(None, ['readinfo','icon'])
+		entry_id = self.db.get_entryid_for_media(entry_id)
+		feed_id = self.db.get_entry(entry_id)['feed_id']
+		self.emit('entry-updated', entry_id, feed_id)
 		self.update_disk_usage()
 		
 	def delete_media(self, media_id):
@@ -1322,9 +1392,10 @@ class PenguinTVApp(gobject.GObject):
 			return
 		try:
 			feed_id = self.db.get_entry(item['entry_id'])['feed_id']
-			self._entry_view.update_if_selected(item['entry_id'])
-			self.update_entry_list(item['entry_id'])
-			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
+			self.emit('entry-updated', item['entry_id'], feed_id)
+			#self._entry_view.update_if_selected(item['entry_id'])
+			#self.update_entry_list(item['entry_id'])
+			#self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
 			print "noentry error, don't worry about it"
 			#print "downloads finished pop"
@@ -1345,8 +1416,11 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager.unpause_downloads()
 		self.mediamanager.download(media_id, False, True) #resume please
 		self.db.set_media_viewed(media_id,False)
-		self.feed_list_view.update_feed_list(None,['readinfo','icon'])
-		self.update_entry_list()
+		#self.feed_list_view.update_feed_list(None,['readinfo','icon'])
+		#self.update_entry_list()
+		entry_id = self.db.get_entryid_for_media(media_id)
+		feed_id = self.db.get_entry(entry_id)['feed_id']
+		self.emit('entry-updated', entry_id, feed_id)
 		
 	def _download_finished(self, d):
 		"""Process the data from a callback for a downloaded file"""
@@ -1367,9 +1441,10 @@ class PenguinTVApp(gobject.GObject):
 				if d.status==Downloader.FINISHED_AND_PLAY:
 					self.db.set_entry_read(d.media['entry_id'],True)
 					self.db.set_media_viewed(d.media['media_id'], True)
-					self.feed_list_view.update_feed_list(None,['readinfo'])
-					self.update_entry_list()
+					#self.feed_list_view.update_feed_list(None,['readinfo'])
+					#self.update_entry_list()
 					entry = self.db.get_entry(d.media['entry_id'])
+					#self.emit('entry-updated', d.media['entry_id'], entry['feed_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
 					self._player.play(d.media['file'], feed_title + " &#8211; " + entry['title'])
 				else:
@@ -1382,9 +1457,10 @@ class PenguinTVApp(gobject.GObject):
 			return
 		try:
 			feed_id = self.db.get_entry(d.media['entry_id'])['feed_id']
-			self._entry_view.update_if_selected(d.media['entry_id'])
-			self.update_entry_list(d.media['entry_id'])
-			self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
+			self.emit('entry-updated', d.media['entry_id'], feed_id)
+			#self._entry_view.update_if_selected(d.media['entry_id'])
+			#self.update_entry_list(d.media['entry_id'])
+			#self.feed_list_view.update_feed_list(feed_id,['readinfo','icon'])
 		except ptvDB.NoEntry:
 			print "noentry error"
 			#print "downloads finished pop"
