@@ -151,6 +151,8 @@ class PlanetView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		
@@ -162,6 +164,10 @@ class PlanetView(gobject.GObject):
 		
 	def __feed_added_cb(self, app, feed_id, success):
 		if success:
+			self.populate_entries(feed_id)
+			
+	def __feed_polled_cb(self, app, feed_id):
+		if feed_id == self._current_feed_id:
 			self.populate_entries(feed_id)
 			
 	def __feed_removed_cb(self, app, feed_id):

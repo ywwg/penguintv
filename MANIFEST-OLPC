@@ -11,7 +11,6 @@ penguintv/Downloader.py
 penguintv/DownloadView.py
 penguintv/EditSearchesDialog.py
 penguintv/EditTagsMultiDialog.py
-penguintv/EditTextTagsDialog.py
 penguintv/EntryList.py
 penguintv/EntryView.py
 penguintv/FeedFilterDialog.py
@@ -64,7 +63,6 @@ penguintv/ptvbittorrent/Uploader.py
 penguintv/ptvbittorrent/zurllib.py
 penguintv/ptvDB.py
 penguintv/ptv_sync.py
-penguintv/RenameFeedDialog.py
 penguintv/SimpleImageCache.py
 penguintv/subProcess.py
 penguintv/SynchronizeDialog.py
@@ -87,9 +85,5 @@ share/icons/stock-media-pause.svg
 lib/libcrypto.so.6
 lib/libcurl.so.3
 lib/libidn.so.11
-lib/libsqlite3.so.0
 lib/libssl.so.6
 site-packages/pycurl.so
-site-packages/pysqlite2/__init__.py
-site-packages/pysqlite2/_sqlite.so
-site-packages/pysqlite2/dbapi2.py

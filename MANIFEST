@@ -39,7 +39,6 @@ penguintv/LoginDialog.py
 penguintv/subProcess.py
 penguintv/Player.py
 penguintv/utils.py
-penguintv/EditTextTagsDialog.py
 penguintv/EntryView.py
 penguintv/AddFeedDialog.py
 penguintv/EntryList.py
@@ -50,7 +49,6 @@ penguintv/OPML.py
 penguintv/EditTagsMultiDialog.py
 penguintv/ThreadPool.py
 penguintv/penguintv.py
-penguintv/RenameFeedDialog.py
 penguintv/MediaManager.py
 penguintv/MainWindow.py
 penguintv/ptvDB.py

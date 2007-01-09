@@ -4,5 +4,5 @@ service_name = com.ywwg.PenguinTV
 id = com.ywwg.PenguinTV
 exec = sugar-activity-factory PenguinTVActivity.PenguinTVActivity
 icon = activity-penguintv
-activity_version = 8
+activity_version = 9
 show_launcher = yes
