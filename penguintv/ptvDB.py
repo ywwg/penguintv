@@ -1687,7 +1687,7 @@ class ptvDB:
 		result = self._c.fetchall()
 		if result:
 			return [[r[0],r[1],r[2],r[3],long(r[4])] for r in result]
-		return None
+		return []
 		
 	def get_resumable_media(self):
 		self._db_execute(self._c, u'SELECT id, file, entry_id, feed_id  FROM media WHERE download_status=?',(D_RESUMABLE,))
@@ -1994,14 +1994,14 @@ class ptvDB:
 		result = self._c.fetchone()
 		if result: 
 			return result[0]
-		return None
+		return []
 		
 	def get_search_tags(self):
 		self._db_execute(self._c, u'SELECT tag,query FROM tags WHERE type=? ORDER BY tag',(T_SEARCH,))
 		result = self._c.fetchall()
 		if result:
 			return result
-		return None
+		return []
 	
 	def add_tag_for_feed(self, feed_id, tag):
 		current_tags = self.get_tags_for_feed(feed_id)

@@ -243,7 +243,7 @@ class PenguinTVApp(gobject.GObject):
 		#gtk.gdk.threads_leave()
 		return False #for idler	
 		
-	def _import_default_feeds():
+	def _import_default_feeds(self):
 		found_subs = False
 		for path in (os.path.join(utils.GetPrefix(), "share" ,"penguintv"),
 					 os.path.join(utils.GetPrefix(), "share"),

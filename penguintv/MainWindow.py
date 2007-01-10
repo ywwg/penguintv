@@ -791,12 +791,9 @@ class MainWindow:
 		
 		response = dialog.run()
 		if response == gtk.RESPONSE_OK:
-			try:
-				f = open(dialog.get_filename(), "r")
-				self.display_status_message(_("Importing Feeds, please wait..."))
-				self._app.import_opml(f)
-			except:
-				pass
+			f = open(dialog.get_filename(), "r")
+			self.display_status_message(_("Importing Feeds, please wait..."))
+			self._app.import_subscriptions(f)
 		elif response == gtk.RESPONSE_CANCEL:
 			print 'Closed, no files selected'
 		dialog.destroy()		
