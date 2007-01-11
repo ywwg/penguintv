@@ -30,9 +30,7 @@ from penguintv import penguintv
 class PenguinTVActivity(Activity):
 	def __init__(self):
 		Activity.__init__(self)
-		app = penguintv.PenguinTVApp()
-		app.main_window.Show(self)
-		app.post_show_init()
+		app = penguintv.PenguinTVApp(self)
 		self.set_title('PenguinTV')
 		self.connect('destroy',self.do_quit, app)
 	

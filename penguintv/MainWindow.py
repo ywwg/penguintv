@@ -56,8 +56,9 @@ class MainWindow:
 	COLUMN_BOLD = 2
 	COLUMN_STICKY_FLAG = 3
 
-	def __init__(self, app, glade_prefix, use_internal_player = False):
+	def __init__(self, app, glade_prefix, use_internal_player=False, window=None):
 		self._app = app
+		self._app_inited = False
 		self._mm = self._app.mediamanager
 		self._db = self._app.db #this and app are always in the same thread
 		self._glade_prefix = glade_prefix
@@ -91,6 +92,8 @@ class MainWindow:
 		self._app.connect('feed-polled', self.__feed_polled_cb)
 	
 		#most of the initialization is done on Show()
+		if window:
+			window.connect('show', self.Show)
 		
 	def __link_activated_cb(self, o, link):
 		self._app.activate_link(link)
@@ -175,6 +178,10 @@ class MainWindow:
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
+				
+		if not self._app_inited:
+			gobject.idle_add(self._app.post_show_init)
+			self._app_inited = True
 				
 	def _load_toolbar(self):
 		if self._widgetTree is None:

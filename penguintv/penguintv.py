@@ -98,19 +98,21 @@ class PenguinTVApp(gobject.GObject):
                            ([gobject.TYPE_INT, gobject.TYPE_INT]))
 	}
 
-	def __init__(self):
+	def __init__(self, window=None):
 		gobject.GObject.__init__(self)
-		self._socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
-		if not self._socket.is_server:
-			#just pass the arguments and quit
-			if len(sys.argv)>1:
-				self._socket.send(" ".join(sys.argv[1:]))
-			self._socket.close()
-			return
-			
 		self._for_import = []
-		if len(sys.argv)>1:
-			self._for_import.append(sys.argv[1])
+		
+		if not utils.RUNNING_SUGAR:
+			self._socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
+			if not self._socket.is_server:
+				#just pass the arguments and quit
+				if len(sys.argv)>1:
+					self._socket.send(" ".join(sys.argv[1:]))
+				self._socket.close()
+				return
+				
+			if len(sys.argv)>1:
+				self._for_import.append(sys.argv[1])
 			
 		found_glade = False
 		
@@ -163,7 +165,7 @@ class PenguinTVApp(gobject.GObject):
 			use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
 		else:
 			use_internal_player = True
-		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player) 
+		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player, window=window) 
 		self.main_window.layout=window_layout
 		
 		#some signals
@@ -513,13 +515,18 @@ class PenguinTVApp(gobject.GObject):
 		#if the media ain't big enough, pop it like it's hot...
 		if disk_usage < size_to_free:
 			return False
-		
-		print "we need to delete some media!"	
+			
+		if size_to_free == 0:
+			print "no need to delete anything"
+			return True
+			
+		print "we need to delete some media!", size_to_free	
 			
 		media_to_remove = []
 		removed_size = 0
 		for media_id,entry_id,feed_id,filename,date in self.db.get_deletable_media():
 			size = os.stat(filename)[6]
+			print "how about...",filename
 			if removed_size >= size_to_free:
 				disk_usage = self.mediamanager.get_disk_usage()
 				if self._auto_download_limiter:
@@ -1319,7 +1326,6 @@ class PenguinTVApp(gobject.GObject):
 			for medium in medialist:
 				if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
 					self.delete_media(medium['media_id'])
-		entry_id = self.db.get_entryid_for_media(entry_id)
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.emit('entry-updated', entry_id, feed_id)
 		self.update_disk_usage()
@@ -1659,7 +1665,6 @@ def main():
 	if not app._socket.is_server:
 		sys.exit(0)
 	app.main_window.Show() 
-	gobject.idle_add(app.post_show_init) #lets window appear first)
 	gtk.gdk.threads_init()
 	if utils.is_kde():
 		try:
@@ -1690,7 +1695,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		if not app._socket.is_server:
 			sys.exit(0)
 		app.main_window.Show() 
-		gobject.idle_add(app.post_show_init) #lets window appear first)
 		gtk.gdk.threads_init()
 		#import profile
 		#profile.run('gtk.main()', '/tmp/penguintv-prof')
@@ -1716,7 +1720,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		gtk.gdk.threads_init()
 		app = PenguinTVApp()
 		app.main_window.Show(window)
-		gobject.idle_add(app.post_show_init)
 		window.connect('delete-event', do_quit, app)
 	gtk.main()
 	
