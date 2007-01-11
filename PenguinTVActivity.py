@@ -46,9 +46,7 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 
 	window = gtk.Window()
 	gtk.gdk.threads_init()
-	app = penguintv.PenguinTVApp()
-	app.main_window.Show(window)
-	gobject.idle_add(app.post_show_init)
+	app = penguintv.PenguinTVApp(window)
 	window.connect('delete-event', do_quit, app)
 	gtk.main()
 	
@@ -59,8 +57,6 @@ def main(): #another way to run the program
 
 	window = gtk.Window()
 	gtk.gdk.threads_init()
-	app = penguintv.PenguinTVApp()
-	app.main_window.Show(window)
-	gobject.idle_add(app.post_show_init)
+	app = penguintv.PenguinTVApp(window)
 	window.connect('delete-event', do_quit, app)
 	gtk.main()
