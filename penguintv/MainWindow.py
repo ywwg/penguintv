@@ -1101,8 +1101,13 @@ class MainWindow:
 			if not utils.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
 			i+=1
-			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
-			menuitem = gtk.MenuItem(builtin)
+			if builtin == _("All Feeds"):
+				text = builtin+" ("+str(len(self._db.get_feedlist()))+")"
+				self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
+				menuitem = gtk.MenuItem(text)
+			else:
+				self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
+				menuitem = gtk.MenuItem(builtin)
 			menuitem.connect('activate',self._on_filter_menu_activate, builtin)
 			self._filter_menu.append(menuitem)
 
