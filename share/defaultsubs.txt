@@ -1,4 +1,4 @@
 http://lugradio.org/episodes.ogg.rss
 http://www.quietamerican.org/vacation.xml
-http://ywwg.com/wordpress/wp-rss2.php
+http://planet.laptop.org/atom.xml
 http://www.gnomefiles.org/files/gnomefiles2.xml

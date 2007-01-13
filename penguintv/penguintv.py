@@ -476,6 +476,8 @@ class PenguinTVApp(gobject.GObject):
 		for d in download_list:
 			total_size=total_size+int(d[1])
 			
+		print "adding up downloads, we need", total_size, "bytes"
+			
 		if self._free_media_space(total_size):
 			for d in download_list:
 				self.mediamanager.download(d[0])
@@ -502,8 +504,13 @@ class PenguinTVApp(gobject.GObject):
 			
 		size_to_free = 0
 		if self._auto_download_limiter:
+			print "we are limited to:",self._auto_download_limit*1024
+			print "free space under this limit is:", self._auto_download_limit*1024 - disk_usage
+			print "we need", size_needed
 			if self._auto_download_limit*1024 - disk_usage < size_needed:
+				print "not enough, so we will free",
 				size_to_free = size_needed - (self._auto_download_limit*1024 - disk_usage)
+				print size_to_free
 
 		if disk_free + size_to_free < size_needed + free_buffer:
 			size_to_free = size_needed + free_buffer - disk_free
