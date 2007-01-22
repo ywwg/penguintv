@@ -548,6 +548,7 @@ class PenguinTVApp(gobject.GObject):
 			removed_size += size
 			print "removing:",filename, size,"bytes for a total of",removed_size
 			self.db.delete_media(media_id)
+			self.db.set_entry_read(entry_id)
 			self.emit('entry-updated', entry_id, feed_id)
 		print "we never got there, oops"
 		return False
@@ -706,7 +707,7 @@ class PenguinTVApp(gobject.GObject):
 				reveal_url = "file:"+os.path.split(urllib.quote(parsed_url[1]+parsed_url[2]))[0]
 				if HAS_GNOME:
 					gnome.url_show(reveal_url)
-		elif action=="http":
+		elif action == "http" or action == "https":
 			try:
 				if len(http_arguments)>0:
 					http_arguments = "?"+http_arguments

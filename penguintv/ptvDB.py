@@ -1680,9 +1680,9 @@ class ptvDB:
 		no_expire = self.get_feeds_for_tag(NOAUTOEXPIRE)
 		if len(no_expire) > 0:
 			qmarks = "?,"*(len(no_expire)-1)+"?"
-			self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 AND feed_id not in ('+qmarks+') ORDER BY download_date', tuple(no_expire))
+			self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 AND feed_id not in ('+qmarks+') ORDER BY viewed DESC, download_date', tuple(no_expire))
 		else:
-			self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 ORDER BY download_date')
+			self._db_execute(self._c, u'SELECT id, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 ORDER BY viewed DESC, download_date')
 		
 		result = self._c.fetchall()
 		if result:

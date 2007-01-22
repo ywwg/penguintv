@@ -637,7 +637,11 @@ class GStreamerPlayer(gobject.GObject):
 				if not self._resized_pane:
 					self._resize_pane()
 		if message.type == gst.MESSAGE_EOS:
-			self.next()
+			model = self._queue_listview.get_model()
+			if self._current_index < len(model) - 1:
+				self.next()
+			else:
+				self.stop()
 		elif message.type == gst.MESSAGE_ERROR:
 			gerror, debug = message.parse_error()
 			print "GSTREAMER ERROR:",debug
@@ -686,7 +690,7 @@ class GStreamerPlayer(gobject.GObject):
 			return False
 		else:
 			return True
-    
+	
 	def iterCopy(self, target_model, target_iter, row, pos):
 		if (pos == gtk.TREE_VIEW_DROP_INTO_OR_BEFORE) or (pos == gtk.TREE_VIEW_DROP_INTO_OR_AFTER):
 			new_iter = target_model.append(row)

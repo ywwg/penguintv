@@ -231,7 +231,10 @@ class AddFeedDialog:
 									pos_url=os.path.split(url)[0]+'/'+pos_url
 									
 							#now test sizes
-							size = len(urllib.urlopen(pos_url).read())
+							try:
+							    size = len(urllib.urlopen(pos_url).read())
+							except:
+							    continue
 							if size > largest:
 								newurl = pos_url
 								
