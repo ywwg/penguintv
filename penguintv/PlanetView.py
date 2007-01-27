@@ -106,12 +106,21 @@ class PlanetView(gobject.GObject):
 		elif self._renderer == MOZILLA:
 			if utils.RUNNING_SUGAR:
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet-olpc.css"))
+				for l in f.readlines(): self._css += l
+				f.close()
+				
+				import _sugar
+				_sugar.browser_startup(self._db.home, 'gecko')
+				self._moz = _sugar.Browser()
 			else:
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			gtkmozembed.set_profile_path(self._db.home, 'gecko')
-			self._moz = gtkmozembed.MozEmbed()
+				for l in f.readlines(): self._css += l
+				f.close()
+				gtkmozembed.set_profile_path(self._db.home, 'gecko')
+				gtkmozembed.push_startup()
+				self._moz = gtkmozembed.MozEmbed()
+				
+			
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)
 			self._moz.connect("realize", self._moz_realize, True)
@@ -300,6 +309,10 @@ class PlanetView(gobject.GObject):
 		self._update_server.finish()
 		urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
 		self._render("<html><body></body></html")
+		if utils.RUNNING_SUGAR:
+			_sugar.browser_shutdown()
+		else:
+			gtkmozembed.pop_startup()
 		
 	#protected functions
 	def _render_entries(self, highlight=None):

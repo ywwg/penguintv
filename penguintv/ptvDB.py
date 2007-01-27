@@ -3,6 +3,7 @@
 
 from pysqlite2 import dbapi2 as sqlite
 from math import floor,ceil
+from random import randint
 import pysqlite2
 #import feedparser  loaded when needed
 import time
@@ -185,10 +186,12 @@ class ptvDB:
 				#self.searcher.finish(True) #tell lucene we didn't reindex everything
 			#else:
 			self.searcher.finish(False)
-		print "compacting database"
-		self._c.execute('VACUUM')
-		self._c.close()
-		self._db.close()
+		#FIXME: lame, but I'm being lazy
+		if randint(1,10) == 1:
+			print "compacting database"
+			self._c.execute('VACUUM')
+			self._c.close()
+			self._db.close()
 
 	def maybe_initialize_db(self):
 		try:
@@ -2082,6 +2085,9 @@ class ptvDB:
 				return 0
 			return -1
 		result.sort(alpha_sorter)
+		#sometimes a tag has two different favorite settings due to a bug.
+		#just work around it and get rid of the extras
+		result = utils.uniquer(result, lambda x: x[0])
 		return result
 	
 	def get_count_for_tag(self, tag):
@@ -2194,8 +2200,7 @@ class ptvDB:
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list
 		try:
-			#print "reindexing",len(self._reindex_feed_list),len(self._reindex_entry_list)
-			self.searcher.Re_Index_Threaded(feed_list, entry_list)
+			self.searcher.Re_Index_Threaded(self._reindex_feed_list, self._reindex_entry_list)
 		except:
 			print "reindex failure.  wait til next time I guess"
 		self._reindex_feed_list = []

@@ -548,7 +548,7 @@ class PenguinTVApp(gobject.GObject):
 			removed_size += size
 			print "removing:",filename, size,"bytes for a total of",removed_size
 			self.db.delete_media(media_id)
-			self.db.set_entry_read(entry_id)
+			self.db.set_entry_read(entry_id, True)
 			self.emit('entry-updated', entry_id, feed_id)
 		print "we never got there, oops"
 		return False
@@ -599,6 +599,7 @@ class PenguinTVApp(gobject.GObject):
 		if removed_tags or added_tags:
 			self.feed_list_view.set_selected(feed_id)
 		self.main_window.update_filters()
+		self.feed_list_view.filter_all(False)
 		
 	def _populate_feeds(self, callback=None, subset=FeedList.ALL):
 		self.set_state(LOADING_FEEDS)
@@ -1018,6 +1019,11 @@ class PenguinTVApp(gobject.GObject):
 		To unset loading_feeds, we take a "manual override" argument"""
 				
 		#bring state back to default
+		
+		if self._state != MANUAL_SEARCH:
+			#save filter for later
+			self._saved_filter = self.main_window.get_active_filter()[1]
+		
 		if self._state == LOADING_FEEDS:
 			if not authorize:
 				raise CantChangeState,"can't interrupt feed loading"
@@ -1028,9 +1034,7 @@ class PenguinTVApp(gobject.GObject):
 		if self._state == DEFAULT:
 			return
 	
-		if self._state != MANUAL_SEARCH:
-			#save filter for later
-			self._saved_filter = self.main_window.get_active_filter()[1]
+		
 		
 	def set_state(self, new_state, data=None):
 		if self._state == new_state:

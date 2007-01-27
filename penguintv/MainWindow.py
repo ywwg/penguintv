@@ -696,6 +696,15 @@ class MainWindow:
 				item.set_sensitive(False)
 			menu.append(item)
 			
+			item = gtk.ImageMenuItem(_("_Remove Feed"))
+			img = gtk.image_new_from_stock('gtk-remove',gtk.ICON_SIZE_MENU)
+			item.set_image(img)
+			item.connect('activate',self.on_remove_feed_activate)
+			if self._state == S_LOADING_FEEDS:
+				item.set_sensitive(False)
+			menu.append(item)
+
+			
 			separator = gtk.SeparatorMenuItem()
 			menu.append(separator)
 			
@@ -717,14 +726,6 @@ class MainWindow:
 					item.set_sensitive(False)
 				menu.append(item)
 				
-			item = gtk.ImageMenuItem(_("_Remove Feed"))
-			img = gtk.image_new_from_stock('gtk-remove',gtk.ICON_SIZE_MENU)
-			item.set_image(img)
-			item.connect('activate',self.on_remove_feed_activate)
-			if self._state == S_LOADING_FEEDS:
-				item.set_sensitive(False)
-			menu.append(item)
-
 			menu.show_all()
 			menu.popup(None,None,None, event.button,event.time)
 	

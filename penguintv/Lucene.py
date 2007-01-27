@@ -172,7 +172,7 @@ class Lucene:
 		PythonThread(target=self.Re_Index, args=(feedlist,entrylist)).start()
 		
 	def Re_Index(self, feedlist=[], entrylist=[]):
-		if len(feedlist)==0 and len(entrylist)==0:
+		if len(feedlist) == 0 and len(entrylist) == 0:
 			return
 			
 		def reindex_interrupt():
