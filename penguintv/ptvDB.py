@@ -182,9 +182,8 @@ class ptvDB:
 		if utils.HAS_LUCENE:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
 				print "have leftover things to reindex, reindexing"
-				self.reindex() #it's usually not much...
-				#self.searcher.finish(True) #tell lucene we didn't reindex everything
-			#else:
+				#don't do it threadedly or else we will interrupt it on the next line
+				self.reindex(threaded=False) #it's usually not much...
 			self.searcher.finish(False)
 		#FIXME: lame, but I'm being lazy
 		if randint(1,10) == 1:
@@ -2193,14 +2192,17 @@ class ptvDB:
 		if utils.HAS_LUCENE:
 			self.searcher.Do_Index_Threaded(callback)
 		
-	def reindex(self, feed_list=[], entry_list=[]):
+	def reindex(self, feed_list=[], entry_list=[], threaded=True):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
 		if not utils.HAS_LUCENE:
 			return
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list
 		try:
-			self.searcher.Re_Index_Threaded(self._reindex_feed_list, self._reindex_entry_list)
+			if threaded:
+				self.searcher.Re_Index_Threaded(self._reindex_feed_list, self._reindex_entry_list)
+			else:
+				self.searcher.Re_Index(self._reindex_feed_list, self._reindex_entry_list)
 		except:
 			print "reindex failure.  wait til next time I guess"
 		self._reindex_feed_list = []

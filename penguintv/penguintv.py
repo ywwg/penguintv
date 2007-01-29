@@ -504,13 +504,8 @@ class PenguinTVApp(gobject.GObject):
 			
 		size_to_free = 0
 		if self._auto_download_limiter:
-			print "we are limited to:",self._auto_download_limit*1024
-			print "free space under this limit is:", self._auto_download_limit*1024 - disk_usage
-			print "we need", size_needed
 			if self._auto_download_limit*1024 - disk_usage < size_needed:
-				print "not enough, so we will free",
 				size_to_free = size_needed - (self._auto_download_limit*1024 - disk_usage)
-				print size_to_free
 
 		if disk_free + size_to_free < size_needed + free_buffer:
 			size_to_free = size_needed + free_buffer - disk_free
@@ -524,16 +519,11 @@ class PenguinTVApp(gobject.GObject):
 			return False
 			
 		if size_to_free == 0:
-			print "no need to delete anything"
 			return True
-			
-		print "we need to delete some media!", size_to_free	
 			
 		media_to_remove = []
 		removed_size = 0
 		for media_id,entry_id,feed_id,filename,date in self.db.get_deletable_media():
-			size = os.stat(filename)[6]
-			print "how about...",filename
 			if removed_size >= size_to_free:
 				disk_usage = self.mediamanager.get_disk_usage()
 				if self._auto_download_limiter:
@@ -544,13 +534,12 @@ class PenguinTVApp(gobject.GObject):
 					print "ERROR: didn't free up the space like we thought2",utils.get_disk_free(self.mediamanager.media_dir)
 					return False
 				return True
-				
+			size = os.stat(filename)[6]
 			removed_size += size
 			print "removing:",filename, size,"bytes for a total of",removed_size
 			self.db.delete_media(media_id)
 			self.db.set_entry_read(entry_id, True)
 			self.emit('entry-updated', entry_id, feed_id)
-		print "we never got there, oops"
 		return False
 			
 	def add_search_tag(self, query, tag_name):

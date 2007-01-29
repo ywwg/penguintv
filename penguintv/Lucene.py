@@ -181,7 +181,6 @@ class Lucene:
 			self._interrupt()
 			return
 			
-		print "reindexing"
 		self._index_lock.acquire()
 		db = self._get_db()
 		c = db.cursor()
@@ -206,11 +205,6 @@ class Lucene:
 				c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
 				title, description = c.fetchone()
 				feed_addition.append((feed_id, title, description))
-				#c.execute(u"""SELECT id, title, description, fakedate FROM entries WHERE feed_id=?""",(feed_id,))
-				#results = c.fetchall()
-				#if results:
-				#	for entry_id, title, description, fakedate in results:
-				#		entry_addition.append((entry_id, feed_id, title, description, fakedate))
 			except TypeError:
 				pass #it won't be readded.  Assumption is we have deleted this feed
 
@@ -297,7 +291,6 @@ class Lucene:
 		indexModifier.flush()
 		indexModifier.close()
 		self._index_lock.release()
-		print "reindex done"
 						
 	def Search(self, command, blacklist=[], include=['feeds','entries'], since=0):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It

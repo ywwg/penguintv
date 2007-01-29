@@ -65,12 +65,12 @@ _USE_KDE_OVERRIDE=False
 #HAS_LUCENE = False
 
 def format_size(size):
-	if size > 1000000000:
-		return "%.2f GB" % (float(size)/1000000000)
-	elif size > 1000000:
-		return str(int(round(size/1000000)))+ " MB"
-	elif size > 1000:
-		return str(int(round(size/1000)))+" KB"
+	if size > 1073741824:
+		return "%.2f GB" % (float(size)/1073741824)
+	elif size > 1048576:
+		return str(int(round(size/1048576)))+ " MB"
+	elif size > 1024:
+		return str(int(round(size/1024)))+" KB"
 	else:
 		return str(size)+" bytes"
 		
