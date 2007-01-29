@@ -42,7 +42,7 @@ class Outline(dict):
         self._children = []
 
     def add_child(self, outline):
-    	self._children.append(outline)
+        self._children.append(outline)
 
     def get_children_iter(self):
         return self.OIterator(self)
@@ -77,16 +77,24 @@ class OutlineList:
     
     def add_outline(self, outline):
         if len(self._stack):
+            #if there is already something on the stack
+            outline.setdefault('categories','')
+            #set up some categories
+            for o in self._stack:
+                outline['categories'] += o['title'] + ","
+            outline['categories'] = outline['categories'][0:-1]
+            #and, uh, do this thing
             self._stack[-1].add_child(outline)
         else:
-        	##Add normalization here
+            #otherwise it's a root.   I guess.
             outline.setdefault('title',"Untitled")
             outline.setdefault('text',outline['title'])
             self._roots.append(outline)
         self._stack.append(outline)
 
     def close_outline(self):
-    	if len(self._stack):
+        if len(self._stack):
+            #remove the child at the end of the stack (the one that just closed)
             del self._stack[-1]
 
     def roots(self):
@@ -99,7 +107,7 @@ class OPMLHandler(saxutils.DefaultHandler):
         self._content = ""
 
     def startElement(self, name, attrs):
-    	if self._opml is None:
+        if self._opml is None:
             if name != 'opml':
                 raise ValueError, "This doesn't look like OPML"
             self._opml = OPML()
@@ -110,7 +118,7 @@ class OPMLHandler(saxutils.DefaultHandler):
         self._content = ""
 
     def endElement(self, name):
-    	if name == 'outline':
+        if name == 'outline':
             self._outlines.close_outline()
             return
         if name == 'opml':
@@ -138,18 +146,18 @@ def parse(stream):
     return handler.get_opml()
     
 def outline_generator(outline):
-	if type(outline) is list:
-		for o in outline:
-			if o.has_key('xmlUrl'):
-				yield o
-			for i in o.get_children_iter():
-				for item in outline_generator(i):
-					yield item
-	elif type(outline) is Outline:
-		if outline.has_key('xmlUrl'):
-			yield outline
-		for i in outline.get_children_iter():
-			for item in outline_generator(i):
-				yield item
+    if type(outline) is list:
+        for o in outline:
+            if o.has_key('xmlUrl'):
+                yield o
+            for i in o.get_children_iter():
+                for item in outline_generator(i):
+                    yield item
+    elif type(outline) is Outline:
+        if outline.has_key('xmlUrl'):
+            yield outline
+        for i in outline.get_children_iter():
+            for item in outline_generator(i):
+                yield item
 
 

@@ -2141,6 +2141,10 @@ class ptvDB:
 			for o in OPML.outline_generator(p.outlines):
 				try:
 					feed_id=self.insertURL(o['xmlUrl'],o['text'])
+					if o.has_key('categories'):
+					    for tag in o['categories'].split(','):
+					        tag = tag.strip()
+					        self.add_tag_for_feed(feed_id, tag)
 					#added_feeds.append(feed_id)
 					yield (1,feed_id)
 				except FeedAlreadyExists, f:
@@ -2178,7 +2182,6 @@ class ptvDB:
 					yield (-1,0)
 			yield (-1,0)
 				
-		
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
 		if not utils.HAS_LUCENE:
 			return ([],[])
