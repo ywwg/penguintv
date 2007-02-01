@@ -59,7 +59,7 @@ try:
 except:
 	HAS_GSTREAMER = False
 	
-VERSION="2.56"
+VERSION="2.80"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 #HAS_LUCENE = False
