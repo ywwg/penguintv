@@ -1071,6 +1071,7 @@ class PenguinTVApp(gobject.GObject):
 	
 	def _show_search(self, query, result):
 		if self._state != MANUAL_SEARCH and self._state != TAG_SEARCH:
+			traceback.print_stack()
 			print "incorrect state, aborting", self._state
 			return
 		try:
@@ -1161,7 +1162,7 @@ class PenguinTVApp(gobject.GObject):
 
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.get_active_filter()[1]
-		if filter_id == FeedList.SEARCH:
+		if utils.HAS_LUCENE and filter_id == FeedList.SEARCH:
 			self._show_search(self._saved_search, self._search(self._saved_search))
 			if self._threaded_searcher:
 				if not self._waiting_for_search:

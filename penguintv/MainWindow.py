@@ -464,11 +464,13 @@ class MainWindow:
 			try:
 				filter_index = [row[F_NAME] for row in self._filters].index(val)
 				cur_filter = self._filters[filter_index]
-				if cur_filter[F_TYPE] != ptvDB.T_SEARCH and filter_index!=FeedList.SEARCH:
-					#self.feed_list_view.set_filter(filter_index,val)
-					self.set_active_filter(filter_index)
+				if utils.HAS_LUCENE:
+					if cur_filter[F_TYPE] == ptvDB.T_SEARCH or filter_index==FeedList.SEARCH:
+						self.set_active_filter(FeedList.ALL)
+					else:
+						self.set_active_filter(filter_index)
 				else:
-					self.set_active_filter(FeedList.ALL)
+					self.set_active_filter(filter_index)
 			except ValueError: #didn't find the item in the model (.index(val) fails)
 				self.set_active_filter(FeedList.ALL)
 		else:
@@ -1164,7 +1166,7 @@ class MainWindow:
 			
 		#sep = gtk.SeparatorMenuItem()
 		#self._filter_menu.append(sep)
-	
+		
 		menuitem = gtk.MenuItem(_('Edit Favorite Tags...'))
 		menuitem.connect('activate', self.on_edit_favorite_tags)
 		self._filter_menu.append(menuitem) 

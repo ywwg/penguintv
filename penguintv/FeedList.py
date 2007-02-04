@@ -588,7 +588,7 @@ class FeedList(gobject.GObject):
 		self._state = newstate
 			
 	def filter_all(self,keep_misfiltered=True):
-		if self.filter_setting == SEARCH:
+		if utils.HAS_LUCENE and self.filter_setting == SEARCH:
 			print "not filtering, we have search results"
 			return #not my job
 	
@@ -635,7 +635,7 @@ class FeedList(gobject.GObject):
 		return False
 
 	def _filter_one(self,feed, keep_misfiltered=True):
-		if self.filter_setting == SEARCH:
+		if utils.HAS_LUCENE and self.filter_setting == SEARCH:
 			print "not filtering, we have search results"
 			return #not my job
 	

@@ -1,6 +1,7 @@
 import sys, os, logging
 import gtk, gobject
 from sugar.activity.Activity import Activity
+from sugar import env
 
 #need to set things up before we import penguintv
 
@@ -9,11 +10,8 @@ try:
 except:
 	logging.warning("Trying to load bundled pycurl libraries")
 	
-	#import ourselves so we can get __file__
-	import PenguinTVActivity
-	
-	#where the hell are we?
-	activity_root = os.path.split(PenguinTVActivity.__file__)[0]
+	#where are we?
+	activity_root = env.get_bundle_path()
 	
 	#chdir here so that relative RPATHs line up ('./lib')
 	os.chdir(activity_root) 
