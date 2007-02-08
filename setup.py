@@ -11,13 +11,16 @@
 import sys,os
 try:
 	from sugar.activity import bundlebuilder
-	bundlebuilder.start()
+	print "Building OLPC version"
+	bundlebuilder.start('MANIFEST-OLPC')
 	BUILT_SUGAR = True
 except Exception,e:
 	BUILT_SUGAR = False #not building for olpc
 	
 if BUILT_SUGAR:
 	sys.exit(0)
+	
+print "Building desktop version"
 
 BUILD_MOZ=False
 
