@@ -1,6 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
-import os,sys,time, pwd
+import os,sys,time, pwd, os.path
+import subprocess
 import string
 import fnmatch
 import urllib
@@ -10,6 +11,12 @@ import locale
 import gettext
 
 from subprocess import Popen, PIPE, STDOUT
+
+try:
+	import gtkmozembed
+	HAS_MOZILLA = True
+except:
+	HAS_MOZILLA = False
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -487,7 +494,24 @@ def get_disk_total(f="/"):
 		return int(lines[1].split()[1]) * 1024
 	except:
 		return 0
+		
+def init_gtkmozembed():
+	"""We need to set up mozilla with set_comp_path in order for it not to 
+	crash.  The fun part is not hardcoding that path since we have no way
+	of getting it from the module itself.  good luck with this"""
 
+	assert HAS_MOZILLA
+	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom"
+	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	retval = p.wait()
+	stderr = p.stderr.read()
+	if len(stderr) > 1 or retval != 0:
+		return False
+	ldd_output = p.stdout.read()
+	comp_path = os.path.split(ldd_output.split()[2])[0]
+	print "setting up mozilla in:", comp_path
+	gtkmozembed.set_comp_path(comp_path)
+	return True
 
 if is_kde():
 	import kio

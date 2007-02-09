@@ -116,6 +116,7 @@ class PlanetView(gobject.GObject):
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
+				assert utils.init_gtkmozembed()
 				gtkmozembed.set_profile_path(self._db.home, 'gecko')
 				gtkmozembed.push_startup()
 				self._moz = gtkmozembed.MozEmbed()

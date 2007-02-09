@@ -68,8 +68,6 @@ class EntryView(gobject.GObject):
 			self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
 			self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
 			self._scrolled_window = scrolled_window
-		elif self._renderer == MOZILLA:
-			import gtkmozembed
 		elif self._renderer == DEMOCRACY_MOZ:
 			from democracy_moz import MozillaBrowser
 				
@@ -127,6 +125,7 @@ class EntryView(gobject.GObject):
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
+			assert utils.init_gtkmozembed()
 			gtkmozembed.set_profile_path(self._db.home, 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)

@@ -389,6 +389,7 @@ class MainWindow:
 		
 		if self.layout == "planet" and renderer != EntryView.MOZILLA:
 			self.layout = "standard"
+			return self.load_layout()
 		
 		if self.layout != "planet":
 			self.entry_list_view = EntryList.EntryList(components, self._app, self.feed_list_view, self, self._db)
