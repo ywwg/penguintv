@@ -170,7 +170,7 @@ class ptvDB:
 		try:
 			return c.execute(command, args)
 		except Exception, e:
-			print "barf:",
+			print "Database error:",
 			print command, args
 			raise e
 				
@@ -1407,6 +1407,37 @@ class ptvDB:
 			media_list.append(medium)			
 		return media_list
 		
+	def get_entry_media_block(self, entry_list):
+		if len(entry_list) == 0:
+			return
+		qmarks = "?,"*(len(entry_list)-1)+"?"
+		
+		self._db_execute(self._c, """SELECT id,entry_id,url,file,download_status,viewed,length,mimetype FROM media WHERE entry_id in ("""+qmarks+')',tuple(entry_list))
+		result = self._c.fetchall()
+		if result is None:
+			return []
+		media_dict = {}
+		for datum in result:
+			medium={}
+			medium['url']=datum[2] #MAGIC
+			medium['download_status']=int(datum[4]) #MAGIC
+			try:
+				medium['size']=int(datum[6]) #MAGIC
+			except:
+				medium['size']=0
+			medium['media_id']=int(datum[0]) #MAGIC
+			medium['file']=datum[3] #MAGIC			
+			medium['entry_id']=datum[1] #MAGIC
+			medium['viewed']=int(datum[5]) #MAGIC
+			medium['mimetype']=datum[7] #MAGIC
+			
+			if not media_dict.has_key(medium['entry_id']):
+				media_dict[medium['entry_id']] = [medium]
+			else:
+				media_dict[medium['entry_id']].append(medium)				
+		
+		return media_dict
+		
 	def get_media(self, media_id):
 		self._db_execute(self._c, u'SELECT url, download_status, length, file, entry_id, viewed, mimetype FROM media WHERE id=?',(media_id,))
 		datum=self._c.fetchone()
@@ -1431,7 +1462,7 @@ class ptvDB:
 		return self._c.fetchone()[0]
 	
 	def get_entry(self, entry_id):
-		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read FROM entries WHERE id=?""",(entry_id,))
+		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read FROM entries WHERE id=? LIMIT 1""",(entry_id,))
 		result = self._c.fetchone()
 		
 		entry_dic={}
@@ -1447,6 +1478,28 @@ class ptvDB:
 		except TypeError: #this error occurs when feed or item is wrong
 			raise NoEntry, entry_id
 		return entry_dic
+		
+	def get_entry_block(self, entry_list):
+		if len(entry_list) == 0:
+			return
+		qmarks = "?,"*(len(entry_list)-1)+"?"
+		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, id FROM entries WHERE id in ('+qmarks+')', (tuple(entry_list)))
+		result = self._c.fetchall()
+		if result is None:
+			return []
+		retval = []
+		for entry in result:
+			entry_dic = {}
+			entry_dic['title'] = entry[0]
+			entry_dic['creator'] = entry[1]
+			entry_dic['link'] = entry[2]
+			entry_dic['description']=entry[3]
+			entry_dic['feed_id']= entry[4]
+			entry_dic['date'] = entry[5]
+			entry_dic['read'] = entry[6]
+			entry_dic['entry_id'] = entry[7]
+			retval.append(entry_dic)
+		return retval
 		
 	def get_entrylist(self, feed_index):
 		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE id=?',(feed_index,))
@@ -1634,7 +1687,7 @@ class ptvDB:
 			if self.entry_flag_cache.has_key(e): del self.entry_flag_cache[e]
 		
 	def get_entry_read(self, entry_id):
-		self._db_execute(self._c, u'SELECT read FROM entries WHERE id=?',(entry_id,))
+		self._db_execute(self._c, u'SELECT read FROM entries WHERE id=? LIMIT 1',(entry_id,))
 		retval = self._c.fetchone()[0]
 		return int(retval)
 		

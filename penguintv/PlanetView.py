@@ -331,6 +331,9 @@ class PlanetView(gobject.GObject):
 		entries = ""
 		html = ""
 		unreads = []
+		
+		#preload the block of entries, which is nicer to the db
+		self._load_entry_block(self._entrylist[self._first_entry:last_entry])
 
 		i=self._first_entry-1
 		for entry_id in self._entrylist[self._first_entry:last_entry]:
@@ -494,16 +497,37 @@ class PlanetView(gobject.GObject):
 			
 		return html
 		
+	def _load_entry_block(self, entry_id_list):
+		for entry in entry_id_list:
+			if self._entry_store.has_key(entry):
+				entry_id_list.remove(entry)
+				
+		entries = self._db.get_entry_block(entry_id_list)
+		media = self._db.get_entry_media_block(entry_id_list)
+		for item in entries:
+			if media.has_key(item['entry_id']):
+				item['media'] = media[item['entry_id']]
+				ret = []
+				ret.append(str(item['entry_id'])+" ")
+				for medium in item['media']:
+					ret += htmlify_media(medium, self._mm)
+				ret = "".join(ret)
+				self._update_server.push_update(ret)
+				
+			if self._state == S_SEARCH:
+				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+				self._entry_store[item['entry_id']] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
+			else:
+				self._entry_store[item['entry_id']] = (htmlify_item(item, ajax=True, indicate_new=True),item)
+				
 	def _load_entry(self, entry_id, force = False):
 		if self._entry_store.has_key(entry_id) and not force:
 			return self._entry_store[entry_id]
 		
 		item = self._db.get_entry(entry_id)
 		media = self._db.get_entry_media(entry_id)
-		read = self._db.get_entry_read(entry_id)
 		if media:
 			item['media']=media
-		item['read'] = read
 		if self._state == S_SEARCH:
 		#if self._showing_search:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
