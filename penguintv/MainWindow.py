@@ -387,6 +387,9 @@ class MainWindow:
 					print "Error loading renderer"
 					self._app.do_quit()
 		
+		if self.layout == "planet" and renderer != EntryView.MOZILLA:
+			self.layout = "standard"
+		
 		if self.layout != "planet":
 			self.entry_list_view = EntryList.EntryList(components, self._app, self.feed_list_view, self, self._db)
 			load_renderer(renderer)
