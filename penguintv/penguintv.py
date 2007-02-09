@@ -1065,13 +1065,12 @@ class PenguinTVApp(gobject.GObject):
 			query = query.replace("!","")
 			result = self.db.search(query, blacklist=blacklist)
 		except Exception, e:
-			print "Error with that search term: ", e
+			print "Error with that search term: ", query, e
 			result=([],[])
 		return result
 	
 	def _show_search(self, query, result):
 		if self._state != MANUAL_SEARCH and self._state != TAG_SEARCH:
-			traceback.print_stack()
 			print "incorrect state, aborting", self._state
 			return
 		try:

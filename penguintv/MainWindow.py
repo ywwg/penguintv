@@ -345,7 +345,7 @@ class MainWindow:
 			fancy = False
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
-		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "GTKHTML") #stupid misspelling (renderrer != renderer)
+		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "MOZILLA") #stupid misspelling (renderrer != renderer)
 		
 		if renderer_str == "GTKHTML":
 			renderer = EntryView.GTKHTML
@@ -367,25 +367,25 @@ class MainWindow:
 				print "too many tries"
 				self._app.do_quit()
 				sys.exit(2)
-			#try:
-			if self.layout != "planet":
-				self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
-									 				   self.entry_list_view, self._app, self, x)
-			else:
-				self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
-								                        self._app, self, self._db, x)
-			#except Exception, e:
-			#	print e
-			#	if renderer == EntryView.DEMOCRACY_MOZ:
-			#		if  _FORCE_DEMOCRACY_MOZ:
-			#			load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
-			#		else:
-			#			print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
-			#			print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
-			#			load_renderer(EntryView.GTKHTML,recur+1)
-			#	else:
-			#		print "Error loading renderer"
-			#		self._app.do_quit()
+			try:
+				if self.layout != "planet":
+					self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
+										 				   self.entry_list_view, self._app, self, x)
+				else:
+					self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
+									                        self._app, self, self._db, x)
+			except Exception, e:
+				print e
+				if renderer == EntryView.DEMOCRACY_MOZ:
+					if _FORCE_DEMOCRACY_MOZ:
+						load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
+					else:
+						print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
+						print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
+						load_renderer(EntryView.GTKHTML,recur+1)
+				else:
+					print "Error loading renderer"
+					self._app.do_quit()
 		
 		if self.layout != "planet":
 			self.entry_list_view = EntryList.EntryList(components, self._app, self.feed_list_view, self, self._db)
@@ -393,6 +393,9 @@ class MainWindow:
 		else:
 			load_renderer(renderer)
 			self.entry_list_view = self.entry_view
+		
+		if renderer == EntryView.GTKHTML:
+			self._widgetTree.get_widget('planet_layout').hide()	
 			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':

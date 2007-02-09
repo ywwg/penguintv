@@ -120,20 +120,19 @@ class PlanetView(gobject.GObject):
 				gtkmozembed.push_startup()
 				self._moz = gtkmozembed.MozEmbed()
 				
-			
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)
 			self._moz.connect("realize", self._moz_realize, True)
 			self._moz.connect("unrealize", self._moz_realize, False)
 			self._moz.load_url("about:blank")
 			scrolled_window.add_with_viewport(self._moz)
-			#scrolled_window.add(self._moz)
 			self._moz.show()
 			if utils.HAS_GCONF:
 				import gconf
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
+		self.display_item()
 		html_dock.show_all()
 		while True:
 			try:
@@ -501,6 +500,9 @@ class PlanetView(gobject.GObject):
 		for entry in entry_id_list:
 			if self._entry_store.has_key(entry):
 				entry_id_list.remove(entry)
+		
+		if len(entry_id_list) == 0:
+			return
 				
 		entries = self._db.get_entry_block(entry_id_list)
 		media = self._db.get_entry_media_block(entry_id_list)
@@ -574,6 +576,7 @@ class PlanetView(gobject.GObject):
 		
 	def _moz_realize(self, widget, realized):
 		self._moz_realized = realized
+		self.display_item()
 		
 	def _moz_link_message(self, data):
 		self._main_window.display_status_message(self._moz.get_link_message())

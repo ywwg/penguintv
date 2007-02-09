@@ -200,6 +200,7 @@ class EntryView(gobject.GObject):
 	
 	def _moz_realize(self, widget, realized):
 		self._moz_realized = realized
+		self.display_item()
 		 
 	def _dmoz_link_clicked(self, link):
 		link = link.strip()
