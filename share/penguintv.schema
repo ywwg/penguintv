@@ -252,7 +252,7 @@
      <applyto>/apps/penguintv/renderrer</applyto>
      <owner>penguintv</owner>
      <type>string</type>
-     <default>GTKHTML</default>
+     <default>MOZILLA</default>
      <locale name="C">
 	<short>HTML renderrer</short>
 	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or MOZILLA</long>
@@ -300,7 +300,7 @@
      <applyto>/apps/penguintv/fancy_feedlist</applyto>
      <owner>penguintv</owner>
      <type>bool</type>
-     <default>False</default>
+     <default>True</default>
      <locale name="C">
 	<short>Fancy feedlist</short>
 	<long>If enabled, the feedlist will be fancier and take up more space per row.  Default False</long>
