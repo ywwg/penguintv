@@ -255,7 +255,7 @@
      <default>GTKHTML</default>
      <locale name="C">
 	<short>HTML renderrer</short>
-	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or MOZILLA or DEMOCRACY_MOZ</long>
+	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or MOZILLA</long>
      </locale>
    </schema>
    

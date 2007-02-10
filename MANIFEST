@@ -1,9 +1,3 @@
-penguintv/democracy_moz/MozillaBrowser.pyx
-penguintv/democracy_moz/MozillaBrowser.h
-penguintv/democracy_moz/__init__.py
-penguintv/democracy_moz/MozillaBrowserXPCOM.cc
-penguintv/democracy_moz/MozillaBrowserXPCOM.h
-penguintv/democracy_moz/MozillaBrowser.c
 penguintv/ptvbittorrent/DownloaderFeedback.py
 penguintv/ptvbittorrent/btcompletedir.py
 penguintv/ptvbittorrent/__init__.py
@@ -33,7 +27,6 @@ penguintv/ptvbittorrent/RateMeasure.py
 penguintv/ptvbittorrent/RawServer.py
 penguintv/ptvbittorrent/Connecter.py
 penguintv/ptvbittorrent/CurrentRateMeasure.py
-penguintv/democracy_moz/__init__.py
 penguintv/HTTPDownloader.py
 penguintv/LoginDialog.py
 penguintv/subProcess.py

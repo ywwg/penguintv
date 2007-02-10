@@ -46,9 +46,6 @@ gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
 _=gettext.gettext
 
-#DEBUG (see also utils.py for some debugs)
-_FORCE_DEMOCRACY_MOZ=False
-
 DOWNLOAD_ERROR=0
 DOWNLOAD_PROGRESS=1
 DOWNLOAD_WARNING=2

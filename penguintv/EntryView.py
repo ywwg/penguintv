@@ -23,7 +23,6 @@ except:
 
 GTKHTML=0
 MOZILLA=1
-DEMOCRACY_MOZ=2
 
 #states
 S_DEFAULT = 0
@@ -68,8 +67,6 @@ class EntryView(gobject.GObject):
 			self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
 			self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
 			self._scrolled_window = scrolled_window
-		elif self._renderer == DEMOCRACY_MOZ:
-			from democracy_moz import MozillaBrowser
 				
 		#thanks to straw, again
 		style = html_dock.get_style().copy()
@@ -136,23 +133,6 @@ class EntryView(gobject.GObject):
 			#html_dock.add(self._moz)
 			scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
-			if utils.HAS_GCONF:
-				import gconf
-				self._conf = gconf.client_get_default()
-				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self._reset_moz_font()
-		elif self._renderer==DEMOCRACY_MOZ:
-			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			self._mb = MozillaBrowser.MozillaBrowser()
-			self._moz = self._mb.getWidget()
-			self._moz.connect("link-message", self._moz_link_message)
-			self._moz.connect("realize", self._moz_realize, True)
-			self._moz.connect("unrealize", self._moz_realize, False)
-			self._mb.setURICallBack(self._dmoz_link_clicked)
-			self._moz.load_url("about:blank")
-			scrolled_window.add_with_viewport(self._moz)
 			if utils.HAS_GCONF:
 				import gconf
 				self._conf = gconf.client_get_default()
@@ -268,7 +248,7 @@ class EntryView(gobject.GObject):
             body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
+		elif self._renderer==MOZILLA:
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html")
 				while len(message)>60000:
@@ -291,7 +271,7 @@ class EntryView(gobject.GObject):
 				self._document.write_stream(message)
 				self._document.close_stream()
 				self._document_lock.release()
-			elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
+			elif self._renderer==MOZILLA:
 				if self._moz_realized:
 					self._moz.open_stream("http://ywwg.com","text/html")
 					self._moz.append_data(message, long(len(message)))
@@ -352,7 +332,7 @@ class EntryView(gobject.GObject):
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
 	
-		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
+		if self._renderer == MOZILLA:
 			if item is not None:
 				#no comments in css { } please!
 				#FIXME windows: os.path.join... wrong direction slashes?  does moz care?
@@ -440,7 +420,7 @@ class EntryView(gobject.GObject):
 			else:
 				va.set_value(va.lower)
 				ha.set_value(ha.lower)
-		elif self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:	
+		elif self._renderer == MOZILLA:	
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 				while len(html)>60000:
@@ -495,7 +475,7 @@ class EntryView(gobject.GObject):
             body { background-color: %s; }</style><body></body></html>""" % (self._insensitive_color,))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._renderer==MOZILLA or self._renderer == DEMOCRACY_MOZ:
+		elif self._renderer==MOZILLA:
 			#FIXME: this doesn't work, we quit before it renders
 			message = """<html><head><style type="text/css">
             body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)

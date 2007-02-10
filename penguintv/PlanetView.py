@@ -408,7 +408,7 @@ class PlanetView(gobject.GObject):
 		self._render(html)
 	
 	def _build_header(self, media_exists):
-		if self._renderer == MOZILLA or self._renderer == DEMOCRACY_MOZ:
+		if self._renderer == MOZILLA:
 			html = (
             """<html><head>
             <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
