@@ -104,7 +104,7 @@
      <applyto>/apps/penguintv/app_window_layout</applyto>
      <owner>penguintv</owner>
      <type>string</type>
-     <default>standard</default>
+     <default>planet</default>
      <locale name="C">
 	<short>Window Layout</short>
 	<long>This determines how the panes in penguintv will be arranged.  Can be "standard" (two panes on left,
