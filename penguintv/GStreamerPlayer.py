@@ -485,7 +485,6 @@ class GStreamerPlayer(gobject.GObject):
 				
 	###utility functions###
 	def _get_video_sink(self, compat=False):
-		print "getting new sink",compat
 		if compat:
 			sinks = ["ximagesink"]
 		else:
@@ -496,7 +495,6 @@ class GStreamerPlayer(gobject.GObject):
 				break
 			except:
 				print "couldn't init ",sink_str
-		print "default video sink:", sink_str
 		#according to totem this helps set things up (bacon-video-widget-gst-0.10:4290)
 		bus = self._pipeline.get_bus()
 		v_sink.set_bus(bus)
@@ -510,12 +508,10 @@ class GStreamerPlayer(gobject.GObject):
 		return True
 		
 	def _prepare_display(self, compat=False):
-		print "preparing display"
 		#if type(self._v_sink) != GstXVImageSink and not compat:
 		#do this right at some point: if we are using a substandard sink
 		#and we're not being specifically told to use it, try the better one
 		if 'gstximagesink' in str(type(self._v_sink)).lower() and not compat:
-			print "was using compat sink.  Try getting the better one"
 			self._v_sink = self._get_video_sink()
 			self._pipeline.set_property('video-sink',self._v_sink)
 		if compat:
@@ -671,9 +667,7 @@ class GStreamerPlayer(gobject.GObject):
 					for row in model:
 						i+=1
 						if playing_uri == row[0]:
-							print "moving current file from", paths_to_copy[0][0],
 							self._last_index = self._current_index = i
-							print "to",i
 							row[2]="&#8226;" #bullet
 						else:
 							row[2]=""							
@@ -733,7 +727,6 @@ class GStreamerErrorDialog(gtk.Window):
 	
 #########app
 def do_quit(self, widget, player):
-	print "finish"
 	player.finish()
 	gtk.main_quit()
 	

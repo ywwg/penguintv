@@ -17,6 +17,7 @@ try:
 	HAS_MOZILLA = True
 except:
 	HAS_MOZILLA = False
+	import gtkmozembed
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -501,7 +502,7 @@ def init_gtkmozembed():
 	of getting it from the module itself.  good luck with this"""
 
 	assert HAS_MOZILLA
-	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom"
+	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom.so"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
 	stderr = p.stderr.read()
@@ -509,7 +510,6 @@ def init_gtkmozembed():
 		return False
 	ldd_output = p.stdout.read()
 	comp_path = os.path.split(ldd_output.split()[2])[0]
-	print "setting up mozilla in:", comp_path
 	gtkmozembed.set_comp_path(comp_path)
 	return True
 

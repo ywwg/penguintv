@@ -349,8 +349,6 @@ class MainWindow:
 		
 		if renderer_str == "GTKHTML":
 			renderer = EntryView.GTKHTML
-		elif renderer_str == "DEMOCRACY_MOZ":
-			renderer = EntryView.DEMOCRACY_MOZ
 		elif renderer_str == "MOZILLA":
 			renderer = EntryView.MOZILLA
 		else:
@@ -373,19 +371,11 @@ class MainWindow:
 										 				   self.entry_list_view, self._app, self, x)
 				else:
 					self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
-									                        self._app, self, self._db, x)
+										                        self._app, self, self._db, x)
 			except Exception, e:
 				print e
-				if renderer == EntryView.DEMOCRACY_MOZ:
-					if _FORCE_DEMOCRACY_MOZ:
-						load_renderer(EntryView.DEMOCRACY_MOZ,recur+1)
-					else:
-						print "Error instantiating Democracy Mozilla renderer, falling back to GTKHTML"
-						print "(if running from source dir, build setup.py and copy MozillaBrowser.so to democracy_moz/)"
-						load_renderer(EntryView.GTKHTML,recur+1)
-				else:
-					print "Error loading renderer"
-					self._app.do_quit()
+				print "Error loading renderer"
+				self._app.do_quit()
 		
 		if self.layout == "planet" and renderer != EntryView.MOZILLA:
 			self.layout = "standard"

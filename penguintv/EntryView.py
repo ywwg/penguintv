@@ -122,7 +122,8 @@ class EntryView(gobject.GObject):
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
-			assert utils.init_gtkmozembed()
+			if not utils.init_gtkmozembed():
+				print "Error initializing mozilla.  Penguintv may crash shortly"
 			gtkmozembed.set_profile_path(self._db.home, 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)
