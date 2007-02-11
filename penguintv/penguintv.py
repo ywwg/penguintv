@@ -518,6 +518,11 @@ class PenguinTVApp(gobject.GObject):
 		if size_to_free == 0:
 			return True
 			
+		#get the media that's currently in the player so we don't delete it
+		if utils.HAS_GSTREAMER:
+			media_in_player = self._player.get_queue()
+			media_in_player = [m[3] for m in media_in_player]
+			
 		media_to_remove = []
 		removed_size = 0
 		for media_id,entry_id,feed_id,filename,date in self.db.get_deletable_media():
@@ -531,6 +536,11 @@ class PenguinTVApp(gobject.GObject):
 					print "ERROR: didn't free up the space like we thought2",utils.get_disk_free(self.mediamanager.media_dir)
 					return False
 				return True
+				
+			#don't remove anything that's queued in the player
+			if media_id in media_in_player:
+				continue
+			
 			size = os.stat(filename)[6]
 			removed_size += size
 			print "removing:",filename, size,"bytes for a total of",removed_size
@@ -538,7 +548,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_entry_read(entry_id, True)
 			self.emit('entry-updated', entry_id, feed_id)
 		return False
-			
+		
 	def add_search_tag(self, query, tag_name):
 		self.db.add_search_tag(query, tag_name)
 		#could raise ptvDB.TagAlreadyExists, let it go
@@ -655,7 +665,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_entry_read(media['entry_id'],True)
 			self.db.set_media_viewed(item,True)
 			if utils.is_known_media(media['file']):
-				self._player.play(media['file'], feed_title + " &#8211; " + entry['title'])
+				self._player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'])
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
@@ -966,7 +976,7 @@ class PenguinTVApp(gobject.GObject):
 		filelist=[]
 		if media:
 			for medium in media:
-				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title']])
+				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title'], medium['media_id']])
 				self.db.set_media_viewed(medium['media_id'],True)
 		self._player.play_list(filelist)
 		self.emit('entry-updated', entry_id, entry['feed_id'])
@@ -974,13 +984,13 @@ class PenguinTVApp(gobject.GObject):
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
-		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4]] for item in playlist])
+		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist])
 		for row in playlist:
 			self.feed_list_view.update_feed_list(row[2],['readinfo'])
 			
-	def _on_item_not_supported(self, player, filename, name):
+	def _on_item_not_supported(self, player, filename, name, userdata):
 		if not utils.RUNNING_SUGAR:
-			self._player.play(filename, name, force_external=True) #retry, force external player
+			self._player.play(filename, name, userdata, force_external=True) #retry, force external player
 		else:
 			dialog = gtk.Dialog(title=_("Unknown file type"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label("Gstreamer did not recognize this file. (email owen-olpc@ywwg.com for more info)")
@@ -1424,7 +1434,7 @@ class PenguinTVApp(gobject.GObject):
 					self.db.set_media_viewed(d.media['media_id'], True)
 					entry = self.db.get_entry(d.media['entry_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
-					self._player.play(d.media['file'], feed_title + " &#8211; " + entry['title'])
+					self._player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'])
 				else:
 					self.db.set_entry_read(d.media['entry_id'],False)
 					self.db.set_media_viewed(d.media['media_id'],False)

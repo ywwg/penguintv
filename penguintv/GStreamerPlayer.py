@@ -44,8 +44,8 @@ class GStreamerPlayer(gobject.GObject):
 		
 		self._error_dialog = GStreamerErrorDialog()
 		
-		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str,str])
-		gobject.signal_new('item-not-supported', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str,str])
+		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str, str, gobject.TYPE_PYOBJECT])
+		gobject.signal_new('item-not-supported', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str, str, gobject.TYPE_PYOBJECT])
 		gobject.signal_new('items-removed', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 		
 	###public functions###
@@ -57,14 +57,14 @@ class GStreamerPlayer(gobject.GObject):
 		self._hpaned = gtk.HPaned()
 		self._player_vbox = gtk.VBox()
 		self._drawing_area = gtk.DrawingArea()
-		color = gtk.gdk.Color(0,0,0)
+		color = gtk.gdk.Color(0, 0, 0)
 		self._drawing_area.modify_bg(gtk.STATE_NORMAL, color)
 		self._drawing_area.connect('expose-event', self._on_drawing_area_exposed)
 		self._player_vbox.pack_start(self._drawing_area)
 		vbox.pack_start(self._player_vbox, True)
 		
 		self._seek_scale = gtk.HScale()
-		self._seek_scale.set_range(0,1)
+		self._seek_scale.set_range(0, 1)
 		self._seek_scale.set_draw_value(False)
 		self._seek_scale.connect('value-changed', self._on_seek_value_changed)
 		vbox.pack_start(self._seek_scale, False)
@@ -76,7 +76,7 @@ class GStreamerPlayer(gobject.GObject):
 		s_w.set_shadow_type(gtk.SHADOW_IN)
 		s_w.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
 		self._queue_listview = gtk.TreeView()
-		model = gtk.ListStore(str, str, str) #uri, title to display, current track indicator
+		model = gtk.ListStore(str, str, str, gobject.TYPE_PYOBJECT) #uri, title to display, current track indicator, user data
 		self._queue_listview.set_model(model)
 		
 		column = gtk.TreeViewColumn(_(""))
@@ -112,7 +112,6 @@ class GStreamerPlayer(gobject.GObject):
 		self._hpaned.add2(self._sidepane_vbox)
 		
 		main_vbox.add(self._hpaned)
-		
 		
 		
 		self._controls_hbox = gtk.HBox()
@@ -226,10 +225,10 @@ class GStreamerPlayer(gobject.GObject):
 		self._media_duration = pickle.load(playlist)
 		l = pickle.load(playlist)
 		model = self._queue_listview.get_model()
-		for uri, name in l:
-			model.append([uri, name, ""])
+		for uri, name, userdata in l:
+			model.append([uri, name, "", userdata])
 			filename = gst.uri_get_location(uri)
-			self.emit('item-queued', filename, name)
+			self.emit('item-queued', filename, name, userdata)
 		if self.__is_exposed:
 			self._seek_to_saved_position()
 		playlist.close()
@@ -251,12 +250,12 @@ class GStreamerPlayer(gobject.GObject):
 		pickle.dump(self._media_position, playlist)
 		pickle.dump(self._media_duration, playlist)
 		l = []
-		for uri, name, current in self._queue_listview.get_model():
-			l.append([uri,name])
+		for uri, name, current, userdata in self._queue_listview.get_model():
+			l.append([uri, name, userdata])
 		pickle.dump(l, playlist)
 		playlist.close()
 		
-	def queue_file(self, filename, name=None):
+	def queue_file(self, filename, name=None, userdata=None):
 		try:
 			os.stat(filename)
 		except:
@@ -268,11 +267,14 @@ class GStreamerPlayer(gobject.GObject):
 		
 		#thanks gstfile.py
 		self.current = Discoverer(filename)
-		self.current.connect('discovered', self._on_type_discovered, filename, name)
+		self.current.connect('discovered', self._on_type_discovered, filename, name, userdata)
 		self.current.discover()	
 			
 	def get_queue_count(self):
 		return len(self._queue_listview.get_model())
+		
+	def get_queue(self):
+		return list(self._queue_listview.get_model())
 		
 	def play_pause_toggle(self):
 		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
@@ -285,7 +287,7 @@ class GStreamerPlayer(gobject.GObject):
 		if len(model) == 0:
 			return
 		if self._current_index < 0: self._current_index = 0
-		uri, title, current = list(model[self._current_index])
+		uri, title, current, userdata = list(model[self._current_index])
 		if self._last_index != self._current_index:
 			self._last_index = self._current_index
 			selection = self._queue_listview.get_selection()
@@ -405,17 +407,17 @@ class GStreamerPlayer(gobject.GObject):
 	
 	def _on_prev_clicked(self, b): self.prev()
 	
-	def _on_type_discovered(self, discoverer, ismedia, filename, name):
+	def _on_type_discovered(self, discoverer, ismedia, filename, name, userdata):
 		if ismedia:
 			model = self._queue_listview.get_model()
 			uri = 'file://'+urllib.quote(filename)
 			if RUNNING_SUGAR:
 				name = '<span size="x-small">'+name+'</span>'
-			model.append([uri, name, ""])
-			self.emit('item-queued', filename, name)
+			model.append([uri, name, "", userdata])
+			self.emit('item-queued', filename, name, userdata)
 			self.save()
 		else:
-			self.emit('item-not-supported', filename, name)
+			self.emit('item-not-supported', filename, name, userdata)
 	
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()

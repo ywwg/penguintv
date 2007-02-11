@@ -35,8 +35,11 @@ class Player:
 	def using_internal_player(self):
 		return self._gst_player != None	
 		
-	def play(self, f, title=None, force_external=False):
-		self.play_list([[f,title]], force_external)
+	def get_queue(self):
+		return self._gst_player.get_queue()
+		
+	def play(self, f, title=None, userdata=None, force_external=False):
+		self.play_list([[f,title,userdata]], force_external)
 	
 	def play_list(self, files, force_external = False):
 		cmdline = self.cmdline
@@ -48,7 +51,7 @@ class Player:
 			
 		players={}
 
-		for f,t in files:
+		for f,t,u in files:
 			if os.path.isdir(f):
 				for root,dirs,filelist in os.walk(f):
 					for filen in filelist:
@@ -76,8 +79,8 @@ class Player:
 		playlist.close()
 		
 		if self._gst_player is not None and not force_external:
-			for f,t in files:
-				self._gst_player.queue_file(f,t)
+			for f,t,u in files:
+				self._gst_player.queue_file(f,t,u)
 		else:
 			for player in players.keys():
 				cmdline=player+" "

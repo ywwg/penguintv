@@ -854,7 +854,7 @@ class MainWindow:
 	def on_play_unviewed_clicked(self, event):
 		self._app.play_unviewed()
 		
-	def _on_player_item_queued(self, player, filename, name):
+	def _on_player_item_queued(self, player, filename, name, userdata):
 		self._notebook.show_page(N_PLAYER)	
 		#if player.get_queue_count() == 1:
 		#	try:
