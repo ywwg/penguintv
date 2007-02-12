@@ -31,6 +31,7 @@ class PreferencesDialog:
 		
 		self.autoresume = self.xml.get_widget("auto_resume")
 		self.poll_on_startup = self.xml.get_widget("poll_on_startup")
+		self.show_notification_always = self.xml.get_widget("show_notification_always")
 		
 		self.auto_download_widget = self.xml.get_widget("auto_download")
 		self.auto_download_limiter_widget = self.xml.get_widget("auto_download_limiter")
@@ -71,6 +72,9 @@ class PreferencesDialog:
 		
 	def set_poll_on_startup(self, poll_on_startup):
 		self.poll_on_startup.set_active(poll_on_startup)
+		
+	def set_show_notification_always(self, always):
+		self.show_notification_always.set_active(always)
 		
 	def set_auto_download(self, auto_download):
 		self.auto_download_widget.set_active(auto_download)
@@ -113,6 +117,11 @@ class PreferencesDialog:
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_resume',self.autoresume.get_active())
 		if not utils.HAS_GCONF:
 			self._app.set_auto_resume(self.autoresume.get_active())
+			
+	def on_show_notification_always(self, event):
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always',self.show_notification_always.get_active())
+		if not utils.HAS_GCONF:
+			self._app.set_show_notification_always(self.show_notification_always.get_active())
 		
 	def on_poll_on_startup_toggled(self,event):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup',self.poll_on_startup.get_active())

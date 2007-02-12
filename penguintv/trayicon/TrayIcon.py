@@ -33,7 +33,7 @@ class StatusTrayIcon(gtk.StatusIcon):
                            ([gobject.TYPE_PYOBJECT])),
 	}
 
-	def __init__(self, icon, menu):
+	def __init__(self, icon, menu, show_always=True):
 		#Init StatusIcon
 		gtk.StatusIcon.__init__(self)
 		
@@ -44,16 +44,25 @@ class StatusTrayIcon(gtk.StatusIcon):
 		self.set_from_file(icon)
 
 		self.set_tooltip('')
-		self.set_visible(True)
-
+		
 		self.menu = menu
 		self.connect('popup-menu', self.__popup_menu_cb)
 		
 		self._notifications = []
 		self._updater_id = -1
 		self._notification_displaying = False
+		self._show_always = show_always
+		self.set_visible(self._show_always)
+		
+	def set_show_always(self, b):
+		self._show_always = b
+		if self._show_always:
+			self.set_visible(True)
+		elif not self._notification_displaying:
+			self.set_visible(False)
 		
 	def display_notification(self, title, message, icon=None, userdata=None):
+		self.set_visible(True)
 		self._notifications.append([title, message, icon, userdata])
 		if self._updater_id == -1:
 			self._updater_id = gobject.timeout_add(500, self._display_notification_handler)
@@ -133,6 +142,8 @@ class StatusTrayIcon(gtk.StatusIcon):
 
 	def __notification_closed_cb(self, widget):
 		self._notification_displaying = False
+		if not self._show_always:
+			self.set_visible(False)
 
 	def __menu_cb(self, data):
 		action = data.get_accel_path().split("/")[-1]

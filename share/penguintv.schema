@@ -318,6 +318,18 @@
 	<long>If enabled, PenguinTV will use its internal gstreamer player to play media.  Default True</long>
      </locale>
    </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/show_notification_always</key>
+     <applyto>/apps/penguintv/show_notification_always</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>True</default>
+     <locale name="C">
+	<short>Always display notification icon</short>
+	<long>If enabled, the PenguinTV icon will appear in the system tray at all times.  If disabled, PenguinTV icon will only appear for notification events.  Default True</long>
+     </locale>
+   </schema>
 
    
  </schemalist>
