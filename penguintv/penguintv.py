@@ -98,6 +98,12 @@ class PenguinTVApp(gobject.GObject):
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
 		'notify-tags-changed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
+                           ([])),
+		'download-finished': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_PYOBJECT])),
+		'app-loaded': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
                            ([]))
 	}
 
@@ -157,12 +163,13 @@ class PenguinTVApp(gobject.GObject):
 			use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
 		else:
 			use_internal_player = True
-		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window) 
-		self.main_window.layout=window_layout
-		
+			
+		self._status_icon = None
 		if utils.HAS_STATUS_ICON:
-			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, utils.get_icon_filename())
-
+			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, utils.get_icon_filename())	
+			
+		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window, status_icon=self._status_icon) 
+		self.main_window.layout=window_layout
 		
 		#some signals
 		self.connect('feed-added', self.__feed_added_cb)
@@ -171,7 +178,7 @@ class PenguinTVApp(gobject.GObject):
 		"""After we have Show()n the main window, set up some more stuff"""
 		#gtk.gdk.threads_enter()
 		gst_player = self.main_window.get_gst_player()
-		self._player = Player.Player(gst_player)
+		self.player = Player.Player(gst_player)
 		if gst_player is not None:
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
@@ -239,6 +246,7 @@ class PenguinTVApp(gobject.GObject):
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
 		#gtk.gdk.threads_leave()
+		self.emit('app-loaded')
 		return False #for idler	
 		
 	def _import_default_feeds(self):
@@ -366,7 +374,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',self.feed_list_view.filter_name)
 		else:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',"")
-		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self._player.using_internal_player())
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
 	def resume_resumable(self):
 		list = self.db.get_resumable_media()
@@ -519,7 +527,7 @@ class PenguinTVApp(gobject.GObject):
 			
 		#get the media that's currently in the player so we don't delete it
 		if utils.HAS_GSTREAMER:
-			media_in_player = self._player.get_queue()
+			media_in_player = self.player.get_queue()
 			media_in_player = [m[3] for m in media_in_player]
 			
 		media_to_remove = []
@@ -666,7 +674,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_entry_read(media['entry_id'],True)
 			self.db.set_media_viewed(item,True)
 			if utils.is_known_media(media['file']):
-				self._player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'])
+				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'])
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
@@ -979,19 +987,19 @@ class PenguinTVApp(gobject.GObject):
 			for medium in media:
 				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title'], medium['media_id']])
 				self.db.set_media_viewed(medium['media_id'],True)
-		self._player.play_list(filelist)
+		self.player.play_list(filelist)
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
-		self._player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist])
+		self.player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist])
 		for row in playlist:
 			self.feed_list_view.update_feed_list(row[2],['readinfo'])
 			
 	def _on_item_not_supported(self, player, filename, name, userdata):
 		if not utils.RUNNING_SUGAR:
-			self._player.play(filename, name, userdata, force_external=True) #retry, force external player
+			self.player.play(filename, name, userdata, force_external=True) #retry, force external player
 		else:
 			dialog = gtk.Dialog(title=_("Unknown file type"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label("Gstreamer did not recognize this file. (email owen-olpc@ywwg.com for more info)")
@@ -1415,6 +1423,7 @@ class PenguinTVApp(gobject.GObject):
 		
 	def _download_finished(self, d):
 		"""Process the data from a callback for a downloaded file"""
+		
 		self.update_disk_usage()
 		if d.status==Downloader.FAILURE: 
 			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR) 
@@ -1422,11 +1431,10 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window.update_download_progress()
 		elif d.status==Downloader.FINISHED or d.status==Downloader.FINISHED_AND_PLAY:
 			if os.stat(d.media['file'])[6] < int(d.media['size']/2) and os.path.isfile(d.media['file']): #don't check dirs
-				dic = {'reported_size': str(d.media['size']),
-					 'actual_size': str(os.stat(d.media['file'])[6])}
 				self.db.set_entry_read(d.media['entry_id'],False)
 				self.db.set_media_viewed(d.media['media_id'],False)
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)
+				d.status = Downloader.FAILURE
 			else:
 				self.main_window.update_download_progress()
 				if d.status==Downloader.FINISHED_AND_PLAY:
@@ -1434,12 +1442,12 @@ class PenguinTVApp(gobject.GObject):
 					self.db.set_media_viewed(d.media['media_id'], True)
 					entry = self.db.get_entry(d.media['entry_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
-					self._player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'])
+					self.player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'])
 				else:
 					self.db.set_entry_read(d.media['entry_id'],False)
 					self.db.set_media_viewed(d.media['media_id'],False)
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)	
-			self.main_window.download_finished() #FIXME: convert to gobject signal one day
+		self.emit('download-finished', d)
 		if self._exiting:
 			self.feed_list_view.filter_all() #to remove active downloads from the list
 			return

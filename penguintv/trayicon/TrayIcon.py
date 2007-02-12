@@ -35,10 +35,10 @@ class StatusTrayIcon(gtk.StatusIcon):
 	__gsignals__ = {
 		'notification-clicked': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_PYOBJECT]))
+                           ([gobject.TYPE_PYOBJECT])),
 	}
 
-	def __init__(self, icon):
+	def __init__(self, icon, menu):
 		#Init StatusIcon
 		gtk.StatusIcon.__init__(self)
 		
@@ -46,43 +46,12 @@ class StatusTrayIcon(gtk.StatusIcon):
 			#Initialize Notification
 			pynotify.init("PenguinTVNotification")
 
-		#Set up the right click menu
-		menu = '''
-			<ui>
-				<menubar name="Menubar">
-					<menu action="Menu">
-						<menuitem action="About"/>
-						<menuitem action="Quit"/>
-					</menu>
-				</menubar>
-			</ui>
-		'''
-
-		actions = [
-			('Menu',  None, 'Menu'),
-			('About', gtk.STOCK_ABOUT, '_About', None, 'About PenguinTV', self.__about_cb),
-			('Quit', gtk.STOCK_QUIT, '_Quit', None, 'Quit PenguinTV', self.__quit_cb) ]
-
-		actiongroup = gtk.ActionGroup('Actions')
-		actiongroup.add_actions(actions)
-
-		#Use UIManager to turn xml into gtk menu
-		self.manager = gtk.UIManager()
-		self.manager.insert_action_group(actiongroup, 0)
-		self.manager.add_ui_from_string(menu)
-		self.menu = self.manager.get_widget('/Menubar/Menu/About').props.parent
-
-		###Might want to run a check so we know that the icon is actually here
-		###I noticed some error checking in MainWindow.py when setting the icon.
-		###Perhaps we can do something similar here!?
 		self.set_from_file(icon)
 
 		self.set_tooltip('')
 		self.set_visible(True)
 
-		#Assign callbacks
-		#self.connect('activate', self.__click_cb)
-		#^put that in mainwindow or something
+		self.menu = menu
 		self.connect('popup-menu', self.__popup_menu_cb)
 		
 		self._notifications = []
@@ -169,18 +138,9 @@ class StatusTrayIcon(gtk.StatusIcon):
 	def __notification_closed_cb(self, widget):
 		self._notification_displaying = False
 
-	def __quit_cb(self, data):
-		#gtk.main_quit()
-		pass
-
-	def __about_cb(self, data):
-		dialog = gtk.AboutDialog()
-		dialog.set_name(_('PenguinTV'))
-		dialog.set_version(utils.VERSION)
-		dialog.set_comments(_('A podcast, video blog, and rss aggregator.'))
-		dialog.set_website('http://penguintv.sourceforge.net')
-		dialog.run()
-		dialog.destroy()
+	def __menu_cb(self, data):
+		action = data.get_accel_path().split("/")[-1]
+		self.emit('menu-clicked', action)
 
 def _test_tray_icon(icon):
 	icon.display_notification('title','message')

@@ -30,6 +30,16 @@ else:
 	RUNNING_SUGAR = False
 
 class GStreamerPlayer(gobject.GObject):
+
+	__gsignals__ = {
+		'playing': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),
+		'paused': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([]))
+	}
+
 	def __init__(self, layout_dock):
 		gobject.GObject.__init__(self)
 		self._layout_dock = layout_dock
@@ -57,6 +67,8 @@ class GStreamerPlayer(gobject.GObject):
 		self._hpaned = gtk.HPaned()
 		self._player_vbox = gtk.VBox()
 		self._drawing_area = gtk.DrawingArea()
+		#unbreakme: without this option the video doesn't redraw correctly when exposed
+		self._drawing_area.unset_flags(gtk.DOUBLE_BUFFERED)
 		color = gtk.gdk.Color(0, 0, 0)
 		self._drawing_area.modify_bg(gtk.STATE_NORMAL, color)
 		self._drawing_area.connect('expose-event', self._on_drawing_area_exposed)
@@ -309,6 +321,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not notick:
 			gobject.timeout_add(500, self._tick)
 		#self._pipeline.get_property('stream-info')
+		self.emit('playing')
 		
 	def pause(self):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
@@ -317,8 +330,7 @@ class GStreamerPlayer(gobject.GObject):
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
 		self._play_pause_button.set_image(image)
-		#how to safely release XV when paused?  Right now if we release while
-		#paused we crash.  can only release when stopped
+		self.emit('paused')
 		
 	def stop(self):
 		#this should release the port, but I hate having a stop button on a computer
@@ -338,6 +350,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._v_sink.set_state(gst.STATE_NULL)
 			self._v_sink = self._get_video_sink(True)
 			self._pipeline.set_property('video-sink',self._v_sink)
+		self.emit('paused')
 			
 	def ff(self):
 		new_pos = self._media_position+15000000000L #15 seconds I think

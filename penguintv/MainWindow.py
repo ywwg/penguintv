@@ -51,13 +51,23 @@ import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 if utils.HAS_GSTREAMER:
 	import GStreamerPlayer
 
-class MainWindow:
+class MainWindow(gobject.GObject):
 	COLUMN_TITLE = 0
 	COLUMN_ITEM = 1
 	COLUMN_BOLD = 2
 	COLUMN_STICKY_FLAG = 3
+	
+	__gsignals__ = {
+		'player-show': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),
+		'player-hide': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([]))
+	}
 
-	def __init__(self, app, glade_prefix, use_internal_player=False, window=None):
+	def __init__(self, app, glade_prefix, use_internal_player=False, window=None, status_icon=None):
+		gobject.GObject.__init__(self)
 		self._app = app
 		self._app_inited = False
 		self._mm = self._app.mediamanager
@@ -75,6 +85,8 @@ class MainWindow:
 		self._use_internal_player = False
 		if utils.HAS_GSTREAMER and use_internal_player:
 			self._use_internal_player = True
+			
+		self._status_icon = status_icon
 		
 		self._active_filter_name = FeedList.BUILTIN_TAGS[FeedList.ALL]
 		self._active_filter_index = FeedList.ALL
@@ -91,6 +103,7 @@ class MainWindow:
 		self._app.connect('feed-added', self.__feed_added_cb)
 		self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._app.connect('feed-polled', self.__feed_polled_cb)
+		self._app.connect('download-finished', self.__download_finished_cb)
 	
 		#most of the initialization is done on Show()
 		if window:
@@ -122,6 +135,9 @@ class MainWindow:
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.update_filters()
+		
+	def __download_finished_cb(self, app, d): #FIXME: convert to gobject signal one day
+		self._download_view.update_downloads()
 
 #	def __getitem__(self, key):
 #		return self.widgets.get_widget(key)
@@ -179,6 +195,7 @@ class MainWindow:
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
+				self.emit('player-show')
 				
 		if not self._app_inited:
 			gobject.idle_add(self._app.post_show_init)
@@ -305,6 +322,7 @@ class MainWindow:
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()
+			self.emit('player-show')
 		self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
 		self._player_label.set_property('use-markup',True)
 		self._notebook.append_page(p_vbox, self._player_label)
@@ -835,6 +853,7 @@ class MainWindow:
 			self._gstreamer_player.load()
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
+				self.emit('player-show')
 		
 	#def _on_gst_player_realized(self, widget):
 	#	print "seek seek seek"
@@ -851,7 +870,8 @@ class MainWindow:
 		self._app.play_unviewed()
 		
 	def _on_player_item_queued(self, player, filename, name, userdata):
-		self._notebook.show_page(N_PLAYER)	
+		self._notebook.show_page(N_PLAYER)
+		self.emit('player-show')	
 		#if player.get_queue_count() == 1:
 		#	try:
 		#		self._notebook.set_current_page(N_PLAYER)
@@ -863,6 +883,7 @@ class MainWindow:
 	def _on_player_items_removed(self, player):
 		if player.get_queue_count() == 0:
 			self._notebook.hide_page(N_PLAYER)
+			self.emit('player-hide')
 			player.stop()
 		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		
@@ -986,6 +1007,7 @@ class MainWindow:
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
+				self.emit('player-show')
 		#can't reset changing_layout because app hasn't updated pointers yet
 		
 	def is_changing_layout(self):
@@ -1004,9 +1026,13 @@ class MainWindow:
 		if current_text == "":
 			self._status_owner = update_category
 			self._status_view.set_status(m)
+			if utils.HAS_STATUS_ICON:
+				self._status_icon.set_tooltip(m)
 		else:
 			if update_category >= self._status_owner:
 				self._status_view.set_status(m)
+				if utils.HAS_STATUS_ICON:
+					self._status_icon.set_tooltip(m)
 				if m == "":
 					self._status_owner = U_NOBODY
 				else:
@@ -1287,9 +1313,6 @@ class MainWindow:
 		
 		self._download_view.update_downloads()
 		self._update_notebook_tabs(len(progresses)+len(queued)+len(paused))
-		
-	def download_finished(self): #FIXME: convert to gobject signal one day
-		self._download_view.update_downloads()
 		
 	def _update_notebook_tabs(self, number):
 		if number == 0:

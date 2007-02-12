@@ -35,7 +35,21 @@ class Player:
 	def using_internal_player(self):
 		return self._gst_player != None	
 		
+	def connect_internal(self, signal, func):
+		assert self.using_internal_player()
+		self._gst_player.connect(signal, func)
+		
+	def control_internal(self, action):
+		assert self.using_internal_player()
+		if action == "play":
+			self._gst_player.play()
+		elif action == "pause":
+			self._gst_player.pause()
+		else:
+			print "unhandled action:",action
+		
 	def get_queue(self):
+		assert self.using_internal_player()
 		return self._gst_player.get_queue()
 		
 	def play(self, f, title=None, userdata=None, force_external=False):

@@ -78,7 +78,7 @@ except:
 VERSION="2.85"
 #DEBUG
 _USE_KDE_OVERRIDE=False
-HAS_LUCENE = False
+#HAS_LUCENE = False
 
 def format_size(size):
 	if size > 1073741824:
