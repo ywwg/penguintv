@@ -10,6 +10,8 @@ import string
 import locale
 import gettext
 
+import gtk
+
 from subprocess import Popen, PIPE, STDOUT
 
 try:
@@ -34,6 +36,7 @@ if RUNNING_SUGAR:
 	HAS_GCONF = False
 	HAS_GNOMEVFS = False
 	HAS_PYXML = False
+	HAS_STATUS_ICON = False
 else:
 	try:
 		import PyLucene
@@ -59,6 +62,11 @@ else:
 	except:
 		HAS_PYXML = False
 		
+	if gtk.pygtk_version >= (2, 10, 0):
+		HAS_STATUS_ICON = True
+	else:
+		HAS_STATUS_ICON = False
+		
 try:
 	import pygst
 	pygst.require("0.10")
@@ -70,7 +78,7 @@ except:
 VERSION="2.85"
 #DEBUG
 _USE_KDE_OVERRIDE=False
-#HAS_LUCENE = False
+HAS_LUCENE = False
 
 def format_size(size):
 	if size > 1073741824:
@@ -85,6 +93,37 @@ def format_size(size):
 def GetPrefix():
 	h, t = os.path.split(os.path.split(os.path.abspath(sys.argv[0]))[0])
 	return h
+	
+def get_glade_prefix():
+	import utils
+	for p in (os.path.join(GetPrefix(),"share","penguintv"),
+		  os.path.join(GetPrefix(),"share"),
+		  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
+		  os.path.join(GetPrefix(),"share","sugar","activities","ptv","share"),
+		  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
+		try:
+			os.stat(os.path.join(p,"penguintv.glade"))
+			return p
+		except:
+			continue
+	return None
+	
+def get_icon_filename():
+	try:
+		icon_file = GetPrefix()+"/share/pixmaps/penguintvicon.png"
+		os.stat(icon_file)
+	except:
+		try:
+			icon_file = GetPrefix()+"/share/penguintvicon.png" #in case the install is still in the source dirs
+			os.stat(icon_file)
+		except:
+			try:
+				icon_file = get_glade_prefix+"/penguintvicon.png"
+				os.stat(icon_file)
+			except Exception, e:
+				print "icon not found"
+				raise e
+	return icon_file		
 
 def hours(n):  #this func copyright Bram Cohen
     if n == -1:

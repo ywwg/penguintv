@@ -57,11 +57,6 @@ except:
 	sys.exit("Need gnome python bindings")
 	
 try:
-	import gnomevfs
-except:
-	sys.exit("Need gnome-vfs python bindings")	
-	
-try:
 	from xml.sax import saxutils
 	test = saxutils.DefaultHandler
 except:
@@ -87,7 +82,7 @@ setup(name = "PenguinTV",
 version = utils.VERSION,
 description      = 'GNOME-compatible podcast and videoblog reader',
 author           = 'Owen Williams',
-author_email     = 'ywwg@usa.net',
+author_email     = 'owen-penguintv@ywwg.com',
 url              = 'http://penguintv.sourceforge.net',
 license          = 'GPL',
 scripts          = ['PenguinTV'],

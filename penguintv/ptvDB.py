@@ -87,6 +87,7 @@ T_BUILTIN = 3
 NOAUTODOWNLOAD="noautodownload"
 NOSEARCH="nosearch"
 NOAUTOEXPIRE="noautoexpire"
+NOTIFYUPDATES="notify"
 
 DB_FILE="penguintv3.db"
 
@@ -790,6 +791,7 @@ class ptvDB:
 		update_data={}
 		
 		if result>0:
+			update_data['new_entries'] = result
 			if self.is_feed_filter(feed_id):
 				entries = self.get_entrylist(feed_id) #reinitialize filtered_entries dict
 				update_data['unread_count'] = self.get_unread_count(feed_id)
@@ -819,8 +821,7 @@ class ptvDB:
 			feed['feed_id']=feed_id
 			feed['title']=result[0]
 			feed['url']=result[1]
-			self.poll_feed(feed_id)
-			self.reindex()
+			feed['new_entries'] = self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
 			print e

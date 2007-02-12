@@ -98,7 +98,6 @@ class Lucene:
 		c.close()
 		db.close()
 		
-		print "indexing feeds"
 		def feed_index_generator(feeds):			
 			for feed_id, title, description in feeds:
 				try:
@@ -124,7 +123,6 @@ class Lucene:
 				return index_interrupt()
 
 		
-		print  "indexing entries"
 		def entry_index_generator(entries):
 			for entry_id, feed_id, title, description, fakedate in entries:
 				try:

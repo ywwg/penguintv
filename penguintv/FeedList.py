@@ -160,8 +160,8 @@ class FeedList(gobject.GObject):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
 			
-	def __feed_polled_cb(self, app, feed_id):
-		self.update_feed_list(feed_id,['readinfo','icon','title','image'])
+	def __feed_polled_cb(self, app, feed_id, update_data):
+		self.update_feed_list(feed_id, ['readinfo','icon','title','image'], update_data)
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.remove_feed(feed_id)

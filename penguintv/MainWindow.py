@@ -47,6 +47,7 @@ import FeedFilterPropertiesDialog
 import SynchronizeDialog
 import FilterSelectorDialog
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
+
 if utils.HAS_GSTREAMER:
 	import GStreamerPlayer
 
@@ -115,7 +116,7 @@ class MainWindow:
 			self.display_status_message(_("Error adding feed"))
 			self.select_feed(feed_id)
 			
-	def __feed_polled_cb(self, app, feed_id):
+	def __feed_polled_cb(self, app, feed_id, update_data):
 		self.display_status_message(_("Feed Updated"))
 		gobject.timeout_add(2000, self.display_status_message, "")
 			
@@ -260,13 +261,8 @@ class MainWindow:
 		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True))
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
 		
-		try:
-			self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/pixmaps/penguintvicon.png")
-		except:
-			try:
-				self.app_window.set_icon_from_file(utils.GetPrefix()+"/share/penguintvicon.png") #in case the install is still in the source dirs
-			except:
-				self.app_window.set_icon_from_file(self._glade_prefix+"/penguintvicon.png")
+		self.app_window.set_icon_from_file(utils.get_icon_filename())
+				
 		self._status_view = self._widgetTree.get_widget("appbar")
 		
 		self._load_toolbar()

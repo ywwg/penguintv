@@ -63,6 +63,9 @@ import AddFeedDialog
 import PreferencesDialog
 import MainWindow, FeedList, EntryList, EntryView
 
+if utils.HAS_STATUS_ICON:
+	import PtvTrayIcon
+
 CANCEL=0
 PAUSE=1
 
@@ -83,7 +86,7 @@ class PenguinTVApp(gobject.GObject):
 	__gsignals__ = {
 		'feed-polled': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT])),
+                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
         'feed-added': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_BOOLEAN])),
@@ -92,7 +95,10 @@ class PenguinTVApp(gobject.GObject):
                            ([gobject.TYPE_INT])),
 		'entry-updated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_INT]))
+                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
+		'notify-tags-changed': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([]))
 	}
 
 	def __init__(self, window=None):
@@ -114,19 +120,8 @@ class PenguinTVApp(gobject.GObject):
 		found_glade = False
 		
 		
-		for p in (os.path.join(utils.GetPrefix(),"share","penguintv"),
-				  os.path.join(utils.GetPrefix(),"share"),
-				  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
-				  os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share"),
-				  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
-			try:
-				self.glade_prefix = p
-				os.stat(os.path.join(self.glade_prefix,"penguintv.glade"))
-				found_glade = True
-				break
-			except:
-				continue
-		if not found_glade:
+		self.glade_prefix = utils.get_glade_prefix()
+		if self.glade_prefix is None:
 			print "error finding glade file."
 			sys.exit()
 						
@@ -162,8 +157,12 @@ class PenguinTVApp(gobject.GObject):
 			use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
 		else:
 			use_internal_player = True
-		self.main_window = MainWindow.MainWindow(self,self.glade_prefix, use_internal_player, window=window) 
+		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window) 
 		self.main_window.layout=window_layout
+		
+		if utils.HAS_STATUS_ICON:
+			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, utils.get_icon_filename())
+
 		
 		#some signals
 		self.connect('feed-added', self.__feed_added_cb)
@@ -596,6 +595,8 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_list_view.set_selected(feed_id)
 		self.main_window.update_filters()
 		self.feed_list_view.filter_all(False)
+		if ptvDB.NOTIFYUPDATES in old_tags or ptvDB.NOTIFYUPDATES in new_tags:
+			self.emit('notify-tags-changed')
 		
 	def _populate_feeds(self, callback=None, subset=FeedList.ALL):
 		self.set_state(LOADING_FEEDS)
@@ -1001,12 +1002,11 @@ class PenguinTVApp(gobject.GObject):
 			del dialog
 			return
 
-	def refresh_feed(self,feed):
-		#if event.state & gtk.gdk.SHIFT_MASK:
-		#	print "shift-- shift delete it"
+	def refresh_feed(self, feed):
+		def _refresh_cb(update_data, success):
+			self._threaded_emit('feed-polled', feed, update_data)
 		self.main_window.display_status_message(_("Polling Feed..."))
-		task_id = self._db_updater.queue(self._updater_thread_db.poll_feed,(feed,ptvDB.A_IGNORE_ETAG+ptvDB.A_DO_REINDEX))
-		self._gui_updater.queue(self.emit, ('feed-polled', feed), task_id, False)
+		task_id = self._db_updater.queue(self._updater_thread_db.poll_feed_trap_errors,(feed,  _refresh_cb))
 		
 	def _unset_state(self, authorize=False):
 		"""gets app ready to display new state by unloading current state.
@@ -1298,7 +1298,7 @@ class PenguinTVApp(gobject.GObject):
 		return feed_id
 		
 	def _db_add_feed_cb(self, feed, success):
-		self._threaded_emit('feed-polled', feed['feed_id'])
+		self._threaded_emit('feed-polled', feed['feed_id'], feed)
 		self._threaded_emit('feed-added', feed['feed_id'], success)
 		
 	def __feed_added_cb(self, app, feed_id, success):
@@ -1562,19 +1562,14 @@ class PenguinTVApp(gobject.GObject):
 		
 	def _polling_callback(self, args):
 		if not self._exiting:
-			feed_id,update_data,total = args
+			feed_id, update_data, total = args
 			self._gui_updater.queue(self._poll_update_progress,total)
 			if len(update_data)>0:
 				if update_data.has_key('ioerror'):
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._gui_updater.queue(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
-					self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['readinfo','icon','image'],update_data))
-					
-					if not self._showing_search:
-						self._gui_updater.queue(self._entry_list_view.populate_if_selected, feed_id)
-				else:
-					self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['icon'],update_data))
+					self._threaded_emit('feed-polled', feed_id, update_data)
 			else:
 				#check image just in case
 				self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['image']))

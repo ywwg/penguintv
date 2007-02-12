@@ -176,7 +176,7 @@ class PlanetView(gobject.GObject):
 		if success:
 			self.populate_entries(feed_id)
 			
-	def __feed_polled_cb(self, app, feed_id):
+	def __feed_polled_cb(self, app, feed_id, update_data):
 		if feed_id == self._current_feed_id:
 			self.populate_entries(feed_id)
 			

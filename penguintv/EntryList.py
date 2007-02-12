@@ -97,7 +97,7 @@ class EntryList(gobject.GObject):
 	def __feedlist_none_selected_cb(self, o):
 		self.populate_entries(None)
 		
-	def __feed_polled_cb(self, app, feed_id):
+	def __feed_polled_cb(self, app, feed_id, update_data):
 		if feed_id == self._feed_id:
 			self.update_entry_list()
 			
