@@ -14,17 +14,12 @@ import gobject
 
 import utils
 
-#try:
-#	import pynotify
-#	HAS_PYNOTIFY = True
-#except ImportError:
-#	HAS_PYNOTIFY = False
-#	import SonataNotification
-
-#pynotify crashes with version 0.1.0, can't use
-#(can't even tell the difference!)
-HAS_PYNOTIFY = False
-import SonataNotification
+if utils.get_pynotify_ok():
+	import pynotify
+	HAS_PYNOTIFY = True
+else:
+	import SonataNotification
+	HAS_PYNOTIFY = False
 
 MAX_HEIGHT = 96
 MAX_WIDTH = 96
@@ -129,6 +124,7 @@ class StatusTrayIcon(gtk.StatusIcon):
 		
 	def __sonatafication_click_cb(self, notification, action, userdata):
 		self.emit('notification-clicked', userdata)
+		notification.close()
 
 	def __pynotification_click_cb(self, notification, action):
 		userdata = notification.get_data('userdata')

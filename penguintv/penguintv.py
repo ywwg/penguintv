@@ -1349,7 +1349,7 @@ class PenguinTVApp(gobject.GObject):
 	def delete_media(self, media_id):
 		"""Deletes specific media id"""
 		self.db.delete_media(media_id)
-		self.main_window.download_finished()
+		self.main_window.update_downloads()
 		self.mediamanager.generate_playlist()
 		self.db.set_media_viewed(media_id,True)
 		self.update_disk_usage()

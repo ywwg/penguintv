@@ -67,6 +67,12 @@ else:
 	else:
 		HAS_STATUS_ICON = False
 		
+	try:
+		import pynotify
+		HAS_PYNOTIFY = True
+	except:
+		HAS_PYNOTIFY = False
+		
 try:
 	import pygst
 	pygst.require("0.10")
@@ -551,7 +557,63 @@ def init_gtkmozembed():
 	comp_path = os.path.split(ldd_output.split()[2])[0]
 	gtkmozembed.set_comp_path(comp_path)
 	return True
+	
+def get_pynotify_ok():
+	if not HAS_PYNOTIFY:
+		return False
 
+	# first get what package config reports
+	cmd = "pkg-config notify-python --modversion"
+	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	retval = p.wait()
+	stderr = p.stderr.read()
+	if len(stderr) > 1 or retval != 0:
+		return False
+	major,minor,rev = p.stdout.read().split('.')
+	
+	major = int(major)
+	minor = int(minor)
+	rev = int(rev)
+
+	# if it's bad, return false
+	if minor < 1:
+		return False
+	if minor == 1 and rev == 0:
+		return False
+
+	# if it's good, check to see it's not lying about prefix
+	cmd = "pkg-config notify-python --variable=prefix"
+	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	retval = p.wait()
+	stderr = p.stderr.read()
+	if len(stderr) > 1 or retval != 0:
+		return False
+	pkgconfig_prefix = p.stdout.read().strip()
+	
+	try:
+		dirname = os.path.split(pynotify.__file__)[0]
+		f = open(os.path.join(dirname, "_pynotify.la"))
+	except:
+		return False
+	
+	libdir_line = ""
+	
+	for line in f.readlines():
+		if line[0:6] == "libdir":
+			libdir_line = line.split("=")[1][1:-1]
+			break
+	f.close()
+	
+	libdir_line = libdir_line.strip()
+	
+	if len(libdir_line) == 0:
+		return False
+	
+	if pkgconfig_prefix not in libdir_line:
+		return False
+
+	return True
+	
 if is_kde():
 	import kio
 

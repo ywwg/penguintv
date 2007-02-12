@@ -138,7 +138,10 @@ class MainWindow(gobject.GObject):
 		
 	def __download_finished_cb(self, app, d): #FIXME: convert to gobject signal one day
 		self._download_view.update_downloads()
-
+		
+	def update_downloads(self):
+		self._download_view.update_downloads()
+		
 #	def __getitem__(self, key):
 #		return self.widgets.get_widget(key)
 
