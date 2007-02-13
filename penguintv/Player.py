@@ -35,6 +35,9 @@ class Player:
 	def using_internal_player(self):
 		return self._gst_player != None	
 		
+	def internal_player_exposed(self):
+		return self._gst_player.is_exposed()
+		
 	def connect_internal(self, signal, func):
 		assert self.using_internal_player()
 		self._gst_player.connect(signal, func)

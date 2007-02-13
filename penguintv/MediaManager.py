@@ -214,7 +214,10 @@ class MediaManager:
 	
 	def callback_finished(self, obj):
 		if obj.status in [STOPPED, FINISHED, FINISHED_AND_PLAY, FAILURE]:
-			self.downloads.remove(obj)
+			try:
+				self.downloads.remove(obj)
+			except:
+				print "Warning: couldn't remove download"
 		self.update_playlist(obj.media)
 		#if self.pause_state == RUNNING:
 		self.app_callback_finished(obj)

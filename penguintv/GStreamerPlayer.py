@@ -67,8 +67,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._hpaned = gtk.HPaned()
 		self._player_vbox = gtk.VBox()
 		self._drawing_area = gtk.DrawingArea()
-		#unbreakme: without this option the video doesn't redraw correctly when exposed
-		self._drawing_area.unset_flags(gtk.DOUBLE_BUFFERED)
+		
 		color = gtk.gdk.Color(0, 0, 0)
 		self._drawing_area.modify_bg(gtk.STATE_NORMAL, color)
 		self._drawing_area.connect('expose-event', self._on_drawing_area_exposed)
@@ -200,6 +199,9 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def get_widget(self):
 		return self._layout_dock
+		
+	def is_exposed(self):
+		return self.__is_exposed
 		
 	def detach(self):
 		"""video window can detach.  queue stays embedded"""
@@ -492,11 +494,11 @@ class GStreamerPlayer(gobject.GObject):
 		#	self._x_overlay.expose()
 		self._v_sink.expose()
 		if not self.__is_exposed:
-			self.__is_exposed = True
 			model = self._queue_listview.get_model()
 			if len(model) > 0:
 				#self._prepare_display()
 				self._seek_to_saved_position()
+			self.__is_exposed = True
 				
 	###utility functions###
 	def _get_video_sink(self, compat=False):
@@ -554,6 +556,10 @@ class GStreamerPlayer(gobject.GObject):
 		#get video width and height so we can resize the pane
 		#see totem
 		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
+		
+		#unbreakme: if there's no video, it doesn't draw right here either
+		self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
+		
 		min_width = 200
 		max_width = self._hpaned.get_allocation().width - 200 #-200 for the list box
 		
@@ -568,6 +574,10 @@ class GStreamerPlayer(gobject.GObject):
  		if caps is None: #no big deal, this might be audio only
  			self._hpaned.set_position(max_width / 2)
  			return
+ 		
+ 		#unbreakme: without this option the video doesn't redraw correctly when exposed
+		self._drawing_area.unset_flags(gtk.DOUBLE_BUFFERED)	
+ 			
   		s = caps[0]
   		movie_aspect = float(s['width']) / s['height']
   		display_height = self._drawing_area.get_allocation().height
@@ -739,7 +749,7 @@ class GStreamerErrorDialog(gtk.Window):
 			
 	def _on_delete_event(self, widget, event):
 		return self.hide_on_delete()
-	
+		
 #########app
 def do_quit(self, widget, player):
 	player.finish()

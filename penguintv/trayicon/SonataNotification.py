@@ -1,3 +1,5 @@
+# This code adapted from Sonata (http://sonata.berlios.de/), thanks to Scott Horowitz
+
 import gtk
 import gobject
 

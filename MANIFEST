@@ -66,6 +66,9 @@ penguintv/FilterSelectorDialog.py
 penguintv/PlanetView.py
 penguintv/DownloadView.py
 penguintv/IconManager.py
+penguintv/PtvTrayIcon.py
+penguintv/trayicon/TrayIcon.py
+penguintv/trayicon/SonataNotification.py
 feedparser/setup.py
 feedparser/feedparser.py
 feedparser/LICENSE

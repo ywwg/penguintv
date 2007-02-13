@@ -6,6 +6,7 @@ from Downloader import FINISHED, FINISHED_AND_PLAY
 import trayicon.TrayIcon
 import IconManager
 import utils
+import MainWindow
 
 NOTIFY_ENTRY = 0
 NOTIFY_DOWNLOAD = 1
@@ -117,13 +118,6 @@ class PtvTrayIcon:
 			
 			self._tray_icon.display_notification(title, message, icon, (NOTIFY_DOWNLOAD, d.media['media_id']))
 					
-	
-	def _notification_clicked_cb(self, obj, userdata):
-		if userdata[0] == NOTIFY_DOWNLOAD:
-			self._app.activate_link("play:"+str(userdata[1]))
-		elif userdata[0] == NOTIFY_ENTRY:
-			self._app.select_entry(userdata[1])
-		
 	def _feed_polled_cb(self, app, feed_id, update_data):
 		try:
 			new_entries = update_data['new_entries']
@@ -136,7 +130,7 @@ class PtvTrayIcon:
 			
 		if feed_id in self._notification_feeds:
 			entries = self._db.get_entrylist(feed_id)[0:new_entries]
-			entries = [(feed_id,e) for e in entries]
+			entries = [(feed_id,e[0]) for e in entries]
 			self._updates += entries
 			
 			if len(self._updates) > 10: #too many
@@ -150,15 +144,24 @@ class PtvTrayIcon:
 		if len(self._updates) == 0:
 			self._updater_id = -1
 			return False
-		feed_id, e = self._updates.pop(0)
+		feed_id, entry_id = self._updates.pop(0)
 		feed_title = self._db.get_feed_title(feed_id)
+		entry = self._db.get_entry(entry_id)
 		icon = self._icon_manager.get_icon(feed_id)
 		
 		feed_title = utils.my_quote(feed_title)
-		entry_title = utils.my_quote(e[1])
+		entry_title = utils.my_quote(entry['title'])
 		
-		self._tray_icon.display_notification(feed_title, entry_title, icon, (NOTIFY_ENTRY, e[0]))
+		self._tray_icon.display_notification(feed_title, entry_title, icon, (NOTIFY_ENTRY, entry))
 		return True
+		
+	def _notification_clicked_cb(self, obj, userdata):
+		if userdata[0] == NOTIFY_DOWNLOAD:
+			self._app.activate_link("play:"+str(userdata[1]))
+		elif userdata[0] == NOTIFY_ENTRY:
+			entry = userdata[1]
+			self._app.select_entry(entry['entry_id'])
+			self._app.activate_link(entry['link'])
 		
 	def __quit_cb(self, data):
 		self._app.do_quit()
@@ -175,8 +178,22 @@ class PtvTrayIcon:
 		return playitem, pauseitem
 		
 	def __play_cb(self, obj):
+		def _expose_check_generator():
+			"""Wait for player to become exposed, then play"""
+			for i in range(0,10):
+				if self._app.player.internal_player_exposed():
+					self._app.player.control_internal("play")
+					yield True
+					break
+				yield False
+			yield False
+
 		if self._app.player.using_internal_player():
-			self._app.player.control_internal("play")
+			if not self._app.player.internal_player_exposed():
+				self._app.main_window.notebook_select_page(MainWindow.N_PLAYER)
+				gobject.timeout_add(200, _expose_check_generator().next)
+			else:
+				self._app.player.control_internal("play")
 			
 	def __pause_cb(self, obj):
 		if self._app.player.using_internal_player():
