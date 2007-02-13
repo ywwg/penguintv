@@ -608,8 +608,13 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_list_view.set_selected(feed_id)
 		self.main_window.update_filters()
 		self.feed_list_view.filter_all(False)
-		if ptvDB.NOTIFYUPDATES in old_tags or ptvDB.NOTIFYUPDATES in new_tags:
-			self.emit('notify-tags-changed')
+		if len(old_tags) > 0:
+			if ptvDB.NOTIFYUPDATES in old_tags:
+				self.emit('notify-tags-changed')
+				return #don't need the next test
+		if len(new_tags) > 0:
+			if ptvDB.NOTIFYUPDATES in new_tags:
+				self.emit('notify-tags-changed')
 		
 	def _populate_feeds(self, callback=None, subset=FeedList.ALL):
 		self.set_state(LOADING_FEEDS)
