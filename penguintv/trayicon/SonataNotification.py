@@ -38,6 +38,7 @@ class TrayIconTips(gtk.Window):
 		
 		#basic notification widget
 		hbox = gtk.HBox()
+		hbox.set_spacing(5)
 		self._image = gtk.Image()
 		hbox.pack_start(self._image, False)
 
@@ -51,7 +52,7 @@ class TrayIconTips(gtk.Window):
 		self._text.set_alignment(0, .5)
 		vbox.pack_start(self._text, True)
 		
-		hbox.pack_start(vbox, True)
+		hbox.pack_start(vbox, True, True)
 		
 		vbox = gtk.VBox()
 		img = gtk.Image()
@@ -64,10 +65,14 @@ class TrayIconTips(gtk.Window):
 		vbox.pack_start(label, True, True)
 		hbox.pack_start(vbox, False, False)
 		
-		self.add(hbox)
-		hbox.show_all()
+		align = gtk.Alignment(0,0,1,1)
+		align.set_padding(10,10,10,10)
+		align.add(hbox)
 		
-		self.set_size_request(500,75)
+		self.add(align)
+		align.show_all()
+		
+		self.set_size_request(500,96)
 
 	def _calculate_pos(self, widget):
 		icon_screen, icon_rect, icon_orient = widget.get_geometry()

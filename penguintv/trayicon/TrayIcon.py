@@ -3,7 +3,7 @@
 import os, sys
 import traceback
 #debug so utils imports
-sys.path.append("/home/owen/penguintv/penguintv")
+#sys.path.append("/home/owen/penguintv/penguintv")
 
 import time
 
@@ -21,8 +21,8 @@ else:
 	import SonataNotification
 	HAS_PYNOTIFY = False
 
-MAX_HEIGHT = 96
-MAX_WIDTH = 96
+MAX_HEIGHT = 64
+MAX_WIDTH = 64
 MIN_SIZE = 16
 	
 class StatusTrayIcon(gtk.StatusIcon):
@@ -33,7 +33,7 @@ class StatusTrayIcon(gtk.StatusIcon):
                            ([gobject.TYPE_PYOBJECT])),
 	}
 
-	def __init__(self, icon, menu, show_always=True):
+	def __init__(self, icon, menu=None, show_always=True):
 		#Init StatusIcon
 		gtk.StatusIcon.__init__(self)
 		
@@ -45,8 +45,9 @@ class StatusTrayIcon(gtk.StatusIcon):
 
 		self.set_tooltip('')
 		
-		self.menu = menu
-		self.connect('popup-menu', self.__popup_menu_cb)
+		if menu is not None:
+			self.menu = menu
+			self.connect('popup-menu', self.__popup_menu_cb)
 		
 		self._notifications = []
 		self._updater_id = -1
@@ -150,11 +151,11 @@ class StatusTrayIcon(gtk.StatusIcon):
 		self.emit('menu-clicked', action)
 
 def _test_tray_icon(icon):
-	icon.display_notification('title','message')
+	icon.display_notification('title','message','/usr/share/pixmaps/penguintvicon.png')
 	icon.set_tooltip('yo yo yo!')
-	icon.display_notification('title2','message2')
-	icon.display_notification('title3','message3')
-	icon.display_notification('title4','message4')
+	icon.display_notification('title2','message2','/usr/share/pixmaps/penguintvicon.png')
+	icon.display_notification('title3','message3','/usr/share/pixmaps/penguintvicon.png')
+	icon.display_notification('title4','message4','/usr/share/pixmaps/penguintvicon.png')
 	return False
 	
 if __name__ == '__main__': # Here starts the dynamic part of the program 
