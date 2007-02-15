@@ -15,14 +15,16 @@ import logging
 
 import gobject
 
-try:
-	import gtkmozembed
-except:
-	pass
-
 from EntryView import *
 import ptvDB
 import utils
+
+if not utils.RUNNING_SUGAR:
+	try:
+		import gtkmozembed
+	except:
+		pass
+
 	
 ENTRIES_PER_PAGE = 10
 
@@ -202,7 +204,13 @@ class PlanetView(gobject.GObject):
 			self.clear_entries()
 			return
 			
-		db_entrylist = self._db.get_entrylist(feed_id)
+		try:
+			db_entrylist = self._db.get_entrylist(feed_id)
+		except ptvDB.NoEntry, e:
+			print "error displaying search"
+			self._render(_("There was an error displaying the search results.  Please reindex searches and try again"))
+			return
+
 		if feed_id != self._current_feed_id:
 			self._current_feed_id = feed_id
 			self._first_entry = 0
@@ -243,7 +251,7 @@ class PlanetView(gobject.GObject):
 			self._render_entries(query)
 		except ptvDB.NoEntry:
 			print "error displaying search"
-			self.display_custom_entry(_("There was an error displaying the search results.  Please reindex searches and try again"))
+			self._render(_("There was an error displaying the search results.  Please reindex searches and try again"))
 		
 	def unshow_search(self):
 		self._render("<html><body></body></html")
@@ -373,39 +381,43 @@ class PlanetView(gobject.GObject):
 				print "warning: can't remove non-existant entry from store"
 			
 		#######build HTML#######	
-		html = self._build_header(media_exists)
+		html = []
+		html.append(self._build_header(media_exists))
 		
-		html += self._custom_message
+		html.append(self._custom_message)
 		
-		html += """<div id="nav_bar"><table
+		html.append("""<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
  					border="0" cellpadding="2" cellspacing="0">
 					<tbody>
-					<tr><td>"""
+					<tr><td>""")
 		if self._first_entry > 0:
-			html += '<a href="planet:up">Newer Entries</a>'
-		html += '</td><td style="text-align: right;">'
+			html.append('<a href="planet:up">Newer Entries</a>')
+		html.append('</td><td style="text-align: right;">')
 		if last_entry < len(self._entrylist):
-			html += '<a href="planet:down">Older Entries</a>'
-		html += "</td></tr></tbody></table></div>"
+			html.append('<a href="planet:down">Older Entries</a>')
+		html.append("</td></tr></tbody></table></div>")
 		
 		if self._state != S_SEARCH:
 		#if not self._showing_search: 
-			html += '<div class="feed_title">'+self._feed_title+"</div>"
-		html += entries
+			html.append('<div class="feed_title">'+self._feed_title+"</div>")
+		html.append(entries)
 			
-		html += """<div id="nav_bar"><table
+		html.append("""<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
 					border="0" cellpadding="2" cellspacing="0">
 					<tbody>
-					<tr><td>"""
+					<tr><td>""")
 		if self._first_entry > 0:
-			html += '<a href="planet:up">Newer Entries</a>'
-		html += '</td><td style="text-align: right;">'
+			html.append('<a href="planet:up">Newer Entries</a>')
+		html.append('</td><td style="text-align: right;">')
 		if last_entry < len(self._entrylist):
-			html += '<a href="planet:down">Older Entries</a>'
-		html += "</td></tr></tbody></table></div>"
-		html += "</body></html>"
+			html.append('<a href="planet:down">Older Entries</a>')
+		html.append("</td></tr></tbody></table></div>")
+		html.append("</body></html>")
+		
+		html = "".join(html)
+		
 		self._render(html)
 	
 	def _build_header(self, media_exists):

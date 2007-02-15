@@ -1518,7 +1518,10 @@ class ptvDB:
 			#gonna be slow :(
 			for entry_id,title, fakedate, feed_id in s_entries:
 				self._db_execute(self._c, """SELECT read FROM entries WHERE id=? LIMIT 1""",(entry_id,))
-				readinfo = self._c.fetchone()[0]
+				try:
+					readinfo = self._c.fetchone()[0]
+				except:
+					raise NoEntry, entry_id
 				entries.append([entry_id, title, fakedate, readinfo, feed_id])
 			self._filtered_entries[feed_index] = entries
 			return entries

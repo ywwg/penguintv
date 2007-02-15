@@ -337,6 +337,8 @@ class GStreamerPlayer(gobject.GObject):
 	def stop(self):
 		#this should release the port, but I hate having a stop button on a computer
 		#because it doesn't make sense.
+		#unbreak: when video is stopped, we need this option to keep the window black
+		self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
