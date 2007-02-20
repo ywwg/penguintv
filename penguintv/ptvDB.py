@@ -4,12 +4,12 @@
 from pysqlite2 import dbapi2 as sqlite
 from math import floor,ceil
 from random import randint
-import pysqlite2
 #import feedparser  loaded when needed
 import time
 import string
 import sha
-import urllib, urllib2#, urlparse loaded as needed
+import urllib #, urlparse loaded as needed
+from urllib2 import URLError
 from types import *
 import threading
 import ThreadPool
@@ -39,6 +39,11 @@ if utils.HAS_GCONF:
 	import gobject
 if utils.HAS_PYXML:
 	import OPML
+if utils.RUNNING_SUGAR:
+	USING_FLAG_CACHE = False
+else:
+	USING_FLAG_CACHE = True
+#USING_FLAG_CACHE = False
 	
 NEW = 0
 EXISTS = 1
@@ -49,7 +54,10 @@ BOOL    = 1
 INT     = 2
 STRING  = 3
 
-MAX_ARTICLES = 1000
+if utils.RUNNING_SUGAR:
+	MAX_ARTICLES = 50
+else:
+	MAX_ARTICLES = 1000
 
 _common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
 
@@ -264,7 +272,7 @@ class ptvDB:
 		try:
 			self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN fakedate DATE')
 			self._db_execute(self._c, u'UPDATE entries SET fakedate = date')
-		except pysqlite2.dbapi2.OperationalError,e:
+		except sqlite.OperationalError,e:
 			if e != "duplicate column name: fakedate":
 				print e #else pass
 			#change db_ver (last thing)
@@ -708,7 +716,6 @@ class ptvDB:
 			time.sleep(.1)
 		self._db_execute(self._c, 'PRAGMA cache_size=2000')
 		
-			
 		while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 			if self._exiting:
 				pool.joinAll(False,True)
@@ -732,6 +739,15 @@ class ptvDB:
 	def _pool_poll_feed(self, args):
 		feed_id, arguments, total, data = args
 		url,modified,etag=data
+		
+		#save ram by not piling up polled data
+		if utils.RUNNING_SUGAR:
+			parse_list_limit = 2
+		else:
+			parse_list_limit = 5
+		
+		while len(self._parse_list) > parse_list_limit:
+			time.sleep(1)
 		
 		try:
 			import feedparser
@@ -858,6 +874,12 @@ class ptvDB:
 			try:
 				import feedparser
 				feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
+				
+				#speed up feedparser
+				if utils.RUNNING_SUGAR:
+					feedparser._sanitizeHTML = lambda a, b: a
+					feedparser._resolveRelativeURIs = lambda a, b, c: a
+				
 				if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
 					data = feedparser.parse(url)
 				else:
@@ -905,7 +927,7 @@ class ptvDB:
 
 		if len(data['feed']) == 0 or len(data['items']) == 0:
 			if data.has_key('bozo_exception'):
-				if isinstance(data['bozo_exception'],urllib2.URLError):
+				if isinstance(data['bozo_exception'], URLError):
 					e = data['bozo_exception'][0]
 					errno = e[0]
 					if e[0] in [-3, #failure in name resolution   
@@ -1008,7 +1030,7 @@ class ptvDB:
 		self._db.commit()
 		
 		#populate the entries
-		self._db_execute(self._c, """SELECT id,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate""",(feed_id,)) 
+		self._db_execute(self._c, """SELECT id,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate DESC""",(feed_id,)) 
 		existing_entries = self._c.fetchall()
 		
 		#we can't trust the dates inside the items for timing data
@@ -1017,23 +1039,23 @@ class ptvDB:
 		#unread article counts, and keeps the articles in order
 		fake_time = time.time()#-len(data['items'])
 		i=0
-		try:
-			if data['items'][0].has_key('updated_parsed') == 1:
-				data['items'].sort(lambda x,y: int(time.mktime(y['updated_parsed'])-time.mktime(x['updated_parsed'])))
-		except:
-			try:
-				if data['items'][0].has_key('modified_parsed') == 1:
-					data['items'].sort(lambda x,y: int(time.mktime(y['modified_parsed'])-time.mktime(x['modified_parsed'])))
-			except:
-				try:
-					if data['items'][0].has_key('created_parsed') == 1:
-						data['items'].sort(lambda x,y: int(time.mktime(y['created_parsed'])-time.mktime(x['created_parsed'])))
-				except:	
-					try:	
-						if data['items'][0].has_key('date_parsed') == 1:
-							data['items'].sort(lambda x,y: int(time.mktime(y['date_parsed'])-time.mktime(x['date_parsed'])))
-					except:
-						pass #I feel dirty.
+		#try:
+		#	if data['items'][0].has_key('updated_parsed') == 1:
+		#		data['items'].sort(lambda x,y: int(time.mktime(y['updated_parsed'])-time.mktime(x['updated_parsed'])))
+		#except:
+		#	try:
+		#		if data['items'][0].has_key('modified_parsed') == 1:
+		#			data['items'].sort(lambda x,y: int(time.mktime(y['modified_parsed'])-time.mktime(x['modified_parsed'])))
+		#	except:
+		#		try:
+		#			if data['items'][0].has_key('created_parsed') == 1:
+		#				data['items'].sort(lambda x,y: int(time.mktime(y['created_parsed'])-time.mktime(x['created_parsed'])))
+		#		except:	
+		#			try:	
+		#				if data['items'][0].has_key('date_parsed') == 1:
+		#					data['items'].sort(lambda x,y: int(time.mktime(y['date_parsed'])-time.mktime(x['date_parsed'])))
+		#			except:
+		#				pass #I feel dirty.
 		
 		new_items = 0
 		
@@ -1147,7 +1169,7 @@ class ptvDB:
 				item['date_parsed']=(0,0,0,0,0,0,0,0,0)
 				
 				
-			status = self._get_status(item,existing_entries, feed_id) #FIXME: remove feedid when done debugging!
+			status = self._get_status(item, existing_entries)
 			
 			if status[0]==NEW:
 				new_items = new_items+1
@@ -1312,7 +1334,7 @@ class ptvDB:
 		self._db_execute(self._c, 'UPDATE feeds SET pollfreq=? WHERE id=?',(poll_freq,feed_id))
 		self._db.commit()
 		
-	def _get_status(self, item, existing_entries, feed_id):
+	def _get_status(self, item, existing_entries):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
@@ -1321,32 +1343,36 @@ class ptvDB:
 		BODY=4
 
 		entry_id=-1
-		old_hash = sha.new()
-		new_hash = sha.new()
+		
+		t_item = {'guid': item['guid'],
+				'body': item['body'],
+				'link': item['link'],
+				'title': item['title']}
+				
 		
 		for entry_item in existing_entries:
-			if str(item['guid'])!='0':
-				if str(entry_item[GUID]) == str(item['guid']):# and entry_item[TITLE] == item['title']:
+			if str(t_item['guid'])!='0':
+				if str(entry_item[GUID]) == str(t_item['guid']):# and entry_item[TITLE] == t_item['title']:
 					entry_id = entry_item[ID]
-					old_hash.update(self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY]))
-					new_hash.update(self._ascii(item['guid'])+self._ascii(item['body']))
+					old_hash = self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY])
+					new_hash = self._ascii(t_item['guid'])+self._ascii(t_item['body'])
 					break
-			elif item['link']!='':
-				if entry_item[LINK] == item['link'] and entry_item[TITLE] == item['title']:
+			elif t_item['link']!='':
+				if entry_item[LINK] == t_item['link'] and entry_item[TITLE] == t_item['title']:
 					entry_id = entry_item[ID]
-					old_hash.update(self._ascii(entry_item[LINK])+self._ascii(entry_item[BODY]))
-					new_hash.update(self._ascii(item['link'])+self._ascii(item['body']))
+					old_hash = self._ascii(entry_item[LINK])+self._ascii(entry_item[BODY])
+					new_hash = self._ascii(t_item['link'])+self._ascii(t_item['body'])
 					break
-			elif entry_item[TITLE] == item['title']:
+			elif entry_item[TITLE] == t_item['title']:
 				entry_id = entry_item[ID]
-				old_hash.update(self._ascii(entry_item[TITLE])+self._ascii(entry_item[BODY]))
-				new_hash.update(self._ascii(item['title'])+self._ascii(item['body']))
+				old_hash = self._ascii(entry_item[TITLE])+self._ascii(entry_item[BODY])
+				new_hash = self._ascii(t_item['title'])+self._ascii(t_item['body'])
 				break
 
 		if entry_id == -1:
 			return (NEW, -1, [])
 
-		if new_hash.hexdigest() == old_hash.hexdigest():
+		if new_hash == old_hash:
 			#now check enclosures
 			old_media = self.get_entry_media(entry_id)
 			if old_media is None:
@@ -1886,15 +1912,18 @@ class ptvDB:
 					result = self._c.fetchone()
 					if result: read_status.append(result)
 				entry_list = read_status
+				unread=0
+				for item in entry_list:
+					if item[0]==0: #read
+						unread=unread+1
+				feed_info['unread_count'] = unread					
+				feed_info['entry_count'] = len(entry_list)
 			else:
-				self._db_execute(self._c, """SELECT read FROM entries WHERE feed_id=?""",(feed_id,))
-				entry_list = self._c.fetchall()
-			unread=0
-			for item in entry_list:
-				if item[0]==0: #read
-					unread=unread+1
-			feed_info['unread_count'] = unread
-			feed_info['entry_count'] = len(entry_list)
+				self._db_execute(self._c, """SELECT COUNT(read) FROM entries WHERE feed_id=? AND read=0""",(feed_id,))
+				feed_info['unread_count'] = self._c.fetchone()[0]
+				self._db_execute(self._c, """SELECT COUNT(read) FROM entries WHERE feed_id=?""",(feed_id,))
+				feed_info['entry_count'] = self._c.fetchone()[0]
+		
 			feed_info['important_flag'] = self.get_feed_flag(feed_id)  #not much speeding up this	
 		else:
 			self._db_execute(self._c, u'SELECT flag_cache, unread_count_cache, entry_count_cache FROM feeds WHERE id=?',(feed_id,))
@@ -1959,7 +1988,8 @@ class ptvDB:
 			if int(read)==0:
 				importance=importance+F_UNVIEWED
 		
-		self.entry_flag_cache[entry_id] = importance
+		if USING_FLAG_CACHE:
+			self.entry_flag_cache[entry_id] = importance
 		return importance		
 		
 	def get_unread_count(self, feed_id):

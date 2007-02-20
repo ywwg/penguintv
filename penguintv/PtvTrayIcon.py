@@ -160,7 +160,7 @@ class PtvTrayIcon:
 			self._app.activate_link("play:"+str(userdata[1]))
 		elif userdata[0] == NOTIFY_ENTRY:
 			entry = userdata[1]
-			self._app.select_entry(entry['entry_id'])
+			#self._app.select_entry(entry['entry_id'])
 			self._app.activate_link(entry['link'])
 		
 	def __quit_cb(self, data):

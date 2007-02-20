@@ -17,10 +17,9 @@ try:
 	#not good enough to load it below.  need to load it module-wide
 	#or else random images don't load.  gtkmozembed is VERY picky!
 	import gtkmozembed
-	MOZ_OK = True
 except:
-	MOZ_OK = False
-
+	pass
+	
 GTKHTML=0
 MOZILLA=1
 
@@ -527,7 +526,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 		ret.append('%s' % item['description'])
 	ret.append('</div>')
 	if item.has_key('link'):
-		ret.append('<a href="'+item['link']+'">'+_("Full Entry...")+'</a>' )
+		ret.append('<a href="' + item['link'] + '">' + _("Full Entry...") + '</a>')
 	ret.append('</p></div>')
 	return "".join(ret)
 	

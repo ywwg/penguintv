@@ -38,9 +38,9 @@ class AddFeedDialog:
 		self._feed_url_widget.set_text("")
 		self.set_location()
 		self._edit_tags_widget.set_text("")
-		if utils.RUNNING_SUGAR:
-			self._tag_hbox.hide()
-			self._label.set_text(_('Please enter the URL of the feed you would like to add'))
+		#if utils.RUNNING_SUGAR:
+		#	self._tag_hbox.hide()
+		#	self._label.set_text(_('Please enter the URL of the feed you would like to add'))
 	
 	#ripped from straw
 	def set_location(self):

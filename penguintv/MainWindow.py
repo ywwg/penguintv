@@ -159,7 +159,7 @@ class MainWindow(gobject.GObject):
 		application window"""
 		#sys.stderr.write("show,"+str(dock_widget))
 		
-		if not EntryView.MOZ_OK and self.layout == "planet":
+		if not utils.HAS_MOZILLA and self.layout == "planet":
 			print "requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)"
 			self.layout = "standard"
 		
@@ -170,7 +170,7 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('saved_searches').hide()
 				self._widgetTree.get_widget('separator11').hide()
 				self._widgetTree.get_widget('reindex_searches').hide()
-			if not EntryView.MOZ_OK:
+			if not utils.HAS_MOZILLA:
 				self._widgetTree.get_widget('planet_layout').hide()
 			self._window = self.app_window
 		else:  #if we are in OLPC mode and just have to supply a widget...
@@ -373,7 +373,7 @@ class MainWindow(gobject.GObject):
 		if utils.RUNNING_SUGAR:
 			renderer = EntryView.MOZILLA
 			
-		if not EntryView.MOZ_OK:
+		if not utils.HAS_MOZILLA:
 			renderer = EntryView.GTKHTML
 					
 		def load_renderer(x,recur=0):

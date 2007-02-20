@@ -19,7 +19,6 @@ try:
 	HAS_MOZILLA = True
 except:
 	HAS_MOZILLA = False
-	import gtkmozembed
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -37,6 +36,7 @@ if RUNNING_SUGAR:
 	HAS_GNOMEVFS = False
 	HAS_PYXML = False
 	HAS_STATUS_ICON = False
+	HAS_MOZILLA = True
 else:
 	try:
 		import PyLucene
@@ -85,6 +85,9 @@ VERSION="2.85"
 #DEBUG
 _USE_KDE_OVERRIDE=False
 #HAS_LUCENE = False
+#HAS_PYXML = False
+#HAS_STATUS_ICON = False
+#HAS_GNOMEVFS = False
 
 def format_size(size):
 	if size > 1073741824:

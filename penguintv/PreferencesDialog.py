@@ -44,6 +44,7 @@ class PreferencesDialog:
 			self.auto_download_limiter_widget.hide()
 			self.auto_download_limit_widget.hide()
 			self.limiter_hbox_widget.hide()
+			self.show_notification_always.hide()
 		        
 		
 	def hide(self):

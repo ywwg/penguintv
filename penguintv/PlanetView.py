@@ -24,6 +24,8 @@ if not utils.RUNNING_SUGAR:
 		import gtkmozembed
 	except:
 		pass
+else:
+	import _sugar
 
 	
 ENTRIES_PER_PAGE = 10
@@ -111,7 +113,6 @@ class PlanetView(gobject.GObject):
 				for l in f.readlines(): self._css += l
 				f.close()
 				
-				import _sugar
 				_sugar.browser_startup(self._db.home, 'gecko')
 				self._moz = _sugar.Browser()
 			else:

@@ -8,9 +8,9 @@
 
 #import code
 #from sizer import scanner
-#objs = scanner.Objects()
-#code.interact(local = {'objs': objs})
-#from sizer import formatting
+##objs = scanner.Objects()
+##code.interact(local = {'objs': objs})
+##from sizer import formatting
 
 
 #import urlparse loaded as needed
@@ -608,11 +608,11 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_list_view.set_selected(feed_id)
 		self.main_window.update_filters()
 		self.feed_list_view.filter_all(False)
-		if len(old_tags) > 0:
+		if old_tags is not None:
 			if ptvDB.NOTIFYUPDATES in old_tags:
 				self.emit('notify-tags-changed')
 				return #don't need the next test
-		if len(new_tags) > 0:
+		if new_tags is not None:
 			if ptvDB.NOTIFYUPDATES in new_tags:
 				self.emit('notify-tags-changed')
 		
@@ -1001,6 +1001,10 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
 	def play_unviewed(self):
+		#objs = scanner.Objects()
+		#code.interact(local = {'objs': objs})
+		#code.interact()
+		#return
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
 		self.player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist])

@@ -45,8 +45,13 @@ _debug = 0
 # HTTP "User-Agent" header to send to servers when downloading feeds.
 # If you are embedding feedparser in a larger application, you should
 # change this to your application name and URL.
-USER_AGENT = "UniversalFeedParser/%s +http://feedparser.org/" % __version__
-
+#USER_AGENT = "UniversalFeedParser/%s +http://feedparser.org/" % __version__
+try:
+	import utils
+	USER_AGENT = "PenguinTV/%s +http://penguintv.sourceforge.net/" % utils.VERSION
+except:
+	USER_AGENT = "PenguinTV +http://penguintv.sourceforge.net/" 
+	
 # HTTP "Accept" header to send to servers when downloading feeds.  If you don't
 # want to send an Accept header, set this to None.
 ACCEPT_HEADER = "application/atom+xml,application/rdf+xml,application/rss+xml,application/x-netcdf,application/xml;q=0.9,text/xml;q=0.2,*/*;q=0.1"
