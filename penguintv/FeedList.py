@@ -143,6 +143,8 @@ class FeedList(gobject.GObject):
 		self._handlers = []
 		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('feed-added', self.__feed_added_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
@@ -162,6 +164,9 @@ class FeedList(gobject.GObject):
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		self.update_feed_list(feed_id, ['readinfo','icon','title','image'], update_data)
+		
+	def __feed_added_cb(self, app, feed_id, success):
+		self.update_feed_list(feed_id, ['title'])
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.remove_feed(feed_id)

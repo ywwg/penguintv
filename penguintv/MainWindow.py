@@ -122,7 +122,8 @@ class MainWindow(gobject.GObject):
 				
 	def __feed_added_cb(self, app, feed_id, success):
 		if success:
-			self.select_feed(feed_id)
+			#HACK: we know it will already be selected
+			#self.select_feed(feed_id)
 			self.display_status_message(_("Feed Added"))
 			gobject.timeout_add(2000, self.display_status_message, "")
 		else:

@@ -63,8 +63,9 @@ class AddFeedDialog:
 		
 	def finish(self):
 		tags=[]
-		for tag in self._edit_tags_widget.get_text().split(','):
-			tags.append(tag.strip())
+		if len(self._edit_tags_widget.get_text()) > 0:
+			for tag in self._edit_tags_widget.get_text().split(','):
+				tags.append(tag.strip())
 		url = self._feed_url_widget.get_text()
 		self._window.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
@@ -104,6 +105,9 @@ class AddFeedDialog:
 			return #don't hide, give them a chance to try again.
 		if len(tags) > 0:
 			self._app.apply_tags_to_feed(feed_id, None, tags)
+			#HACK: total hack to select the first tag they entered
+			#(tag order not preserved in DB, so we can't use the standard API
+			#self._app.main_window.select_feed(feed_id)
 			self._app.main_window.set_active_filter(self._app.main_window.get_filter_index(tags[0]))
 		self.hide()
 				
