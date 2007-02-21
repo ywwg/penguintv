@@ -2,12 +2,10 @@
 # see LICENSE for license information
 
 import ptvDB
-import pycurl
 from types import *
 import ThreadPool
 import time
 import os,os.path
-import glob
 import copy
 
 import Downloader
@@ -266,6 +264,9 @@ class MediaManager:
 		return size
 		
 	def generate_playlist(self):
+		if utils.RUNNING_SUGAR:
+			return
+		import glob
 		dated_dir = utils.get_dated_dir()
 		try:
 			os.stat(os.path.join(self.media_dir, dated_dir))
@@ -282,6 +283,9 @@ class MediaManager:
 		
 	def update_playlist(self, media):
 		"""Adds media to the playlist in its directory"""
+		
+		if utils.RUNNING_SUGAR:
+			return
 		
 		try:
 			os.stat(media['file'])

@@ -27,7 +27,7 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 RUNNING_SUGAR = os.environ.has_key('SUGAR_PENGUINTV')
-
+RUNNING_SUGAR = True
 if RUNNING_SUGAR:
 	#I do this in case we're running in a python environment that has lucene
 	#and/or gconf but we want to pretend they aren't there
@@ -83,11 +83,12 @@ except:
 	
 VERSION="2.85"
 #DEBUG
-_USE_KDE_OVERRIDE=False
-#HAS_LUCENE = False
-#HAS_PYXML = False
-#HAS_STATUS_ICON = False
-#HAS_GNOMEVFS = False
+#_USE_KDE_OVERRIDE=False
+HAS_LUCENE = False
+HAS_PYXML = False
+HAS_STATUS_ICON = False
+HAS_GNOMEVFS = False
+#HAS_MOZILLA=False
 
 def format_size(size):
 	if size > 1073741824:
@@ -127,7 +128,7 @@ def get_icon_filename():
 			os.stat(icon_file)
 		except:
 			try:
-				icon_file = get_glade_prefix+"/penguintvicon.png"
+				icon_file = get_glade_prefix()+"/penguintvicon.png"
 				os.stat(icon_file)
 			except Exception, e:
 				print "icon not found"
@@ -464,21 +465,21 @@ class AltParser(HTMLParser.HTMLParser):
 			self.head_end=True
 
 		
-#http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/457667
-#I know this is very bad, but damn if it doesn't work
-import __main__
-
-class SuperGlobal:
-
-    def __getattr__(self, name):
-        return __main__.__dict__.get(name, None)
-        
-    def __setattr__(self, name, value):
-        __main__.__dict__[name] = value
-        
-    def __delattr__(self, name):
-        if __main__.__dict__.has_key(name):
-            del  __main__.__dict__[name]
+##http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/457667
+##I know this is very bad, but damn if it doesn't work
+#import __main__
+#
+#class SuperGlobal:
+#
+#    def __getattr__(self, name):
+#        return __main__.__dict__.get(name, None)
+#        
+#    def __setattr__(self, name, value):
+#        __main__.__dict__[name] = value
+#        
+#    def __delattr__(self, name):
+#        if __main__.__dict__.has_key(name):
+#            del  __main__.__dict__[name]
             
 #thanks http://www.peterbe.com/plog/html-entity-fixer
 #from htmlentitydefs import entitydefs
@@ -550,6 +551,7 @@ def init_gtkmozembed():
 	of getting it from the module itself.  good luck with this"""
 
 	assert HAS_MOZILLA
+	return True
 	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom.so"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
@@ -562,6 +564,7 @@ def init_gtkmozembed():
 	return True
 	
 def get_pynotify_ok():
+	return False
 	if not HAS_PYNOTIFY:
 		return False
 

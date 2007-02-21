@@ -713,6 +713,7 @@ class ptvDB:
 				polled+=1
 				feed_id, args, total, parsed = self._parse_list.pop(0)
 				self.polling_callback(self._process_feed(feed_id, args, total, parsed))
+				gc.collect()
 			time.sleep(.1)
 		self._db_execute(self._c, 'PRAGMA cache_size=2000')
 		

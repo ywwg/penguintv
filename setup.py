@@ -9,13 +9,21 @@
 #	print "pyrex not found, mozilla building disabled"
 
 import sys,os
+
+from penguintv import subProcess as my_subProcess
+
 try:
 	from sugar.activity import bundlebuilder
 	print "Building OLPC version"
+
+	sp = my_subProcess.subProcess("ln -sf penguintv.glade.olpc share/penguintv.glade")
+	if sp.read() != 0:
+		print "There was an error symlinking the glade file"
+		sys.exit(1)
+
 	bundlebuilder.start('MANIFEST-OLPC')
 	BUILT_SUGAR = True
 except Exception,e:
-	print "barf"
 	BUILT_SUGAR = False #not building for olpc
 	
 if BUILT_SUGAR:
@@ -23,12 +31,16 @@ if BUILT_SUGAR:
 	
 print "Building desktop version"
 
+sp = my_subProcess.subProcess("ln -sf penguintv.glade.desktop share/penguintv.glade")
+if sp.read() != 0:
+	print "There was an error symlinking the glade file"
+	sys.exit(1)
+
 BUILD_MOZ=False
 
 from distutils.core import setup
 from distutils.extension import Extension
 
-from penguintv import subProcess as my_subProcess
 import locale, gettext
 from penguintv.utils import GlobDirectoryWalker, _mkdir
 locale.setlocale(locale.LC_ALL, '')

@@ -4,8 +4,7 @@ import gobject
 import sys, os, os.path
 import sets
 
-import traceback
-
+import code
 
 import ptvDB
 import penguintv
@@ -92,11 +91,14 @@ class MainWindow(gobject.GObject):
 		self._active_filter_index = FeedList.ALL
 		
 		##other WINDOWS we open
-		self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
-		
+		if utils.HAS_LUCENE:
+			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
+			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
+		if not utils.RUNNING_SUGAR:
+			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
+			
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
-		self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
-		self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._db)
+		
 		self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
 		
 		#signals
@@ -108,7 +110,7 @@ class MainWindow(gobject.GObject):
 		#most of the initialization is done on Show()
 		if window:
 			window.connect('show', self.Show)
-		
+			
 	def __link_activated_cb(self, o, link):
 		self._app.activate_link(link)
 				
@@ -204,7 +206,7 @@ class MainWindow(gobject.GObject):
 		if not self._app_inited:
 			gobject.idle_add(self._app.post_show_init)
 			self._app_inited = True
-				
+			
 	def _load_toolbar(self):
 		if self._widgetTree is None:
 			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'toolbar1','penguintv')
@@ -275,26 +277,26 @@ class MainWindow(gobject.GObject):
 			
 	def _load_app_window(self):
 		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv')
+		
 		notebook_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
-		
 		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
 		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True))
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
-		
 		self.app_window.set_icon_from_file(utils.get_icon_filename())
-				
 		self._status_view = self._widgetTree.get_widget("appbar")
-		
 		self._load_toolbar()
 		
+		code.interact()
 		#load the layout
 		self._layout_dock = self.load_notebook()
 		notebook_dock.add(self._notebook)
 		self._layout_dock.add(self.load_layout())
+
+		code.interact()		
 		self.app_window.show_all()
-		
-				
+		code.interact()
+
 		#final setup for the window comes from gconf
 		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
 		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y', 40)
@@ -311,6 +313,8 @@ class MainWindow(gobject.GObject):
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				self._widgetTree.signal_connect(key, getattr(self, key))
+				
+		code.interact()
 				
 	def load_notebook(self):
 		self._notebook = NotebookManager()

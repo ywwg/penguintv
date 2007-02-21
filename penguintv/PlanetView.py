@@ -20,13 +20,13 @@ import ptvDB
 import utils
 
 if not utils.RUNNING_SUGAR:
+#if True:
 	try:
 		import gtkmozembed
 	except:
 		pass
 else:
 	import _sugar
-
 	
 ENTRIES_PER_PAGE = 10
 
@@ -109,6 +109,7 @@ class PlanetView(gobject.GObject):
 			return
 		elif self._renderer == MOZILLA:
 			if utils.RUNNING_SUGAR:
+			#if False:
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet-olpc.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
@@ -224,8 +225,11 @@ class PlanetView(gobject.GObject):
 			self._update_server.clear_updates()
 		#always update title in case it changed... it's a cheap lookup
 		self._feed_title = self._db.get_feed_title(feed_id)
-		self._entrylist = [e[0] for e in db_entrylist]
-		self._readinfo  = [e[3] for e in db_entrylist]
+		self._entrylist = []
+		self._readinfo = []
+		for e in db_entrylist:
+			self._entrylist.append(e[0])
+			self._readinfo.append(e[3])
 		self._render_entries()
 		
 	def auto_pane(self):
@@ -320,6 +324,7 @@ class PlanetView(gobject.GObject):
 		urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
 		self._render("<html><body></body></html")
 		if utils.RUNNING_SUGAR:
+		#if False:
 			_sugar.browser_shutdown()
 		else:
 			gtkmozembed.pop_startup()
@@ -338,7 +343,7 @@ class PlanetView(gobject.GObject):
 			last_entry = len(self._entrylist)
 			
 		media_exists = False
-		entries = ""
+		entries = []
 		html = ""
 		unreads = []
 		
@@ -351,7 +356,7 @@ class PlanetView(gobject.GObject):
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
 				media_exists = True
-			if not item.has_key('media'):
+			else:
 				if self._readinfo:
 					if self._readinfo[i]==0:
 						unreads.append(entry_id)
@@ -372,7 +377,7 @@ class PlanetView(gobject.GObject):
 				p.feed(entry_html)
 				entry_html = p.new_data
 			
-			entries += entry_html
+			entries.append(entry_html)
 
 		self._app.mark_entrylist_as_viewed(unreads, False)
 		for e in unreads:
@@ -402,7 +407,7 @@ class PlanetView(gobject.GObject):
 		if self._state != S_SEARCH:
 		#if not self._showing_search: 
 			html.append('<div class="feed_title">'+self._feed_title+"</div>")
-		html.append(entries)
+		html += entries
 			
 		html.append("""<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"

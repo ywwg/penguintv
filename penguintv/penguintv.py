@@ -12,14 +12,13 @@
 ##code.interact(local = {'objs': objs})
 ##from sizer import formatting
 
-
 #import urlparse loaded as needed
 from pysqlite2.dbapi2 import OperationalError as OperationalError
 import threading
 import sys, os, os.path
 import gc
+#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_SAVEALL)
 import logging
-import traceback
 import urllib
 try:
 	import gnome.ui
@@ -39,7 +38,9 @@ import gtk.glade
 import gobject
 import locale
 import gettext
-	
+
+import code
+
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -134,6 +135,7 @@ class PenguinTVApp(gobject.GObject):
 		logging.info("penguintv "+utils.VERSION+" startup")
 			
 		self.db = ptvDB.ptvDB(self._polling_callback)
+		
 		self._firstrun = self.db.maybe_initialize_db()
 
 		self.db.clean_media_status()
@@ -400,6 +402,11 @@ class PenguinTVApp(gobject.GObject):
 		
 	def do_quit(self):
 		"""save and shut down all our threads"""
+		
+		##good breakpoint for gc analysis
+		#import code
+		#code.interact()
+		
 		logging.info('ptv quitting')
 		self._exiting=1
 		self._entry_view.finish()
@@ -424,6 +431,7 @@ class PenguinTVApp(gobject.GObject):
 		#	time.sleep(1)
 		logging.info('stopping socket')
 		self._socket.close()
+		
 		if not utils.RUNNING_SUGAR:
 			gtk.main_quit()
 		
@@ -1730,7 +1738,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		if not app._socket.is_server:
 			sys.exit(0)
 		app.main_window.Show() 
-		gtk.gdk.threads_init()
 		#import profile
 		#profile.run('gtk.main()', '/tmp/penguintv-prof')
 		if utils.is_kde():

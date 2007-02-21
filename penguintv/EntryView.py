@@ -11,8 +11,6 @@ import formatter
 import threading
 import re
 
-#import traceback
-
 try:
 	#not good enough to load it below.  need to load it module-wide
 	#or else random images don't load.  gtkmozembed is VERY picky!

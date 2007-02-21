@@ -244,6 +244,7 @@ class DownloadView:
 			height = MIN_SIZE
 			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
+			del p
 			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
 		return p
 		

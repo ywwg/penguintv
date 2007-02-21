@@ -3,7 +3,6 @@ import ptvDB
 import penguintv
 
 import string
-import traceback
 
 TITLE         = 0 
 MARKEDUPTITLE = 1

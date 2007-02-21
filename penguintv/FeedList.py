@@ -7,7 +7,7 @@ import utils
 import IconManager
 import MainWindow
 
-import traceback, sys, os, re
+import sys, os, re
 import glob
 
 import random
@@ -340,7 +340,7 @@ class FeedList(gobject.GObject):
 		if feed_id is None:
 			if self._last_feed is None:
 				return
-			feed_id = self._last_feed
+			feed_id = self._feedlist[self._last_feed][FEEDID]
 			
 		if update_what is None:
 			update_what = ['readinfo','icon','title']
@@ -445,22 +445,21 @@ class FeedList(gobject.GObject):
 		"""alters the number of unread entries by num_to_mark.  if negative,
 		marks some as unread"""
 		
-		s = self._widget.get_selection().get_selected()
-		assert s is not None
-		model, iter = s
-		if iter is None:
-			return None
-		path = model.get_path(iter)
-		index = path[0]
-		selected = model[index][FEEDID]
-
 		#there's some trickiness here.  The model for the selection is
 		#self._feed_filter, not self._feedlist, so we can't write to items
 		#in that model.  We have to go back and find where this feed is in the
 		#original model.
 
 		if feed_id is None:
-			feed = self._feedlist[self.find_index_of_item(selected)]
+			s = self._widget.get_selection().get_selected()
+			if s is None:
+				return
+			model, iter = s
+			if iter is None:
+				return
+
+			unfiltered_iter = model.convert_iter_to_child_iter(iter)
+			feed = self._feedlist[unfiltered_iter]
 		else:
 			feed = self._feedlist[self.find_index_of_item(feed_id)]
 
@@ -489,7 +488,7 @@ class FeedList(gobject.GObject):
 															   feed[UNREAD], 
 															   feed[TOTAL], 
 															   feed[FLAG], 
-															   feed[FEEDID] == selected)
+															   True)
 		else:
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE], feed[FLAG])
 			
@@ -851,6 +850,7 @@ class FeedList(gobject.GObject):
 			height = MIN_SIZE
 			width = p.get_width() * height / p.get_height()
 		if height != p.get_height() or width != p.get_width():
+			del p
 			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
 		return p
 		
@@ -913,24 +913,26 @@ class FeedList(gobject.GObject):
 			return best_flag
 			
 	def _item_selection_changed(self, selection):
-		item = self.get_selected()
-		
-		if item is None:
+		s = selection.get_selected()
+		if s:
+			model, iter = s
+			if iter is None:
+				self.emit('no-feed-selected') 
+				return
+			unfiltered_iter = model.convert_iter_to_child_iter(iter)
+			feed = self._feedlist[unfiltered_iter]
+		else:
 			self.emit('no-feed-selected') 
-		
-		try:
-			feed = self._feedlist[self.find_index_of_item(item)]
-		except:
 			return
 		
 		if self._fancy and self._last_feed is not None:
 			try: 
-				old_item = self._feedlist[self.find_index_of_item(self._last_feed)]
+				old_item = self._feedlist[self._last_feed]
 				old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
 			except:
 				pass
 			
-		self._last_feed=item
+		self._last_feed=unfiltered_iter
 		self._select_after_load=None
 		
 		if self._fancy:
@@ -938,28 +940,28 @@ class FeedList(gobject.GObject):
 	
 		#if self._showing_search:
 		if self._state == S_SEARCH:
-			if item == self._last_selected:
+			if feed[FEEDID] == self._last_selected:
 				return
-			self._last_selected = item
+			self._last_selected = feed[FEEDID]
 			if not self._app.entrylist_selecting_right_now():
-				highlight_count = self._app.highlight_entry_results(item)
+				highlight_count = self._app.highlight_entry_results(feed[FEEDID])
 				if highlight_count == 0:
-					#self._app.display_feed(item)
-					self.emit('feed-selected', item)
+					#self._app.display_feed(feed[FEEDID])
+					self.emit('feed-selected', feed[FEEDID])
 			return
-		if item == self._last_selected:
-			#self._app.display_feed(item)
-			self.emit('feed-selected', item)
+		if feed[FEEDID] == self._last_selected:
+			#self._app.display_feed(feed[FEEDID])
+			self.emit('feed-selected', feed[FEEDID])
 		else:
-			self._last_selected = item
+			self._last_selected = feed[FEEDID]
 			#print "wtf is this negative 2 shit (feedlistview)"
-			#self._app.display_feed(item, -2)
-			self.emit('feed-selected', item)
-			if self._selecting_misfiltered and item!=None:
+			#self._app.display_feed(feed[FEEDID], -2)
+			self.emit('feed-selected', feed[FEEDID])
+			if self._selecting_misfiltered and feed[FEEDID]!=None:
 				self._selecting_misfiltered = False
 				gobject.timeout_add(250, self.filter_all)
 		try:
-			if self._feedlist[self.find_index_of_item(item)][POLLFAIL]:
+			if self._feedlist[self.find_index_of_item(feed[FEEDID])][POLLFAIL]:
 				self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
 				return
 		except:
