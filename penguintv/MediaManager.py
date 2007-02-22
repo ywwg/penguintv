@@ -45,6 +45,7 @@ PAUSED  = 2
 class MediaManager:
 	def __init__(self, progress_callback=None, finished_callback=None):
 		self.index=0
+		#should this be lucene compatible?
 		self.pool = ThreadPool.ThreadPool(5,"MediaManager")
 		self.downloads = []
 		self.db = ptvDB.ptvDB()

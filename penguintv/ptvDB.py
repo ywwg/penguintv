@@ -1548,7 +1548,9 @@ class ptvDB:
 				try:
 					readinfo = self._c.fetchone()[0]
 				except:
-					raise NoEntry, entry_id
+					print "error in search results, reindexing"
+					readinfo = 0
+					self.reindex()
 				entries.append([entry_id, title, fakedate, readinfo, feed_id])
 			self._filtered_entries[feed_index] = entries
 			return entries
@@ -1905,27 +1907,10 @@ class ptvDB:
 		is_filter = self.is_feed_filter(feed_id)
 		
 		if is_filter or self.cache_dirty:
-			if is_filter:
-				entries = self.get_entrylist(feed_id) #gets search...
-				read_status = []
-				for e in entries:
-					self._db_execute(self._c, u'SELECT read FROM entries WHERE id=?',(e[0],))
-					result = self._c.fetchone()
-					if result: read_status.append(result)
-				entry_list = read_status
-				unread=0
-				for item in entry_list:
-					if item[0]==0: #read
-						unread=unread+1
-				feed_info['unread_count'] = unread					
-				feed_info['entry_count'] = len(entry_list)
-			else:
-				self._db_execute(self._c, """SELECT COUNT(read) FROM entries WHERE feed_id=? AND read=0""",(feed_id,))
-				feed_info['unread_count'] = self._c.fetchone()[0]
-				self._db_execute(self._c, """SELECT COUNT(read) FROM entries WHERE feed_id=?""",(feed_id,))
-				feed_info['entry_count'] = self._c.fetchone()[0]
-		
-			feed_info['important_flag'] = self.get_feed_flag(feed_id)  #not much speeding up this	
+			flaglist = self.get_entry_flags(feed_id)
+			feed_info['important_flag'] = self.get_feed_flag(feed_id, flaglist)  #not much speeding up this	
+			feed_info['entry_count'] = len(flaglist)
+			feed_info['unread_count'] = len([f for f in flaglist if f & F_UNVIEWED])
 		else:
 			self._db_execute(self._c, u'SELECT flag_cache, unread_count_cache, entry_count_cache FROM feeds WHERE id=?',(feed_id,))
 			cached_info = self._c.fetchone()
@@ -2047,12 +2032,13 @@ class ptvDB:
 				flaglist.append(self.get_entry_flag(entry,read=read, medialist=medialist))
 		return flaglist
 	
-	def get_feed_flag(self, feed_id):
+	def get_feed_flag(self, feed_id, flaglist = None):
 		""" Based on a feed, what flag best represents the overall status of the feed at top-level?
 			This is based on the numeric value of the flag, which is why flags are enumed the way they are."""
 			
 		feed_has_media=0
-		flaglist = self.get_entry_flags(feed_id)
+		if flaglist is None:
+			flaglist = self.get_entry_flags(feed_id)
 		
 		if len(flaglist)==0:
 			return 0

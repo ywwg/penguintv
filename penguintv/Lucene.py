@@ -83,7 +83,10 @@ class Lucene:
 			self._interrupt()
 			return
 			
-		self._index_lock.acquire()
+		if not self._index_lock.acquire(False):
+			print "already indexing, not trying to reindex again"
+			return
+			
 		db = self._get_db()
 		c = db.cursor()
 		
@@ -97,6 +100,8 @@ class Lucene:
 		entries = c.fetchall()
 		c.close()
 		db.close()
+		
+		print "indexing feeds"
 		
 		def feed_index_generator(feeds):			
 			for feed_id, title, description in feeds:
@@ -122,6 +127,7 @@ class Lucene:
 			if self._quitting:
 				return index_interrupt()
 
+		print "indexing entries"
 		
 		def entry_index_generator(entries):
 			for entry_id, feed_id, title, description, fakedate in entries:
@@ -136,12 +142,11 @@ class Lucene:
 					doc.add(Field("entry_feed_id", str(feed_id), 
 												   Field.Store.YES,
 		                                           Field.Index.UN_TOKENIZED))	                                           
-					
 					time = DateTools.timeToString(long(fakedate)*1000, DateTools.Resolution.HOUR)
 					doc.add(Field("date", time, 
 												   Field.Store.YES,
 		                                          Field.Index.UN_TOKENIZED))	                                           
-		            
+
 					doc.add(Field("entry_title",title,
 		                                           Field.Store.YES,
 		                                           Field.Index.TOKENIZED))   

@@ -321,7 +321,10 @@ class PlanetView(gobject.GObject):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
 		self._update_server.finish()
-		urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
+		try:
+			urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
+		except:
+			print 'error closing planetview server'
 		self._render("<html><body></body></html")
 		if utils.RUNNING_SUGAR:
 		#if False:

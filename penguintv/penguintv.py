@@ -21,6 +21,7 @@ import gc
 import logging
 import urllib
 try:
+	import gnome
 	import gnome.ui
 	HAS_GNOME=True
 except:
@@ -1733,6 +1734,7 @@ def do_quit(self, event, app):
         
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	if HAS_GNOME:
+		gtk.gdk.threads_init()
 		gnome.init("PenguinTV", utils.VERSION)
 		app = PenguinTVApp()    # Instancing of the GUI
 		if not app._socket.is_server:
