@@ -27,7 +27,7 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 RUNNING_SUGAR = os.environ.has_key('SUGAR_PENGUINTV')
-RUNNING_SUGAR = True
+
 if RUNNING_SUGAR:
 	#I do this in case we're running in a python environment that has lucene
 	#and/or gconf but we want to pretend they aren't there
@@ -84,10 +84,10 @@ except:
 VERSION="2.85"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
-HAS_LUCENE = False
-HAS_PYXML = False
-HAS_STATUS_ICON = False
-HAS_GNOMEVFS = False
+#HAS_LUCENE = False
+#HAS_PYXML = False
+#HAS_STATUS_ICON = False
+#HAS_GNOMEVFS = False
 #HAS_MOZILLA=False
 
 def format_size(size):

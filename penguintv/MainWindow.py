@@ -287,15 +287,12 @@ class MainWindow(gobject.GObject):
 		self._status_view = self._widgetTree.get_widget("appbar")
 		self._load_toolbar()
 		
-		code.interact()
 		#load the layout
 		self._layout_dock = self.load_notebook()
 		notebook_dock.add(self._notebook)
 		self._layout_dock.add(self.load_layout())
 
-		code.interact()		
 		self.app_window.show_all()
-		code.interact()
 
 		#final setup for the window comes from gconf
 		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
@@ -313,8 +310,6 @@ class MainWindow(gobject.GObject):
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				self._widgetTree.signal_connect(key, getattr(self, key))
-				
-		code.interact()
 				
 	def load_notebook(self):
 		self._notebook = NotebookManager()
