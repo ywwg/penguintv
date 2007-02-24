@@ -58,11 +58,11 @@ class MainWindow(gobject.GObject):
 	
 	__gsignals__ = {
 		'player-show': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([])),
+						   gobject.TYPE_NONE, 
+						   ([])),
 		'player-hide': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([]))
+						   gobject.TYPE_NONE, 
+						   ([]))
 	}
 
 	def __init__(self, app, glade_prefix, use_internal_player=False, window=None, status_icon=None):
@@ -108,8 +108,8 @@ class MainWindow(gobject.GObject):
 		self._app.connect('download-finished', self.__download_finished_cb)
 	
 		#most of the initialization is done on Show()
-		if window:
-			window.connect('show', self.Show)
+		if utils.RUNNING_SUGAR:
+			gobject.idle_add(self.Show, window)
 			
 	def __link_activated_cb(self, o, link):
 		self._app.activate_link(link)
@@ -166,7 +166,7 @@ class MainWindow(gobject.GObject):
 			print "requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)"
 			self.layout = "standard"
 		
-		if dock_widget is None:  #if we are loading in a regular window...
+		if not utils.RUNNING_SUGAR:  #if we are loading in a regular window...
 			self._load_app_window()
 			if not utils.HAS_LUCENE:
 				#remove UI elements that don't apply without search
@@ -191,7 +191,6 @@ class MainWindow(gobject.GObject):
 			vbox.pack_start(self._status_view, False, False)
 			dock_widget.add(vbox)
 			dock_widget.show_all()
-			self._widgetTree.get_widget('debug_exit_toolbutton').hide()
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -207,51 +206,60 @@ class MainWindow(gobject.GObject):
 			gobject.idle_add(self._app.post_show_init)
 			self._app_inited = True
 			
-	def _load_toolbar(self):
-		if self._widgetTree is None:
-			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'toolbar1','penguintv')
-			for key in dir(self.__class__): #python insaneness
-				if key[:3] == 'on_':
-					self._widgetTree.signal_connect(key, getattr(self, key))
-		toolbar = self._widgetTree.get_widget('toolbar1')
-		
-		#set up separator (see below)
-		vseparator = self._widgetTree.get_widget('vseparator1')
-		vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
-		vseparator_toolitem.set_expand(True)
-		vseparator.set_draw(False)
-		
-		if utils.RUNNING_SUGAR:
-			vsep2 = self._widgetTree.get_widget('vseparator2')
-			vseparator.set_property('visible',True)
-			pref_button = self._widgetTree.get_widget('preferences_toolbutton')
-			pref_button.set_property('visible',True)
-			pref_button.set_property('label',_("Preferences"))
+		return False
 			
-			debug_exit_button = self._widgetTree.get_widget('debug_exit_toolbutton')
-			debug_exit_button.set_property('visible',False)
-			#debug_exit_button.set_property('label',_("Exit (DEBUG)"))
+	def _load_toolbar(self):
+		if utils.RUNNING_SUGAR:
+			import hippo
+			from sugar.graphics.toolbar import Toolbar
+			from sugar.graphics.iconbutton import IconButton
+			from sugar.graphics.label import Label
+			canvas = hippo.Canvas()
+			toolbar = Toolbar()
 			
 			theme = gtk.icon_theme_get_default()
 			theme.append_search_path(os.path.join(self._glade_prefix, "icons"))
-			self._widgetTree.get_widget('feed_add_button').set_stock_id(None)
-			self._widgetTree.get_widget('feed_add_button').set_icon_name('stock-add')
-			self._widgetTree.get_widget('feed_remove').set_stock_id(None)
-			self._widgetTree.get_widget('feed_remove').set_icon_name('stock-remove')
-			self._widgetTree.get_widget('feeds_poll').set_stock_id(None)
-			self._widgetTree.get_widget('feeds_poll').set_icon_name('stock-continue')
-			self._widgetTree.get_widget('download_unviewed').set_stock_id(None)
-			self._widgetTree.get_widget('download_unviewed').set_icon_name('stock-go-down')
-			self._widgetTree.get_widget('play_unviewed').set_stock_id(None)
-			self._widgetTree.get_widget('play_unviewed').set_icon_name('stock-media-play')
-			self._widgetTree.get_widget('preferences_toolbutton').set_stock_id(None)
-			self._widgetTree.get_widget('preferences_toolbutton').set_icon_name('stock-preferences')
-		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
-		self._disk_usage_widget.set_use_markup(True)
-		if utils.RUNNING_SUGAR:
-			l = self._widgetTree.get_widget('using_label')
-			l.set_use_markup(True)
-			l.set_markup(_('<span color="#FFFFFF">Using: </span>'))
+			
+			self._sugar_add_button = IconButton(icon_name='theme:stock-add')
+			self._sugar_add_button.connect("activated", self.on_feed_add_clicked)
+			toolbar.append(self._sugar_add_button)
+			
+			self._sugar_remove_button = IconButton(icon_name='theme:stock-remove')
+			self._sugar_remove_button.connect("activated", self.on_remove_feed_activate)
+			toolbar.append(self._sugar_remove_button)
+			
+			button = IconButton(icon_name='theme:stock-continue')
+			button.connect("activated", self.on_feeds_poll_clicked)
+			toolbar.append(button)
+			
+			button = IconButton(icon_name='theme:stock-go-down')
+			button.connect("activated", self.on_download_unviewed_clicked)
+			toolbar.append(button)
+			
+			button = IconButton(icon_name='theme:stock-media-play')
+			button.connect("activated", self.on_play_unviewed_clicked)
+			toolbar.append(button)
+			
+			button = IconButton(icon_name='theme:stock-preferences')
+			button.connect("activated", self.on_preferences_activate)
+			toolbar.append(button)
+			
+			self._disk_usage_widget = Label(text=_("Using:"))
+			toolbar.append(self._disk_usage_widget)
+			
+			canvas.set_root(toolbar)
+			return canvas
+		else:
+			toolbar = self._widgetTree.get_widget('toolbar1')
+			
+			#set up separator (see below)
+			vseparator = self._widgetTree.get_widget('vseparator1')
+			vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
+			vseparator_toolitem.set_expand(True)
+			vseparator.set_draw(False)
+			
+			self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
+			self._disk_usage_widget.set_use_markup(True)
 	
 		return toolbar
 		
@@ -404,7 +412,7 @@ class MainWindow(gobject.GObject):
 		else:
 			load_renderer(renderer)
 			self.entry_list_view = self.entry_view
-		
+			
 		if renderer == EntryView.GTKHTML:
 			self._widgetTree.get_widget('planet_layout').hide()	
 			
@@ -800,9 +808,9 @@ class MainWindow(gobject.GObject):
 		
 	def on_import_opml_activate(self, event):
 		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
-                                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
+								  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
 		dialog.set_default_response(gtk.RESPONSE_OK)
-    
+	
 		filter = gtk.FileFilter()
 		filter.set_name("OPML files")
 		filter.add_pattern("*.opml")
@@ -1068,14 +1076,18 @@ class MainWindow(gobject.GObject):
 		if self._state == S_MANUAL_SEARCH:
 			self.search_entry.set_text("")
 		if self._state == S_LOADING_FEEDS:
-			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
-			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
 			if not utils.RUNNING_SUGAR:
+				self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
+				self._widgetTree.get_widget("feed_remove").set_sensitive(True)
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(True)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
 				self._widgetTree.get_widget("remove_feed").set_sensitive(True)
 				self._widgetTree.get_widget("properties").set_sensitive(True)
+			else:
+				self._sugar_add_button.set_property('active', True)
+				self._sugar_remove_button.set_property('active', True)
+			
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
 			
@@ -1098,15 +1110,17 @@ class MainWindow(gobject.GObject):
 			self.search_entry.set_text("")
 		
 		if new_state == S_LOADING_FEEDS:
-			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
-			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
-			
 			if not utils.RUNNING_SUGAR: 
+				self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
+				self._widgetTree.get_widget("feed_remove").set_sensitive(False)
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(False)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
 				self._widgetTree.get_widget("remove_feed").set_sensitive(False)
 				self._widgetTree.get_widget("properties").set_sensitive(False)
+			else:
+				self._sugar_add_button.set_property('active', False)
+				self._sugar_remove_button.set_property('active', False)	
 			
 		self._state = new_state
 
@@ -1276,7 +1290,8 @@ class MainWindow(gobject.GObject):
 		if self._disk_usage_widget is None:
 			return
 		if utils.RUNNING_SUGAR:
-			self._disk_usage_widget.set_markup('<span color="#FFFFFF">'+utils.format_size(size)+"</span>")
+			d = {'size': utils.format_size(size) }
+			self._disk_usage_widget.set_property('text', _('Using: %(size)s') % d)
 		else:
 			self._disk_usage_widget.set_markup(utils.format_size(size))
 

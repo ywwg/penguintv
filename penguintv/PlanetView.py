@@ -14,6 +14,7 @@ import random
 import logging
 
 import gobject
+import gtk
 
 from EntryView import *
 import ptvDB
@@ -169,6 +170,9 @@ class PlanetView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		screen = gtk.gdk.screen_get_default()
+		h_id = screen.connect('size-changed', self.__size_changed_cb)
+		self._handlers.append((screen.disconnect, h_id))
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
@@ -191,6 +195,10 @@ class PlanetView(gobject.GObject):
 		self.update_entry_list(entry_id)
 		if feed_id == self._current_feed_id:
 			self.populate_entries(feed_id)
+			
+	def __size_changed_cb(self, screen):
+		"""Redraw after xrandr calls"""
+		self._render_entries()
 		
 	#entrylist functions
 	def populate_if_selected(self, feed_id):
