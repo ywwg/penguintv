@@ -212,7 +212,11 @@ class MainWindow(gobject.GObject):
 		if utils.RUNNING_SUGAR:
 			import hippo
 			from sugar.graphics.toolbar import Toolbar
-			from sugar.graphics.iconbutton import IconButton
+			try:
+				from sugar.graphics.iconbutton import IconButton
+			except:
+				print "temporary sugar api workaround"
+				from sugar.graphics.button import Button as IconButton
 			from sugar.graphics.label import Label
 			canvas = hippo.Canvas()
 			toolbar = Toolbar()
@@ -682,7 +686,7 @@ class MainWindow(gobject.GObject):
 					url = url+c
 			if url.split(':')[0] == 'feed': #stupid wordpress does 'feed:http://url.com/whatever'
 				url = url[url.find(':')+1:]
-			self._app.add_feed(url)
+			self._app.add_feed(url, url)
 			
 	def on_feedlistview_button_press_event(self, widget, event):          
 		if event.button==3: #right click     
