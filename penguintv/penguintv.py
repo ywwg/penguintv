@@ -200,9 +200,6 @@ class PenguinTVApp(gobject.GObject):
 		self.window_add_feed.hide()
 		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
-		#self.layout_changing_dialog = gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_changing_layout",'penguintv').get_widget("window_changing_layout")
-		#self.layout_changing_dialog.connect("delete-event",self.on_window_changing_layout_delete_event)
-		#self.layout_changing_dialog.hide()
 					
 		#gconf
 		if utils.HAS_GCONF:
@@ -226,6 +223,8 @@ class PenguinTVApp(gobject.GObject):
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
 		self._entry_view = self.main_window.entry_view
+		
+		self._entry_view.display_item()
 		
 		self._connect_signals()
 		
@@ -753,9 +752,9 @@ class PenguinTVApp(gobject.GObject):
 			if HAS_GNOME:
 				gnome.url_show(parsed_url[0]+"://"+quoted_url+http_arguments+anchor)
 			elif utils.RUNNING_SUGAR:
-				from sugar.activity import ActivityFactory
-				activity = ActivityFactory.create("org.laptop.WebActivity")
-				activity.execute("load-uri", [parsed_url[0]+"://"+quoted_url+http_arguments+anchor])
+				from sugar.activity import activityfactory
+				uri=parsed_url[0]+"://"+quoted_url+http_arguments+anchor
+				activityfactory.create_with_uri('org.laptop.WebActivity', uri)
 		elif action=="file":
 			print parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2])
 			if HAS_GNOME:
