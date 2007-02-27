@@ -60,11 +60,11 @@ class BTDownloader(Downloader):
 		self._finished_callback()
 
 	def _chooseFile(self, default, size, saveas, dir):
-		self._totalsize=size
+		self.total_size=size
 		dated_dir = utils.get_dated_dir()
 		change=0
-		if self.media['size']!=self._totalsize:
-			self.media['size']=self._totalsize
+		if self.media['size']!=self.total_size:
+			self.media['size']=self.total_size
 			change = 1
 		if self.media['file']!=os.path.join(self._media_dir, dated_dir, str(default)):
 			self.media['file']=os.path.join(self._media_dir, dated_dir, str(default))
@@ -84,7 +84,7 @@ class BTDownloader(Downloader):
 		if dict.has_key('fractionDone'):
 			self.progress = int(dict['fractionDone']*100.0)
 			d = {'progress':str(self.progress),
-				 'size':utils.format_size(self._totalsize)
+				 'size':utils.format_size(self.total_size)
 				 }
 			if dict.has_key('timeEst'):
 				d['time']=utils.hours(dict['timeEst'])

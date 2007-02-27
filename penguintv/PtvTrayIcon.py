@@ -161,6 +161,7 @@ class PtvTrayIcon:
 		elif userdata[0] == NOTIFY_ENTRY:
 			entry = userdata[1]
 			#self._app.select_entry(entry['entry_id'])
+			self._app.mark_entry_as_viewed(entry['entry_id'], entry['feed_id'])
 			self._app.activate_link(entry['link'])
 		
 	def __quit_cb(self, data):

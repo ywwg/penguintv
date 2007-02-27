@@ -139,7 +139,7 @@ class MainWindow(gobject.GObject):
 	def __feed_removed_cb(self, app, feed_id):
 		self.update_filters()
 		
-	def __download_finished_cb(self, app, d): #FIXME: convert to gobject signal one day
+	def __download_finished_cb(self, app, d):
 		self._download_view.update_downloads()
 		
 	def update_downloads(self):
@@ -845,8 +845,8 @@ class MainWindow(gobject.GObject):
 				self.toggle_fullscreen(self._fullscreen)
 		
 	def on_mark_entry_as_viewed_activate(self,event):
-		entry = self.entry_list_view.get_selected()['entry_id']
-		self._app.mark_entry_as_viewed(entry)
+		entry = self.entry_list_view.get_selected()
+		self._app.mark_entry_as_viewed(entry['entry_id'], entry['feed_id'])
 		
 	def on_mark_entry_as_unviewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()['entry_id']

@@ -337,8 +337,8 @@ class GStreamerPlayer(gobject.GObject):
 	def stop(self):
 		#this should release the port, but I hate having a stop button on a computer
 		#because it doesn't make sense.
-		#unbreak: when video is stopped, we need this option to keep the window black
-		self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
+		##unbreak: when video is stopped, we need this option to keep the window black
+		#self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
@@ -559,8 +559,8 @@ class GStreamerPlayer(gobject.GObject):
 		#see totem
 		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
 		
-		#unbreakme: if there's no video, it doesn't draw right here either
-		self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
+		##unbreakme: if there's no video, it doesn't draw right here either
+		#self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
 		
 		min_width = 200
 		max_width = self._hpaned.get_allocation().width - 200 #-200 for the list box
@@ -577,8 +577,8 @@ class GStreamerPlayer(gobject.GObject):
  			self._hpaned.set_position(max_width / 2)
  			return
  		
- 		#unbreakme: without this option the video doesn't redraw correctly when exposed
-		self._drawing_area.unset_flags(gtk.DOUBLE_BUFFERED)	
+ 		##unbreakme: without this option the video doesn't redraw correctly when exposed
+		#self._drawing_area.unset_flags(gtk.DOUBLE_BUFFERED)	
  			
   		s = caps[0]
   		movie_aspect = float(s['width']) / s['height']

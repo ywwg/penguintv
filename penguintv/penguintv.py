@@ -964,11 +964,11 @@ class PenguinTVApp(gobject.GObject):
 	def _reset_auto_download(self):
 		self._auto_download = True
 			
-	def mark_entry_as_viewed(self,entry, update_entrylist=True):
+	def mark_entry_as_viewed(self,entry, feed_id, update_entrylist=True):
 		self.db.set_entry_read(entry,True)
 		if update_entrylist: #hack for PlanetView
 			self.update_entry_list(entry)
-		self.feed_list_view.mark_entries_read(1)
+		self.feed_list_view.mark_entries_read(1, feed_id)
 		
 	def mark_entrylist_as_viewed(self, entrylist, update_entrylist=True):
 		if len(entrylist) == 0:
@@ -1409,8 +1409,13 @@ class PenguinTVApp(gobject.GObject):
 		"""cancels a download and cleans up.  Right now there's redundancy because we call this twice
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
 		   callback tells the thread to stop working.  how to make this better?"""
-		   
-		self.mediamanager.stop_download(item['media_id'])
+		
+		d = None
+		try:   
+			d = self.mediamanager.get_downloader(item['media_id'])
+			self.mediamanager.stop_download(item['media_id'])
+		except:
+			pass
 		self.db.set_media_download_status(item['media_id'],ptvDB.D_NOT_DOWNLOADED)
 		self.delete_media(item['media_id']) #marks as viewed
 		self.main_window.update_download_progress()
@@ -1428,7 +1433,8 @@ class PenguinTVApp(gobject.GObject):
 			self._populate_feeds(self._done_populating, FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		self.feed_list_view.filter_all() #to remove active downloads from the list
-		self.main_window.download_finished()
+		if d is not None:
+			self.emit('download-finished', d)
 		
 	def do_pause_download(self, media_id):
 		self.mediamanager.get_downloader(media_id).pause()
@@ -1588,7 +1594,7 @@ class PenguinTVApp(gobject.GObject):
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
 		if self._exiting == 1:
-			self._gui_updater.queue(self.do_cancel_download,d.media['media_id'], None, True, 1)
+			self._gui_updater.queue(self.do_cancel_download,d.media, None, True, 1)
 			return 1 #returning one is what interrupts the download
 		
 		if d.media.has_key('size_adjustment'):
