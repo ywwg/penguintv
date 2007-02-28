@@ -86,7 +86,7 @@ class AddFeedDialog:
 		except AuthorizationCancelled:
 			self._window.set_sensitive(True)
 			return
-		except BadFeedURL:
+		except BadFeedURL, e:
 			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("PenguinTV couldn't find a feed in the web page you provided.\nYou will need to find the RSS feed link in the web page yourself.  Sorry."))
 			dialog.vbox.pack_start(label, True, True, 0)

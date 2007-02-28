@@ -1,17 +1,17 @@
 body {
-        margin-left: 24px;
-        margin-right: 24px;
+        margin-left: 10px;
+        margin-right: 10px;
        // background-color: #fffe92;
-       font-size: 12pt;
+       font-size: 9pt;
 }
 
 .heading { 
 	background-color: #f0f0ff; 
 	border-width:1px; 
 	border-style: solid; 
-	padding:10pt; 
-	margin:10pt;
-	font-size: 16pt; 
+	padding:6pt; 
+	margin:6pt;
+	font-size: 12pt; 
 }
 
 //#nav_bar {
@@ -20,10 +20,10 @@ body {
 //}
 
 .feed_title {
-        font-size: 16pt;
+        font-size: 12pt;
         font-weight: bold;
         text-align: center;
-        padding: 12pt;
+        padding: 6pt;
 }
 
 .entry_new {
@@ -31,8 +31,8 @@ body {
       border-style: solid;
       border-color: #333;
       background-color: #f5f7fa;
-      margin-top: 12pt;
-      padding: 6pt;
+      margin-top: 6pt;
+      padding: 3pt;
       overflow: auto;
 }
 
@@ -41,16 +41,16 @@ body {
       border-style: solid;
       border-color: #777;
       background-color: #e0e3e8;
-      margin-top: 12pt;
-      padding: 6pt;
+      margin-top: 6pt;
+      padding: 3pt;
       overflow: auto;
 }
 
 .stitle {
-	font-size: 14pt; 
+	font-size: 9pt; 
 	font-weight:bold; 
 //	font-family: Sans-Serif; 
-	padding-bottom:20pt;
+	padding-bottom:12pt;
 }
 
 .sdate {
@@ -60,8 +60,8 @@ body {
 }
 
 .content {
-	padding-left:20pt;
-	margin-top:12pt;
+	padding-left:9pt;
+	margin-top:3pt;
 }
 
 .media {
@@ -69,12 +69,13 @@ body {
 	border-color:#000000; 
 	border-width:2px; 
 	border-style: solid; 
-	padding:8pt; 
-	margin:8pt; 
+	padding:6pt; 
+	margin:6pt; 
+	overflow: auto;
 }
 
 dd { 
-	padding-left: 20pt; 
+	padding-left: 9pt; 
 }  
 
 q { font-style: italic;}
@@ -86,6 +87,6 @@ blockquote {
 	border-color:#DDDDDD; 
 	border-width:2px; 
 	border-style: solid; 
-	padding:12pt; 
-	margin:12pt;
+	padding:6pt; 
+	margin:6pt;
 }

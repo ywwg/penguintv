@@ -1,9 +1,5 @@
-activity/activity.info
-activity/activity-penguintv.svg
-activity/localized/PLACEHOLDER
 __init__.py
 PenguinTVActivity.py
-ptv_profile.py
 penguintv/AddFeedDialog.py
 penguintv/AddSearchTagDialog.py
 penguintv/BTDownloader.py
