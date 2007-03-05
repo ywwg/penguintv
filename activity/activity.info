@@ -1,5 +1,5 @@
 [Activity]
-name = PenguinTV
+name = News Reader
 service_name = com.ywwg.PenguinTV
 id = com.ywwg.PenguinTV
 class = PenguinTVActivity.PenguinTVActivity

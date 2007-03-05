@@ -4,11 +4,11 @@
 from pysqlite2 import dbapi2 as sqlite
 from math import floor,ceil
 from random import randint
-#import feedparser  loaded when needed
+import feedparser
 import time
 import string
 import sha
-import urllib #, urlparse loaded as needed
+import urllib, urlparse
 from urllib2 import URLError
 from types import *
 import threading
@@ -751,7 +751,6 @@ class ptvDB:
 			time.sleep(1)
 		
 		try:
-			import feedparser
 			#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 			if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
 				data = feedparser.parse(url)
@@ -873,7 +872,6 @@ class ptvDB:
 			data = self._c.fetchone()
 			url,modified,etag=data
 			try:
-				import feedparser
 				feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 				
 				#speed up feedparser
@@ -1592,7 +1590,6 @@ class ptvDB:
 		except: return None
 		
 	def get_feed_info(self, feed_id):
-		import urlparse
 		self._db_execute(self._c, """SELECT title, description, url, link, feed_pointer, lastpoll, pollfreq FROM feeds WHERE id=?""",(feed_id,))
 		try:
 			result = self._c.fetchone()
@@ -1628,7 +1625,6 @@ class ptvDB:
 			url=self._c.fetchone()[0]
 			
 			try:
-				import feedparser
 				feedparser.disableWellFormedCheck=1
 				data = feedparser.parse(url)
 			except:

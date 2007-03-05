@@ -28,7 +28,7 @@ class PenguinTVActivity(activity.Activity):
 	def __init__(self, handle):
 		activity.Activity.__init__(self, handle)
 		app = penguintv.PenguinTVApp(self)
-		self.set_title('PenguinTV')
+		self.set_title('News Reader')
 		self.connect('destroy',self.do_quit, app)
 	
 	def do_quit(self, event, app):

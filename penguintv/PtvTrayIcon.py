@@ -131,6 +131,7 @@ class PtvTrayIcon:
 		if feed_id in self._notification_feeds:
 			entries = self._db.get_entrylist(feed_id)[0:new_entries]
 			entries = [(feed_id,e[0]) for e in entries]
+			entries.reverse()
 			self._updates += entries
 			
 			if len(self._updates) > 10: #too many
