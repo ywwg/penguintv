@@ -72,7 +72,7 @@ else:
 		HAS_PYNOTIFY = True
 	except:
 		HAS_PYNOTIFY = False
-		
+
 try:
 	import pygst
 	pygst.require("0.10")
@@ -81,7 +81,7 @@ try:
 except:
 	HAS_GSTREAMER = False
 	
-VERSION="2.85"
+VERSION="2.87"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 #HAS_LUCENE = False
