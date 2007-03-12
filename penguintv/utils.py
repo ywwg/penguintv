@@ -14,12 +14,6 @@ import gtk
 
 from subprocess import Popen, PIPE, STDOUT
 
-try:
-	import gtkmozembed
-	HAS_MOZILLA = True
-except:
-	HAS_MOZILLA = False
-
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -37,7 +31,14 @@ if RUNNING_SUGAR:
 	HAS_PYXML = False
 	HAS_STATUS_ICON = False
 	HAS_MOZILLA = True
+	HAS_GSTREAMER = True
 else:
+	try:
+		import gtkmozembed
+		HAS_MOZILLA = True
+	except:
+		HAS_MOZILLA = False
+
 	try:
 		import PyLucene
 		HAS_LUCENE = True
@@ -73,13 +74,13 @@ else:
 	except:
 		HAS_PYNOTIFY = False
 
-try:
-	import pygst
-	pygst.require("0.10")
-	import gst
-	HAS_GSTREAMER = True
-except:
-	HAS_GSTREAMER = False
+	try:
+		import pygst
+		pygst.require("0.10")
+		import gst
+		HAS_GSTREAMER = True
+	except:
+		HAS_GSTREAMER = False
 	
 VERSION="2.87"
 #DEBUG

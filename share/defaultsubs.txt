@@ -1,4 +1,5 @@
-http://lugradio.org/episodes.ogg.rss
-http://www.quietamerican.org/vacation.xml
 http://planet.laptop.org/atom.xml
-http://www.gnomefiles.org/files/gnomefiles2.xml
+http://newsrss.bbc.co.uk/rss/newsonline_world_edition/front_page/rss.xml
+http://www.merriam-webster.com/word/index.xml
+http://interglacial.com/rss/epod.rss
+http://www.jwz.org/cheesegrater/RSS/apod.rss

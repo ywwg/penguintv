@@ -173,9 +173,9 @@ class ptvDB:
 		self._parse_list = []
 		
 	def _db_execute(self, c, command, args=()):
-		#if "MEDIA" in command.upper() and "SELECT" not in command.upper(): 
+		#if "INSERT INTO MEDIA" in command.upper(): 
 		#traceback.print_stack()
-		#print command, args
+		#	print command, args
 		try:
 			return c.execute(command, args)
 		except Exception, e:
@@ -279,7 +279,7 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN pollfreq INT')
 		self._db_execute(self._c, u'UPDATE feeds SET pollfreq=1800')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN lastpoll DATE')
-		self._db_execute(self._c, u'UPDATE feeds SET lastpoll=?',(time.time()-(30*60),))
+		self._db_execute(self._c, u'UPDATE feeds SET lastpoll=?',(int(time.time())-(30*60),))
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN newatlast INT')
 		self._db_execute(self._c, u'UPDATE feeds SET newatlast=0')
    
@@ -447,6 +447,9 @@ class ptvDB:
 							term,
 							frequency INT);""")
 							
+		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+							
 		self._db.commit()
 		
 		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver",4)""")
@@ -565,7 +568,7 @@ class ptvDB:
 			d={ 'title':_("Waiting for first poll"),
 				'description':_("This feed has not yet been polled successfully.  There might be an error with this feed.<br>"+str(url)),
 			  }
-			self._db_execute(self._c, u'INSERT INTO entries (id, feed_id, title, creator, description, read, fakedate, date, guid, link, old, new) VALUES (NULL, ?, ?, NULL, ?, ?, 0, ?, ?, "http://", "0", "0")',(feed_id,d['title'],d['description'],'0',time.time(),time.time()))
+			self._db_execute(self._c, u'INSERT INTO entries (id, feed_id, title, creator, description, read, fakedate, date, guid, link, old, new) VALUES (NULL, ?, ?, NULL, ?, ?, 0, ?, ?, "http://", "0", "0")',(feed_id,d['title'],d['description'],'0', int(time.time()), int(time.time())))
 			self._db.commit()
 		else:
 			self._db_execute(self._c, """SELECT id FROM feeds WHERE url=?""",(url,))
@@ -673,7 +676,7 @@ class ptvDB:
 	def poll_multiple(self, arguments=0, feeds=None):
 		"""Polls multiple feeds multithreadedly"""
 		successes=[]
-		cur_time = time.time()
+		cur_time = int(time.time())
 		
 		if feeds is None:
 			if arguments & A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:
@@ -993,7 +996,7 @@ class ptvDB:
 		if not data.has_key('modified'):
 			modified='0'
 		else:
-			modified = time.mktime(data['modified'])
+			modified = int(time.mktime(data['modified']))
 
 		try:
 			self._db_execute(self._c, u'SELECT title FROM feeds WHERE id=?',(feed_id,))
@@ -1036,29 +1039,13 @@ class ptvDB:
 		#bad formats, no dates at all, and timezones screw things up
 		#so I introduce a fake date which works for determining read and
 		#unread article counts, and keeps the articles in order
-		fake_time = time.time()#-len(data['items'])
+		fake_time = int(time.time())
 		i=0
-		#try:
-		#	if data['items'][0].has_key('updated_parsed') == 1:
-		#		data['items'].sort(lambda x,y: int(time.mktime(y['updated_parsed'])-time.mktime(x['updated_parsed'])))
-		#except:
-		#	try:
-		#		if data['items'][0].has_key('modified_parsed') == 1:
-		#			data['items'].sort(lambda x,y: int(time.mktime(y['modified_parsed'])-time.mktime(x['modified_parsed'])))
-		#	except:
-		#		try:
-		#			if data['items'][0].has_key('created_parsed') == 1:
-		#				data['items'].sort(lambda x,y: int(time.mktime(y['created_parsed'])-time.mktime(x['created_parsed'])))
-		#		except:	
-		#			try:	
-		#				if data['items'][0].has_key('date_parsed') == 1:
-		#					data['items'].sort(lambda x,y: int(time.mktime(y['date_parsed'])-time.mktime(x['date_parsed'])))
-		#			except:
-		#				pass #I feel dirty.
 		
 		new_items = 0
 		
 		flag_list = []
+		not_old = []
 		
 		for item in data['items']:
 			#do a lot of normalizing
@@ -1167,13 +1154,13 @@ class ptvDB:
 			if not item.has_key('date_parsed') or item['date_parsed'] is None:
 				item['date_parsed']=(0,0,0,0,0,0,0,0,0)
 				
-				
 			status = self._get_status(item, existing_entries)
 			
 			if status[0]==NEW:
 				new_items = new_items+1
-				self._db_execute(self._c, u'INSERT INTO entries (id, feed_id, title, creator, description, read, fakedate, date, guid, link, old, new) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "0")',(feed_id,item['title'],item['creator'],item['body'],'0',fake_time-i, time.mktime(item['date_parsed']),item['guid'],item['link'],'0'))
-				self._db_execute(self._c, """SELECT id FROM entries WHERE fakedate=?""",(fake_time-i,))
+				self._db_execute(self._c, u'INSERT INTO entries (id, feed_id, title, creator, description, read, fakedate, date, guid, link, old, new) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, "0")',(feed_id,item['title'],item['creator'],item['body'],'0',fake_time-i, int(time.mktime(item['date_parsed'])),item['guid'],item['link'],'0'))
+
+				self._db_execute(self._c,  "SELECT last_insert_rowid()")
 				entry_id = self._c.fetchone()[0]
 
 				if item.has_key('enclosures'):
@@ -1183,11 +1170,12 @@ class ptvDB:
 						self._db_execute(self._c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length'], feed_id))
 				self._reindex_entry_list.append(entry_id)
 			elif status[0]==EXISTS:
-				self._db_execute(self._c, """UPDATE entries SET old=0 where id=?""",(status[1],))
+				not_old.append(status[1])
 			elif status[0]==MODIFIED:
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, old=?  WHERE id=?',
 								 (item['title'],item['creator'],item['body'], 
-								 time.mktime(item['date_parsed']),item['guid'],item['link'],'0', status[1]))
+								 int(time.mktime(item['date_parsed'])),item['guid'],
+								 item['link'],'0', status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
 					#self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
@@ -1211,33 +1199,31 @@ class ptvDB:
 					#need to add media that's in enclosures but not in db after that process
 					
 					if len(added) > 0:
-						print "found new media in feed", feed_id
-						print "existing set:",db_enc
-						print "enclosures:",item['enclosures']
-						print "I think added:",added
 						for media in item['enclosures']: #add the rest
-							#self._db_execute(self._c, u'SELECT url FROM media WHERE url=?',(media['href'],))
-							#dburl = self._c.fetchone()
-							#if dburl:
 							if media['url'] in added:
 								#if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
 								self._db_execute(self._c, u"""INSERT INTO media (id, entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (NULL, ?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length'], feed_id))
 								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE id=?', (status[1],))
-					#self._db.commit()
 				self._reindex_entry_list.append(status[1])
-							
-				#flag_list.append(self.get_entry_flag(status[1]))
 			i+=1
-		self._db.commit()
+
 		#don't call anything old that has media...
 		self._db_execute(self._c, """SELECT entry_id FROM media WHERE download_status>0 AND feed_id=?""",(feed_id,))
-		for id in self._c.fetchall():
-			self._db_execute(self._c, """UPDATE entries SET old=0 WHERE id=?""",(id[0],))
+		result = self._c.fetchall()
+		if result:
+			#combine with EXISTing entries
+			not_old + [r[0] for r in result]
+		if len(not_old) > 0:
+			qmarks = "?,"*(len(not_old)-1)+"?"
+			self._db_execute(self._c, """UPDATE entries SET old=0 WHERE id in (""" +
+							 qmarks + ')', tuple(not_old))
 		self._db.commit()
-		#anything not set above as new, mod, or exists is no longer in
-		#the xml and therefore should be deleted
+		
+		# anything not set above as new, mod, or exists is no longer in
+		# the xml and therefore could be deleted if we have more articles than 
+		# the limit
 		
 		self._db_execute(self._c, """SELECT count(*) FROM entries WHERE feed_id=?""",(feed_id,))
 		all_entries = self._c.fetchone()[0]
@@ -1290,7 +1276,7 @@ class ptvDB:
 		
 		self._db_execute(self._c, u'SELECT lastpoll, newatlast, pollfreq FROM feeds WHERE id=?',(feed_id,))
 		last_time,newatlast,old_poll_freq = self._c.fetchone()
-		cur_time = time.time()
+		cur_time = int(time.time())
 		#this could suck if the program was just started, so only do it if the poll_freq seems correct
 		#however still update the db with the poll time
 		self._db_execute(self._c, u'UPDATE feeds SET lastpoll=?, newatlast=? WHERE id=?',(cur_time,new_items,feed_id))
@@ -1306,7 +1292,7 @@ class ptvDB:
 			#this algorithm seems to be the most accurate based on my own personal judgment
 			self._db_execute(self._c, 'SELECT date FROM entries WHERE feed_id=?',(feed_id,))
 			datelist = self._c.fetchall()
-			datelist.append((time.time(),)) #helps in some cases to pretend we found one now
+			datelist.append((int(time.time()),)) #helps in some cases to pretend we found one now
  			i=0
 			list=[]
 			for item in datelist[:-1]:
@@ -1655,7 +1641,7 @@ class ptvDB:
 				
 	def set_media_download_status(self, media_id, status):
 		if status == D_DOWNLOADED:
-			self._db_execute(self._c, u'UPDATE media SET download_status=?, download_date=? WHERE id=?', (status,time.time(),media_id,))
+			self._db_execute(self._c, u'UPDATE media SET download_status=?, download_date=? WHERE id=?', (status, int(time.time()),media_id,))
 			self._db.commit()
 		else:
 			self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE id=?', (status,media_id,))

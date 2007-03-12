@@ -74,7 +74,10 @@ PAUSE=1
 REFRESH_SPECIFIED=0
 REFRESH_AUTO=1
 
-AUTO_REFRESH_FREQUENCY=5*60*1000
+if utils.RUNNING_SUGAR:
+	AUTO_REFRESH_FREQUENCY=30*60*1000
+else:
+	AUTO_REFRESH_FREQUENCY=5*60*1000
 
 #states:
 DEFAULT            = 1
@@ -381,7 +384,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',self.feed_list_view.filter_name)
 		else:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',"")
-		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
+		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
 	def resume_resumable(self):
 		list = self.db.get_resumable_media()
@@ -501,6 +504,7 @@ class PenguinTVApp(gobject.GObject):
 				self.emit('entry-updated', d[2], d[3])
 		else:
 			print "we were unable to free up enough space."
+			#print download_list
 		self.update_disk_usage()
 			
 	def _free_media_space(self, size_needed):
@@ -558,8 +562,9 @@ class PenguinTVApp(gobject.GObject):
 				return True
 				
 			#don't remove anything that's queued in the player
-			if media_id in media_in_player:
-				continue
+			if utils.HAS_GSTREAMER:
+				if media_id in media_in_player:
+					continue
 			
 			size = os.stat(filename)[6]
 			removed_size += size

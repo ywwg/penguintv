@@ -1,5 +1,8 @@
 __init__.py
 PenguinTVActivity.py
+penguintv/ajax/EntryInfoServer.py
+penguintv/ajax/MyTCPServer.py
+penguintv/ajax/__init__.py
 penguintv/AddFeedDialog.py
 penguintv/AddSearchTagDialog.py
 penguintv/BTDownloader.py

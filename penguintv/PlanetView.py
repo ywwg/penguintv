@@ -5,12 +5,6 @@
 #OH NOES!
 
 
-import socket
-import SocketServer
-import SimpleHTTPServer
-import urllib
-import threading
-import random
 import logging
 
 import gobject
@@ -21,7 +15,6 @@ import ptvDB
 import utils
 
 if not utils.RUNNING_SUGAR:
-#if True:
 	try:
 		import gtkmozembed
 	except:
@@ -105,12 +98,13 @@ class PlanetView(gobject.GObject):
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
 		if self._renderer == GTKHTML:
-			logging.error("not supported (need AJAX, believe it or not)")
-			print "not supported (need AJAX, believe it or not)"
+			logging.error("gtkhtml and planetview not supported")
+			print "gtkhtml and planetview not supported"
 			return
+			#self._USING_AJAX = False
 		elif self._renderer == MOZILLA:
 			if utils.RUNNING_SUGAR:
-			#if False:
+				self._USING_AJAX = False
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet-olpc.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
@@ -118,6 +112,7 @@ class PlanetView(gobject.GObject):
 				_sugar.browser_startup(self._db.home, 'gecko')
 				self._moz = _sugar.Browser()
 			else:
+				self._USING_AJAX = True
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
@@ -141,20 +136,27 @@ class PlanetView(gobject.GObject):
 			self._reset_moz_font()
 		self.display_item()
 		html_dock.show_all()
-		while True:
-			try:
-				if PlanetView.PORT == 8050:
+		if self._USING_AJAX:
+			print "initializing ajax server"
+			import threading
+			from ajax import EntryInfoServer, MyTCPServer
+
+			while True:
+				try:
+					if PlanetView.PORT == 8050:
+						break
+					self._update_server = MyTCPServer.MyTCPServer(('', PlanetView.PORT), EntryInfoServer.EntryInfoServer)
 					break
-				self._update_server = PlanetView.MyTCPServer(('', PlanetView.PORT), PlanetView.EntryInfoServer)
-				break
-			except:
-				PlanetView.PORT += 1
-		if PlanetView.PORT==8050:
-			logging.warning("tried a lot of ports without success.  Problem?")
-			print "tried a lot of ports without success.  Problem?"
-		t = threading.Thread(None, self._update_server.serve_forever)
-		t.setDaemon(True)
-		t.start()
+				except:
+					PlanetView.PORT += 1
+			if PlanetView.PORT==8050:
+				logging.warning("tried a lot of ports without success.  Problem?")
+				print "tried a lot of ports without success.  Problem?"
+			t = threading.Thread(None, self._update_server.serve_forever)
+			t.setDaemon(True)
+			t.start()
+		else:
+			print "not using ajax"
 		
 		#signals
 		self._handlers = []
@@ -230,7 +232,8 @@ class PlanetView(gobject.GObject):
 				self._auth_info = (feed_id,feed_info['auth_userpass'], feed_info['auth_domain'])
 			else:
 				self._auth_info = (-1, "","")
-			self._update_server.clear_updates()
+			if self._USING_AJAX:
+				self._update_server.clear_updates()
 		#always update title in case it changed... it's a cheap lookup
 		self._feed_title = self._db.get_feed_title(feed_id)
 		self._entrylist = []
@@ -274,12 +277,14 @@ class PlanetView(gobject.GObject):
 		pass
 		
 	def clear_entries(self):
+		print "clearing planet entries"
 		self._first_entry = 0
 		self._entry_store={}
 		self._entrylist = []
 		self._readinfo  = None
 		self._render("<html><body></body></html")
-		self._update_server.clear_updates()
+		if self._USING_AJAX:
+			self._update_server.clear_updates()
 		
 	def _unset_state(self):
 		self.clear_entries()
@@ -328,11 +333,13 @@ class PlanetView(gobject.GObject):
 	def finish(self):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
-		self._update_server.finish()
-		try:
-			urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
-		except:
-			print 'error closing planetview server'
+		if self._USING_AJAX:
+			import urllib
+			self._update_server.finish()
+			try:
+				urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
+			except:
+				print 'error closing planetview server'
 		self._render("<html><body></body></html")
 		if utils.RUNNING_SUGAR:
 		#if False:
@@ -451,7 +458,7 @@ class PlanetView(gobject.GObject):
 									   self._moz_font, 
 									   self._moz_size, 
 									   self._css)
-			if media_exists:
+			if media_exists and self._USING_AJAX:
 				html += """
 	            <script type="text/javascript">
 	            <!--
@@ -540,21 +547,23 @@ class PlanetView(gobject.GObject):
 		for item in entries:
 			if media.has_key(item['entry_id']):
 				item['media'] = media[item['entry_id']]
-				ret = []
-				ret.append(str(item['entry_id'])+" ")
-				for medium in item['media']:
-					ret += htmlify_media(medium, self._mm)
-				ret = "".join(ret)
-				self._update_server.push_update(ret)
+				if self._USING_AJAX:
+					ret = []
+					ret.append(str(item['entry_id'])+" ")
+					for medium in item['media']:
+						ret += htmlify_media(medium, self._mm)
+					ret = "".join(ret)
+					self._update_server.push_update(ret)
 				
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX),item)
 			else:
-				self._entry_store[item['entry_id']] = (htmlify_item(item, ajax=True, indicate_new=True),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX),item)
 				
 	def _load_entry(self, entry_id, force = False):
 		if self._entry_store.has_key(entry_id) and not force:
+			#print "loaded:", self._entry_store[entry_id]
 			return self._entry_store[entry_id]
 		
 		item = self._db.get_entry(entry_id)
@@ -564,21 +573,22 @@ class PlanetView(gobject.GObject):
 		if self._state == S_SEARCH:
 		#if self._showing_search:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, with_feed_titles=True, indicate_new=True),item)
+			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX),item)
 		else:
-			self._entry_store[entry_id] = (htmlify_item(item, ajax=True, indicate_new=True),item)
+			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX),item)
 		
 		index = self._entrylist.index(entry_id)
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
 			if not entry.has_key('media'):
 				return self._entry_store[entry_id]
-			ret = []
-			ret.append(str(entry_id)+" ")
-			for medium in entry['media']:
-				ret += htmlify_media(medium, self._mm)
-			ret = "".join(ret)
-			self._update_server.push_update(ret)
+			if self._USING_AJAX:
+				ret = []
+				ret.append(str(entry_id)+" ")
+				for medium in entry['media']:
+					ret += htmlify_media(medium, self._mm)
+				ret = "".join(ret)
+				self._update_server.push_update(ret)
 		
 		return self._entry_store[entry_id]
 		
@@ -634,72 +644,6 @@ class PlanetView(gobject.GObject):
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
 		
-	class MyTCPServer(SocketServer.ForkingTCPServer):
-		def __init__(self, server_address, RequestHandlerClass):
-			SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
-			
-			self._key = ""
-			self.generate_key()
-			
-			self._updates = []
-			self._quitting = False
-			
-		def serve_forever(self):
-			while 1:
-				self.handle_request()
-				if self._quitting:
-					logging.info('quitting tcp server')
-					return
-				#if len(self._updates)>0:
-					#We must have posted an update.  So pop it (unlike in the request handler,
-					#changes actually have an effect here!)
-					#self._updates.pop(0)
-					#self._updates = []
-					#print "popped all"
-					#logging.info('popped all')
-					
-		def finish(self):
-			self._quitting = True
-					
-		def generate_key(self):
-			self._key = str(random.randint(1,1000000))
-			return self._key
-			
-		def get_key(self):
-			return self._key
-			
-		def push_update(self, update):
-			remove_list = [u for u in self._updates if u.split(" ")[0] == update.split(" ")[0]]
-			for item in remove_list:
-				self._updates.remove(item)
-			self._updates.append(update)
-			
-		def peek_update(self):
-			return self._updates[0]
-			
-		def peek_all(self):
-			return "\n".join(self._updates)
 
-		def clear_updates(self):
-			self._updates = []
-			
-		def update_count(self):
-			return len(self._updates)
 					
-	class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):	
-		"""for some reason, any variable I change in this class changes RIGHT FUCKING BACK
-		as soon as it exits.  So we don't actually pop the value here"""
 
-		def __init__(self, request, client_address, server):
-			SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, request, client_address, server)
-			
-		def do_GET(self):
-			key = self.path[1:] #strip leading /
-			if key != self.server.get_key():
-				self.wfile.write("PenguinTV Unauthorized")
-				return
-			if self.server.update_count()==0:
-				self.wfile.write("")
-			else:
-				update = self.server.peek_all()
-				self.wfile.write(update)

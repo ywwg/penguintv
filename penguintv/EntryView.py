@@ -482,7 +482,7 @@ class EntryView(gobject.GObject):
 		self._custom_entry = True
 		return
 		
-def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new=False):
+def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new=False, basic_progress=False):
 	""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
 	    but there are lots of alternate designs depending on the status of media. """
 
@@ -513,10 +513,9 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 		ret.append('<div class="sdate">%s</div>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
 		#ret.append('</div>')
 	if item.has_key('media'):
-		
 		if mm is not None and not ajax:
 			for medium in item['media']:
-				ret += htmlify_media(medium, mm)
+				ret += htmlify_media(medium, mm, basic_progress)
 		else:
 			ret += '<span id="' + str(item['entry_id']) + '"></span>'
 	ret.append('<div class="content">')
@@ -528,7 +527,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 	ret.append('</p></div>')
 	return "".join(ret)
 	
-def htmlify_media(medium, mm):
+def htmlify_media(medium, mm, basic_progress=False):
 	ret = []
 	ret.append('<div class="media">')
 	if medium['download_status']==ptvDB.D_NOT_DOWNLOADED:    
@@ -536,7 +535,9 @@ def htmlify_media(medium, mm):
 						 utils.html_command('downloadqueue:',medium['media_id'])+
 				         ' (%s)</p>' % (utils.format_size(medium['size'],)))
 	elif medium['download_status'] == ptvDB.D_DOWNLOADING: 
-		if medium.has_key('progress_message'): #downloading and we have a custom message
+		if basic_progress:
+			ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
+		elif medium.has_key('progress_message'): #downloading and we have a custom message
 			ret.append('<p><i>'+medium['progress_message']+'</i> '+
 			                    utils.html_command('pause:',medium['media_id'])+' '+
 			                    utils.html_command('stop:',medium['media_id'])+'</p>')
@@ -559,8 +560,7 @@ def htmlify_media(medium, mm):
 			            utils.html_command('pause:',medium['media_id'])+' '+
 			            utils.html_command('stop:',medium['media_id'])+'</p>')
 		else:       # we have nothing to go on
-			ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+
-													  utils.html_command('stop:',medium['media_id'])+'</p>')
+			ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
 	elif medium['download_status'] == ptvDB.D_DOWNLOADED:
 		if mm.has_downloader(medium['media_id']):	
 			downloader = mm.get_downloader(medium['media_id'])

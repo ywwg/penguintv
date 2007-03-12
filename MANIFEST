@@ -1,3 +1,6 @@
+penguintv/ajax/EntryInfoServer.py
+penguintv/ajax/MyTCPServer.py
+penguintv/ajax/__init__.py
 penguintv/ptvbittorrent/DownloaderFeedback.py
 penguintv/ptvbittorrent/btcompletedir.py
 penguintv/ptvbittorrent/__init__.py
