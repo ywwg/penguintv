@@ -109,7 +109,9 @@ class PenguinTVApp(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT])),
 		'app-loaded': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([]))
+                           ([])),
+		'setting-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+						   ([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_PYOBJECT]))
 	}
 
 	def __init__(self, window=None):
@@ -138,7 +140,7 @@ class PenguinTVApp(gobject.GObject):
 						
 		logging.info("penguintv "+utils.VERSION+" startup")
 			
-		self.db = ptvDB.ptvDB(self._polling_callback)
+		self.db = ptvDB.ptvDB(self._polling_callback, self._emit_change_setting)
 		
 		self._firstrun = self.db.maybe_initialize_db()
 
@@ -217,10 +219,12 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/feed_refresh_frequency',self._gconf_set_polling_frequency)
 			conf.notify_add('/apps/penguintv/app_window_layout',self._gconf_set_app_window_layout)
 			conf.notify_add('/apps/penguintv/feed_refresh_method',self._gconf_set_feed_refresh_method)
+			conf.notify_add('/apps/penguintv/show_notifications',self._gconf_set_show_notifications)
 			conf.notify_add('/apps/penguintv/auto_download',self._gconf_set_auto_download)
 			conf.notify_add('/apps/penguintv/show_notification_always',self._gconf_set_show_notification_always)
 			conf.notify_add('/apps/penguintv/auto_download_limiter',self._gconf_set_auto_download_limiter)
 			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
+
 		self._load_settings()
 		
 		self.feed_list_view = self.main_window.feed_list_view
@@ -1299,7 +1303,7 @@ class PenguinTVApp(gobject.GObject):
 			
 	def get_feed_refresh_method(self):
 		return self.feed_refresh_method
-			
+		
 	def _gconf_set_feed_refresh_method(self, client, *args, **kwargs):
 		refresh = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'auto')
 		self.set_feed_refresh_method(refresh, client)
@@ -1539,6 +1543,12 @@ class PenguinTVApp(gobject.GObject):
 	def set_show_notification_always(self, show_notification_always):
 		if utils.HAS_STATUS_ICON:
 			self._status_icon.set_show_always(show_notification_always)
+			
+	def _gconf_set_show_notifications(self, client, *args, **kwargs):
+		show_notifications = client.get_bool('/apps/penguintv/show_notifications')
+		self.emit('setting-changed', ptvDB.BOOL, 
+		          '/apps/penguintv/show_notifications',
+		          show_notifications)
 		
 	def _gconf_set_auto_download_limiter(self, client, *args, **kwargs):
 		auto_download_limiter = client.get_bool('/apps/penguintv/auto_download_limiter')
@@ -1663,6 +1673,9 @@ class PenguinTVApp(gobject.GObject):
 				
 	def _reset_db_updater(self, db):
 		self._updater_thread_db = db
+		
+	def _emit_change_setting(self, typ, datum, value):
+		self.emit('setting-changed', typ, datum, value)
 		
 	def _threaded_emit(self, signal, *args):
 		def do_emit(signal, *args):

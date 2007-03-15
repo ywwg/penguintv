@@ -277,7 +277,6 @@ class PlanetView(gobject.GObject):
 		pass
 		
 	def clear_entries(self):
-		print "clearing planet entries"
 		self._first_entry = 0
 		self._entry_store={}
 		self._entrylist = []

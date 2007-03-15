@@ -106,6 +106,7 @@ class MainWindow(gobject.GObject):
 		self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._app.connect('feed-polled', self.__feed_polled_cb)
 		self._app.connect('download-finished', self.__download_finished_cb)
+		self._app.connect('setting-changed', self.__setting_changed_cb)
 	
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
@@ -141,6 +142,12 @@ class MainWindow(gobject.GObject):
 		
 	def __download_finished_cb(self, app, d):
 		self._download_view.update_downloads()
+		
+	def __setting_changed_cb(self, app, typ, datum, value):
+		if datum == '/apps/penguintv/show_notifications':
+			show_notifs_item = self._widgetTree.get_widget('show_notifications')
+			if show_notifs_item.get_active() != value:
+				show_notifs_item.set_active(value)
 		
 	def update_downloads(self):
 		self._download_view.update_downloads()
@@ -293,7 +300,11 @@ class MainWindow(gobject.GObject):
 		notebook_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
 		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
-		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True))
+		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, 
+		                               '/apps/penguintv/fancy_feedlist', True))
+		show_notifs_item = self._widgetTree.get_widget('show_notifications')
+		show_notifs_item.set_active(self._db.get_setting(ptvDB.BOOL, 
+		                           '/apps/penguintv/show_notifications', True))
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
 		self.app_window.set_icon_from_file(utils.get_icon_filename())
 		self._status_view = self._widgetTree.get_widget("appbar")
@@ -1004,6 +1015,10 @@ class MainWindow(gobject.GObject):
 	def on_fancy_feed_display_activate(self, menuitem):
 		self.feed_list_view.set_fancy(menuitem.get_active())
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', menuitem.get_active())
+		
+	def on_show_notifications_activate(self, menuitem):
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
+							 menuitem.get_active())
 				
 	def activate_layout(self, layout):
 		"""gets called by app when it's ready"""

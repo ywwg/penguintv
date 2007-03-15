@@ -18,6 +18,7 @@ class PtvTrayIcon:
 		self._app.connect('notify-tags-changed', self._update_notification_feeds)
 		self._app.connect('download-finished', self._download_finished_cb)
 		self._app.connect('app-loaded', self._app_loaded_cb)
+		self._app.connect('setting-changed', self.__setting_changed_cb)
 		
 		self._db = self._app.db
 		self._updates = []
@@ -25,6 +26,9 @@ class PtvTrayIcon:
 		self._notification_feeds = []
 		self._update_notification_feeds()
 		self._icon_manager = IconManager.IconManager(self._db.home)
+		
+		self._show_notifications = self._db.get_setting(ptvDB.BOOL, 
+		                            '/apps/penguintv/show_notifications', True)
 		
 		#Set up the right click menu
 		menu = """
@@ -36,6 +40,7 @@ class PtvTrayIcon:
 						<separator/>
 						<menuitem action="Refresh"/>
 						<separator/>
+						<menuitem action="ShowNotifications"/>
 						<menuitem action="About"/>
 						<menuitem action="Quit"/>
 					</menu>
@@ -53,7 +58,14 @@ class PtvTrayIcon:
 
 		actiongroup = gtk.ActionGroup('Actions')
 		actiongroup.add_actions(actions)
-
+		
+		actions = [
+			('ShowNotifications', None, _('Show Notifications'), 
+			           None, _('Show feed and download updates'), 
+			           self.__toggle_notifs_cb, self._show_notifications) ]
+			           
+		actiongroup.add_toggle_actions(actions)
+		
 		#Use UIManager to turn xml into gtk menu
 		self.manager = gtk.UIManager()
 		self.manager.insert_action_group(actiongroup, 0)
@@ -75,7 +87,7 @@ class PtvTrayIcon:
 		
 	def set_show_always(self, b):
 		self._tray_icon.set_show_always(b)
-
+		
 	def set_tooltip(self, m):
 		if len(m) == 0:
 			d = {'version': utils.VERSION}
@@ -83,6 +95,15 @@ class PtvTrayIcon:
 		else:
 			self._tray_icon.set_tooltip(m)
 			
+	def __setting_changed_cb(self, app, typ, datum, value):
+		if datum == '/apps/penguintv/show_notifications':
+			show_notifs_item = self.manager.get_widget('/Menubar/Menu/ShowNotifications')
+			if value != show_notifs_item.get_active():
+				show_notifs_item.set_active(value)
+				self._show_notifications = value
+				if value == False:
+					self._updates = []
+
 	def _app_loaded_cb(self, app):
 		play, pause = self._get_playpause_menuitems()
 		if self._app.player.using_internal_player():
@@ -103,7 +124,8 @@ class PtvTrayIcon:
 		self._notification_feeds = self._db.get_feeds_for_tag(ptvDB.NOTIFYUPDATES)
 				
 	def _download_finished_cb(self, app, d):
-		if d.status == FINISHED or d.status == FINISHED_AND_PLAY:
+		if (d.status == FINISHED or d.status == FINISHED_AND_PLAY) and \
+		                                      self._show_notifications:
 			entry = self._db.get_entry(d.media['entry_id'])
 			entry_title = utils.my_quote(entry['title'])
 			feed_title = self._db.get_feed_title(entry['feed_id'])
@@ -128,7 +150,7 @@ class PtvTrayIcon:
 		#if new_entries == 0:
 		#	new_entries = 2
 			
-		if feed_id in self._notification_feeds:
+		if feed_id in self._notification_feeds and self._show_notifications:
 			entries = self._db.get_entrylist(feed_id)[0:new_entries]
 			entries = [(feed_id,e[0]) for e in entries]
 			entries.reverse()
@@ -142,7 +164,7 @@ class PtvTrayIcon:
 				self._updater_id = gobject.idle_add(self._push_update_handler)
 			
 	def _push_update_handler(self):
-		if len(self._updates) == 0:
+		if len(self._updates) == 0 or not self._show_notifications:
 			self._updater_id = -1
 			return False
 		feed_id, entry_id = self._updates.pop(0)
@@ -173,6 +195,10 @@ class PtvTrayIcon:
 		
 	def __refresh_cb(self, data):
 		self._app.poll_feeds()
+		
+	def __toggle_notifs_cb(self, toggleaction):
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
+							 toggleaction.get_active())
 		
 	def _get_playpause_menuitems(self):
 		playitem = self.manager.get_widget('/Menubar/Menu/Play')

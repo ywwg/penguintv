@@ -105,7 +105,7 @@ from formatter import NullFormatter
 class ptvDB:
 	entry_flag_cache = {}
 	
-	def __init__(self, polling_callback=None):#,username,password):	
+	def __init__(self, polling_callback=None, change_setting_cb=None):
 		if utils.RUNNING_SUGAR:
 			import sugar.env
 			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
@@ -150,10 +150,12 @@ class ptvDB:
 		self._exiting = False
 		self._cancel_poll_multiple = False
 			
-		if polling_callback==None:
+		if polling_callback is None:
 			self.polling_callback=self._polling_callback
 		else:
 			self.polling_callback = polling_callback		
+			
+		self._change_setting_cb = change_setting_cb
 			
 		if utils.HAS_LUCENE:
 			self.searcher = Lucene.Lucene()
@@ -525,6 +527,8 @@ class ptvDB:
 			else:
 				self._db_execute(self._c, u'UPDATE settings SET value=? WHERE data=?', (value,datum))
 			self._db.commit()
+		if self._change_setting_cb is not None:
+			self._change_setting_cb(type, datum, value)
 			
 	def set_feed_cache(self, cachelist):
 		"""Cachelist format:
