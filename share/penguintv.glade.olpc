@@ -1321,7 +1321,7 @@ j@v2v.cc
 			</widget>
 		      </child>
 
-		      <child>
+<!--		      <child>
 			<widget class="GtkImageMenuItem" id="play_unviewed">
 			  <property name="visible">True</property>
 			  <property name="label" translatable="yes">_Play Unviewed</property>
@@ -1341,7 +1341,7 @@ j@v2v.cc
 			    </widget>
 			  </child>
 			</widget>
-		      </child>
+		      </child> -->
 
 		      <child>
 			<widget class="GtkMenuItem" id="show_downloads">
@@ -1728,7 +1728,7 @@ j@v2v.cc
 		</packing>
 	      </child>
 
-	      <child>
+<!--	      <child>
 		<widget class="GtkToolButton" id="play_unviewed">
 		  <property name="visible">True</property>
 		  <property name="tooltip" translatable="yes">Play Unviewed Media</property>
@@ -1742,7 +1742,7 @@ j@v2v.cc
 		  <property name="expand">False</property>
 		  <property name="homogeneous">True</property>
 		</packing>
-	      </child>
+	      </child> -->
 
 	      <child>
 		<widget class="GtkSeparatorToolItem" id="vseparator2">

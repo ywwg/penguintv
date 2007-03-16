@@ -247,9 +247,9 @@ class MainWindow(gobject.GObject):
 			button.connect("activated", self.on_download_unviewed_clicked)
 			toolbar.append(button)
 			
-			button = IconButton(icon_name='theme:stock-media-play')
-			button.connect("activated", self.on_play_unviewed_clicked)
-			toolbar.append(button)
+			#button = IconButton(icon_name='theme:stock-media-play')
+			#button.connect("activated", self.on_play_unviewed_clicked)
+			#toolbar.append(button)
 			
 			button = IconButton(icon_name='theme:stock-preferences')
 			button.connect("activated", self.on_preferences_activate)

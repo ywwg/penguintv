@@ -103,6 +103,7 @@ class PtvTrayIcon:
 				self._show_notifications = value
 				if value == False:
 					self._updates = []
+					self._tray_icon.clear_notifications()
 
 	def _app_loaded_cb(self, app):
 		play, pause = self._get_playpause_menuitems()

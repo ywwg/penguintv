@@ -68,6 +68,9 @@ class StatusTrayIcon(gtk.StatusIcon):
 		if self._updater_id == -1:
 			self._updater_id = gobject.timeout_add(500, self._display_notification_handler)
 			
+	def clear_notifications(self):
+		self._notifications = []
+			
 	def _display_notification_handler(self):
 		if len(self._notifications) == 0:
 			self._updater_id = -1

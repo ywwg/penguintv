@@ -330,6 +330,19 @@
 	<long>If enabled, the PenguinTV icon will appear in the system tray at all times.  If disabled, PenguinTV icon will only appear for notification events.  Default True</long>
      </locale>
    </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/show_notifications</key>
+     <applyto>/apps/penguintv/show_notifications</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>True</default>
+     <locale name="C">
+	<short>Show Notifications</short>
+	<long>If enabled, PenguinTV will notify the user when feeds tagged with 'notify' are updated, as well as when downloads complete.  Default True</long>
+     </locale>
+   </schema>
+
 
    
  </schemalist>
