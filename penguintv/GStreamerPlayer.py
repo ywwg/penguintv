@@ -455,8 +455,12 @@ class GStreamerPlayer(gobject.GObject):
 			self._last_index = -1
 			self._current_index = 0
 		else:
-			self._current_index = [r[0] for r in model].index(current_uri)
-			self._last_index = self._current_index
+			try:
+				self._current_index = [r[0] for r in model].index(current_uri)
+			except ValueError:
+				# If the current_uri was removed, reset to top of list
+				self._current_index = 0
+			self._last_index = self._current_index	
 		self.emit('items-removed')
 		
 	def _on_seek_value_changed(self, widget):

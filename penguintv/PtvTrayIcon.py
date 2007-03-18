@@ -95,6 +95,10 @@ class PtvTrayIcon:
 		else:
 			self._tray_icon.set_tooltip(m)
 			
+	def clear_notifications(self):
+		self._updates = []
+		self._tray_icon.clear_notifications()
+			
 	def __setting_changed_cb(self, app, typ, datum, value):
 		if datum == '/apps/penguintv/show_notifications':
 			show_notifs_item = self.manager.get_widget('/Menubar/Menu/ShowNotifications')
@@ -102,8 +106,7 @@ class PtvTrayIcon:
 				show_notifs_item.set_active(value)
 				self._show_notifications = value
 				if value == False:
-					self._updates = []
-					self._tray_icon.clear_notifications()
+					self.clear_notifications()
 
 	def _app_loaded_cb(self, app):
 		play, pause = self._get_playpause_menuitems()
@@ -158,7 +161,6 @@ class PtvTrayIcon:
 			self._updates += entries
 			
 			if len(self._updates) > 10: #too many
-				print "notification backlog, clearing down to 10"
 				self._updates = self._updates[0:10]
 			
 			if self._updater_id == -1:
@@ -200,6 +202,8 @@ class PtvTrayIcon:
 	def __toggle_notifs_cb(self, toggleaction):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
 							 toggleaction.get_active())
+		if toggleaction.get_active() == False:
+			self.clear_notifications()
 		
 	def _get_playpause_menuitems(self):
 		playitem = self.manager.get_widget('/Menubar/Menu/Play')
