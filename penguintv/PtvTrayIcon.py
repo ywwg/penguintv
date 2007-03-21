@@ -153,7 +153,7 @@ class PtvTrayIcon:
 		#debug: guarantee notification 
 		#if new_entries == 0:
 		#	new_entries = 2
-			
+		
 		if feed_id in self._notification_feeds and self._show_notifications:
 			entries = self._db.get_entrylist(feed_id)[0:new_entries]
 			entries = [(feed_id,e[0]) for e in entries]
@@ -200,9 +200,11 @@ class PtvTrayIcon:
 		self._app.poll_feeds()
 		
 	def __toggle_notifs_cb(self, toggleaction):
+		show_notifs = toggleaction.get_active()
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
-							 toggleaction.get_active())
-		if toggleaction.get_active() == False:
+							 show_notifs)
+		self._show_notifications = show_notifs
+		if show_notifs == False:
 			self.clear_notifications()
 		
 	def _get_playpause_menuitems(self):
