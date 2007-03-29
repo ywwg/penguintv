@@ -1,5 +1,7 @@
 http://planet.laptop.org/atom.xml
 http://newsrss.bbc.co.uk/rss/newsonline_world_edition/front_page/rss.xml
-http://www.merriam-webster.com/word/index.xml
 http://interglacial.com/rss/epod.rss
-http://www.jwz.org/cheesegrater/RSS/apod.rss
+http://jeays.net/wikipedia/picture.xml
+http://tools.wikimedia.de/~daniel/potd/commons/potd-400x300.rss
+http://www.bbc.co.uk/worldservice/learningenglish/rss/leweekly.xml
+http://rss.spanishdict.com/wodrss
