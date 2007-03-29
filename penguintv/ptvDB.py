@@ -2222,14 +2222,22 @@ class ptvDB:
 		else: #just a list in a file
 			url_list = []
 			count = 0
-			for url in stream.readlines():
+			for line in stream.readlines():
+				line = line.strip()
+				space_at = line.find(' ')
+				if space_at >= 0:
+					url = line[:space_at]
+					title = line[space_at+1:]
+				else:
+					url = line
+					title = None
 				count+=1
-				url_list.append(url)
+				url_list.append((url, title))
 			stream.close()
 			yield (1,len(url_list))
-			for url in url_list:
+			for url, title in url_list:
 				try:
-					feed_id=self.insertURL(url)
+					feed_id=self.insertURL(url, title)
 					yield (1,feed_id)
 				except FeedAlreadyExists, f:
 					yield (0,f.feed)

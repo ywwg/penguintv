@@ -1,7 +1,6 @@
-http://planet.laptop.org/atom.xml
-http://newsrss.bbc.co.uk/rss/newsonline_world_edition/front_page/rss.xml
-http://interglacial.com/rss/epod.rss
-http://jeays.net/wikipedia/picture.xml
-http://tools.wikimedia.de/~daniel/potd/commons/potd-400x300.rss
-http://www.bbc.co.uk/worldservice/learningenglish/rss/leweekly.xml
-http://rss.spanishdict.com/wodrss
+http://planet.laptop.org/atom.xml Planet OLPC
+http://newsrss.bbc.co.uk/rss/newsonline_world_edition/front_page/rss.xml BBC World News
+http://interglacial.com/rss/epod.rss Earth Science PoD
+http://jeays.net/wikipedia/picture.xml Wikipedia Picture of the Day
+http://tools.wikimedia.de/~daniel/potd/commons/potd-400x300.rss Commons Picture of the Day 
+http://www.bbc.co.uk/worldservice/learningenglish/rss/leweekly.xml BBC Learning English
