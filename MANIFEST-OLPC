@@ -9,7 +9,7 @@ penguintv/BTDownloader.py
 penguintv/Downloader.py
 penguintv/DownloadView.py
 penguintv/EditSearchesDialog.py
-penguintv/EditTagsMultiDialog.py
+penguintv/TagEditorNG.py
 penguintv/EntryList.py
 penguintv/EntryView.py
 penguintv/FeedFilterDialog.py

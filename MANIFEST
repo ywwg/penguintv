@@ -42,8 +42,8 @@ penguintv/Downloader.py
 penguintv/FeedList.py
 penguintv/__init__.py
 penguintv/OPML.py
-penguintv/EditTagsMultiDialog.py
 penguintv/ThreadPool.py
+penguintv/TagEditorNG.py
 penguintv/penguintv.py
 penguintv/MediaManager.py
 penguintv/MainWindow.py

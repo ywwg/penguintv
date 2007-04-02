@@ -37,7 +37,8 @@ N_FEEDS     = 0
 N_PLAYER    = 1
 N_DOWNLOADS = 2
 
-import EditTagsMultiDialog
+#import EditTagsMultiDialog
+import TagEditorNG
 import AddSearchTagDialog
 import EditSearchesDialog
 import FeedFilterDialog
@@ -673,9 +674,8 @@ class MainWindow(gobject.GObject):
 			
 	def on_edit_tags_for_all_activate(self, event):
 		"""Bring up mass tag creation window"""
-		window_edit_tags_multi = EditTagsMultiDialog.EditTagsMultiDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_edit_tags_multi",'penguintv'),self._app)
+		window_edit_tags_multi = TagEditorNG.TagEditorNG(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_editor_ng",'penguintv'), self._app)
 		window_edit_tags_multi.show()
-		window_edit_tags_multi.set_feed_list(self._db.get_feedlist())
 			
 	def on_export_opml_activate(self, event):
 		self._app.export_opml()
