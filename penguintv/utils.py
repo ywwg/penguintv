@@ -82,10 +82,10 @@ else:
 	except:
 		HAS_GSTREAMER = False
 	
-VERSION="2.87"
+VERSION="2.89"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
-#HAS_LUCENE = False
+HAS_LUCENE = False
 #HAS_PYXML = False
 #HAS_STATUS_ICON = False
 #HAS_GNOMEVFS = False

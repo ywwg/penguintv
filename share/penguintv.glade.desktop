@@ -7181,14 +7181,14 @@ j@v2v.cc
 		<widget class="GtkVBox" id="vbox26">
 		  <property name="visible">True</property>
 		  <property name="homogeneous">False</property>
-		  <property name="spacing">0</property>
+		  <property name="spacing">6</property>
 
 		  <child>
 		    <widget class="GtkScrolledWindow" id="scrolledwindow_tags">
 		      <property name="visible">True</property>
 		      <property name="can_focus">True</property>
-		      <property name="hscrollbar_policy">GTK_POLICY_ALWAYS</property>
-		      <property name="vscrollbar_policy">GTK_POLICY_ALWAYS</property>
+		      <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+		      <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
 		      <property name="shadow_type">GTK_SHADOW_IN</property>
 		      <property name="window_placement">GTK_CORNER_TOP_LEFT</property>
 
@@ -7428,6 +7428,7 @@ j@v2v.cc
 
 	  <child>
 	    <widget class="GtkHBox" id="hbox60">
+	      <property name="border_width">12</property>
 	      <property name="visible">True</property>
 	      <property name="homogeneous">False</property>
 	      <property name="spacing">0</property>
@@ -7453,7 +7454,9 @@ j@v2v.cc
 	      <child>
 		<widget class="GtkLabel" id="label115">
 		  <property name="visible">True</property>
-		  <property name="label" translatable="yes">Select a tag in the list on the left, and all the feeds with that tag will be marked on the right.  You may mark and unmark feeds to add or remove this tag from them.</property>
+		  <property name="label" translatable="yes">Select a tag in the list on the left, and all the feeds with that tag will be marked on the right.  You may mark and unmark feeds to add or remove that tag from them.
+
+Tagged feeds will appear at the top of the list.</property>
 		  <property name="use_underline">False</property>
 		  <property name="use_markup">False</property>
 		  <property name="justify">GTK_JUSTIFY_LEFT</property>

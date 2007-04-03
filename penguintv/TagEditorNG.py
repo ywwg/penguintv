@@ -7,6 +7,13 @@ import gtk
 import utils
 
 class TagEditorNG:
+	
+	FEEDID = 0
+	TITLE = 1
+	TAGGED = 2
+	SEPARATOR = 3
+	NEWLY_TOGGLED = 4
+
 	def __init__(self, xml, app):
 		self._xml = xml
 		self._app = app
@@ -23,11 +30,49 @@ class TagEditorNG:
 				self._xml.signal_connect(key, getattr(self,key))
 				
 		self._feeds_widget = self._xml.get_widget("treeview_feeds")
-		self._feeds_model = gtk.ListStore(int, str, bool) #feed_id, title, tagged
-		self._feeds_widget.set_model(self._feeds_model)		
+		self._feeds_model = gtk.ListStore(int, str, bool, bool, bool) #feed_id, title, tagged, separator, newly toggled
+		self._feeds_widget.set_row_separator_func(lambda m,i:m[i][self.SEPARATOR] == True)
+		self._sorted_model = gtk.TreeModelSort(self._feeds_model)
+		
+		def feed_sort_func(model, i1, i2):
+			#use lists to not affect actual values
+			r1 = list(model[i1])
+			r2 = list(model[i2])
+			
+			#if either is newly selected, treat as unchecked for sorting
+			if r1[self.NEWLY_TOGGLED] == True: r1[self.TAGGED] = not r1[self.TAGGED]
+			if r2[self.NEWLY_TOGGLED] == True: r2[self.TAGGED] = not r2[self.TAGGED]
+			
+			#test separator
+			if r1[self.SEPARATOR] == True:
+				if r2[self.TAGGED]: return -1
+				else: return 1
+			if r2[self.SEPARATOR] == True:
+				if r1[self.TAGGED]: return 1
+				else: return -1
+
+			#test checkboxes
+			if r1[self.TAGGED] != r2[self.TAGGED]:
+				return r1[self.TAGGED] - r2[self.TAGGED]
+			
+			#correct for weird bug
+			if r1[self.TITLE] is None: r1[self.TITLE] = ""
+			if r2[self.TITLE] is None: r2[self.TITLE] = ""
+				
+			#sort by name
+			if r1[self.TITLE].upper() < r2[self.TITLE].upper():
+				return 1
+			elif r1[self.TITLE].upper() == r2[self.TITLE].upper():
+				return 0
+			return -1
+				
+		self._sorted_model.set_sort_func(0, feed_sort_func) 
+		self._sorted_model.set_sort_column_id(0, gtk.SORT_DESCENDING)
+
+		self._feeds_widget.set_model(self._sorted_model)		
 		
 		renderer = gtk.CellRendererToggle()
-		feed_column = gtk.TreeViewColumn('Tagged')
+		feed_column = gtk.TreeViewColumn('')
 		feed_column.pack_start(renderer, True)
 		self._feeds_widget.append_column(feed_column)
 		feed_column.set_attributes(renderer, active=2)
@@ -40,8 +85,8 @@ class TagEditorNG:
 		self._feeds_widget.append_column(feed_column)
 		
 		self._tags_widget = self._xml.get_widget("treeview_tags")
-		self._tags_model = gtk.ListStore(str) #tag
-		self._tags_widget.set_model(self._tags_model)		
+		tags_model = gtk.ListStore(str) #tag
+		self._tags_widget.set_model(tags_model)		
 		
 		renderer = gtk.CellRendererText()
 		renderer.set_property('editable', True)
@@ -64,10 +109,10 @@ class TagEditorNG:
 		self._populate_lists()
 
 	def _populate_lists(self):
-		model = self._feeds_widget.get_model()
-		model.clear()
+		self._feeds_model.clear()
 		for feed_id, title in self._db.get_feedlist():
-			model.append([feed_id, title, False])
+			self._feeds_model.append([feed_id, title, False, False, False])
+		self._feeds_model.append([-1, "None", False, True, False])
 
 		model = self._tags_widget.get_model()
 		model.clear()
@@ -84,18 +129,25 @@ class TagEditorNG:
 			self._current_tag = None
 			tagged_feeds = []
 		
-		feed_model = self._feeds_widget.get_model()
-		for row in feed_model:
-			row[2] = row[0] in tagged_feeds			
+		for row in self._feeds_model:
+			#reset "newly selected" feeds
+			row[self.NEWLY_TOGGLED] = False
+			row[self.TAGGED] = row[self.FEEDID] in tagged_feeds			
 			
 	def _feed_toggled(self, obj, path):
-		model = self._feeds_widget.get_model()
-		row = model[path]
-		row[2] = not row[2]
-		if row[2]:
-			self._db.add_tag_for_feed(row[0], self._current_tag)
+		if self._current_tag is None:
+			return
+	
+		path = self._sorted_model.convert_path_to_child_path(path)
+		row = self._feeds_model[path]
+
+		row[self.TAGGED] = not row[self.TAGGED]
+		row[self.NEWLY_TOGGLED] = not row[self.NEWLY_TOGGLED]
+		
+		if row[self.TAGGED]:
+			self._db.add_tag_for_feed(row[self.FEEDID], self._current_tag)
 		else:
-			self._db.remove_tag_from_feed(row[0], self._current_tag)
+			self._db.remove_tag_from_feed(row[self.FEEDID], self._current_tag)
 			
 	def _on_button_rename_clicked(self, event):
 		if self._current_tag is None:
