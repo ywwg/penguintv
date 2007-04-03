@@ -2171,6 +2171,7 @@ class ptvDB:
 			item = OPML.Outline()
 			item['title']=self._ascii(feed[0])
 			item['text']=self._ascii(feed[0])
+			if feed[1] is None: feed[1] = ""
 			item['description']=self._ascii(feed[1])
 			item['xmlUrl']=feed[2]
 			o.outlines.append(item)

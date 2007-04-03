@@ -12,7 +12,7 @@ import sys
 
 #loaded as needed
 #import feedparser
-#import HTMLParser 
+import HTMLParser 
 
 import utils
 import LoginDialog
@@ -72,6 +72,9 @@ class AddFeedDialog:
 			gtk.main_iteration()
 		try:
 			url,title = self._correct_url(url)
+			if url is None:
+				self._window.set_sensitive(True)
+				return
 			feed_id = self._app.add_feed(url,title)
 		except AuthorizationFailed:
 			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -203,14 +206,14 @@ class AddFeedDialog:
 		if mimetype in handled_mimetypes:
 			pass
 		elif mimetype in ['text/html', 'application/xhtml+xml']:
-			p = utils.AltParser()
+			p = AltParser()
 			try:
 				for line in url_stream.readlines():
 					p.feed(line)
 					if p.head_end: #if we've gotten an error, we need the whole page
 						break #otherwise the header is enough
 					
-				available_versions = p.alt_tags.keys()
+				available_versions = p.alt_tags
 				if len(available_versions)==0: #this might actually be a feed
 					data = feedparser.parse(url)
 					if len(data['channel']) == 0 or len(data['items']) == 0: #nope
@@ -220,10 +223,9 @@ class AddFeedDialog:
 						pass #we're good
 				else:
 					newurl=""
-					largest=0
-					for m in handled_mimetypes:
-						if m in available_versions:
-							pos_url = p.alt_tags[m]
+					url_choices = []
+					for mimetype, pos_url, t in available_versions:
+						if mimetype in handled_mimetypes:
 							#first clean it up
 							if pos_url[:4]!="http": #maybe the url is not fully qualified (fix for metaphilm.com)
 								if pos_url[0:2] == '//': #fix for gnomefiles.org
@@ -235,13 +237,12 @@ class AddFeedDialog:
 									pos_url=os.path.split(url)[0]+'/'+pos_url
 									
 							#now test sizes
-							try:
-							    size = len(urllib.urlopen(pos_url).read())
-							except:
-							    continue
-							if size > largest:
-								newurl = pos_url
-								
+							url_choices.append((pos_url, t))
+							
+					if len(url_choices) > 1:
+						newurl, title = self._choose_url(url_choices)
+					elif len(url_choices) == 1:
+						newurl, title = url_choices[0]
 					if newurl == "":
 						print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
 						raise BadFeedURL
@@ -261,6 +262,62 @@ class AddFeedDialog:
 			print "warning: unhandled page mimetypes: "+str(mimetype)+"<--"
 			raise BadFeedURL
 		return (url,title)
+		
+	def _choose_url(self, url_list):
+		dialog = gtk.Dialog(title=_("Choose Feed"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+
+		label = gtk.Label(_("Please choose one of the feeds in this page"))
+		dialog.vbox.pack_start(label, True, True, 0)
+		
+		list_widget = gtk.TreeView()
+		model = gtk.ListStore(str, str)
+		r = gtk.CellRendererText()
+		c = gtk.TreeViewColumn('Feeds')
+		c.pack_start(r)
+		c.set_attributes(r, markup=1)
+		list_widget.append_column(c)
+		list_widget.set_model(model)
+		dialog.vbox.pack_start(list_widget)
+		
+		for url, title in url_list:
+			model.append([url, title])
+		
+		dialog.show_all()
+		response = dialog.run()
+		dialog.hide()
+		del dialog
+		if response == gtk.RESPONSE_ACCEPT:	
+			selection = list_widget.get_selection()
+			s_iter = selection.get_selected()[1]
+			if s_iter is None:
+				return None
+			return list(model[s_iter])
+		return None
+
+class AltParser(HTMLParser.HTMLParser):
+	def __init__(self):
+		HTMLParser.HTMLParser.__init__(self)
+		self.alt_tags=[]
+		self.head_end=False
+		
+	def handle_starttag(self, tag, attrs):
+		"""Signal when we get to a tag."""
+		if tag=='link':
+			attr_dic = {}
+			for attr in attrs:
+				attr_dic[attr[0]] = attr[1]
+			try:
+				if attr_dic['rel'] == 'alternate':
+					if attr_dic['type'] in ['application/atom+xml','application/rss+xml','text/xml']:
+						attr_dic.setdefault('title',attr_dic['href'])
+						self.alt_tags.append((attr_dic['type'], attr_dic['href'], attr_dic['title']))
+			except:
+				pass
+
+	def handle_endtag(self, tag):
+		if tag == 'head':
+			self.head_end=True
+
 
 class AuthorizationFailed(Exception):
 	def __init__(self):
