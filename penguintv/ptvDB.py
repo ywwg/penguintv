@@ -2171,8 +2171,10 @@ class ptvDB:
 			item = OPML.Outline()
 			item['title']=self._ascii(feed[0])
 			item['text']=self._ascii(feed[0])
-			if feed[1] is None: feed[1] = ""
-			item['description']=self._ascii(feed[1])
+			if feed[1] is None: 
+				item['description'] = ""
+			else:
+				item['description'] = self._ascii(feed[1])
 			item['xmlUrl']=feed[2]
 			o.outlines.append(item)
 		o.output(stream)
@@ -2225,6 +2227,7 @@ class ptvDB:
 			count = 0
 			for line in stream.readlines():
 				line = line.strip()
+				if len(line) == 0: continue
 				space_at = line.find(' ')
 				if space_at >= 0:
 					url = line[:space_at]
