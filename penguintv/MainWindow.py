@@ -135,8 +135,9 @@ class MainWindow(gobject.GObject):
 			self.select_feed(feed_id)
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
-		self.display_status_message(_("Feed Updated"))
-		gobject.timeout_add(2000, self.display_status_message, "")
+		if not update_data.has_key('polling_multiple'):
+			self.display_status_message(_("Feed Updated"))
+			gobject.timeout_add(2000, self.display_status_message, "")
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.update_filters()

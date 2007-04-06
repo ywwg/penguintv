@@ -1630,6 +1630,7 @@ class PenguinTVApp(gobject.GObject):
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._gui_updater.queue(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
 				elif update_data['pollfail']==False:
+					update_data['polling_multiple'] = True
 					self._threaded_emit('feed-polled', feed_id, update_data)
 			else:
 				#check image just in case

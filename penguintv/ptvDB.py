@@ -175,9 +175,9 @@ class ptvDB:
 		self._parse_list = []
 		
 	def _db_execute(self, c, command, args=()):
-		#if "INSERT INTO MEDIA" in command.upper(): 
+		#if "UPDATE entries" in command.upper(): 
 		#traceback.print_stack()
-		#	print command, args
+		#print command, args
 		try:
 			return c.execute(command, args)
 		except Exception, e:
@@ -1223,6 +1223,7 @@ class ptvDB:
 			qmarks = "?,"*(len(not_old)-1)+"?"
 			self._db_execute(self._c, """UPDATE entries SET old=0 WHERE id in (""" +
 							 qmarks + ')', tuple(not_old))
+		
 		self._db.commit()
 		
 		# anything not set above as new, mod, or exists is no longer in
@@ -1340,7 +1341,7 @@ class ptvDB:
 				
 		
 		for entry_item in existing_entries:
-			if str(t_item['guid'])!='0':
+			if len(str(t_item['guid'])) > 2: #even 3 chars for a guid seems small, but oh well
 				if str(entry_item[GUID]) == str(t_item['guid']):# and entry_item[TITLE] == t_item['title']:
 					entry_id = entry_item[ID]
 					old_hash = self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY])
