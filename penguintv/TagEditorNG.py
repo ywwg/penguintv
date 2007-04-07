@@ -22,6 +22,7 @@ class TagEditorNG:
 		
 		self._app.connect("feed-added", self._populate_lists)
 		self._app.connect("feed-removed", self._populate_lists)
+		self._app.connect("tags-changed", self._populate_lists)
 		
 	def show(self):
  		self._window = self._xml.get_widget("dialog_tag_editor_ng")
@@ -146,8 +147,10 @@ class TagEditorNG:
 		
 		if row[self.TAGGED]:
 			self._db.add_tag_for_feed(row[self.FEEDID], self._current_tag)
+			self._app.emit('tags-changed')
 		else:
 			self._db.remove_tag_from_feed(row[self.FEEDID], self._current_tag)
+			self._app.emit('tags-changed')
 			
 	def _on_button_rename_clicked(self, event):
 		if self._current_tag is None:
@@ -177,6 +180,7 @@ class TagEditorNG:
 			
 	def _rename_tag(self, old_name, new_name):
 		self._db.rename_tag(old_name, new_name)
+		self._app.emit('tags-changed')
 		
 		# resort
 		selection = self._tags_widget.get_selection()
@@ -258,6 +262,7 @@ class TagEditorNG:
 		if response == gtk.RESPONSE_ACCEPT:	
 			#remove from db	
 			self._db.remove_tag(self._current_tag)
+			self._app.emit('tags-changed')
 			
 			#remove tag from our list
 			selection = self._tags_widget.get_selection()

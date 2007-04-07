@@ -104,6 +104,9 @@ class PenguinTVApp(gobject.GObject):
 		'notify-tags-changed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([])),
+		'tags-changed': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),                        
 		'download-finished': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
@@ -582,7 +585,7 @@ class PenguinTVApp(gobject.GObject):
 		self.db.add_search_tag(query, tag_name)
 		#could raise ptvDB.TagAlreadyExists, let it go
 		self._saved_search = self.main_window.search_entry.get_text()
-		self.main_window.update_filters()
+		self.emit('tags-changed')
 		while gtk.events_pending(): #wait for the list to update
 			gtk.main_iteration()
 		index = self.main_window.get_filter_index(tag_name)
@@ -594,7 +597,7 @@ class PenguinTVApp(gobject.GObject):
 			
 	def remove_search_tag(self, tag_name):
 		self.db.remove_tag(tag_name)
-		self.main_window.update_filters()
+		self.emit('tags-changed')
 		while gtk.events_pending():
 			gtk.main_iteration()
 			
@@ -623,7 +626,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.add_tag_for_feed(feed_id, tag)	
 		if removed_tags or added_tags:
 			self.feed_list_view.set_selected(feed_id)
-		self.main_window.update_filters()
+		self.emit('tags-changed')
 		self.feed_list_view.filter_all(False)
 		if old_tags is not None:
 			if ptvDB.NOTIFYUPDATES in old_tags:
@@ -925,7 +928,7 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				for feed in newfeeds:
 					self.feed_list_view.add_feed(feed)
-			self.main_window.update_filters()
+			self.emit('tags-changed')
 			saved_auto = False
 			self.main_window.display_status_message("")
 			#shut down auto-downloading for now (need to wait until feeds are marked)

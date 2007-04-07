@@ -85,7 +85,7 @@ else:
 VERSION="2.89"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
-HAS_LUCENE = False
+#HAS_LUCENE = False
 #HAS_PYXML = False
 #HAS_STATUS_ICON = False
 #HAS_GNOMEVFS = False
@@ -528,7 +528,6 @@ def init_gtkmozembed():
 	of getting it from the module itself.  good luck with this"""
 
 	assert HAS_MOZILLA
-	return True
 	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom.so"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
@@ -537,6 +536,7 @@ def init_gtkmozembed():
 		return False
 	ldd_output = p.stdout.read()
 	comp_path = os.path.split(ldd_output.split()[2])[0]
+	print "initializing mozilla in", comp_path
 	gtkmozembed.set_comp_path(comp_path)
 	return True
 	

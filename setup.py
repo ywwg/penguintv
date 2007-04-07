@@ -16,7 +16,7 @@ try:
 	from sugar.activity import bundlebuilder
 	print "Building OLPC version"
 
-	sp = my_subProcess.subProcess("ln -sf penguintv.glade.olpc share/penguintv.glade")
+	sp = my_subProcess.subProcess("cp -f penguintv.glade.olpc share/penguintv.glade")
 	if sp.read() != 0:
 		print "There was an error symlinking the glade file"
 		sys.exit(1)
@@ -31,7 +31,7 @@ if BUILT_SUGAR:
 	
 print "Building desktop version"
 
-sp = my_subProcess.subProcess("ln -sf penguintv.glade.desktop share/penguintv.glade")
+sp = my_subProcess.subProcess("cp -f penguintv.glade.desktop share/penguintv.glade")
 if sp.read() != 0:
 	print "There was an error symlinking the glade file"
 	sys.exit(1)
@@ -102,7 +102,10 @@ scripts          = ['PenguinTV'],
 data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css','share/mozilla-planet.css']),
 					('share/pixmaps',		['share/penguintvicon.png']),
 					('share/applications',	['penguintv.desktop'])]+locales,
-packages = ["penguintv", "penguintv/ptvbittorrent"])
+packages = ["penguintv", 
+			"penguintv/ptvbittorrent", 
+			"penguintv/trayicon",
+			"penguintv/ajax"])
 
 if "install" in sys.argv:
 	sp = my_subProcess.subProcess('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''')

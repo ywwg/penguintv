@@ -108,6 +108,7 @@ class MainWindow(gobject.GObject):
 		self._app.connect('feed-polled', self.__feed_polled_cb)
 		self._app.connect('download-finished', self.__download_finished_cb)
 		self._app.connect('setting-changed', self.__setting_changed_cb)
+		self._app.connect('tags-changed', self.__tags_changed_cb)
 	
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
@@ -150,6 +151,9 @@ class MainWindow(gobject.GObject):
 			show_notifs_item = self._widgetTree.get_widget('show_notifications')
 			if show_notifs_item.get_active() != value:
 				show_notifs_item.set_active(value)
+				
+	def __tags_changed_cb(self, app):
+		self.update_filters()
 		
 	def update_downloads(self):
 		self._download_view.update_downloads()
@@ -1182,7 +1186,7 @@ class MainWindow(gobject.GObject):
 					if favorite > 0:
 						self._favorite_filters.append([favorite, tag,tag, i]) 
 		
-		tags = self._db.get_all_tags(ptvDB.T_TAG)	
+		tags = self._db.get_all_tags(ptvDB.T_TAG)
 		if tags:
 			sep = gtk.SeparatorMenuItem()
 			self._filter_menu.append(sep)

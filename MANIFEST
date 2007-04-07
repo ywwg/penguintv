@@ -70,6 +70,7 @@ penguintv/PlanetView.py
 penguintv/DownloadView.py
 penguintv/IconManager.py
 penguintv/PtvTrayIcon.py
+penguintv/trayicon/__init__.py
 penguintv/trayicon/TrayIcon.py
 penguintv/trayicon/SonataNotification.py
 feedparser/setup.py
