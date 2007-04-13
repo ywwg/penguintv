@@ -382,7 +382,8 @@ class MainWindow(gobject.GObject):
 		self._notebook.set_current_page(page)
 		
 	def load_layout(self):
-		components = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', self.layout+'_layout_container','penguintv') #MAGIC
+		components = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 
+		                           self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
 		
@@ -391,47 +392,24 @@ class MainWindow(gobject.GObject):
 			fancy = False
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
-		renderer_str = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/renderrer', "MOZILLA") #stupid misspelling (renderrer != renderer)
-		
-		if renderer_str == "GTKHTML":
-			renderer = EntryView.GTKHTML
-		elif renderer_str == "MOZILLA":
+		if utils.HAS_MOZILLA:
 			renderer = EntryView.MOZILLA
 		else:
+			print "WARNING: gtkmozembed not found, falling back on gtkhtml. PlanetView disabled"
 			renderer = EntryView.GTKHTML
-		if utils.RUNNING_SUGAR:
-			renderer = EntryView.MOZILLA
-			
-		if not utils.HAS_MOZILLA:
-			renderer = EntryView.GTKHTML
-					
-		def load_renderer(x,recur=0):
-			"""little function I define so I can recur"""
-			if recur==2:
-				print "too many tries"
-				self._app.do_quit()
-				sys.exit(2)
-			try:
-				if self.layout != "planet":
-					self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
-										 				   self.entry_list_view, self._app, self, x)
-				else:
-					self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
-										                        self._app, self, self._db, x)
-			except Exception, e:
-				print e
-				print "Error loading renderer"
-				self._app.do_quit()
 		
 		if self.layout == "planet" and renderer != EntryView.MOZILLA:
 			self.layout = "standard"
-			return self.load_layout()
+			return self.load_layout()	
 		
 		if self.layout != "planet":
-			self.entry_list_view = EntryList.EntryList(components, self._app, self.feed_list_view, self, self._db)
-			load_renderer(renderer)
+			self.entry_list_view = EntryList.EntryList(components, self._app, 
+			                                           self.feed_list_view, self, self._db)
+			self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
+										          self.entry_list_view, self._app, self, renderer)
 		else:
-			load_renderer(renderer)
+			self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
+										            self._app, self, self._db, renderer)
 			self.entry_list_view = self.entry_view
 			
 		if renderer == EntryView.GTKHTML:

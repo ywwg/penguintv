@@ -247,18 +247,6 @@
      </locale>
    </schema>
    
-   <schema>
-     <key>/schemas/apps/penguintv/renderrer</key>
-     <applyto>/apps/penguintv/renderrer</applyto>
-     <owner>penguintv</owner>
-     <type>string</type>
-     <default>MOZILLA</default>
-     <locale name="C">
-	<short>HTML renderrer</short>
-	<long>This is the engine that will render html in penguintv.  Can be GTKHTML or MOZILLA</long>
-     </locale>
-   </schema>
-   
     <schema>
      <key>/schemas/apps/penguintv/sync_delete</key>
      <applyto>/apps/penguintv/sync_delete</applyto>

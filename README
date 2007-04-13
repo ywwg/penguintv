@@ -16,7 +16,6 @@ PenguinTV is a python program, and requires python version 2.3 or higher.  It al
 PenguinTV supports some other extra libraries but will run without them:
 
 * python-gstreamer for internal media playback
-* pylucene for search support
 
 == Installing ==
 

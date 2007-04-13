@@ -2,14 +2,7 @@
 
 #this file is a catastrophe. I'm sorry.
 
-#try:
-#	from Pyrex.Distutils import build_ext
-#	BUILD_MOZ=True
-#except:
-#	print "pyrex not found, mozilla building disabled"
-
 import sys,os
-
 from penguintv import subProcess as my_subProcess
 
 try:
@@ -120,12 +113,6 @@ print ""
 something_disabled = False	
 	
 try:
-	import PyLucene
-except:
-	print "WARNING: PyLucene not installed or not installed correctly: Search will be disabled"
-	something_disabled = True
-	
-try:
 	import gconf
 except:
 	print "WARNING: gconf not installed or not installed correctly: Gconf support will be disabled"
@@ -142,9 +129,3 @@ except:
 if something_disabled:
 	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
 	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
-
-print """
-WARNING: This is an unstable version of PenguinTV.  While it works fairly well, there may be bugs,
-and I may need to change the database schema in the future.  Furthermore, do not run old and new
-versions of PenguinTV together -- they will not be able to keep track of downloaded media correctly."""
-	
