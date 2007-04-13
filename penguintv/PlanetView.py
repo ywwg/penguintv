@@ -123,6 +123,7 @@ class PlanetView(gobject.GObject):
 				self._moz = gtkmozembed.MozEmbed()
 				
 			self._moz.connect("open-uri", self._moz_link_clicked)
+			self._moz.connect("new-window", self._moz_new_window)
 			self._moz.connect("link-message", self._moz_link_message)
 			self._moz.connect("realize", self._moz_realize, True)
 			self._moz.connect("unrealize", self._moz_realize, False)
@@ -614,6 +615,10 @@ class PlanetView(gobject.GObject):
 		else:
 			self.emit('link-activated', link)
 		return True #don't load url please
+		
+	def _moz_new_window(self, mozembed, retval, chromemask):
+		# hack to try to properly load links that want a new window
+		self.emit('link-activated', mozembed.get_link_message())
 		
 	def _moz_realize(self, widget, realized):
 		self._moz_realized = realized

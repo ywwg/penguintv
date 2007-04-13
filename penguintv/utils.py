@@ -82,10 +82,11 @@ else:
 	except:
 		HAS_GSTREAMER = False
 	
-VERSION="2.89"
+VERSION="2.90"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
-#HAS_LUCENE = False
+#Lucene sucks, forget it
+HAS_LUCENE = False
 #HAS_PYXML = False
 #HAS_STATUS_ICON = False
 #HAS_GNOMEVFS = False
@@ -484,43 +485,24 @@ def html_entity_unfixer(text):
 
 def get_disk_free(f="/"):
 	
-	"""returns free disk space in kilobytes for 
+	"""returns free disk space in bytes for 
 	   the disk that contains file f, defaulting to root.  
 	   Returns 0 on error"""
 	
-	os.stat(f) #if this fails it will raise exactly the right error
+	stats = os.statvfs(f) #if this fails it will raise exactly the right error
 	
-	cmd = "df -k " + f
+	return stats.f_bsize * stats.f_bavail
 	
-	p = Popen(cmd, shell=True, 
-		      stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-						 
-	lines = p.stdout.readlines()
-	
-	try:
-		return int(lines[1].split()[3]) * 1024
-	except:
-		return 0
 		
 def get_disk_total(f="/"):
 	
-	"""returns total disk space in kilobytes for 
+	"""returns total disk space in bytes for 
 	   the disk that contains file f, defaulting to root.
 	   Returns 0 on error"""
 	
-	os.stat(f) #if this fails it will raise exactly the right error
+	stats = os.statvfs(f) #if this fails it will raise exactly the right error
 	
-	cmd = "df -k " + f
-	
-	p = Popen(cmd, shell=True, 
-		      stdin=PIPE, stdout=PIPE, stderr=STDOUT, close_fds=True)
-						 
-	lines = p.stdout.readlines()
-	
-	try:
-		return int(lines[1].split()[1]) * 1024
-	except:
-		return 0
+	return stats.f_bsize * stats.f_blocks
 		
 def init_gtkmozembed():
 	"""We need to set up mozilla with set_comp_path in order for it not to 
