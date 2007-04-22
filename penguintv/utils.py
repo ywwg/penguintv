@@ -523,8 +523,8 @@ def init_gtkmozembed():
 	return True
 	
 def get_pynotify_ok():
-	return False
 	if not HAS_PYNOTIFY:
+		print "pynotify not found, using fallback notifications"
 		return False
 
 	# first get what package config reports
@@ -533,6 +533,7 @@ def get_pynotify_ok():
 	retval = p.wait()
 	stderr = p.stderr.read()
 	if len(stderr) > 1 or retval != 0:
+		print "trouble getting notify-python version from pkg-config, using fallback notifications"
 		return False
 	major,minor,rev = p.stdout.read().split('.')
 	
@@ -542,8 +543,10 @@ def get_pynotify_ok():
 
 	# if it's bad, return false
 	if minor < 1:
+		print "pynotify too old, using fallback notifications"
 		return False
 	if minor == 1 and rev == 0:
+		print "pynotify too old, using fallback notifications"
 		return False
 
 	# if it's good, check to see it's not lying about prefix
@@ -552,6 +555,7 @@ def get_pynotify_ok():
 	retval = p.wait()
 	stderr = p.stderr.read()
 	if len(stderr) > 1 or retval != 0:
+		print "trouble getting notify-python prefix from pkg-config, using fallback notifications"
 		return False
 	pkgconfig_prefix = p.stdout.read().strip()
 	
@@ -559,6 +563,7 @@ def get_pynotify_ok():
 		dirname = os.path.split(pynotify.__file__)[0]
 		f = open(os.path.join(dirname, "_pynotify.la"))
 	except:
+		print "trouble opening _pynotify.la, using fallback notifications"
 		return False
 	
 	libdir_line = ""
@@ -572,11 +577,14 @@ def get_pynotify_ok():
 	libdir_line = libdir_line.strip()
 	
 	if len(libdir_line) == 0:
+		print "trouble reading _pynotify.la, using fallback notifications"
 		return False
 	
 	if pkgconfig_prefix not in libdir_line:
+		print "pkgconfig does not agree with _pynotify.la, using fallback notifications"
 		return False
 
+	print "using pynotify notifications"
 	return True
 	
 if is_kde():
