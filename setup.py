@@ -16,7 +16,8 @@ try:
 
 	bundlebuilder.start('MANIFEST-OLPC')
 	BUILT_SUGAR = True
-except Exception,e:
+except Exception, e:
+	print "problem building for OLPC:", e
 	BUILT_SUGAR = False #not building for olpc
 	
 if BUILT_SUGAR:

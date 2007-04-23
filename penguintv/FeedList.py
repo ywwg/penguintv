@@ -149,6 +149,8 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('tags-changed', self.__tags_changed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 		#init style
 		if self._fancy:
@@ -172,6 +174,9 @@ class FeedList(gobject.GObject):
 		self.remove_feed(feed_id)
 		self.resize_columns()
 		
+	def __tags_changed_cb(self, app, a):
+		self.filter_all(False)
+	
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_feed_list(feed_id,['readinfo','icon'])	
 			
@@ -591,7 +596,7 @@ class FeedList(gobject.GObject):
 		self._unset_state(data)
 		self._state = newstate
 			
-	def filter_all(self,keep_misfiltered=True):
+	def filter_all(self, keep_misfiltered=True):
 		if utils.HAS_LUCENE and self.filter_setting == SEARCH:
 			print "not filtering, we have search results"
 			return #not my job

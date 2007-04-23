@@ -309,7 +309,7 @@ class GStreamerPlayer(gobject.GObject):
 			for row in model:
 				i+=1
 				if i == self._current_index:
-					row[2] = "&#8226;"
+					row[2] = "&#8226;" #bullet
 				else:
 					row[2] = ""
 			if not self._ready_new_uri(uri):
@@ -386,10 +386,10 @@ class GStreamerPlayer(gobject.GObject):
 	def prev(self):
 		selection = self._queue_listview.get_selection()
 		self._pipeline.set_state(gst.STATE_READY)
+		self._current_index -= 1
 		if self._current_index <= 0:
 			self._current_index = 0
 			self.seek(0)
-		self._current_index -= 1
 		selection.unselect_all()
 		selection.select_path((self._current_index,))
 		self._seek_scale.set_range(0,1)
@@ -444,7 +444,6 @@ class GStreamerPlayer(gobject.GObject):
 		iter_list = []
 		for path in paths:
 			if path[0] == self._current_index:
-				self.prev()
 				self.stop()
 			iter_list.append(model.get_iter(path))
 			
@@ -454,13 +453,20 @@ class GStreamerPlayer(gobject.GObject):
 		if len(model) == 0:
 			self._last_index = -1
 			self._current_index = 0
+			self._media_position = 0
+			self._media_duration = 0
+			self._update_time_label()
 		else:
 			try:
 				self._current_index = [r[0] for r in model].index(current_uri)
+				self._last_index = self._current_index
 			except ValueError:
 				# If the current_uri was removed, reset to top of list
 				self._current_index = 0
-			self._last_index = self._current_index	
+				self._last_index = -1
+				self._media_position = 0
+				self._media_duration = 0
+				self._update_time_label()
 		self.emit('items-removed')
 		
 	def _on_seek_value_changed(self, widget):

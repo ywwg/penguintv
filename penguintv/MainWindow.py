@@ -152,7 +152,7 @@ class MainWindow(gobject.GObject):
 			if show_notifs_item.get_active() != value:
 				show_notifs_item.set_active(value)
 				
-	def __tags_changed_cb(self, app):
+	def __tags_changed_cb(self, app, val):
 		self.update_filters()
 		
 	def update_downloads(self):

@@ -119,7 +119,7 @@ class ptvDB:
 			except:
 				raise DBError, "error creating directories: "+self.home
 		try:	
-			#also change db connection in pool poll
+			#also check db connection in _process_feed
 			if os.path.isfile(os.path.join(self.home,"penguintv3.db")) == False:
 				if os.path.isfile(os.path.join(self.home,"penguintv2.db")):
 					try: 
@@ -131,8 +131,7 @@ class ptvDB:
 						shutil.copyfile(os.path.join(self.home,"penguintv.db"), os.path.join(self.home,"penguintv3.db"))
 					except:
 						raise DBError,"couldn't create new database file"
-			self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10	)
-			self._db.isolation_level="DEFERRED"
+			self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=30.0, isolation_level="IMMEDIATE")
 		except:
 			raise DBError,"error connecting to database"
 		
@@ -789,7 +788,7 @@ class ptvDB:
 				time.sleep(5)
 				print "trying again..."
 				self._db.close()
-				self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10)
+				self._db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=30, isolation_level="IMMEDIATE")
 				self._c = self._db.cursor()
 				return self._process_feed(feed_id, args, total, data, recurse+1) #and reconnect
 			print "can't get lock, giving up"
