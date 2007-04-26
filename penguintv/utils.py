@@ -82,7 +82,7 @@ else:
 	except:
 		HAS_GSTREAMER = False
 	
-VERSION="2.90"
+VERSION="2.91"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 #Lucene sucks, forget it
