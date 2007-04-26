@@ -7,21 +7,24 @@ from penguintv import subProcess as my_subProcess
 
 try:
 	from sugar.activity import bundlebuilder
-	print "Building OLPC version"
-
-	sp = my_subProcess.subProcess("cp -f penguintv.glade.olpc share/penguintv.glade")
-	if sp.read() != 0:
-		print "There was an error symlinking the glade file"
-		sys.exit(1)
-
-	bundlebuilder.start('MANIFEST-OLPC')
-	BUILT_SUGAR = True
-except Exception, e:
-	print "problem building for OLPC:", e
-	BUILT_SUGAR = False #not building for olpc
+	HAS_SUGAR = True
+except:
+	HAS_SUGAR = False
 	
-if BUILT_SUGAR:
-	sys.exit(0)
+if HAS_SUGAR:
+	try:
+		print "Building OLPC version"
+
+		sp = my_subProcess.subProcess("cp -f penguintv.glade.olpc share/penguintv.glade")
+		if sp.read() != 0:
+			print "There was an error symlinking the glade file"
+			sys.exit(1)
+
+		bundlebuilder.start('MANIFEST-OLPC')
+		sys.exit(0)
+	except Exception, e:
+		print "problem building for OLPC:", e
+		sys.exit(1)
 	
 print "Building desktop version"
 
