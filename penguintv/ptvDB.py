@@ -1890,7 +1890,9 @@ class ptvDB:
 		   it up if I do my own sort.  profilers don't lie!"""
 		feed_info = {}
 		
-		is_filter = self.is_feed_filter(feed_id)
+		is_filter = False
+		if utils.HAS_LUCENE:
+			is_filter = self.is_feed_filter(feed_id)
 		
 		if is_filter or self.cache_dirty:
 			flaglist = self.get_entry_flags(feed_id)
@@ -1941,24 +1943,24 @@ class ptvDB:
 					status = D_DOWNLOADED
 					break
 		
-		if status==D_ERROR:
-			importance=importance+F_ERROR
-		if status==D_DOWNLOADING:
-			importance=importance+F_DOWNLOADING		
+		if status == D_ERROR:
+			importance = importance + F_ERROR
+		if status == D_DOWNLOADING:
+			importance = importance + F_DOWNLOADING		
 			
 		if medialist:	
-			importance=importance+F_MEDIA
-			if status==D_DOWNLOADED:
-				importance=importance+F_DOWNLOADED
-			elif status==D_RESUMABLE:
-				importance=importance+F_PAUSED
+			importance = importance + F_MEDIA
+			if status == D_DOWNLOADED:
+				importance = importance + F_DOWNLOADED
+			elif status == D_RESUMABLE:
+				importance = importance + F_PAUSED
 			for medium in medialist:
-				if medium['viewed']==0:
-					importance=importance+F_UNVIEWED
+				if medium['viewed'] == 0:
+					importance = importance + F_UNVIEWED
 					break
 		else:
-			if int(read)==0:
-				importance=importance+F_UNVIEWED
+			if int(read) == 0:
+				importance = importance + F_UNVIEWED
 		
 		if USING_FLAG_CACHE:
 			self.entry_flag_cache[entry_id] = importance
@@ -2015,7 +2017,7 @@ class ptvDB:
 			if self.get_feed_media_count(feed_id) == 0:
 				medialist = []
 			for entry,read in entrylist:
-				flaglist.append(self.get_entry_flag(entry,read=read, medialist=medialist))
+				flaglist.append(self.get_entry_flag(entry, read=read, medialist=medialist))
 		return flaglist
 	
 	def get_feed_flag(self, feed_id, flaglist = None):
