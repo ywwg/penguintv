@@ -21,10 +21,10 @@ if HAS_SUGAR:
 			sys.exit(1)
 
 		bundlebuilder.start('MANIFEST-OLPC')
-		sys.exit(0)
 	except Exception, e:
 		print "problem building for OLPC:", e
 		sys.exit(1)
+	sys.exit(0)
 	
 print "Building desktop version"
 
