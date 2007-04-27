@@ -195,15 +195,22 @@ class MainWindow(gobject.GObject):
 			self.app_window = None
 
 			vbox = gtk.VBox()
-			
-			vbox.pack_start(self._load_toolbar(), False, False)
+			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar_holder','penguintv')
+			toolbar = self._load_toolbar()
+			toolbar.unparent()
+			vbox.pack_start(toolbar, False, False)
 			self._layout_dock = self.load_notebook()
 			self._layout_dock.add(self.load_layout())
 			vbox.pack_start(self._notebook)
 			self._status_view = MainWindow._my_status_view()
 			vbox.pack_start(self._status_view, False, False)
-			dock_widget.add(vbox)
+			dock_widget.set_canvas(vbox)
 			dock_widget.show_all()
+			
+			for key in dir(self.__class__): #python insaneness
+				if key[:3] == 'on_':
+					self._widgetTree.signal_connect(key, getattr(self, key))
+			
 			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -222,61 +229,16 @@ class MainWindow(gobject.GObject):
 		return False
 			
 	def _load_toolbar(self):
-		if utils.RUNNING_SUGAR:
-			import hippo
-			from sugar.graphics.toolbar import Toolbar
-			try:
-				from sugar.graphics.iconbutton import IconButton
-			except:
-				print "temporary sugar api workaround"
-				from sugar.graphics.button import Button as IconButton
-			from sugar.graphics.label import Label
-			canvas = hippo.Canvas()
-			toolbar = Toolbar()
-			
-			theme = gtk.icon_theme_get_default()
-			theme.append_search_path(os.path.join(self._glade_prefix, "icons"))
-			
-			self._sugar_add_button = IconButton(icon_name='theme:stock-add')
-			self._sugar_add_button.connect("activated", self.on_feed_add_clicked)
-			toolbar.append(self._sugar_add_button)
-			
-			self._sugar_remove_button = IconButton(icon_name='theme:stock-remove')
-			self._sugar_remove_button.connect("activated", self.on_remove_feed_activate)
-			toolbar.append(self._sugar_remove_button)
-			
-			button = IconButton(icon_name='theme:stock-continue')
-			button.connect("activated", self.on_feeds_poll_clicked)
-			toolbar.append(button)
-			
-			button = IconButton(icon_name='theme:stock-go-down')
-			button.connect("activated", self.on_download_unviewed_clicked)
-			toolbar.append(button)
-			
-			#button = IconButton(icon_name='theme:stock-media-play')
-			#button.connect("activated", self.on_play_unviewed_clicked)
-			#toolbar.append(button)
-			
-			button = IconButton(icon_name='theme:stock-preferences')
-			button.connect("activated", self.on_preferences_activate)
-			toolbar.append(button)
-			
-			self._disk_usage_widget = Label(text=_("Using:"))
-			toolbar.append(self._disk_usage_widget)
-			
-			canvas.set_root(toolbar)
-			return canvas
-		else:
-			toolbar = self._widgetTree.get_widget('toolbar1')
-			
-			#set up separator (see below)
-			vseparator = self._widgetTree.get_widget('vseparator1')
-			vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
-			vseparator_toolitem.set_expand(True)
-			vseparator.set_draw(False)
-			
-			self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
-			self._disk_usage_widget.set_use_markup(True)
+		toolbar = self._widgetTree.get_widget('toolbar1')
+		
+		#set up separator (see below)
+		vseparator = self._widgetTree.get_widget('vseparator1')
+		vseparator_toolitem = self._widgetTree.get_widget('toolitem1')
+		vseparator_toolitem.set_expand(True)
+		vseparator.set_draw(False)
+		
+		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
+		self._disk_usage_widget.set_use_markup(True)
 	
 		return toolbar
 		
@@ -517,10 +479,6 @@ class MainWindow(gobject.GObject):
 		del self._disk_usage_widget
 		
 	def get_parent(self):
-		#if self.app_window is not None:
-		#	return self.app_window
-		#else:
-		#	return self._layout_dock.get_parent_window()
 		return self._window
 		
 	def toggle_fullscreen(self, fullscreen):
@@ -1087,8 +1045,8 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget("remove_feed").set_sensitive(True)
 				self._widgetTree.get_widget("properties").set_sensitive(True)
 			else:
-				self._sugar_add_button.set_property('active', True)
-				self._sugar_remove_button.set_property('active', True)
+				self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
+				self._widgetTree.get_widget("feed_remove").set_sensitive(True)
 			
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
@@ -1121,8 +1079,8 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget("remove_feed").set_sensitive(False)
 				self._widgetTree.get_widget("properties").set_sensitive(False)
 			else:
-				self._sugar_add_button.set_property('active', False)
-				self._sugar_remove_button.set_property('active', False)	
+				self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
+				self._widgetTree.get_widget("feed_remove").set_sensitive(False)
 			
 		self._state = new_state
 
@@ -1291,11 +1249,7 @@ class MainWindow(gobject.GObject):
 	def update_disk_usage(self, size):
 		if self._disk_usage_widget is None:
 			return
-		if utils.RUNNING_SUGAR:
-			d = {'size': utils.format_size(size) }
-			self._disk_usage_widget.set_property('text', _('Using: %(size)s') % d)
-		else:
-			self._disk_usage_widget.set_markup(utils.format_size(size))
+		self._disk_usage_widget.set_markup(utils.format_size(size))
 
 	def update_download_progress(self):
 		progresses = self._mm.get_download_list(Downloader.DOWNLOADING)

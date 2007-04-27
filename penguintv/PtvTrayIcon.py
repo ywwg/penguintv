@@ -158,10 +158,10 @@ class PtvTrayIcon:
 			entries = self._db.get_entrylist(feed_id)[0:new_entries]
 			entries = [(feed_id,e[0]) for e in entries]
 			entries.reverse()
-			self._updates += entries
-			
-			if len(self._updates) > 10: #too many
-				self._updates = self._updates[0:10]
+			if len(self._updates) >= 10 or len(self._updates) + len(entries) > 15:
+				self._updates += entries[0:2]
+			else:
+				self._updates += entries
 			
 			if self._updater_id == -1:
 				self._updater_id = gobject.idle_add(self._push_update_handler)

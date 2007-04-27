@@ -812,7 +812,7 @@ class ptvDB:
 		#assemble our handy dictionary while we're in a thread
 		update_data={}
 		
-		if result>0:
+		if result > 0:
 			update_data['new_entries'] = result
 			if self.is_feed_filter(feed_id):
 				entries = self.get_entrylist(feed_id) #reinitialize filtered_entries dict
@@ -832,8 +832,14 @@ class ptvDB:
 					
 				update_data['flag_list']=flag_list
 				update_data['pollfail']=False
+			update_data['no_changes'] = False
+		elif result == 0:
+			flag_list = self.get_entry_flags(feed_id)
+			update_data['flag_list']=flag_list
+			update_data['pollfail'] = False
+			update_data['no_changes'] = True
 				
-		return (feed_id,update_data, total)
+		return (feed_id, update_data, total)
 			
 	def poll_feed_trap_errors(self, feed_id, callback):
 		try:

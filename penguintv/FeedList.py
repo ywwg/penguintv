@@ -165,6 +165,10 @@ class FeedList(gobject.GObject):
 			disconnector(h_id)
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
+		if update_data.has_key('no_changes'):
+			if update_data['no_changes']:
+				self.update_feed_list(feed_id, ['icon'], update_data)
+				return
 		self.update_feed_list(feed_id, ['readinfo','icon','title','image'], update_data)
 		
 	def __feed_added_cb(self, app, feed_id, success):
@@ -365,11 +369,7 @@ class FeedList(gobject.GObject):
 		
 		if 'title' in update_what or 'icon' in update_what:
 			if not update_data.has_key('flag_list'):
-				entrylist = self._db.get_entrylist(feed_id)
-				if entrylist:
-					update_data['flag_list'] = self._db.get_entry_flags(feed_id)
-				else:
-					update_data['flag_list'] = []
+				update_data['flag_list'] = self._db.get_entry_flags(feed_id)
 						
 			updated=0
 			unviewed=0

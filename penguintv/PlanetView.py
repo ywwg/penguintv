@@ -20,7 +20,7 @@ if not utils.RUNNING_SUGAR:
 	except:
 		pass
 else:
-	import _sugar
+	import sugar.browser
 	
 ENTRIES_PER_PAGE = 10
 
@@ -109,8 +109,7 @@ class PlanetView(gobject.GObject):
 				for l in f.readlines(): self._css += l
 				f.close()
 				
-				_sugar.browser_startup(self._db.home, 'gecko')
-				self._moz = _sugar.Browser()
+				self._moz = sugar.browser.Browser()
 			else:
 				self._USING_AJAX = True
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
@@ -342,10 +341,7 @@ class PlanetView(gobject.GObject):
 			except:
 				print 'error closing planetview server'
 		self._render("<html><body></body></html")
-		if utils.RUNNING_SUGAR:
-		#if False:
-			_sugar.browser_shutdown()
-		else:
+		if not utils.RUNNING_SUGAR:
 			gtkmozembed.pop_startup()
 		
 	#protected functions

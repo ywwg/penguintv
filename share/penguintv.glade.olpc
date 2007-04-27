@@ -2713,4 +2713,200 @@
   </child>
 </widget>
 
+<widget class="GtkWindow" id="toolbar_holder">
+  <property name="title" translatable="yes">window1</property>
+  <property name="type">GTK_WINDOW_TOPLEVEL</property>
+  <property name="window_position">GTK_WIN_POS_NONE</property>
+  <property name="modal">False</property>
+  <property name="resizable">True</property>
+  <property name="destroy_with_parent">False</property>
+  <property name="decorated">True</property>
+  <property name="skip_taskbar_hint">False</property>
+  <property name="skip_pager_hint">False</property>
+  <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
+  <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
+  <property name="focus_on_map">True</property>
+  <property name="urgency_hint">False</property>
+
+  <child>
+    <widget class="GtkToolbar" id="toolbar1">
+      <property name="visible">True</property>
+      <property name="orientation">GTK_ORIENTATION_HORIZONTAL</property>
+      <property name="toolbar_style">GTK_TOOLBAR_BOTH_HORIZ</property>
+      <property name="tooltips">True</property>
+      <property name="show_arrow">True</property>
+
+      <child>
+	<widget class="GtkToolButton" id="feed_add_button">
+	  <property name="visible">True</property>
+	  <property name="tooltip" translatable="yes">Add Feed</property>
+	  <property name="stock_id">gtk-add</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+	  <signal name="clicked" handler="on_feed_add_clicked" last_modification_time="Fri, 22 Jul 2005 23:34:35 GMT"/>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">True</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkToolButton" id="feed_remove">
+	  <property name="visible">True</property>
+	  <property name="tooltip" translatable="yes">Remove Feed</property>
+	  <property name="stock_id">gtk-remove</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+	  <signal name="clicked" handler="on_remove_feed_activate" last_modification_time="Fri, 22 Jul 2005 23:35:06 GMT"/>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">True</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkToolButton" id="feeds_poll">
+	  <property name="visible">True</property>
+	  <property name="tooltip" translatable="yes">Refresh Feeds</property>
+	  <property name="stock_id">gtk-refresh</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+	  <signal name="clicked" handler="on_feeds_poll_clicked" last_modification_time="Sun, 24 Jul 2005 02:15:11 GMT"/>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">True</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkToolButton" id="download_unviewed">
+	  <property name="visible">True</property>
+	  <property name="tooltip" translatable="yes">Download Unviewed Media</property>
+	  <property name="stock_id">gtk-go-down</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+	  <signal name="clicked" handler="on_download_unviewed_clicked" last_modification_time="Thu, 11 Aug 2005 14:20:34 GMT"/>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">True</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkSeparatorToolItem" id="vseparator2">
+	  <property name="sensitive">False</property>
+	  <property name="draw">True</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">False</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkToolButton" id="preferences_toolbutton">
+	  <property name="tooltip" translatable="yes">Preferences</property>
+	  <property name="stock_id">gtk-preferences</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+	  <signal name="clicked" handler="on_preferences_activate" last_modification_time="Tue, 26 Sep 2006 23:03:04 GMT"/>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">True</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkSeparatorToolItem" id="vseparator1">
+	  <property name="draw">True</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	</widget>
+	<packing>
+	  <property name="expand">True</property>
+	  <property name="homogeneous">False</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkToolItem" id="toolitem1">
+	  <property name="visible">True</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+
+	  <child>
+	    <widget class="GtkLabel" id="using_label">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">Using: </property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_RIGHT</property>
+	      <property name="wrap">False</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">1</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+	      <property name="width_chars">-1</property>
+	      <property name="single_line_mode">False</property>
+	      <property name="angle">0</property>
+	    </widget>
+	  </child>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">False</property>
+	</packing>
+      </child>
+
+      <child>
+	<widget class="GtkToolItem" id="toolitem4">
+	  <property name="visible">True</property>
+	  <property name="visible_horizontal">True</property>
+	  <property name="visible_vertical">True</property>
+	  <property name="is_important">False</property>
+
+	  <child>
+	    <widget class="GtkLabel" id="disk_usage">
+	      <property name="visible">True</property>
+	      <property name="label" translatable="yes">0 bytes</property>
+	      <property name="use_underline">False</property>
+	      <property name="use_markup">False</property>
+	      <property name="justify">GTK_JUSTIFY_RIGHT</property>
+	      <property name="wrap">False</property>
+	      <property name="selectable">False</property>
+	      <property name="xalign">0.5</property>
+	      <property name="yalign">0.5</property>
+	      <property name="xpad">0</property>
+	      <property name="ypad">0</property>
+	      <property name="ellipsize">PANGO_ELLIPSIZE_NONE</property>
+	      <property name="width_chars">-1</property>
+	      <property name="single_line_mode">False</property>
+	      <property name="angle">0</property>
+	    </widget>
+	  </child>
+	</widget>
+	<packing>
+	  <property name="expand">False</property>
+	  <property name="homogeneous">False</property>
+	</packing>
+      </child>
+    </widget>
+  </child>
+</widget>
+
 </glade-interface>

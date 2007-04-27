@@ -15,7 +15,7 @@ if HAS_SUGAR:
 	try:
 		print "Building OLPC version"
 
-		sp = my_subProcess.subProcess("cp -f penguintv.glade.olpc share/penguintv.glade")
+		sp = my_subProcess.subProcess("cp -f share/penguintv.glade.olpc share/penguintv.glade")
 		if sp.read() != 0:
 			print "There was an error symlinking the glade file"
 			sys.exit(1)
@@ -28,7 +28,7 @@ if HAS_SUGAR:
 	
 print "Building desktop version"
 
-sp = my_subProcess.subProcess("cp -f penguintv.glade.desktop share/penguintv.glade")
+sp = my_subProcess.subProcess("cp -f share/penguintv.glade.desktop share/penguintv.glade")
 if sp.read() != 0:
 	print "There was an error symlinking the glade file"
 	sys.exit(1)

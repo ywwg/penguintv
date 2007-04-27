@@ -31,7 +31,15 @@ if RUNNING_SUGAR:
 	HAS_PYXML = False
 	HAS_STATUS_ICON = False
 	HAS_MOZILLA = True
-	HAS_GSTREAMER = True
+	#HAS_GSTREAMER = True
+	#I'm having trouble building gst for jhbuild, so detect this
+	try:
+		import pygst
+		pygst.require("0.10")
+		import gst
+		HAS_GSTREAMER = True
+	except:
+		HAS_GSTREAMER = False
 else:
 	try:
 		import gtkmozembed
