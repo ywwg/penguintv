@@ -153,7 +153,7 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
 		self._updater_db = None
 		self._polled=0      #Used for updating the polling progress bar
-		self._polling_taskid=0 #the taskid we can use to waitfor a polling operation
+		self._polling_taskid = -1 #the taskid we can use to waitfor a polling operation
 		self.polling_frequency=12*60*60*1000
 		self._bt_settings = {}
 		self._exiting=0
@@ -467,6 +467,9 @@ class PenguinTVApp(gobject.GObject):
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
 
+		if self._polling_taskid != -1:
+			print "already polling all, skipping"
+			return True
 		#gtk.gdk.threads_enter()
 
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
@@ -1634,7 +1637,7 @@ class PenguinTVApp(gobject.GObject):
 				if update_data.has_key('ioerror'):
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._gui_updater.queue(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
-				elif update_data['pollfail']==False:
+				else:
 					update_data['polling_multiple'] = True
 					self._threaded_emit('feed-polled', feed_id, update_data)
 			else:
@@ -1651,7 +1654,8 @@ class PenguinTVApp(gobject.GObject):
 			return
 		self._polled += 1
 		if self._polled == total:
-			self._polled=0
+			self._polled = 0
+			self._polling_taskid = -1
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
 			gobject.timeout_add(2000, self.main_window.display_status_message,"")

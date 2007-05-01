@@ -51,12 +51,15 @@ class GStreamerPlayer(gobject.GObject):
 		self.__no_seek = False
 		self.__is_exposed = False
 		self._x_overlay = None
+		self._prepare_save = False
 		
 		self._error_dialog = GStreamerErrorDialog()
 		
 		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str, str, gobject.TYPE_PYOBJECT])
 		gobject.signal_new('item-not-supported', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str, str, gobject.TYPE_PYOBJECT])
 		gobject.signal_new('items-removed', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
+		
+		gobject.timeout_add(300000, self._periodic_save_cb)
 		
 	###public functions###
 		
@@ -315,6 +318,7 @@ class GStreamerPlayer(gobject.GObject):
 			if not self._ready_new_uri(uri):
 				return
 			self._prepare_display()
+			self._prepare_save = True
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
@@ -638,8 +642,15 @@ class GStreamerPlayer(gobject.GObject):
 		self.__no_seek = True
 		self._update_seek_bar()
 		self._update_time_label()
+		if self._prepare_save:
+			self._prepare_save = False
+			self.save()
 		self.__no_seek = False
 		return self._pipeline.get_state()[1] == gst.STATE_PLAYING
+		
+	def _periodic_save_cb(self):
+		self._prepare_save = True
+		return True
 
 	def _update_seek_bar(self):
 		try:

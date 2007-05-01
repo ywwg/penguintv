@@ -794,9 +794,11 @@ class ptvDB:
 			print "can't get lock, giving up"
 			return (feed_id,{'pollfail':True}, total)
 		except FeedPollError,e:
+			#print "feed poll error",
 			print e
 			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
+			#print "io error",
 			print e
 			#we got an ioerror, but we won't take it out on the feed
 			return (feed_id,{'ioerror':e, 'pollfail':False}, total)
