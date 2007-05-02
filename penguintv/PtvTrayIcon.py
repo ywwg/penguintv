@@ -96,6 +96,7 @@ class PtvTrayIcon:
 			self._tray_icon.set_tooltip(m)
 			
 	def clear_notifications(self):
+		print "clearing notifications"
 		self._updates = []
 		self._tray_icon.clear_notifications()
 			
@@ -172,6 +173,7 @@ class PtvTrayIcon:
 		if len(self._updates) == 0 or not self._show_notifications:
 			self._updater_id = -1
 			return False
+		print "pop update"
 		feed_id, entry_id = self._updates.pop(0)
 		feed_title = self._db.get_feed_title(feed_id)
 		entry = self._db.get_entry(entry_id)

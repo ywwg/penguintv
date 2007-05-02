@@ -21,13 +21,17 @@ from xml.sax.handler import feature_namespaces
 
 def is_itunes_url(url):
 	""" Two simple checks to see if this is a valid itunes url:
+		(ie, http://phobos.apple.com/WebObjects/MZStore.woa/wa/viewPodcast?id=207870198)
 	    * does it contain "phobos.apple.com", and
-	    * does it contain "viewPodcast" """
-	if not "phobos.apple.com/" in url.lower():
-		return False
-	if not "viewPodcast" in url:
-		return False
-	return True
+	    * does it contain "viewPodcast" 
+	    
+	    There's also another form, as in http://www.itunes.com/podcast?id=207870198"""
+	    
+	if "phobos.apple.com/" in url.lower() and "viewPodcast" in url:
+		return True
+	if "itunes.com/podcast" in url.lower():
+		return True
+	return False
 
 def get_rss_from_itunes(url):
 	if not is_itunes_url(url):

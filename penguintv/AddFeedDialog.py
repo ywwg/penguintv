@@ -168,7 +168,10 @@ class AddFeedDialog:
 				
 		if utils.HAS_PYXML:
 			if itunes.is_itunes_url(url):
-				url = itunes.get_rss_from_itunes(url)
+				try:
+					url = itunes.get_rss_from_itunes(url)
+				except:
+					raise BadFeedURL,"Error trying to get itunes podcast"
 				
 		urllib._urlopener = my_url_opener(gtk.glade.XML(self._app.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
 		url_stream = None
