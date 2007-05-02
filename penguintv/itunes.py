@@ -35,7 +35,7 @@ def get_rss_from_itunes(url):
 
 	# Part 1, get the itunes "webpage" for this feed
 	# we have to save the file because urlopen doesn't support seeking		
-	filename, message = urllib.urlretrieve(itunes_url)
+	filename, message = urllib.urlretrieve(url)
 	uncompressed = gzip.GzipFile(filename=filename, mode='r')
 
 	parser = viewPodcastParser()
