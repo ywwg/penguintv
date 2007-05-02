@@ -196,7 +196,7 @@ class PlanetView(gobject.GObject):
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
 		if feed_id == self._current_feed_id:
-			self.populate_entries(feed_id)
+			self._render_entries()
 			
 	def __size_changed_cb(self, screen):
 		"""Redraw after xrandr calls"""
@@ -312,14 +312,14 @@ class PlanetView(gobject.GObject):
 		if self._custom_message == message:
 			return
 		self._custom_message = message
-		self.populate_entries()
+		self._render_entries()
 		
 	def undisplay_custom_entry(self):
 		if self._custom_message == "":
 			return
 		self._custom_message = ""
 		#print "custom: blank (undisplay)"
-		self.populate_entries()
+		self._render_entries()
 		
 	def display_item(self, item=None, highlight=""):
 		if item is None:
@@ -420,7 +420,6 @@ class PlanetView(gobject.GObject):
 		html.append("</td></tr></tbody></table></div>")
 		
 		if self._state != S_SEARCH:
-		#if not self._showing_search: 
 			html.append('<div class="feed_title">'+self._feed_title+"</div>")
 		html += entries
 			
@@ -568,7 +567,6 @@ class PlanetView(gobject.GObject):
 		if media:
 			item['media']=media
 		if self._state == S_SEARCH:
-		#if self._showing_search:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
 			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX),item)
 		else:
@@ -592,7 +590,6 @@ class PlanetView(gobject.GObject):
 	def _render(self, html):
 		if self._moz_realized:
 			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
-			#self._moz.open_stream("file:///","text/html")
 			while len(html)>60000:
 					part = html[0:60000]
 					html = html[60000:]

@@ -1360,6 +1360,7 @@ class PenguinTVApp(gobject.GObject):
 		this_feed_list = [item for item in all_feeds_list if item[3] == feed_id]
 		for item in this_feed_list[1:]:
 			self.db.set_entry_read(item[2],1)
+			self.emit('entry-updated', item[2], feed_id)
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
 		try:
