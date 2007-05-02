@@ -72,6 +72,16 @@ class HTTPDownloader(Downloader):
 					return
 			elif self.media['url'][:5] == "file:":
 				pass #it's ok, curl would throw an exception on error
+			elif self.media['url'][:4] == "ftp:":
+				major_code = response / 100
+				if major_code == 2: #positive reply
+					pass
+				elif major_code == 4 or major_code == 5:
+					d = {"response":response}
+					self.media['errormsg']=_("FTP error: %(response)s") % d
+				else:
+					d = {"response":response}
+					self.media['errormsg']=_("Unexpected FTP response: %(response)s") % d
 			else: 
 				self.media['errormsg']=_("Unknown protocol")
 				self.status = FAILURE
