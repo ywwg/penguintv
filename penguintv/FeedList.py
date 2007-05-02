@@ -87,6 +87,7 @@ class FeedList(gobject.GObject):
 		self.filter_setting=ALL
 		self.filter_name = _("All Feeds")
 		self._selecting_misfiltered=False
+		self._filter_unread = False
 		self._cancel_load = [False,False] #loading feeds, loading details
 		self._loading_details = False
 		self._state = S_DEFAULT
@@ -402,6 +403,10 @@ class FeedList(gobject.GObject):
 			if self._fancy:
 				readinfo_string += "\n"
 			feed[READINFO] = self._get_markedup_title(readinfo_string,flag)
+			
+			if self._filter_unread: 	 
+				if unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it 	 
+					need_filter = True
 				
 		if 'title' in update_what:
 			selected = self.get_selected()
@@ -498,6 +503,9 @@ class FeedList(gobject.GObject):
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE], feed[FLAG])
 			
 		feed[READINFO] = self._get_markedup_title(readinfo_string,feed[FLAG])
+		
+		if self._filter_unread: 	 
+			self._filter_one(feed)
 				
 	def show_search_results(self, results=[]):
 		
@@ -627,7 +635,10 @@ class FeedList(gobject.GObject):
 			if i == index and selected is not None:  #if it's the selected feed, we have to be careful
 				if keep_misfiltered: 
 					#some cases when we want to keep the current feed visible
-					if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
+					if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
+						passed_filter = True  #keep it
+						self._selecting_misfiltered=True
+					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
 						passed_filter = True
 						self._selecting_misfiltered=True
 					elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
@@ -637,6 +648,9 @@ class FeedList(gobject.GObject):
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 					#self._app.display_feed(-1)
 					self.emit('no-feed-selected')
+			else: #if it's not the selected feed
+				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
+					passed_filter = False #see ya
 			if feed[VISIBLE] != passed_filter:
 				feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
@@ -670,7 +684,10 @@ class FeedList(gobject.GObject):
 		if feed_index == s_index and selected is not None:  #if it's the selected feed, we have to be careful
 			if keep_misfiltered: 
 				#some cases when we want to keep the current feed visible
-				if self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
+				if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #if it still fails the unviewed test
+					passed_filter = True  #keep it
+					self._selecting_misfiltered=True
+				elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADED == 0 and flag & ptvDB.F_PAUSED == 0:
 					passed_filter = True
 					self._selecting_misfiltered=True
 				elif self.filter_setting == DOWNLOADED and flag & ptvDB.F_DOWNLOADING:
@@ -680,6 +697,9 @@ class FeedList(gobject.GObject):
 				self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 				#self._app.display_feed(-1)
 				self.emit('no-feed-selected')
+		else: #if it's not the selected feed
+			if self._filter_unread == True and flag & ptvDB.F_UNVIEWED==0: #and it fails unviewed
+				passed_filter = False #see ya
 		if feed[VISIBLE] != passed_filter:
 			feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
@@ -759,8 +779,7 @@ class FeedList(gobject.GObject):
 			
 		self.filter_all(False)
 		if self._fancy:
-			if not self._loading_details:
-				gobject.idle_add(self._load_visible_details().next)
+			gobject.idle_add(self._load_visible_details().next)
 		self._va.set_value(0)
 		self.resize_columns()
 		
@@ -787,6 +806,15 @@ class FeedList(gobject.GObject):
 		self.clear_list()
 		self.populate_feeds(self._app._done_populating)
 		self._widget.columns_autosize()
+		
+	def set_unread_toggle(self, active):
+		if self._state == S_SEARCH:
+			return 
+		self._filter_unread = active
+		self.filter_all(False)
+		if self._fancy:
+			gobject.idle_add(self._load_visible_details().next)
+		self._va.set_value(0)	
 		
 	def clear_list(self):
 		self._feedlist.clear()

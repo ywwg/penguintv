@@ -400,6 +400,7 @@ class MainWindow(gobject.GObject):
 			self.entry_pane = self.feed_pane #cheat
 		
 		self._filter_container = components.get_widget('filter_container')
+		self._filter_unread_checkbox = components.get_widget('unread_filter')
 		self._filter_selector_button = components.get_widget('filter_selector_button')
 		#self._filter_menubar = components.get_widget('filter_menubar')
 		#self._filter_menuitem = gtk.MenuItem()#components.get_widget('filter_menu_root')
@@ -983,6 +984,9 @@ class MainWindow(gobject.GObject):
 		
 	def is_changing_layout(self):
 		return self.changing_layout
+		
+	def on_unread_filter_toggled(self, event): 	 
+		self.feed_list_view.set_unread_toggle(self._filter_unread_checkbox.get_active()) 	 
 		
 	def display_status_message(self, m, update_category=U_STANDARD):
 		"""displays a status message on the main status bar.  If this is a polling update or download

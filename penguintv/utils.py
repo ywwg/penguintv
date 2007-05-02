@@ -93,8 +93,10 @@ else:
 VERSION="2.91"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
-#Lucene sucks, forget it
+# Lucene sucks, forget it
 HAS_LUCENE = False
+# Pynotify is still broken, forget it
+HAS_PYNOTIFY = False
 #HAS_PYXML = False
 #HAS_STATUS_ICON = False
 #HAS_GNOMEVFS = False
