@@ -40,8 +40,6 @@ import gobject
 import locale
 import gettext
 
-import code
-
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
@@ -344,7 +342,8 @@ class PenguinTVApp(gobject.GObject):
 		self.window_preferences.set_auto_download(val)
 		
 		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always', True)
-		self._auto_download = val
+		if utils.HAS_STATUS_ICON:
+			self._status_icon.set_show_always(val)
 		self.window_preferences.set_show_notification_always(val)
 		
 		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_download_limiter', False)
@@ -468,7 +467,6 @@ class PenguinTVApp(gobject.GObject):
 					return False
 
 		if self._polling_taskid != -1:
-			print "already polling all, skipping"
 			return True
 		#gtk.gdk.threads_enter()
 
