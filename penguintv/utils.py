@@ -545,22 +545,25 @@ def _init_mozilla_proxy():
 	home = os.path.join(os.getenv('HOME'), ".penguintv")
 	_mkdir(os.path.join(home, "gecko"))
 	
-	sys_proxy_host = ""
-	sys_proxy_port = 0
-	sys_proxy_type = 0
+	sys_proxy = {}
+	sys_proxy['host'] = ""
+	sys_proxy['port'] = 0
+	sys_proxy['type'] = 0
+	sys_proxy['autoconfig_url'] = ""
 	# get system proxy prefs if any
 	#if True:
-	#	sys_proxy_host = "6.2.7.2"
-	#	sys_proxy_port = 8080
-	#	sys_proxy_type = 1
+	#	sys_proxy['host'] = "6.2.7.2"
+	#	sys_proxy['port'] = 8080
+	#	sys_proxy['type'] = 1
+	#	sys_proxy['autoconfig_url'] = "testing"
 	if HAS_GCONF:
 		# get gnome http proxy preferences
 		conf = gconf.client_get_default()
-		use_proxy = conf.get_bool("/system/http_proxt/use_http_proxy")
+		use_proxy = conf.get_bool("/system/http_proxy/use_http_proxy")
 		if use_proxy:
-			sys_proxy_host = conf.get_string("/system/http_proxy/host")
-			sys_proxy_port = conf.get_int("/system/http_proxy/port")
-			sys_proxy_type = 1
+			sys_proxy['host'] = conf.get_string("/system/http_proxy/host")
+			sys_proxy['port'] = conf.get_int("/system/http_proxy/port")
+			sys_proxy['type'] = 1
 	else:
 		# get most-recently modified moz prefs. 
 		prefs_files = []
@@ -570,13 +573,11 @@ def _init_mozilla_proxy():
 			prefs_files.sort()
 			prefs_files.reverse()
 			source_prefs = prefs_files[0][1]
-			sys_proxy_host, sys_proxy_port, sys_proxy_type = _get_proxy_prefs(source_prefs)
+			sys_proxy = _get_proxy_prefs(source_prefs)
 		
 	# check against current settings
-	cur_proxy_host, cur_proxy_port, cur_proxy_type = _get_proxy_prefs(os.path.join(home, "gecko", "prefs.js"))
-	if sys_proxy_host == cur_proxy_host and \
-	   sys_proxy_port == cur_proxy_port and \
-	   sys_proxy_type == cur_proxy_type:
+	cur_proxy = _get_proxy_prefs(os.path.join(home, "gecko", "prefs.js"))
+	if sys_proxy == cur_proxy:
 		print "gecko proxy settings up to date"
 		return
 
@@ -597,7 +598,8 @@ def _init_mozilla_proxy():
 	user_pref("network.proxy.type", %d);
 	user_pref("network.proxy.http", "%s");
 	user_pref("network.proxy.http_port", %d);
-	""" % (sys_proxy_type, sys_proxy_host, sys_proxy_port))
+	user_pref("network.proxy.autoconfig_url", "%s");
+	""" % (sys_proxy['type'], sys_proxy['host'], sys_proxy['port'], sys_proxy['autoconfig_url']))
 		f.close()
 	except:
 		print "WARNING: couldn't create prefs.js, proxy server connections may not work"		
@@ -612,20 +614,25 @@ def _get_proxy_prefs(filename):
 		except:
 			return False
 	
-	proxy_host = ""
-	proxy_port = 0
-	proxy_type = 0
+	proxy = {}
+	proxy['host'] = ""
+	proxy['port'] = 0
+	proxy['type'] = 0
+	proxy['autoconfig_url'] = ""
 	
 	for line in f.readlines():
-		if '"network.proxy.http"' in line:
-			proxy_host = line.split('"')[3]
-		elif '"network.proxy.http_port"' in line:
-			proxy_port = int("".join([c for c in line.split('"')[2] if isNumber(c)]))
-		elif '"network.proxy.type"' in line:
-			proxy_type = int("".join([c for c in line.split('"')[2] if isNumber(c)]))
+		if 'network' in line:
+			if '"network.proxy.http"' in line:
+				proxy['host'] = line.split('"')[3]
+			elif '"network.proxy.autoconfig_url"' in line:
+				proxy['autoconfig_url'] = line.split('"')[3]
+			elif '"network.proxy.http_port"' in line:
+				proxy['port'] = int("".join([c for c in line.split('"')[2] if isNumber(c)]))
+			elif '"network.proxy.type"' in line:
+				proxy['type'] = int("".join([c for c in line.split('"')[2] if isNumber(c)]))
 				
 	f.close()
-	return (proxy_host, proxy_port, proxy_type)
+	return proxy
 	
 def get_pynotify_ok():
 	if not HAS_PYNOTIFY:
