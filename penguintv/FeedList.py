@@ -414,25 +414,29 @@ class FeedList(gobject.GObject):
 				update_data['title'] = self._db.get_feed_title(feed_id)
 			old_title_len = len(feed[TITLE])
 			new_title_len = len(update_data['title'])
-			feed[TITLE] = update_data['title']
+			
+			# don't update feed[TITLE] yet, we need these data first
 			if self._fancy:
 				try: feed[FIRSTENTRYTITLE] = self._db.get_entrylist(feed_id)[0][1]
 				except: feed[FIRSTENTRYTITLE] = ""
-				feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], flag, feed_id == selected)
+				feed[MARKUPTITLE] = self._get_fancy_markedup_title(update_data['title'],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], flag, feed_id == selected)
 			else:
-				feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE], flag)
-			try:
-				old_iter = self._feedlist.get_iter((self.find_index_of_item(feed_id),))
-				new_iter = self._feedlist.get_iter(([f[0] for f in self._db.get_feedlist()].index(feed_id),))
-				self._feedlist.move_after(old_iter,new_iter)
-				if selected == feed_id:
-					self._widget.scroll_to_cell((self.find_index_of_item(feed_id),))
-			except:
-				print "Error finding feed for update"
-			need_filter = True
-			#columns_autosize produces a flicker, so only do it if we need to
-			if abs(new_title_len - old_title_len) > 5:
-				self._widget.columns_autosize()
+				feed[MARKUPTITLE] = self._get_markedup_title(update_data['title'], flag)
+				
+			if feed[TITLE] != update_data['title']:
+				feed[TITLE] = update_data['title']
+				try:
+					old_iter = self._feedlist.get_iter((self.find_index_of_item(feed_id),))
+					new_iter = self._feedlist.get_iter(([f[0] for f in self._db.get_feedlist()].index(feed_id),))
+					self._feedlist.move_after(old_iter,new_iter)
+					if selected == feed_id:
+						self._widget.scroll_to_cell((self.find_index_of_item(feed_id),))
+				except:
+					print "Error finding feed for update"
+				need_filter = True
+				#columns_autosize produces a flicker, so only do it if we need to
+				if abs(new_title_len - old_title_len) > 5:
+					self._widget.columns_autosize()
 			
 		if 'icon' in update_what:
 			if not update_data.has_key('pollfail'):

@@ -121,6 +121,7 @@ class ptvDB:
 		try:	
 			#also check db connection in _process_feed
 			if os.path.isfile(os.path.join(self.home,"penguintv3.db")) == False:
+				new_db = True
 				if os.path.isfile(os.path.join(self.home,"penguintv2.db")):
 					try: 
 						shutil.copyfile(os.path.join(self.home,"penguintv2.db"), os.path.join(self.home,"penguintv3.db"))
@@ -139,10 +140,8 @@ class ptvDB:
 		self._c.execute('PRAGMA synchronous="NORMAL"')
 		self.cache_dirty = True
 		try:
-			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="feed_cache_dirty"')
-			#if self._c.fetchone()[0] == 0:
-			#	self.cache_dirty = False
-			self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty", True)
+			if not new_db:
+				self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty", True)
 		except:
 			pass
 			
@@ -164,10 +163,12 @@ class ptvDB:
 			
 		self._icon_manager = IconManager.IconManager(self.home)
 			
+		self._blacklist = []
 		try:
-			self._blacklist = self.get_feeds_for_tag(NOSEARCH)
+			if not new_db:
+				self._blacklist = self.get_feeds_for_tag(NOSEARCH)
 		except:
-			self._blacklist = []
+			pass
 		self._reindex_entry_list = []
 		self._reindex_feed_list = []
 		self._filtered_entries = {}
@@ -196,6 +197,9 @@ class ptvDB:
 				self.reindex(threaded=False) #it's usually not much...
 			self.searcher.finish(False)
 		#FIXME: lame, but I'm being lazy
+		#if randint(1,100) == 1:
+		#	print "cleaning up unreferenced media"
+		#	self.clean_file_media()
 		if randint(1,10) == 1:
 			print "compacting database"
 			self._c.execute('VACUUM')
@@ -206,7 +210,7 @@ class ptvDB:
 		try:
 			self._db_execute(self._c, u'SELECT * FROM feeds')
 		except:
-			print "create a database"
+			print "initializing database"
 			self._init_database()
 			return True	
 			
@@ -344,31 +348,6 @@ class ptvDB:
 		print "done"
 		
 	def _init_database(self):
-		try:
-			self._db_execute(self._c, u'DROP TABLE settings')
-		except:
-			pass	
-			
-		try:
-			self._db_execute(self._c, u'DROP TABLE feeds')
-		except:
-			pass
-			
-		try:
-			self._db_execute(self._c, u'DROP TABLE entries')
-		except:
-			pass
-			
-		try:
-			self._db_execute(self._c, u'DROP TABLE media')
-		except:
-			pass
-			
-		try:
-			self._db_execute(self._c, u'DROP TABLE fulltext')
-		except:
-			pass
-			
 		self._db_execute(self._c, u"""CREATE TABLE settings
 							(
 								id INTEGER PRIMARY KEY,
