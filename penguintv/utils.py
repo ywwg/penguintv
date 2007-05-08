@@ -91,7 +91,7 @@ else:
 	except:
 		HAS_GSTREAMER = False
 	
-VERSION="2.91"
+VERSION="2.95"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
@@ -576,10 +576,14 @@ def _init_mozilla_proxy():
 			sys_proxy = _get_proxy_prefs(source_prefs)
 		
 	# check against current settings
-	cur_proxy = _get_proxy_prefs(os.path.join(home, "gecko", "prefs.js"))
-	if sys_proxy == cur_proxy:
-		print "gecko proxy settings up to date"
-		return
+	try:
+		os.stat(os.path.join(home, "gecko", "prefs.js"))
+		cur_proxy = _get_proxy_prefs(os.path.join(home, "gecko", "prefs.js"))
+		if sys_proxy == cur_proxy:
+			print "gecko proxy settings up to date"
+			return
+	except:
+		pass
 
 	try:
 		print "updating gecko proxy settings"
@@ -605,8 +609,6 @@ def _init_mozilla_proxy():
 		print "WARNING: couldn't create prefs.js, proxy server connections may not work"		
 		
 def _get_proxy_prefs(filename):
-	f = open(filename, "r")
-	
 	def isNumber(x):
 		try:
 			float(x)
@@ -619,6 +621,12 @@ def _get_proxy_prefs(filename):
 	proxy['port'] = 0
 	proxy['type'] = 0
 	proxy['autoconfig_url'] = ""
+	
+	try:
+		f = open(filename, "r")
+	except:
+		print "WARNING: couldn't open gecko preferences file ", filename
+		return proxy
 	
 	for line in f.readlines():
 		if 'network' in line:

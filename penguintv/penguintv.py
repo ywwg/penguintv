@@ -529,9 +529,9 @@ class PenguinTVApp(gobject.GObject):
 		
 		#adjust actual free space so we never fill up the drive
 		if utils.RUNNING_SUGAR:
-			free_buffer = disk_total * .3
+			free_buffer = 300000000 # 300 meg
 		else:
-			free_buffer = disk_total * .05
+			free_buffer = 1000000000 # one gig
 			
 		size_to_free = 0
 		if self._auto_download_limiter:
