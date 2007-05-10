@@ -149,7 +149,6 @@ class PenguinTVApp(gobject.GObject):
 
 		self.db.clean_media_status()
 		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
-		self._updater_db = None
 		self._polled=0      #Used for updating the polling progress bar
 		self._polling_taskid = -1 #the taskid we can use to waitfor a polling operation
 		self.polling_frequency=12*60*60*1000
@@ -423,7 +422,7 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_view.finish()
 		self.feed_list_view.interrupt()
 		self._update_thread.goAway()
-		#self._db_updater.queue(self._updater_thread_db.finish, None)
+		self._updater_thread_db.finish(False)
 		self.main_window.finish()
 		logging.info('stopping downloads')
 		self.stop_downloads()
@@ -467,6 +466,7 @@ class PenguinTVApp(gobject.GObject):
 					return False
 
 		if self._polling_taskid != -1:
+			print "I think we are already polling"
 			return True
 		#gtk.gdk.threads_enter()
 
@@ -1631,20 +1631,27 @@ class PenguinTVApp(gobject.GObject):
 	def _polling_callback(self, args):
 		if not self._exiting:
 			feed_id, update_data, total = args
-			self._gui_updater.queue(self._poll_update_progress,total)
 			if len(update_data)>0:
 				if update_data.has_key('ioerror'):
+					print "ioerror polling reset"
 					self._updater_thread_db.interrupt_poll_multiple()
-					self._gui_updater.queue(self._poll_update_progress, (total, True, _("Trouble connecting to internet")))
+					self._polled = 0
+					self._polling_taskid = -1
+					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
+					self.main_window.display_status_message(_("Trouble connecting to the internet"),MainWindow.U_POLL)
+					gobject.timeout_add(2000, self.main_window.display_status_message,"")
+					return
 				else:
 					update_data['polling_multiple'] = True
 					self._threaded_emit('feed-polled', feed_id, update_data)
 			else:
 				#check image just in case
 				self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['image']))
+			self._gui_updater.queue(self._poll_update_progress,total)
 		
 	def _poll_update_progress(self, total=0, error = False, errmsg = ""):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
+
 		if error:
 			self._polled=0
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)

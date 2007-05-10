@@ -118,6 +118,7 @@ class ptvDB:
 				os.mkdir(self.home)
 			except:
 				raise DBError, "error creating directories: "+self.home
+		new_db = False
 		try:	
 			#also check db connection in _process_feed
 			if os.path.isfile(os.path.join(self.home,"penguintv3.db")) == False:
@@ -188,7 +189,7 @@ class ptvDB:
 	def __del__(self):
 		self.finish()
 		
-	def finish(self):
+	def finish(self, closeok=True):
 		self._exiting=True
 		if utils.HAS_LUCENE:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
@@ -200,7 +201,7 @@ class ptvDB:
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
-		if randint(1,10) == 1:
+		if randint(1,10) == 1 and closeok:
 			print "compacting database"
 			self._c.execute('VACUUM')
 			self._c.close()
@@ -692,7 +693,7 @@ class ptvDB:
 		#grow the cache while we do this operation
 		self._db_execute(self._c, 'PRAGMA cache_size=6000')
 		while polled < len(feeds):
-			if self._exiting:
+			if self._cancel_poll_multiple or self._exiting:
 				break
 			if len(self._parse_list) > 0:
 				polled+=1
@@ -702,13 +703,16 @@ class ptvDB:
 			time.sleep(.1)
 		self._db_execute(self._c, 'PRAGMA cache_size=2000')
 		
-		while pool.getTaskCount()>0: #manual joinAll so we can check for exit
-			if self._exiting:
-				pool.joinAll(False,True)
-				self._c.close()
-				self._db.close()
-				return
-			time.sleep(.5)
+		if self._cancel_poll_multiple:
+			self._parse_list = []
+		else: # no need for manual join
+			while pool.getTaskCount()>0: #manual joinAll so we can check for exit
+				if self._exiting:
+					pool.joinAll(False,True)
+					self._c.close()
+					self._db.close()
+					return
+				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
 		self.reindex()
@@ -755,12 +759,12 @@ class ptvDB:
 		try:
 			#poll_arguments = args[1]
 			if self._exiting:
-				return (feed_id,{'pollfail':True}, total)
+				return (feed_id,{'ioerror':e, 'pollfail':False}, total)
 				
 			result = self.poll_feed(feed_id, args, preparsed=data)
 
 			if self._exiting:
-				return (feed_id,{'pollfail':True} ,total)
+				return (feed_id,{'ioerror':e, 'pollfail':False}, total)
 		except sqlite.OperationalError, e:
 			print "Database warning...", e
 			if recurse < 2:
@@ -851,7 +855,7 @@ class ptvDB:
 		"""polls a feed and returns the number of new articles and a flag list.  Optionally, one can pass
 			a feedparser dictionary in the preparsed argument and avoid network operations"""
 		
-		#print "poll:",feed_id, arguments
+		# print "poll:",feed_id, arguments
 		
 		if preparsed is None:
 			#feed_id = self._resolve_pointed_feed(feed_id)
@@ -922,10 +926,10 @@ class ptvDB:
 				if isinstance(data['bozo_exception'], URLError):
 					e = data['bozo_exception'][0]
 					errno = e[0]
-					if e[0] in [-3, #failure in name resolution   
+					if errno in [#-2, # Name or service not known 
+								-3, #failure in name resolution   
 								114, #Operation already in progress
 								11]:  #Resource temporarily unavailable
-						print "ioerror",e,"errno:",e[0]
 						raise IOError(e)	
 			
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:

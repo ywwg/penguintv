@@ -131,7 +131,7 @@ class ThreadPool:
             while self.__tasks != []:
                 sleep(.1)
         else:
-        	self.__tasks = []
+            self.__tasks = []
 
         # Tell all the threads to quit
         self.__resizeLock.acquire()

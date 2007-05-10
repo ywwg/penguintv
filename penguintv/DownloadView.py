@@ -121,14 +121,14 @@ class DownloadView:
 		self._downloads = self._mm.get_download_list()
 		current_list = [item.media['media_id'] for item in self._downloads]
 		viewing_list = [item[D_MEDIA_ID] for item in self._downloads_liststore]
-		
+
 		oldset = sets.Set(viewing_list)
 		newset = sets.Set(current_list)
 		
 		removed   = list(oldset.difference(newset))
 		added     = list(newset.difference(oldset))
 		unchanged = list(oldset.intersection(newset))
-		
+
 		#slower but works better, because the list is changing all over the place
 		for item in removed:
 			i=-1
@@ -140,28 +140,30 @@ class DownloadView:
 		
 		tree,selected = self._downloads_listview.get_selection().get_selected_rows()
 		selected = [i[0] for i in selected] 
-		
+
 		i=-1
 		for item in self._downloads_liststore:
 			i+=1
 			if item[D_MEDIA_ID] in unchanged:
 				index = current_list.index(item[D_MEDIA_ID])
 				medium = self._downloads[index]
+
 				iter = self._downloads_liststore[i]
 				iter[D_PROGRESS] = medium.progress
 				iter[D_SIZE]     = utils.format_size(medium.total_size)
 				#iter[D_STATUS] refers to the old status
+
 				if medium.status == PAUSED or medium.status == QUEUED:
 					if iter[D_STATUS] != medium.status:
 						if i in selected:
-							iter[D_DESCRIPTION_MARKUP] = '<i>'+iter[D_DESCRIPTION]+'</i>'
+							iter[D_DESCRIPTION_MARKUP] = '<i>'+utils.my_quote(iter[D_DESCRIPTION])+'</i>'
 							iter[D_SIZE_MARKUP]= '<i>'+iter[D_SIZE]+'</i>'
 							if medium.status == PAUSED:
 								iter[D_STATUS_MARKUP] = '<i>'+_("Paused")+'</i>'
 							elif medium.status == QUEUED:
 								iter[D_STATUS_MARKUP] = '<i>'+_("Queued")+'</i>'
 						else:
-							iter[D_DESCRIPTION_MARKUP] = '<span color="#777"><i>'+iter[D_DESCRIPTION]+'</i></span>'
+							iter[D_DESCRIPTION_MARKUP] = '<span color="#777"><i>'+utils.my_quote(iter[D_DESCRIPTION])+'</i></span>'
 							iter[D_SIZE_MARKUP] = '<span color="#777"><i>'+iter[D_SIZE]+'</i></span>'
 							if medium.status == PAUSED:
 								iter[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Paused")+'</i></span>'
@@ -170,7 +172,7 @@ class DownloadView:
 						iter[D_STATUS] = medium.status
 				else:
 					#if iter[D_STATUS] == PAUSED or i in selected:
-					iter[D_DESCRIPTION_MARKUP] = iter[D_DESCRIPTION]
+					iter[D_DESCRIPTION_MARKUP] = utils.my_quote(iter[D_DESCRIPTION])
 					iter[D_SIZE_MARKUP]= iter[D_SIZE]
 					iter[D_STATUS] = medium.status
 					iter[D_STATUS_MARKUP] = ""
@@ -192,15 +194,15 @@ class DownloadView:
 			description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
 			size        = utils.format_size(item.total_size)
 			if item.status == PAUSED:
-				description_markup = '<span color="#777"><i>'+description+'</i></span>'
+				description_markup = '<span color="#777"><i>'+utils.my_quote(description)+'</i></span>'
 				size_markup = '<span color="#777"><i>'+size+'</i></span>'
 				status_markup = '<i>'+_("Paused")+'</i>'
 			elif item.status == QUEUED:
-				description_markup = '<span color="#777"><i>'+description+'</i></span>'
+				description_markup = '<span color="#777"><i>'+utils.my_quote(description)+'</i></span>'
 				size_markup = '<span color="#777"><i>'+size+'</i></span>'
 				status_markup = '<i>'+_("Queued")+'</i>'
 			else:
-				description_markup = description
+				description_markup = utils.my_quote(description)
 				size_markup = size
 				status_markup = ""
 
@@ -288,9 +290,10 @@ class DownloadView:
 		i=-1
 		for item in self._downloads_liststore:
 			i+=1
+
 			if item[D_STATUS] == PAUSED or item[D_STATUS] == QUEUED:
 				if i in selected:
-					item[D_DESCRIPTION_MARKUP] = '<i>'+item[D_DESCRIPTION]+'</i>'
+					item[D_DESCRIPTION_MARKUP] = '<i>'+utils.my_quote(item[D_DESCRIPTION])+'</i>'
 					item[D_SIZE_MARKUP]= '<i>'+item[D_SIZE]+'</i>'
 					if item[D_STATUS] == PAUSED:
 						item[D_STATUS_MARKUP] = '<i>'+_("Paused")+'</i>'
@@ -298,14 +301,14 @@ class DownloadView:
 					elif item[D_STATUS] == QUEUED:
 						item[D_STATUS_MARKUP] = '<i>'+_("Queued")+'</i>'
 				else:
-					item[D_DESCRIPTION_MARKUP] = '<span color="#777"><i>'+item[D_DESCRIPTION]+'</i></span>'
+					item[D_DESCRIPTION_MARKUP] = '<span color="#777"><i>'+utils.my_quote(item[D_DESCRIPTION])+'</i></span>'
 					item[D_SIZE_MARKUP]= '<span color="#777"><i>'+item[D_SIZE]+'</i></span>'
 					if item[D_STATUS] == PAUSED:
 						item[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Paused")+'</i></span>'
 					elif item[D_STATUS] == QUEUED:
 						item[D_STATUS_MARKUP] = '<span color="#777"><i>'+_("Queued")+'</i></span>'
 			else:
-				item[D_DESCRIPTION_MARKUP] = item[D_DESCRIPTION]
+				item[D_DESCRIPTION_MARKUP] = utils.my_quote(item[D_DESCRIPTION])
 				item[D_SIZE_MARKUP] = item[D_SIZE]
 				item[D_STATUS_MARKUP] = ""
 		self._resume_button.set_sensitive(resume_sens)
