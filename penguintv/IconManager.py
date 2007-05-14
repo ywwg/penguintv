@@ -35,8 +35,8 @@ class IconManager:
 		except: pass
 		
 		for url in url_list:
-			filename = os.path.join(self._home, 'icons', str(feed_id) + '.' + url.split('.')[-1])
 			try:
+				filename = os.path.join(self._home, 'icons', str(feed_id) + '.' + url.split('.')[-1])
 				urllib.urlretrieve(url, filename)
 				return url
 			except:

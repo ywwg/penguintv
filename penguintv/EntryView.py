@@ -520,6 +520,7 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 			ret += '<span id="' + str(item['entry_id']) + '"></span>'
 	ret.append('<div class="content">')
 	if item.has_key('description'):
+		#ret.append('%s' % item['description'].replace('\n\n', '<br/><br/>'))
 		ret.append('%s' % item['description'])
 	ret.append('</div>')
 	if item.has_key('link'):

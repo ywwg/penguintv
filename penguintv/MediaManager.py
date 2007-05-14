@@ -216,7 +216,7 @@ class MediaManager:
 			try:
 				self.downloads.remove(obj)
 			except:
-				print "Warning: couldn't remove download"
+				print "Warning: couldn't remove download", obj.media
 		self.update_playlist(obj.media)
 		#if self.pause_state == RUNNING:
 		self.app_callback_finished(obj)
