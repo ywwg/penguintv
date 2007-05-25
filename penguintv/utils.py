@@ -521,6 +521,7 @@ def init_gtkmozembed():
 	of getting it from the module itself.  good luck with this"""
 
 	assert HAS_MOZILLA
+	os.chdir(os.getenv('HOME'))
 	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom.so"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
@@ -648,6 +649,8 @@ def get_pynotify_ok():
 		return False
 
 	# first get what package config reports
+	os.chdir(os.getenv('HOME'))
+	
 	cmd = "pkg-config notify-python --modversion"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()

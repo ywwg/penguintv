@@ -538,7 +538,7 @@ class PenguinTVApp(gobject.GObject):
 		if utils.RUNNING_SUGAR:
 			free_buffer = 300000000 # 300 meg
 		else:
-			free_buffer = 1000000000 # one gig
+			free_buffer =  10000000 # 10 meg
 			
 		size_to_free = 0
 		if self._auto_download_limiter:
