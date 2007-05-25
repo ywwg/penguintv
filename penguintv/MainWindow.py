@@ -288,6 +288,8 @@ class MainWindow(gobject.GObject):
 		#final setup for the window comes from gconf
 		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
 		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y', 40)
+		if x < 0: x = 0
+		if y < 0: y = 0
 		self.app_window.move(x,y)
 		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 500)
 		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)

@@ -703,21 +703,26 @@ class ptvDB:
 			time.sleep(.1)
 		self._db_execute(self._c, 'PRAGMA cache_size=2000')
 		
+		#print "done polling, join now"
+		
 		if self._cancel_poll_multiple:
 			self._parse_list = []
 		else: # no need for manual join
 			while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 				if self._exiting:
-					pool.joinAll(False,True)
+					pool.joinAll(False, True)
+					del pool
 					self._c.close()
 					self._db.close()
 					return
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
+		#print "joined"
 		del pool
 		self.reindex()
 		self._cancel_poll_multiple = False
 		gc.collect()
+		#print "and out"
 		
 	def interrupt_poll_multiple(self):
 		self._cancel_poll_multiple = True
@@ -736,8 +741,11 @@ class ptvDB:
 		else:
 			parse_list_limit = 5
 		
-		while len(self._parse_list) > parse_list_limit:
+		while len(self._parse_list) > parse_list_limit and not self._exiting:
 			time.sleep(1)
+			
+		if self._exiting:
+			return (feed_id, arguments, total, -1)
 		
 		try:
 			#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
@@ -759,12 +767,12 @@ class ptvDB:
 		try:
 			#poll_arguments = args[1]
 			if self._exiting:
-				return (feed_id,{'ioerror':e, 'pollfail':False}, total)
+				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
 				
 			result = self.poll_feed(feed_id, args, preparsed=data)
 
 			if self._exiting:
-				return (feed_id,{'ioerror':e, 'pollfail':False}, total)
+				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
 		except sqlite.OperationalError, e:
 			print "Database warning...", e
 			if recurse < 2:

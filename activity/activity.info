@@ -4,5 +4,5 @@ service_name = com.ywwg.PenguinTV
 id = com.ywwg.PenguinTV
 class = PenguinTVActivity.PenguinTVActivity
 icon = activity-penguintv
-activity_version = 19
+activity_version = 21
 show_launcher = yes

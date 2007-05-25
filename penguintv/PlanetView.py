@@ -312,14 +312,11 @@ class PlanetView(gobject.GObject):
 		if self._custom_message == message:
 			return
 		self._custom_message = message
-		self._render_entries()
 		
 	def undisplay_custom_entry(self):
 		if self._custom_message == "":
 			return
 		self._custom_message = ""
-		#print "custom: blank (undisplay)"
-		self._render_entries()
 		
 	def display_item(self, item=None, highlight=""):
 		if item is None:

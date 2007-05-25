@@ -481,7 +481,7 @@ class FeedList(gobject.GObject):
 
 		#sanity check
 		if feed[UNREAD] - num_to_mark < 0 or feed[UNREAD] - num_to_mark > feed[TOTAL]:
-			print "WARNING: trying to mark more or less than we have:", feed[UNREAD], num_to_mark
+			print "WARNING: trying to mark more or less than we have:", feed[TITLE], feed[UNREAD], num_to_mark
 			self.update_feed_list(feed[FEEDID], ['readinfo'])
 			return
 			
@@ -974,7 +974,15 @@ class FeedList(gobject.GObject):
 		
 		if self._fancy:
 			feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], True)
-	
+
+		try:
+			if self._feedlist[self.find_index_of_item(feed[FEEDID])][POLLFAIL]:
+				self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
+			else:
+				self._app.undisplay_custom_entry()
+		except:
+			self._app.undisplay_custom_entry()
+
 		#if self._showing_search:
 		if self._state == S_SEARCH:
 			if feed[FEEDID] == self._last_selected:
@@ -997,14 +1005,6 @@ class FeedList(gobject.GObject):
 			if self._selecting_misfiltered and feed[FEEDID]!=None:
 				self._selecting_misfiltered = False
 				gobject.timeout_add(250, self.filter_all)
-		try:
-			if self._feedlist[self.find_index_of_item(feed[FEEDID])][POLLFAIL]:
-				self._app.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
-				return
-		except:
-			pass
-			
-		self._app.undisplay_custom_entry()
 			
 	def get_selected(self, selection=None):
 		if selection==None:
