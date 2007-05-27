@@ -1,5 +1,6 @@
 import sys, os, logging
 import gtk, gobject
+from gettext import gettext as _
 from sugar.activity.Activity import Activity
 
 #need to set things up before we import penguintv
@@ -20,8 +21,16 @@ from ptv.penguintv import penguintv
 class PenguinTVActivity(Activity):
 	def __init__(self):
 		Activity.__init__(self)
+		
+		self.set_title(_('News Reader'))
 		app = penguintv.PenguinTVApp()
 		app.main_window.Show(self)
+		
+		toolbox = activity.ActivityToolbox(self)
+		toolbox.add_toolbar(_('Menu'), app.main_window.toolbar)
+		self.set_toolbox(toolbox)
+		toolbox.show()
+        
 		app.post_show_init()
 		self.connect('destroy',self.do_quit, app)
 	
