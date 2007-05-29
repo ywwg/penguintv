@@ -19,8 +19,6 @@ if not utils.RUNNING_SUGAR:
 		import gtkmozembed
 	except:
 		pass
-else:
-	import sugar.browser
 	
 ENTRIES_PER_PAGE = 10
 
@@ -109,7 +107,11 @@ class PlanetView(gobject.GObject):
 				for l in f.readlines(): self._css += l
 				f.close()
 				
-				self._moz = sugar.browser.Browser()
+				import hulahop
+				hulahop.startup(os.path.join(self._db.home, 'gecko'))
+				import OLPCBrowser
+				self._moz = OLPCBrowser.Browser()
+				self._moz.load_uri("about:blank")
 			else:
 				self._USING_AJAX = True
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
@@ -120,13 +122,19 @@ class PlanetView(gobject.GObject):
 				gtkmozembed.set_profile_path(self._db.home, 'gecko')
 				gtkmozembed.push_startup()
 				self._moz = gtkmozembed.MozEmbed()
-				
+			
+			#TEMP INDENT START	
+				#done:
+				#self._moz.connect("open-uri", self._moz_link_clicked)
+				#hard:
+				self._moz.connect("new-window", self._moz_new_window)
+				#requires changes to hulahop to get at _chrome:
+				self._moz.connect("link-message", self._moz_link_message)
+				#requires signals in webview or maybe olpcbrowser:
+				self._moz.connect("realize", self._moz_realize, True)
+				self._moz.connect("unrealize", self._moz_realize, False)
+				self._moz.load_url("about:blank")
 			self._moz.connect("open-uri", self._moz_link_clicked)
-			self._moz.connect("new-window", self._moz_new_window)
-			self._moz.connect("link-message", self._moz_link_message)
-			self._moz.connect("realize", self._moz_realize, True)
-			self._moz.connect("unrealize", self._moz_realize, False)
-			self._moz.load_url("about:blank")
 			scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
 			if utils.HAS_GCONF:
@@ -585,7 +593,8 @@ class PlanetView(gobject.GObject):
 		return self._entry_store[entry_id]
 		
 	def _render(self, html):
-		if self._moz_realized:
+		# temp until olpcbrowser dows moz_realized
+		if self._moz_realized or utils.RUNNING_SUGAR:
 			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
 			while len(html)>60000:
 					part = html[0:60000]
