@@ -112,6 +112,7 @@ class PlanetView(gobject.GObject):
 				import OLPCBrowser
 				self._moz = OLPCBrowser.Browser()
 				self._moz.load_uri("about:blank")
+				self._moz.connect("notify", self._hulahop_prop_changed)
 			else:
 				self._USING_AJAX = True
 				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
@@ -125,15 +126,10 @@ class PlanetView(gobject.GObject):
 				self._moz.load_url("about:blank")
 			
 			#TEMP INDENT START	
-				#done:
-				#self._moz.connect("open-uri", self._moz_link_clicked)
 				#hard:
 				self._moz.connect("new-window", self._moz_new_window)
 				#requires changes to hulahop to get at _chrome:
 				self._moz.connect("link-message", self._moz_link_message)
-				#requires signals in webview or maybe olpcbrowser:
-				#self._moz.connect("realize", self._moz_realize, True)
-				#self._moz.connect("unrealize", self._moz_realize, False)
 				
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("realize", self._moz_realize, True)
@@ -605,9 +601,12 @@ class PlanetView(gobject.GObject):
 					self._moz.append_data(part, long(len(part)))
 			self._moz.append_data(html, long(len(html)))
 			self._moz.close_stream()
+			
+	def _hulahop_prop_changed(self, obj, pspec):
+		if pspec.name == 'status':
+			self._main_window.display_status_message(self._moz.get_property('status'))
 		
 	def _moz_link_clicked(self, mozembed, link):
-		print "got a link:", link
 		link = link.strip()
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE

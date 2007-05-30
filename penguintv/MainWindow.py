@@ -186,6 +186,7 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('saved_searches').hide()
 				self._widgetTree.get_widget('separator11').hide()
 				self._widgetTree.get_widget('reindex_searches').hide()
+				self._widgetTree.get_widget('add_feed_filter').hide()
 			if not utils.HAS_MOZILLA:
 				self._widgetTree.get_widget('planet_layout').hide()
 			self._window = self.app_window
@@ -555,6 +556,7 @@ class MainWindow(gobject.GObject):
 			label = gtk.Label(_("Please select the feed you would like to filter"))
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
+			dialog.set_transient_for(self._app.main_window.get_parent())
 			response = dialog.run()
 			dialog.hide()
 			del dialog
@@ -780,6 +782,8 @@ class MainWindow(gobject.GObject):
 		filter.add_pattern("*")
 		dialog.add_filter(filter)
 		
+		dialog.set_transient_for(self._app.main_window.get_parent())
+		
 		response = dialog.run()
 		if response == gtk.RESPONSE_OK:
 			f = open(dialog.get_filename(), "r")
@@ -898,6 +902,7 @@ class MainWindow(gobject.GObject):
 			label = gtk.Label(_("Are you sure you want to delete this feed?"))
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
+			dialog.set_transient_for(self._app.main_window.get_parent())
 			response = dialog.run()
 			dialog.hide()
 			del dialog

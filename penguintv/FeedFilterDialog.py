@@ -9,6 +9,7 @@ class FeedFilterDialog:
 		self._xml = xml
 		self._app = app
 		self._window = xml.get_widget("window_feed_filter")
+		self._window.set_transient_for(self._app.main_window.get_parent())
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))

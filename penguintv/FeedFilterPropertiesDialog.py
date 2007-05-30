@@ -48,6 +48,7 @@ class FeedFilterPropertiesDialog:
 		return True
 				
 	def show(self):
+		self._window.set_transient_for(self._app.main_window.get_parent())
 		self._filter_name_entry.grab_focus()
 		self._window.show()
 		

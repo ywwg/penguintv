@@ -31,6 +31,7 @@ class FeedPropertiesDialog:
 		self._feed_id=0
 				
 	def show(self):
+		self._window.set_transient_for(self._app.main_window.get_parent())
 		self._title_widget.grab_focus()
 		self._window.show()
 		

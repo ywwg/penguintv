@@ -650,6 +650,8 @@ class FeedList(gobject.GObject):
 						self._selecting_misfiltered=True
 				if not passed_filter:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
+					if self._fancy:
+						feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], False)
 					#self._app.display_feed(-1)
 					self.emit('no-feed-selected')
 			else: #if it's not the selected feed

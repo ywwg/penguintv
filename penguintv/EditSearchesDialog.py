@@ -93,6 +93,7 @@ class EditSearchesDialog:
  		
  	def show(self):
  		self._window = self._xml.get_widget("window_edit_search_tags")
+ 		self._window.set_transient_for(self._app.main_window.get_parent())
  		self._mod_dialog         = self._modify_xml.get_widget("dialog_modify_search_tag")
  		self._mod_tag_name_entry = self._modify_xml.get_widget("tag_name_entry")
  		self._mod_query_entry    = self._modify_xml.get_widget("query_entry")

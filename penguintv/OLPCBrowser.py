@@ -57,10 +57,8 @@ class Browser(WebView):
 	def connect(self, signal, callback, *args):
 		if signal == "open-uri":
 			self._content_listener.connect("open-uri", callback, *args)
-		elif signal == "realize":
-			WebView.connect(self, "realize", callback, *args)
-		elif signal == "unrealize":
-			WebView.connect(self, "unrealize", callback, *args)
+		else:
+			WebView.connect(self, signal, callback, *args)
 			
 	def open_stream(self, str_uri, mimetype):
 		uri = self._ioService.newURI(str_uri, None, None)

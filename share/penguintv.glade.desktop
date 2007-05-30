@@ -1015,7 +1015,7 @@
 <widget class="GtkAboutDialog" id="aboutdialog1">
   <property name="destroy_with_parent">False</property>
   <property name="name" translatable="yes">PenguinTV</property>
-  <property name="copyright" translatable="yes">(c)2005 Owen Williams</property>
+  <property name="copyright" translatable="yes">(c)2007 Owen Williams</property>
   <property name="comments" translatable="yes">Podcast and Video Blog aggregator for GTK+ and GNOME</property>
   <property name="wrap_license">False</property>
   <property name="website">http://penguintv.sourceforge.net</property>

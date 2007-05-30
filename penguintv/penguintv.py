@@ -707,6 +707,7 @@ class PenguinTVApp(gobject.GObject):
 				label = gtk.Label("Launching enclosed files is disabled on olpc until a mime system is developed. \n If you install GStreamer PenguinTV can use that. (email owen-olpc@ywwg.com for more info)")
 				dialog.vbox.pack_start(label, True, True, 0)
 				label.show()
+				dialog.set_transient_for(self.main_window.get_parent())
 				response = dialog.run()
 				dialog.hide()
 				del dialog
@@ -801,6 +802,7 @@ class PenguinTVApp(gobject.GObject):
 			label = gtk.Label(_("There is no unviewed media to download."))
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
+			dialog.set_transient_for(self.main_window.get_parent())
 			response = dialog.run()
 			dialog.hide()
 			del dialog
@@ -812,6 +814,7 @@ class PenguinTVApp(gobject.GObject):
 			label = gtk.Label(_("If PenguinTV downloads all of the unviewed media, \nit will take %(space)s. Do you wish to continue?") % {'space':utils.format_size(total_size)})
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
+			dialog.set_transient_for(self.main_window.get_parent())
 			response = dialog.run()
 			dialog.hide()
 			del dialog
@@ -825,6 +828,7 @@ class PenguinTVApp(gobject.GObject):
 			label = gtk.Label(_("PenguinTV was unable to free enough disk space to download %(space)s of media.") % {'space':utils.format_size(total_size)})
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
+			dialog.set_transient_for(self.main_window.get_parent())
 			response = dialog.run()
 			dialog.hide()
 			del dialog
@@ -855,7 +859,8 @@ class PenguinTVApp(gobject.GObject):
 		filter.add_pattern("*")
 		dialog.add_filter(filter)        
 		
-		dialog.set_current_name('mySubscriptions.opml')                      
+		dialog.set_current_name('mySubscriptions.opml')
+		dialog.set_transient_for(self.main_window.get_parent())              
     		
 		response = dialog.run()
 		if response == gtk.RESPONSE_OK:
@@ -901,6 +906,7 @@ class PenguinTVApp(gobject.GObject):
 			bar = gtk.ProgressBar()
 			dialog.vbox.pack_start(bar, True, True, 0)
 			bar.show()
+			dialog.set_transient_for(self.main_window.get_parent())
 			response = dialog.show()
 
 			gen = self.db.import_subscriptions(f, opml)
@@ -1052,6 +1058,7 @@ class PenguinTVApp(gobject.GObject):
 			label = gtk.Label("Gstreamer did not recognize this file. (email owen-olpc@ywwg.com for more info)")
 			dialog.vbox.pack_start(label, True, True, 0)
 			label.show()
+			dialog.set_transient_for(self.main_window.get_parent())
 			response = dialog.run()
 			dialog.hide()
 			del dialog

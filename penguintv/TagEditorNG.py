@@ -26,6 +26,7 @@ class TagEditorNG:
 		
 	def show(self):
  		self._window = self._xml.get_widget("dialog_tag_editor_ng")
+ 		self._window.set_transient_for(self._app.main_window.get_parent())
 		for key in dir(self.__class__):
 			if key[:3] == '_on':
 				self._xml.signal_connect(key, getattr(self,key))

@@ -28,6 +28,7 @@ class AddSearchTagDialog:
 		self._tag_name_widget.set_text(tag_name)
 				
 	def show(self):
+		self._window.set_transient_for(self._app.main_window.get_parent())
 		self._tag_name_widget.grab_focus()
 		self._window.show()
 		#self.feed_url_widget.set_text("")

@@ -118,6 +118,9 @@ class FilterSelectorDialog:
 		self._pane.set_position(self._pane_position)
 		self._favorites_treeview.columns_autosize()
 		self._all_tags_treeview.columns_autosize()
+		
+		self._widget.set_transient_for(self._main_window.get_parent())
+		
 		self._widget.show_all()
 		
 	def Hide(self):

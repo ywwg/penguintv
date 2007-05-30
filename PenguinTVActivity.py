@@ -44,7 +44,6 @@ class PenguinTVActivity(activity.Activity):
 		del app
 		
 	def add_toolbar(self, toolbox, app):
-		print "ADDING TOOLBAR?"
 		toolbox.add_toolbar(_('Feeds'), app.main_window.toolbar)
 		return False
 		
