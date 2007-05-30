@@ -198,7 +198,7 @@ class MainWindow(gobject.GObject):
 			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar_holder','penguintv')
 			self.toolbar = self._load_toolbar()
 			self.toolbar.unparent()
-			vbox.pack_start(self.toolbar, False, False)
+			#vbox.pack_start(self.toolbar, False, False)
 			self._layout_dock = self.load_notebook()
 			self._layout_dock.add(self.load_layout())
 			vbox.pack_start(self._notebook)

@@ -29,12 +29,25 @@ class PenguinTVActivity(activity.Activity):
 		activity.Activity.__init__(self, handle)
 		app = penguintv.PenguinTVApp(self)
 		self.set_title('News Reader')
+		toolbox = activity.ActivityToolbox(self)
+		
+		#toolbox.add_toolbar(_('Feeds'), app.main_window.toolbar)
+		gobject.idle_add(self.add_toolbar, toolbox, app)
+		
+		self.set_toolbox(toolbox)
+		toolbox.show()
 		self.connect('destroy',self.do_quit, app)
 	
 	def do_quit(self, event, app):
 		app.do_quit()
 		logging.info('deleting app now')
 		del app
+		
+	def add_toolbar(self, toolbox, app):
+		print "ADDING TOOLBAR?"
+		toolbox.add_toolbar(_('Feeds'), app.main_window.toolbar)
+		return False
+		
 
 if __name__ == '__main__': # Here starts the dynamic part of the program
 

@@ -2819,6 +2819,7 @@
 
       <child>
 	<widget class="GtkSeparatorToolItem" id="vseparator2">
+	  <property name="visible">True</property>
 	  <property name="sensitive">False</property>
 	  <property name="draw">True</property>
 	  <property name="visible_horizontal">True</property>
@@ -2832,6 +2833,7 @@
 
       <child>
 	<widget class="GtkToolButton" id="preferences_toolbutton">
+	  <property name="visible">True</property>
 	  <property name="tooltip" translatable="yes">Preferences</property>
 	  <property name="stock_id">gtk-preferences</property>
 	  <property name="visible_horizontal">True</property>

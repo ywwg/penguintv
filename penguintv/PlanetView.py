@@ -122,6 +122,7 @@ class PlanetView(gobject.GObject):
 				gtkmozembed.set_profile_path(self._db.home, 'gecko')
 				gtkmozembed.push_startup()
 				self._moz = gtkmozembed.MozEmbed()
+				self._moz.load_url("about:blank")
 			
 			#TEMP INDENT START	
 				#done:
@@ -131,10 +132,12 @@ class PlanetView(gobject.GObject):
 				#requires changes to hulahop to get at _chrome:
 				self._moz.connect("link-message", self._moz_link_message)
 				#requires signals in webview or maybe olpcbrowser:
-				self._moz.connect("realize", self._moz_realize, True)
-				self._moz.connect("unrealize", self._moz_realize, False)
-				self._moz.load_url("about:blank")
+				#self._moz.connect("realize", self._moz_realize, True)
+				#self._moz.connect("unrealize", self._moz_realize, False)
+				
 			self._moz.connect("open-uri", self._moz_link_clicked)
+			self._moz.connect("realize", self._moz_realize, True)
+			self._moz.connect("unrealize", self._moz_realize, False)
 			scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
 			if utils.HAS_GCONF:
@@ -604,6 +607,7 @@ class PlanetView(gobject.GObject):
 			self._moz.close_stream()
 		
 	def _moz_link_clicked(self, mozembed, link):
+		print "got a link:", link
 		link = link.strip()
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE

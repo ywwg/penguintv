@@ -440,8 +440,11 @@ class PenguinTVApp(gobject.GObject):
 		#	print threading.enumerate()
 		#	print str(threading.activeCount())+" threads active..."
 		#	time.sleep(1)
-		logging.info('stopping socket')
-		self._socket.close()
+		try:
+			logging.info('stopping socket')
+			self._socket.close()
+		except:
+			pass
 		
 		if not utils.RUNNING_SUGAR:
 			gtk.main_quit()
