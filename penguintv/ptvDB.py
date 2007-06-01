@@ -106,11 +106,8 @@ class ptvDB:
 	entry_flag_cache = {}
 	
 	def __init__(self, polling_callback=None, change_setting_cb=None):
-		if utils.RUNNING_SUGAR:
-			import sugar.env
-			self.home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
-		else:
-			self.home = os.path.join(os.getenv('HOME'), ".penguintv")
+		self.home = utils.get_home()
+		
 		try:
 			os.stat(self.home)
 		except:
@@ -1037,6 +1034,17 @@ class ptvDB:
 		self._db_execute(self._c, """SELECT id,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate DESC""",(feed_id,)) 
 		existing_entries = self._c.fetchall()
 		
+		#only use GUID if there are no dupes -- thanks peter's feed >-(
+		guids = [e[1] for e in existing_entries]
+		guids.sort()
+		use_guid = True
+		prev_g = guids[0]
+		for g in guids[1:]:
+			if g == prev_g:
+				use_guid = False
+				break
+			prev_g = g
+			
 		#we can't trust the dates inside the items for timing data
 		#bad formats, no dates at all, and timezones screw things up
 		#so I introduce a fake date which works for determining read and
@@ -1156,7 +1164,7 @@ class ptvDB:
 			if not item.has_key('date_parsed') or item['date_parsed'] is None:
 				item['date_parsed']=(0,0,0,0,0,0,0,0,0)
 				
-			status = self._get_status(item, existing_entries)
+			status = self._get_status(item, existing_entries, use_guid)
 			
 			if status[0]==NEW:
 				new_items = new_items+1
@@ -1322,7 +1330,7 @@ class ptvDB:
 		self._db_execute(self._c, 'UPDATE feeds SET pollfreq=? WHERE id=?',(poll_freq,feed_id))
 		self._db.commit()
 		
-	def _get_status(self, item, existing_entries):
+	def _get_status(self, item, existing_entries, use_guid):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
@@ -1337,24 +1345,24 @@ class ptvDB:
 				'link': item['link'],
 				'title': item['title']}
 				
-		
+		#print item['title'], item['guid']
 		for entry_item in existing_entries:
-			if len(str(t_item['guid'])) > 2: #even 3 chars for a guid seems small, but oh well
+			if len(str(t_item['guid'])) > 2 and use_guid: #even 3 chars for a guid seems small, but oh well
 				if str(entry_item[GUID]) == str(t_item['guid']):# and entry_item[TITLE] == t_item['title']:
 					entry_id = entry_item[ID]
-					old_hash = self._ascii(entry_item[GUID])+self._ascii(entry_item[BODY])
-					new_hash = self._ascii(t_item['guid'])+self._ascii(t_item['body'])
+					old_hash = entry_item[BODY]
+					new_hash = t_item['body']
 					break
 			elif t_item['link']!='':
 				if entry_item[LINK] == t_item['link'] and entry_item[TITLE] == t_item['title']:
 					entry_id = entry_item[ID]
-					old_hash = self._ascii(entry_item[LINK])+self._ascii(entry_item[BODY])
-					new_hash = self._ascii(t_item['link'])+self._ascii(t_item['body'])
+					old_hash = entry_item[BODY]
+					new_hash = t_item['body']
 					break
 			elif entry_item[TITLE] == t_item['title']:
 				entry_id = entry_item[ID]
-				old_hash = self._ascii(entry_item[TITLE])+self._ascii(entry_item[BODY])
-				new_hash = self._ascii(t_item['title'])+self._ascii(t_item['body'])
+				old_hash = entry_item[BODY]
+				new_hash = t_item['body']
 				break
 
 		if entry_id == -1:
@@ -1384,14 +1392,14 @@ class ptvDB:
 			
 			existing_media = old_media
 			
-			old_media = [medium['url'] for medium in old_media]
-			new_media = [m['url'] for m in item['enclosures']]
+			old_media = [urlparse.urlparse(medium['url'])[:3] for medium in old_media]
+			new_media = [urlparse.urlparse(m['url'])[:3] for m in item['enclosures']]
 			
 			old_media = utils.uniquer(old_media)
 			old_media.sort()
 			new_media = utils.uniquer(new_media)
 			new_media.sort()
-
+			
 			if old_media != new_media:
 				return (MODIFIED,entry_id,[])
 			return (EXISTS,entry_id, existing_media)

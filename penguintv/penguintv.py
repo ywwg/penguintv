@@ -39,6 +39,9 @@ import gtk.glade
 import gobject
 import locale
 import gettext
+import getopt
+import dbus
+import dbus.service
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -53,11 +56,11 @@ DOWNLOAD_QUEUED=3
 
 import utils
 import ptvDB
+import ptvDbus
 import MediaManager
 import Player
 import UpdateTasksManager
 import Downloader
-import PTVAppSocket
 
 import AddFeedDialog
 import PreferencesDialog
@@ -120,21 +123,25 @@ class PenguinTVApp(gobject.GObject):
 	def __init__(self, window=None):
 		gobject.GObject.__init__(self)
 		self._for_import = []
+		self._app_loaded = False
 		
-		if not utils.RUNNING_SUGAR:
-			self._socket = PTVAppSocket.PTVAppSocket(self._socket_cb)
-			if not self._socket.is_server:
-				#just pass the arguments and quit
-				if len(sys.argv)>1:
-					self._socket.send(" ".join(sys.argv[1:]))
-				self._socket.close()
-				return
-				
-			if len(sys.argv)>1:
-				self._for_import.append(sys.argv[1])
-			
+		#if we can get a dbus object, and it's using
+		#our database, penguintv is already running
+		bus = dbus.SessionBus()
+		try:
+			remote_object = bus.get_object("com.ywwg.PenguinTVApp", "/PtvApp")
+			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTVApp.AppInterface")
+			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv3.db"):
+				raise AlreadyRunning, remote_app
+		except dbus.DBusException, e:
+			#PenguinTV not running
+			pass
+		
+		#initialize dbus object
+		name = dbus.service.BusName("com.ywwg.PenguinTVApp", bus=bus)
+		ptv_dbus = ptvDbus.ptvDbus(self, name)
+		
 		found_glade = False
-		
 		
 		self.glade_prefix = utils.get_glade_prefix()
 		if self.glade_prefix is None:
@@ -260,6 +267,7 @@ class PenguinTVApp(gobject.GObject):
 			
 		#gtk.gdk.threads_leave()
 		self.emit('app-loaded')
+		self._app_loaded = True
 		return False #for idler	
 		
 	def _import_default_feeds(self):
@@ -440,11 +448,6 @@ class PenguinTVApp(gobject.GObject):
 		#	print threading.enumerate()
 		#	print str(threading.activeCount())+" threads active..."
 		#	time.sleep(1)
-		try:
-			logging.info('stopping socket')
-			self._socket.close()
-		except:
-			pass
 		
 		if not utils.RUNNING_SUGAR:
 			gtk.main_quit()
@@ -897,6 +900,10 @@ class PenguinTVApp(gobject.GObject):
 		self.do_poll_multiple(None, args)
 			
 	def import_subscriptions(self, f, opml=True):
+		if self._state == LOADING_FEEDS or not self._app_loaded:
+			self._for_import.append((1, f))
+			return
+	
 		def import_gen(f):
 			#gtk.gdk.threads_enter()
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
@@ -1092,8 +1099,6 @@ class PenguinTVApp(gobject.GObject):
 		if self._state == DEFAULT:
 			return
 	
-		
-		
 	def set_state(self, new_state, data=None):
 		if self._state == new_state:
 			return	
@@ -1345,6 +1350,10 @@ class PenguinTVApp(gobject.GObject):
 			
 	def add_feed(self, url, title):
 		"""Inserts the url and starts the polling process"""
+		
+		if self._state == LOADING_FEEDS or not self._app_loaded:
+			self._for_import.append((0, url, title))
+			return
 		
 		self.main_window.display_status_message(_("Trying to poll feed..."))
 		feed_id = -1
@@ -1621,13 +1630,21 @@ class PenguinTVApp(gobject.GObject):
 		self.set_state(DEFAULT) #redundant
 		if sensitize:
 			self.main_window._sensitize_search()
-		for filename in self._for_import:
-			try:
-				f = open(filename)
-				self.import_subscriptions(f)
-			except Exception, e:
-				print "not a valid file",e
+		for item in self._for_import:
+			if item[0] == 0: #url
+				typ, url, title = item
+				self.add_feed(url, title)
+			elif item[0] == 1: #opml
+				typ, f = item
+				try:
+					self.import_subscriptions(f)
+				except e:
+					print "Exception importing opml file:", e
+
 		self._for_import = []
+		
+	def get_database_name(self):
+		return os.path.join(utils.get_home(), "penguintv3.db")
 			
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
@@ -1692,19 +1709,6 @@ class PenguinTVApp(gobject.GObject):
 	def _entry_image_download_callback(self, entry_id, html):
 		self._gui_updater.queue(self._entry_view._images_loaded,(entry_id, html))
 		
-	def _socket_cb(self, data):
-		"""right now just tries to import an opml file"""
-		#goddamn hack: if it's insensitive, _done_pop will get called so use that
-		#method
-		if not self.main_window.search_container.get_property('sensitive'):
-			self._for_import.append(data)
-		else:
-			try:
-				f = open(data)
-				self.import_subscriptions(f)
-			except Exception, e:
-				print "not a valid file: ",e
-				
 	def _reset_db_updater(self, db):
 		self._updater_thread_db = db
 		
@@ -1758,12 +1762,55 @@ class PenguinTVApp(gobject.GObject):
 			""" Exit the run loop next time through."""
 	        
 			self.__isDying = True
-				
+	
+class CantChangeState(Exception):
+	def __init__(self,m):
+		self.m = m
+	def __str__(self):
+		return self.m
+		
+class AlreadyRunning(Exception):
+	def __init__(self, remote_app):
+		self.remote_app = remote_app
+
+def usage():
+	print "penguintv command line options:"
+	print "   -o [filename]     Import an OPML file"
+	print "   -u [filename]     Add an RSS url (must be actual rss link, not web page for detection)"
+	print "   -h | --help       This explanation"
+		
+def do_commandline(remote_app=None, local_app=None):
+	assert remote_app is not None or local_app is not None
+
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help"])
+	except getopt.GetoptError:
+        # print help information and exit:
+		usage()
+		sys.exit(2)
+		
+	for o, a in opts:
+		if o in ('-h', '--help'):
+			usage()
+			sys.exit(0)
+		elif o == '-o':
+			if local_app is None:
+				remote_app.ImportOpml(a)
+			else:
+				local_app.import_subscriptions(a)
+		elif o == '-u':
+			if local_app is None:
+				remote_app.AddFeed(a)
+			else:
+				local_app.add_feed(a, a)
+
 def main():
 	if HAS_GNOME:
 		gnome.init("PenguinTV", utils.VERSION)
-	app = PenguinTVApp()    # Instancing of the GUI
-	if not app._socket.is_server:
+	try:
+		app = PenguinTVApp()    # Instancing of the GUI
+	except AlreadyRunning, e:
+		do_commandline(remote_app=e.remote_app)
 		sys.exit(0)
 	app.main_window.Show() 
 	gtk.gdk.threads_init()
@@ -1784,6 +1831,7 @@ def main():
 		except:
 			print "Unable to initialize KDE"
 			sys.exit(1)	
+	do_commandline(local_app=app)
 	gtk.main() 
 
 def do_quit(self, event, app):
@@ -1793,8 +1841,10 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	if HAS_GNOME:
 		gtk.gdk.threads_init()
 		gnome.init("PenguinTV", utils.VERSION)
-		app = PenguinTVApp()    # Instancing of the GUI
-		if not app._socket.is_server:
+		try:
+			app = PenguinTVApp()    # Instancing of the GUI
+		except AlreadyRunning, e:
+			do_commandline(remote_app=e.remote_app)
 			sys.exit(0)
 		app.main_window.Show() 
 		#import profile
@@ -1822,10 +1872,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		app = PenguinTVApp()
 		app.main_window.Show(window)
 		window.connect('delete-event', do_quit, app)
+	do_commandline(local_app=app)
 	gtk.main()
-	
-class CantChangeState(Exception):
-	def __init__(self,m):
-		self.m = m
-	def __str__(self):
-		return self.m
+

@@ -34,10 +34,18 @@ class AddFeedDialog:
 		self._edit_tags_widget = self._xml.get_widget("edit_tags_widget")
 		self._tag_hbox = self._xml.get_widget('tag_hbox')
 		self._label = self._xml.get_widget('add_feed_label')
+		
+	def extract_content(self):
+		hbox = self._xml.get_widget('add_feed_hbox')
+		hbox.unparent()
+		hbox.show_all()
+		self._window = None
+		return hbox
 				
 	def show(self):
 		self._feed_url_widget.grab_focus()
-		self._window.show()
+		if self._window:
+			self._window.show()
 		self._feed_url_widget.set_text("")
 		self.set_location()
 		self._edit_tags_widget.set_text("")
@@ -58,11 +66,13 @@ class AddFeedDialog:
 		clipboard.request_text(_clipboard_cb, None)
 		
 	def on_window_add_feed_delete_event(self, widget, event):
-		return self._window.hide_on_delete()
+		if self._window:
+			return self._window.hide_on_delete()
 		
 	def hide(self):
 		self._feed_url_widget.set_text("")
-		self._window.hide()
+		if self._window:
+			self._window.hide()
 		
 	def finish(self):
 		tags=[]
@@ -70,13 +80,15 @@ class AddFeedDialog:
 			for tag in self._edit_tags_widget.get_text().split(','):
 				tags.append(tag.strip())
 		url = self._feed_url_widget.get_text()
-		self._window.set_sensitive(False)
+		if self._window:
+			self._window.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
 		try:
 			url,title = self._correct_url(url)
 			if url is None:
-				self._window.set_sensitive(True)
+				if self._window:
+					self._window.set_sensitive(True)
 				return
 			feed_id = self._app.add_feed(url,title)
 		except AuthorizationFailed:
@@ -87,10 +99,12 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
-			self._window.set_sensitive(True)
+			if self._window:
+				self._window.set_sensitive(True)
 			return
 		except AuthorizationCancelled:
-			self._window.set_sensitive(True)
+			if self._window:
+				self._window.set_sensitive(True)
 			return
 		except BadFeedURL, e:
 			dialog = gtk.Dialog(title=_("No Feed in Page"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
@@ -100,13 +114,15 @@ class AddFeedDialog:
 			response = dialog.run()
 			dialog.hide()
 			del dialog
-			self._window.set_sensitive(True)
+			if self._window:
+				self._window.set_sensitive(True)
 			return
 		#except:
 		#	self._window.set_sensitive(True)
 		#	return 
 
-		self._window.set_sensitive(True)
+		if self._window:
+			self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.
 		if len(tags) > 0:

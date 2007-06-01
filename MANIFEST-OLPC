@@ -30,7 +30,7 @@ penguintv/penguintv.py
 penguintv/PlanetView.py
 penguintv/Player.py
 penguintv/PreferencesDialog.py
-penguintv/PTVAppSocket.py
+penguintv/ptvDbus.py
 penguintv/OLPCBrowser.py
 penguintv/ptvbittorrent/bencode.py
 penguintv/ptvbittorrent/bitfield.py

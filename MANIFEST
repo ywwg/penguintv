@@ -60,7 +60,7 @@ penguintv/EditSearchesDialog.py
 penguintv/FeedFilterDialog.py
 penguintv/FeedFilterPropertiesDialog.py
 penguintv/ptv_sync.py
-penguintv/PTVAppSocket.py
+penguintv/ptvDbus.py
 penguintv/Downloadview.py
 penguintv/FilterSelectionWidget.py
 penguintv/GStreamerPlayer.py

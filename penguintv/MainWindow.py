@@ -48,6 +48,9 @@ import SynchronizeDialog
 import FilterSelectorDialog
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
+if utils.RUNNING_SUGAR:
+	import AddFeedDialog
+
 if utils.HAS_GSTREAMER:
 	import GStreamerPlayer
 
@@ -69,7 +72,7 @@ class MainWindow(gobject.GObject):
 	def __init__(self, app, glade_prefix, use_internal_player=False, window=None, status_icon=None):
 		gobject.GObject.__init__(self)
 		self._app = app
-		self._app_inited = False
+		self._window_inited = False
 		self._mm = self._app.mediamanager
 		self._db = self._app.db #this and app are always in the same thread
 		self._glade_prefix = glade_prefix
@@ -109,6 +112,7 @@ class MainWindow(gobject.GObject):
 		self._app.connect('download-finished', self.__download_finished_cb)
 		self._app.connect('setting-changed', self.__setting_changed_cb)
 		self._app.connect('tags-changed', self.__tags_changed_cb)
+		self._app.connect('app-loaded', self.__app_loaded_cb)
 	
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
@@ -155,6 +159,9 @@ class MainWindow(gobject.GObject):
 	def __tags_changed_cb(self, app, val):
 		self.update_filters()
 		
+	def __app_loaded_cb(self, app):
+		self._finish_sugar_toolbar()
+		
 	def update_downloads(self):
 		self._download_view.update_downloads()
 		
@@ -196,10 +203,6 @@ class MainWindow(gobject.GObject):
 			self.app_window = None
 
 			vbox = gtk.VBox()
-			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar_holder','penguintv')
-			self.toolbar = self._load_toolbar()
-			self.toolbar.unparent()
-			#vbox.pack_start(self.toolbar, False, False)
 			self._layout_dock = self.load_notebook()
 			self._layout_dock.add(self.load_layout())
 			vbox.pack_start(self._notebook)
@@ -208,11 +211,16 @@ class MainWindow(gobject.GObject):
 			dock_widget.set_canvas(vbox)
 			dock_widget.show_all()
 			
+			self._window = dock_widget
+			
+			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar_holder','penguintv')
+			self.toolbar = self._load_sugar_toolbar()
+			self.toolbar.show()
+			
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
 			
-			self._window = dock_widget
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
@@ -223,9 +231,9 @@ class MainWindow(gobject.GObject):
 				self._notebook.show_page(N_PLAYER)
 				self.emit('player-show')
 				
-		if not self._app_inited:
+		if not self._window_inited:
 			gobject.idle_add(self._app.post_show_init)
-			self._app_inited = True
+			self._window_inited = True
 			
 		return False
 			
@@ -242,6 +250,79 @@ class MainWindow(gobject.GObject):
 		self._disk_usage_widget.set_use_markup(True)
 	
 		return toolbar
+		
+	def _load_sugar_toolbar(self):
+		from sugar.graphics.toolbutton import ToolButton
+		from sugar.graphics.palette import Palette
+		
+		toolbar = gtk.Toolbar()
+		
+		# Add Feed Palette (initialized later when the dialogs are set up)
+		self._sugar_add_button = ToolButton('gtk-add')
+		toolbar.insert(self._sugar_add_button, -1)
+		self._sugar_add_button.show()
+		
+		# Remove Feed
+		self._sugar_remove_button = ToolButton('gtk-remove')
+		vbox = gtk.VBox()
+		#vbox.set_size_request(300, 200)
+		label = gtk.Label(_('Really delete feed?'))
+		vbox.pack_start(label)
+		hbox = gtk.HBox()
+		expander_label = gtk.Label(' ')
+		hbox.pack_start(expander_label)
+		b = gtk.Button('gtk-remove')
+		b.set_use_stock(True)
+		b.connect('clicked', self.on_remove_feed_activate, True)
+		hbox.pack_start(b, False)
+		vbox.pack_start(hbox)
+		palette = Palette()
+		palette.set_primary_state(_('Remove Feed'))
+		palette.set_content(vbox)
+		vbox.show_all()
+		self._sugar_remove_button.set_palette(palette)
+		toolbar.insert(self._sugar_remove_button, -1)
+		self._sugar_remove_button.show()
+		
+		# Refresh Feeds
+		b = gtk.ToolButton('gtk-refresh')
+		b.connect('clicked', self.on_feeds_poll_clicked)
+		toolbar.insert(b, -1)
+		b.show()
+		
+		# Download Media
+		b = gtk.ToolButton('gtk-go-down')
+		b.connect('clicked', self.on_download_unviewed_clicked)
+		toolbar.insert(b, -1)
+		b.show()
+		
+		# Separator
+		sep = gtk.SeparatorToolItem()
+		toolbar.insert(sep, -1)
+		sep.show()
+		
+		# Preferences
+		self._sugar_prefs_button = ToolButton('gtk-preferences')
+		toolbar.insert(self._sugar_prefs_button, -1)
+		self._sugar_prefs_button.show()
+		
+		return toolbar
+		
+	def _finish_sugar_toolbar(self):
+		from sugar.graphics.toolbutton import ToolButton
+		from sugar.graphics.palette import Palette
+		
+		content = self._app.window_add_feed.extract_content()
+		palette = Palette()
+		palette.set_primary_state(_('Add Feed'))
+		palette.set_content(content)
+		self._sugar_add_button.set_palette(palette)
+		
+		content = self._app.window_preferences.extract_content()
+		palette = Palette()
+		palette.set_primary_state(_('Preferences'))
+		palette.set_content(content)
+		self._sugar_prefs_button.set_palette(palette)
 		
 	class _my_status_view(gtk.HBox):
 		def __init__(self, homogeneous=False, spacing=0):
@@ -894,20 +975,23 @@ class MainWindow(gobject.GObject):
 		self.search_entry.set_text("")
 		self.search_container.set_sensitive(True)
 		
-	def on_remove_feed_activate(self, event):
+	def on_remove_feed_activate(self, event, override=False):
+		print "accccctivate"
 		assert self._state != S_LOADING_FEEDS
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			dialog = gtk.Dialog(title=_("Really Delete Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label(_("Are you sure you want to delete this feed?"))
-			dialog.vbox.pack_start(label, True, True, 0)
-			label.show()
-			dialog.set_transient_for(self._app.main_window.get_parent())
-			response = dialog.run()
-			dialog.hide()
-			del dialog
-			if response == gtk.RESPONSE_ACCEPT:		
-				self._app.remove_feed(selected)
+			if not override:
+				dialog = gtk.Dialog(title=_("Really Delete Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_DELETE, gtk.RESPONSE_ACCEPT))
+				label = gtk.Label(_("Are you sure you want to delete this feed?"))
+				dialog.vbox.pack_start(label, True, True, 0)
+				label.show()
+				dialog.set_transient_for(self._app.main_window.get_parent())
+				response = dialog.run()
+				dialog.hide()
+				del dialog
+				if response != gtk.RESPONSE_ACCEPT:		
+					return
+			self._app.remove_feed(selected)
 		
 	def on_resume_all_activate(self, event):
 		self._app.resume_resumable()

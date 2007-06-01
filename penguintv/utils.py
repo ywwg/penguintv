@@ -103,6 +103,13 @@ HAS_PYNOTIFY = False
 #HAS_GNOMEVFS = False
 #HAS_MOZILLA=False
 
+def get_home():
+	if RUNNING_SUGAR:
+		import sugar.env
+		return os.path.join(sugar.env.get_profile_path(), 'penguintv')
+	else:
+		return os.path.join(os.getenv('HOME'), ".penguintv")
+
 def format_size(size):
 	if size > 1073741824:
 		return "%.2f GB" % (float(size)/1073741824)

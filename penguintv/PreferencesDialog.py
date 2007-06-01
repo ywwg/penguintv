@@ -38,20 +38,36 @@ class PreferencesDialog:
 		self.auto_download_limit_widget = self.xml.get_widget("auto_download_limit")
 		self.limiter_hbox_widget = self.xml.get_widget("limiter_hbox")
 				
-	def show(self):
-		self._window.show_all()
+	def extract_content(self):
+		vbox = self.xml.get_widget('prefs_vbox')
+		vbox.unparent()
+		vbox.show_all()
+		self._window = None
 		if utils.RUNNING_SUGAR:
 			self.auto_download_limiter_widget.hide()
 			self.auto_download_limit_widget.hide()
 			self.limiter_hbox_widget.hide()
 			self.show_notification_always.hide()
-		        
+			self.xml.get_widget("button_close").hide()
+		return vbox
 		
+	def show(self):
+		if self._window:
+			self._window.show_all()
+		if utils.RUNNING_SUGAR:
+			self.auto_download_limiter_widget.hide()
+			self.auto_download_limit_widget.hide()
+			self.limiter_hbox_widget.hide()
+			self.show_notification_always.hide()
+			self.xml.get_widget("button_close").hide()
+		        
 	def hide(self):
-		self._window.hide()	
+		if self._window:
+			self._window.hide()	
 		
 	def on_window_preferences_delete_event(self, widget, event):
-		return self._window.hide_on_delete()
+		if self._window:
+			return self._window.hide_on_delete()
 			
 	def set_feed_refresh_method(self, method):
 		if method==penguintv.REFRESH_AUTO:
