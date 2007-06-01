@@ -160,7 +160,8 @@ class MainWindow(gobject.GObject):
 		self.update_filters()
 		
 	def __app_loaded_cb(self, app):
-		self._finish_sugar_toolbar()
+		if utils.RUNNING_SUGAR:
+			self._finish_sugar_toolbar()
 		
 	def update_downloads(self):
 		self._download_view.update_downloads()
@@ -976,7 +977,6 @@ class MainWindow(gobject.GObject):
 		self.search_container.set_sensitive(True)
 		
 	def on_remove_feed_activate(self, event, override=False):
-		print "accccctivate"
 		assert self._state != S_LOADING_FEEDS
 		selected = self.feed_list_view.get_selected()
 		if selected:

@@ -128,17 +128,16 @@ class PenguinTVApp(gobject.GObject):
 		#if we can get a dbus object, and it's using
 		#our database, penguintv is already running
 		bus = dbus.SessionBus()
-		try:
-			remote_object = bus.get_object("com.ywwg.PenguinTVApp", "/PtvApp")
-			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTVApp.AppInterface")
+		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
+		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
+		if dubus_methods.NameHasOwner('com.ywwg.PenguinTV'):
+			remote_object = bus.get_object("com.ywwg.PenguinTV", "/PtvApp")
+			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
 			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv3.db"):
 				raise AlreadyRunning, remote_app
-		except dbus.DBusException, e:
-			#PenguinTV not running
-			pass
 		
 		#initialize dbus object
-		name = dbus.service.BusName("com.ywwg.PenguinTVApp", bus=bus)
+		name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 		ptv_dbus = ptvDbus.ptvDbus(self, name)
 		
 		found_glade = False
