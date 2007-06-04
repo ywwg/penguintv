@@ -135,7 +135,6 @@ class PenguinTVApp(gobject.GObject):
 			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
 			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv3.db"):
 				raise AlreadyRunning, remote_app
-		
 		#initialize dbus object
 		name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 		ptv_dbus = ptvDbus.ptvDbus(self, name)

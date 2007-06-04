@@ -1,7 +1,7 @@
 [Activity]
 name = News Reader
-service_name = com.ywwg.PenguinTV
-id = com.ywwg.PenguinTV
+service_name = com.ywwg.NewsReader
+id = com.ywwg.NewsReader
 class = PenguinTVActivity.PenguinTVActivity
 icon = activity-penguintv
 activity_version = 21
