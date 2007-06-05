@@ -39,6 +39,8 @@ class FeedPropertiesDialog:
 		
 		if not utils.HAS_LUCENE:
 			self._xml.get_widget('b_search').hide()
+		if utils.RUNNING_SUGAR:
+			self._xml.get_widget('b_notifyupdates').hide()
 		self._title_widget.grab_focus()
 		self._window.show()
 		
