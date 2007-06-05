@@ -664,6 +664,7 @@ class MainWindow(gobject.GObject):
 			self._feed_properties_dialog.set_link(feed_info['link'])
 			self._feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
 			self._feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
+			self._feed_properties_dialog.set_flags(self._db.get_flags_for_feed(selected))
 			if self._app.feed_refresh_method == penguintv.REFRESH_AUTO:
 				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
 			else:
@@ -1197,6 +1198,10 @@ class MainWindow(gobject.GObject):
 			i+=1
 			if builtin == _("All Feeds"):
 				text = builtin+" ("+str(len(self._db.get_feedlist()))+")"
+				self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
+				menuitem = gtk.MenuItem(text)
+			elif builtin == _("Notifying Feeds"):
+				text = builtin+" ("+str(len(self._db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)))+")"
 				self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
 				menuitem = gtk.MenuItem(text)
 			else:

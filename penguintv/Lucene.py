@@ -61,9 +61,9 @@ class Lucene:
 		
 	def _get_db(self):
 		try:	
-			if os.path.isfile(os.path.join(self.home,"penguintv3.db")) == False:
+			if os.path.isfile(os.path.join(self.home,"penguintv4.db")) == False:
 				raise DBError,"database file missing"
-			db=sqlite.connect(os.path.join(self.home,"penguintv3.db"), timeout=10	)
+			db=sqlite.connect(os.path.join(self.home,"penguintv4.db"), timeout=10	)
 			db.isolation_level="DEFERRED"
 			return db
 		except:

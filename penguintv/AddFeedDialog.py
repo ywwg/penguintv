@@ -15,6 +15,8 @@ import sys
 import HTMLParser 
 
 import utils
+from ptvDB import FF_NOAUTODOWNLOAD, FF_NOSEARCH, FF_NOAUTOEXPIRE, \
+                  FF_NOTIFYUPDATES, FF_ADDNEWLINES 
 import LoginDialog
 if utils.HAS_PYXML:
 	import itunes
@@ -36,11 +38,11 @@ class AddFeedDialog:
 		self._label = self._xml.get_widget('add_feed_label')
 		
 	def extract_content(self):
-		hbox = self._xml.get_widget('add_feed_hbox')
-		hbox.unparent()
-		hbox.show_all()
+		box = self._xml.get_widget('add_feed_box')
+		box.unparent()
+		box.show_all()
 		self._window = None
-		return hbox
+		return box
 				
 	def show(self):
 		self._feed_url_widget.grab_focus()
@@ -75,6 +77,21 @@ class AddFeedDialog:
 			self._window.hide()
 		
 	def finish(self):
+		flags = 0
+		if not utils.RUNNING_SUGAR:
+			#reversed
+			if not self._xml.get_widget('b_download').get_active():
+				flags += FF_NOAUTODOWNLOAD
+			#reversed
+			if not self._xml.get_widget('b_search').get_active():
+				flags += FF_NOSEARCH
+			if self._xml.get_widget('b_notifyupdates').get_active():
+				flags += FF_NOTIFYUPDATES
+			if self._xml.get_widget('b_noautoexpire').get_active():
+				flags += FF_NOAUTOEXPIRE
+			if self._xml.get_widget('b_addnewlines').get_active():
+				flags += FF_ADDNEWLINES
+	
 		tags=[]
 		if len(self._edit_tags_widget.get_text()) > 0:
 			for tag in self._edit_tags_widget.get_text().split(','):
@@ -91,6 +108,7 @@ class AddFeedDialog:
 					self._window.set_sensitive(True)
 				return
 			feed_id = self._app.add_feed(url,title)
+			self._app.db.set_flags_for_feed(feed_id, flags)
 		except AuthorizationFailed:
 			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("You must specify a valid username and password in order to add this feed."))

@@ -102,6 +102,9 @@ class PenguinTVApp(gobject.GObject):
 		'entry-updated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
+        'render-ops-updated': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),
 		'notify-tags-changed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([])),
@@ -133,7 +136,7 @@ class PenguinTVApp(gobject.GObject):
 		if dubus_methods.NameHasOwner('com.ywwg.PenguinTV'):
 			remote_object = bus.get_object("com.ywwg.PenguinTV", "/PtvApp")
 			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
-			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv3.db"):
+			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv4.db"):
 				raise AlreadyRunning, remote_app
 		#initialize dbus object
 		name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
@@ -642,14 +645,14 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_list_view.set_selected(feed_id)
 		self.emit('tags-changed', 0)
 		self.feed_list_view.filter_all(False)
-		if old_tags is not None:
-			if ptvDB.NOTIFYUPDATES in old_tags:
-				self.emit('notify-tags-changed')
-				return #don't need the next test
-		if new_tags is not None:
-			if ptvDB.NOTIFYUPDATES in new_tags:
-				self.emit('notify-tags-changed')
-		
+		#if old_tags is not None:
+		#	if ptvDB.NOTIFYUPDATES in old_tags:
+		#		self.emit('notify-tags-changed')
+		#		return #don't need the next test
+		#if new_tags is not None:
+		#	if ptvDB.NOTIFYUPDATES in new_tags:
+		#		self.emit('notify-tags-changed')
+	
 	def _populate_feeds(self, callback=None, subset=FeedList.ALL):
 		self.set_state(LOADING_FEEDS)
 		self.main_window.display_status_message(_("Loading Feeds..."))
@@ -1642,7 +1645,7 @@ class PenguinTVApp(gobject.GObject):
 		self._for_import = []
 		
 	def get_database_name(self):
-		return os.path.join(utils.get_home(), "penguintv3.db")
+		return os.path.join(utils.get_home(), "penguintv4.db")
 			
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""

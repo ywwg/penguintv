@@ -71,6 +71,7 @@ class EntryView(gobject.GObject):
 		self._current_entry={}
 		self._updater_timer=0
 		self._custom_entry = False
+		self._convert_newlines = (-1, False)
 		self._background_color = "#%.2x%.2x%.2x;" % (
                 style.base[gtk.STATE_NORMAL].red / 256,
                 style.base[gtk.STATE_NORMAL].blue / 256,
@@ -148,6 +149,8 @@ class EntryView(gobject.GObject):
 		self._handlers.append((entry_list_view.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 	def __feedlist_none_selected_cb(self, o):
 		self.display_item()
@@ -156,7 +159,11 @@ class EntryView(gobject.GObject):
 		self.display_item()
 		
 	def __entry_updated_cb(self, app, entry_id, feed_id):
-		self.update_if_selected(entry_id)		
+		self.update_if_selected(entry_id)
+		
+	def __render_ops_updated_cb(self, app):
+		self._convert_newlines = (-1, False)
+		self.update_if_selected(self._current_entry['entry_id'])
 	
 	def on_url(self, view, url):
 		if url == None:
@@ -220,6 +227,13 @@ class EntryView(gobject.GObject):
 		except Exception, ex:
 			stream.close()
 			raise
+			
+	def get_selected(self):
+		if len(self._current_entry) == 0:
+			return None
+		elif not self._currently_blank:
+			return self._current_entry['entry_id']
+		return None
 	
 	def update_if_selected(self, entry_id=None):
 		"""tests to see if this is the currently-displayed entry, 
@@ -318,6 +332,10 @@ class EntryView(gobject.GObject):
 					pass
 			self._current_entry = item	
 			self._currently_blank = False
+			if self._convert_newlines[0] != item['feed_id']:
+				self._convert_newlines = (item['feed_id'], 
+				       self._db.get_flags_for_feed(item['feed_id']) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES)
+			
 			if item['feed_id'] != self._auth_info[0] and self._auth_info[0] != -2:
 				feed_info = self._db.get_feed_info(item['feed_id'])
 				if feed_info['auth_feed']:
@@ -325,6 +343,7 @@ class EntryView(gobject.GObject):
 				else:
 					self._auth_info = (-2, "","")
 		else:
+			self._convert_newlines = (-1, False)
 			self._currently_blank = True
 			if self._renderer == GTKHTML:
 				self._current_scroll_v = va.get_value()
@@ -346,7 +365,7 @@ class EntryView(gobject.GObject):
 	            														 self._moz_font, 
 	            														 self._moz_size, 
 	            														 self._css, 
-	            														 htmlify_item(item, self._mm))
+	            														 htmlify_item(item, self._mm, convert_newlines=self._convert_newlines[1]))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
@@ -362,7 +381,7 @@ class EntryView(gobject.GObject):
 	            <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
 	            														 self._foreground_color,
 	            														 self._css,
-	            														 htmlify_item(item, self._mm))
+	            														 htmlify_item(item, self._mm, convert_newlines=self._convert_newlines[1]))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
@@ -482,7 +501,7 @@ class EntryView(gobject.GObject):
 		self._custom_entry = True
 		return
 		
-def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new=False, basic_progress=False):
+def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new=False, basic_progress=False, convert_newlines=False):
 	""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
 	    but there are lots of alternate designs depending on the status of media. """
 
@@ -520,8 +539,10 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 			ret += '<span id="' + str(item['entry_id']) + '"></span>'
 	ret.append('<div class="content">')
 	if item.has_key('description'):
-		#ret.append('%s' % item['description'].replace('\n\n', '<br/><br/>'))
-		ret.append('%s' % item['description'])
+		if convert_newlines:
+			ret.append('%s' % item['description'].replace('\n', '<br/>'))
+		else:
+			ret.append('%s' % item['description'])
 	ret.append('</div>')
 	if item.has_key('link'):
 		ret.append('<a href="' + item['link'] + '">' + _("Full Entry...") + '</a>')

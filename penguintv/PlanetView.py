@@ -71,6 +71,7 @@ class PlanetView(gobject.GObject):
 		self._entrylist = []
 		self._readinfo  = None
 		self._entry_store = {}
+		self._convert_newlines = False
 		
 		self._first_entry = 0 #first entry visible
 		
@@ -179,6 +180,8 @@ class PlanetView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -205,11 +208,22 @@ class PlanetView(gobject.GObject):
 		if feed_id == self._current_feed_id:
 			self._render_entries()
 			
+	def __render_ops_updated_cb(self, app):
+		self._convert_newlines = self._db.get_flags_for_feed(self._current_feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
+		self._entry_store = {}
+		self._render_entries()		
+			
 	def __size_changed_cb(self, screen):
 		"""Redraw after xrandr calls"""
 		self._render_entries()
 		
 	#entrylist functions
+	def get_selected(self):
+		# just return the top one
+		if len(self._entrylist) > 0:
+			return self._entrylist[0]
+		return None
+	
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._current_feed_id:
 			self.populate_entries(feed_id)
@@ -248,6 +262,9 @@ class PlanetView(gobject.GObject):
 		for e in db_entrylist:
 			self._entrylist.append(e[0])
 			self._readinfo.append(e[3])
+			
+		self._convert_newlines = self._db.get_flags_for_feed(feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
+			
 		self._render_entries()
 		
 	def auto_pane(self):
@@ -270,6 +287,7 @@ class PlanetView(gobject.GObject):
 			self.display_custom_entry(_("No entries match those search criteria"))
 			
 		self._entrylist = [e[0] for e in entries]
+		self._convert_newlines = False
 		try:
 			self._render_entries(query)
 		except ptvDB.NoEntry:
@@ -288,6 +306,7 @@ class PlanetView(gobject.GObject):
 		self._first_entry = 0
 		self._entry_store={}
 		self._entrylist = []
+		self._convert_newlines = False
 		self._readinfo  = None
 		self._render("<html><body></body></html")
 		if self._USING_AJAX:
@@ -557,9 +576,9 @@ class PlanetView(gobject.GObject):
 				
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 			else:
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 				
 	def _load_entry(self, entry_id, force = False):
 		if self._entry_store.has_key(entry_id) and not force:
@@ -572,9 +591,9 @@ class PlanetView(gobject.GObject):
 			item['media']=media
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX),item)
+			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 		else:
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX),item)
+			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 		
 		index = self._entrylist.index(entry_id)
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:

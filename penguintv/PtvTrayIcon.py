@@ -125,7 +125,7 @@ class PtvTrayIcon:
 		self._app.main_window.connect('player-hide', self.__gst_player_hide_cb)
 		
 	def _update_notification_feeds(self, obj=None):
-		self._notification_feeds = self._db.get_feeds_for_tag(ptvDB.NOTIFYUPDATES)
+		self._notification_feeds = self._db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)
 				
 	def _download_finished_cb(self, app, d):
 		if (d.status == FINISHED or d.status == FINISHED_AND_PLAY) and \

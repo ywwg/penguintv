@@ -2,7 +2,9 @@
 # see LICENSE for license information
 
 import penguintv
-from ptvDB import FeedAlreadyExists
+import utils
+from ptvDB import FeedAlreadyExists, FF_NOAUTODOWNLOAD, FF_NOSEARCH, \
+				  FF_NOAUTOEXPIRE, FF_NOTIFYUPDATES, FF_ADDNEWLINES 
 import gtk
 import time, datetime
 from math import floor
@@ -23,15 +25,20 @@ class FeedPropertiesDialog:
 		self._last_poll_widget = xml.get_widget('last_poll_label')
 		self._next_poll_widget = xml.get_widget('next_poll_label')
 		self._edit_tags_widget = xml.get_widget('edit_tags_widget')
+		self._cur_flags = 0
 		self._old_title = ""
 		self._old_rss = ""
 		self._old_link = ""
 		self._old_tags = []
+		self._old_flags = 0
 		
 		self._feed_id=0
 				
 	def show(self):
 		self._window.set_transient_for(self._app.main_window.get_parent())
+		
+		if not utils.HAS_LUCENE:
+			self._xml.get_widget('b_search').hide()
 		self._title_widget.grab_focus()
 		self._window.show()
 		
@@ -82,11 +89,99 @@ class FeedPropertiesDialog:
 		self._edit_tags_widget.set_text(text)
 		self._old_tags = tags
 		
+	def set_flags(self, flags):
+		self._old_flags = self._cur_flags = flags
+	
+		#reversed
+		if flags & FF_NOAUTODOWNLOAD == FF_NOAUTODOWNLOAD:
+			self._xml.get_widget('b_autodownload').set_active(False)
+		else:
+			self._xml.get_widget('b_autodownload').set_active(True)
+			
+		#reversed
+		if flags & FF_NOSEARCH == FF_NOSEARCH:
+			self._xml.get_widget('b_search').set_active(False)
+		else:
+			self._xml.get_widget('b_search').set_active(True)
+			
+		if flags & FF_NOAUTOEXPIRE == FF_NOAUTOEXPIRE:
+			self._xml.get_widget('b_noautoexpire').set_active(True)
+		else:
+			self._xml.get_widget('b_noautoexpire').set_active(False)
+			
+		if flags & FF_NOTIFYUPDATES == FF_NOTIFYUPDATES:
+			self._xml.get_widget('b_notifyupdates').set_active(True)
+		else:
+			self._xml.get_widget('b_notifyupdates').set_active(False)
+			
+		if flags & FF_ADDNEWLINES == FF_ADDNEWLINES:
+			self._xml.get_widget('b_addnewlines').set_active(True)
+		else:
+			self._xml.get_widget('b_addnewlines').set_active(False)
+		
 	def on_window_feed_properties_delete_event(self, widget, event):
 		return self._window.hide_on_delete()
 		
 	def hide(self):
 		self._window.hide()
+		
+	def on_b_autodownload_toggled(self, b_autodownload):
+		# reverse the polarity!
+		noautodownload = not b_autodownload.get_active()
+		if noautodownload:
+			if not self._cur_flags & FF_NOAUTODOWNLOAD == FF_NOAUTODOWNLOAD:
+				self._cur_flags += FF_NOAUTODOWNLOAD
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+		else:
+			if self._cur_flags & FF_NOAUTODOWNLOAD == FF_NOAUTODOWNLOAD:
+				self._cur_flags -= FF_NOAUTODOWNLOAD
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				
+	def on_b_search_toggled(self, b_search):
+		# reverse the polarity!
+		nosearch = not b_search.get_active()
+		if nosearch:
+			if not self._cur_flags & FF_NOSEARCH == FF_NOSEARCH:
+				self._cur_flags += FF_NOSEARCH
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+		else:
+			if self._cur_flags & FF_NOSEARCH == FF_NOSEARCH:
+				self._cur_flags -= FF_NOSEARCH
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				
+	def on_b_notifyupdates_toggled(self, b_notifyupdates):
+		if b_notifyupdates.get_active():
+			if not self._cur_flags & FF_NOTIFYUPDATES == FF_NOTIFYUPDATES:
+				self._cur_flags += FF_NOTIFYUPDATES
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				self._app.emit('notify-tags-changed')
+		else:
+			if self._cur_flags & FF_NOTIFYUPDATES == FF_NOTIFYUPDATES:
+				self._cur_flags -= FF_NOTIFYUPDATES
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				self._app.emit('notify-tags-changed')
+				
+	def on_b_noautoexpire_toggled(self, b_noautoexpire):
+		if b_noautoexpire.get_active():
+			if not self._cur_flags & FF_NOAUTOEXPIRE == FF_NOAUTOEXPIRE:
+				self._cur_flags += FF_NOAUTOEXPIRE
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+		else:
+			if self._cur_flags & FF_NOAUTOEXPIRE == FF_NOAUTOEXPIRE:
+				self._cur_flags -= FF_NOAUTOEXPIRE
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				
+	def on_b_addnewlines_toggled(self, b_addnewlines):
+		if b_addnewlines.get_active():
+			if not self._cur_flags & FF_ADDNEWLINES == FF_ADDNEWLINES:
+				self._cur_flags += FF_ADDNEWLINES
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				self._app.emit('render-ops-updated')
+		else:
+			if self._cur_flags & FF_ADDNEWLINES == FF_ADDNEWLINES:
+				self._cur_flags -= FF_ADDNEWLINES
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				self._app.emit('render-ops-updated')
 		
 	def on_save_values_activate(self, event):
 		new_title = self._title_widget.get_text()
@@ -120,6 +215,8 @@ class FeedPropertiesDialog:
 
 		tags=[tag.strip() for tag in self._edit_tags_widget.get_text().split(',')]
 		self._app.apply_tags_to_feed(self._feed_id, self._old_tags, tags)
+		
+		self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
 		return True
 		
 	def on_close_button_clicked(self,event):
@@ -129,6 +226,7 @@ class FeedPropertiesDialog:
 		self.set_title(self._old_title)
 		self.set_rss(self._old_rss)
 		self.set_link(self._old_link)
+		self.set_flags(self._old_flags)
 		
 	def _finish(self):
  		if self.on_save_values_activate(None):

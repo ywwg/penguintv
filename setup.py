@@ -1,5 +1,4 @@
-#!/usr/bin/python
-
+#!/usr/bin/env python
 #this file is a catastrophe. I'm sorry.
 
 import sys,os

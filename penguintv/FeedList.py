@@ -16,8 +16,9 @@ import random
 NONE=-1 #unused, needs a value
 ALL=0
 DOWNLOADED=1
-SEARCH=2
-BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"), _("Search Results")]
+NOTIFY=2
+SEARCH=3
+BUILTIN_TAGS=[_("All Feeds"),_("Downloaded Media"), _("Notifying Feeds"), _("Search Results")]
 
 TITLE=0
 MARKUPTITLE=1
@@ -619,13 +620,16 @@ class FeedList(gobject.GObject):
 			
 		i=-1
 		for feed in self._feedlist:
-
 			i=i+1
 			flag = feed[FLAG]
 			passed_filter = False
 			
 			if self.filter_setting == DOWNLOADED:
 				if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
+					passed_filter = True
+			elif self.filter_setting == NOTIFY:
+				opts = self._db.get_flags_for_feed(feed[FEEDID])
+				if opts & ptvDB.FF_NOTIFYUPDATES:
 					passed_filter = True
 			elif self.filter_setting == ALL:
 				passed_filter = True
@@ -677,6 +681,10 @@ class FeedList(gobject.GObject):
 		
 		if self.filter_setting == DOWNLOADED:
 			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
+				passed_filter = True
+		elif self.filter_setting == NOTIFY:
+			opts = self._db.get_flags_for_feed(feed[FEEDID])
+			if opts & ptvDB.FF_NOTIFYUPDATES:
 				passed_filter = True
 		elif self.filter_setting == ALL:
 			passed_filter = True
@@ -748,6 +756,10 @@ class FeedList(gobject.GObject):
 		if self.filter_setting == DOWNLOADED:
 			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
 				passed_filter = True
+		elif self.filter_setting == NOTIFY:
+			opts = self._db.get_flags_for_feed(feed[FEEDID])
+			if opts & ptvDB.FF_NOTIFYUPDATES:
+				passed_filter = True
 		elif self.filter_setting == ALL:
 			passed_filter = True
 		else:
@@ -778,7 +790,7 @@ class FeedList(gobject.GObject):
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
 		self.filter_name = name
-		
+
 		#if new_filter != SEARCH and self._state == S_SEARCH:
 		#	print "hope we also changed state"
 		#	self._app.set_state(penguintv.DEFAULT)
