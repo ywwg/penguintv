@@ -192,6 +192,7 @@ class ptvDB:
 		try:
 			return c.execute(command, args)
 		except Exception, e:
+			#traceback.print_stack()
 			print "Database error:",
 			print command, args
 			raise e
@@ -497,6 +498,7 @@ class ptvDB:
 							    pollfreq INT NOT NULL,
 							    lastpoll DATE,
 							    newatlast INT,
+							    flags INTEGER NOT NULL DEFAULT 0,
 							    flag_cache INT,
 							    entry_count_cache INT,
 							    unread_count_cache INT,
