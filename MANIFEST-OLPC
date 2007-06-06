@@ -66,7 +66,6 @@ penguintv/ptv_sync.py
 penguintv/SimpleImageCache.py
 penguintv/subProcess.py
 penguintv/SynchronizeDialog.py
-penguintv/test.py
 penguintv/ThreadPool.py
 penguintv/UpdateTasksManager.py
 penguintv/utils.py
