@@ -812,6 +812,10 @@ class MainWindow(gobject.GObject):
 		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 		
+	def on_synchronize_button_clicked(self,event):
+		self._sync_dialog.hide()
+		self._sync_dialog.on_sync_button_clicked(event)	
+				
 	def _on_filter_menu_activate(self, widget, filter_name):
 		names = [f[F_NAME] for f in self._filters]
 		self._active_filter_name = filter_name	
