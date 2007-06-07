@@ -3,6 +3,8 @@ import dbus.service
 import dbus.glib
 import gobject
 
+import utils
+
 class ptvDbus(dbus.service.Object):
 	def __init__(self, app, bus, object_path="/PtvApp"):
 		self._app = app
@@ -14,7 +16,12 @@ class ptvDbus(dbus.service.Object):
 
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def AddFeed(self, url):
-		return self._app.add_feed(url, url)
+		if utils.RUNNING_SUGAR:
+			self.sugar_add_button.popup()
+		else:
+			self._app.window_add_feed.show()
+		self._app.window_add_feed.set_location(url)
+			
 
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def ImportOpml(self, filename):

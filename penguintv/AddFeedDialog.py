@@ -51,12 +51,9 @@ class AddFeedDialog:
 		self._feed_url_widget.set_text("")
 		self.set_location()
 		self._edit_tags_widget.set_text("")
-		#if utils.RUNNING_SUGAR:
-		#	self._tag_hbox.hide()
-		#	self._label.set_text(_('Please enter the URL of the feed you would like to add'))
 	
 	#ripped from straw
-	def set_location(self):
+	def set_location(self, url=""):
 		def _clipboard_cb(cboard, text, data=None):
 			if text:
 				if text[0:4] == "http":
@@ -64,8 +61,11 @@ class AddFeedDialog:
 				elif text[0:5] == "feed:":
 					self._feed_url_widget.set_text(text[5:])
 					        	
-		clipboard = gtk.clipboard_get(selection="CLIPBOARD")
-		clipboard.request_text(_clipboard_cb, None)
+		if url == "":
+			clipboard = gtk.clipboard_get(selection="CLIPBOARD")
+			clipboard.request_text(_clipboard_cb, None)
+		else:
+			self._feed_url_widget.set_text(url)
 		
 	def on_window_add_feed_delete_event(self, widget, event):
 		if self._window:

@@ -48,9 +48,6 @@ import SynchronizeDialog
 import FilterSelectorDialog
 import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
 
-if utils.RUNNING_SUGAR:
-	import AddFeedDialog
-
 if utils.HAS_GSTREAMER:
 	import GStreamerPlayer
 
@@ -259,9 +256,9 @@ class MainWindow(gobject.GObject):
 		toolbar = gtk.Toolbar()
 		
 		# Add Feed Palette (initialized later when the dialogs are set up)
-		self._sugar_add_button = ToolButton('gtk-add')
-		toolbar.insert(self._sugar_add_button, -1)
-		self._sugar_add_button.show()
+		self.sugar_add_button = ToolButton('gtk-add')
+		toolbar.insert(self.sugar_add_button, -1)
+		self.sugar_add_button.show()
 		
 		# Remove Feed
 		self._sugar_remove_button = ToolButton('gtk-remove')
@@ -317,7 +314,7 @@ class MainWindow(gobject.GObject):
 		palette = Palette()
 		palette.set_primary_state(_('Add Feed'))
 		palette.set_content(content)
-		self._sugar_add_button.set_palette(palette)
+		self.sugar_add_button.set_palette(palette)
 		
 		content = self._app.window_preferences.extract_content()
 		palette = Palette()

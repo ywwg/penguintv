@@ -1780,7 +1780,8 @@ class AlreadyRunning(Exception):
 def usage():
 	print "penguintv command line options:"
 	print "   -o [filename]     Import an OPML file"
-	print "   -u [filename]     Add an RSS url (must be actual rss link, not web page for detection)"
+	print "   -u [filename]     Add an RSS url"
+	print "   [filename]        (alternate) Import an RSS url"
 	print "   -h | --help       This explanation"
 		
 def do_commandline(remote_app=None, local_app=None):
@@ -1807,6 +1808,12 @@ def do_commandline(remote_app=None, local_app=None):
 				remote_app.AddFeed(a)
 			else:
 				local_app.add_feed(a, a)
+				
+	if len(opts) == 0 and len(sys.argv) > 1:
+		if local_app is None:
+			remote_app.AddFeed(a)
+		else:
+			local_app.add_feed(a, a)
 
 def main():
 	if HAS_GNOME:
