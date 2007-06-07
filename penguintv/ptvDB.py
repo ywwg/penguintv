@@ -1589,7 +1589,7 @@ class ptvDB:
 		return media_dict
 		
 	def get_media(self, media_id):
-		self._db_execute(self._c, u'SELECT url, download_status, length, file, entry_id, viewed, mimetype FROM media WHERE rowid=?',(media_id,))
+		self._db_execute(self._c, u'SELECT url, download_status, length, file, entry_id, viewed, mimetype, feed_id FROM media WHERE rowid=?',(media_id,))
 		datum=self._c.fetchone()
 		if datum is None:
 			return None
@@ -1605,6 +1605,7 @@ class ptvDB:
 		medium['entry_id']=datum[4] #MAGIC
 		medium['viewed']=int(datum[5]) #MAGIC
 		medium['mimetype']=datum[6] #MAGIC
+		medium['feed_id']=datum[7] #MAGIC
 		return medium
 		
 	def get_feed_media_count(self, feed_id):

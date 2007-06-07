@@ -16,8 +16,9 @@ else:
 	threadclass = threading.Thread
 
 class SynchronizeDialog:
-	def __init__(self, gladefile, db):
-		self._db = db
+	def __init__(self, gladefile, app):
+		self._app = app
+		self._db = self._app.db
 		self._xml = gtk.glade.XML(gladefile, 'synchronize_window','penguintv')
 		self._dialog = self._xml.get_widget("synchronize_window")
 		self._preview_dialog = self._xml.get_widget("sync_preview_window")
@@ -27,6 +28,7 @@ class SynchronizeDialog:
 				
 		self._audio_check = self._xml.get_widget("audio_check")
 		self._delete_check = self._xml.get_widget("delete_check")
+		self._move_check = self._xml.get_widget("move_check")
 		self._destination_entry = self._xml.get_widget("dest_entry")
 		
 		if utils.HAS_GCONF:
@@ -34,6 +36,7 @@ class SynchronizeDialog:
 			self._conf = gconf.client_get_default()
 			self._conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
 			self._conf.notify_add('/apps/penguintv/sync_delete',self.set_sync_delete)
+			self._conf.notify_add('/apps/penguintv/sync_move',self.set_sync_move)
 			self._conf.notify_add('/apps/penguintv/sync_audio_only',self.set_audio_only)
 			self._conf.notify_add('/apps/penguintv/sync_dest_dir',self.set_dest_dir)
 		
@@ -42,6 +45,7 @@ class SynchronizeDialog:
 		
 	def Show(self):
 		self._delete_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
+		self._move_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
 		self._audio_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
 		self._dest_dir = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
 		self._destination_entry.set_text(self._dest_dir)
@@ -86,6 +90,9 @@ class SynchronizeDialog:
 	def on_delete_check_toggled(self, event):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete',self._delete_check.get_active())
 		
+	def on_move_check_toggled(self, event):
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_move',self._move_check.get_active())
+
 	def on_audio_check_toggled(self, event):
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only',self._audio_check.get_active())
 	
@@ -101,7 +108,11 @@ class SynchronizeDialog:
 			return
 			
 		#sync = ptv_sync.ptv_sync(self._dest_dir, self._delete_check.get_active(), self._audio_check.get_active())
-		sync = SynchronizeDialog._sync_thread(self._dest_dir, self._delete_check.get_active(), self._audio_check.get_active())
+		move_files = self._move_check.get_active()
+		sync = SynchronizeDialog._sync_thread(self._dest_dir, 
+											  self._delete_check.get_active(),
+											  move_files, 
+											  self._audio_check.get_active())
 		self._progress_dialog.progress_bar.set_fraction(0)
 		self._progress_dialog.progress_label.set_text("")
 		self._progress_dialog.Show()
@@ -112,9 +123,10 @@ class SynchronizeDialog:
 				p = sync.progress
 				t = sync.total
 				m = sync.message
-				if p == t:
-					break
 				if not self._cancel:
+					if move_files:
+						for m_id in sync.pop_delete_list():
+							self._app.delete_media(m_id)
 					if t == -1:
 						self._progress_dialog.progress_bar.pulse()
 					else:
@@ -122,6 +134,8 @@ class SynchronizeDialog:
 					self._progress_dialog.progress_label.set_markup("<i>"+m+"</i>")
 				else:
 					sync.interrupt() #don't exit loop, just keep going
+				if p == t:
+					break
 				yield True
 			if self._cancel:
 				self._progress_dialog.hide()
@@ -133,12 +147,14 @@ class SynchronizeDialog:
 		sync.start()
 		
 	class _sync_thread(threadclass):
-		def __init__(self, dest_dir, delete=False, audio=False):
+		def __init__(self, dest_dir, delete=False, move=False, audio=False):
 			threadclass.__init__(self)
 			self._dest_dir = dest_dir
 			self._delete = delete
+			self._move = move
 			self._audio = audio
 			self._cancel = False
+			self._delete_list = []
 			
 			self.progress = 0
 			self.total = 100
@@ -147,15 +163,23 @@ class SynchronizeDialog:
 		def interrupt(self):
 			self._cancel = True
 			
+		def pop_delete_list(self):
+			retval = self._delete_list
+			self._delete_list = []
+			return retval
+			
 		def run(self):
 			self._cancel = False
-			sync = ptv_sync.ptv_sync(self._dest_dir, self._delete, self._audio)
+			sync = ptv_sync.ptv_sync(self._dest_dir, self._delete, self._move, self._audio)
 			try:
 				for event in sync.sync_gen():
 					if not self._cancel:
 						self.progress = event[0]
 						self.total    = event[1]
 						self.message  = event[2]
+						# Append to list of media ids to delete from app
+						if event[3] is not None:
+							self._delete_list.append(event[3])
 					else:
 						sync.interrupt() #don't exit loop
 			except Exception, e:
@@ -210,6 +234,9 @@ class SynchronizeDialog:
 	def set_sync_delete(self, client, *args, **kwargs):
 		self._delete_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
 		
+	def set_sync_move(self, client, *args, **kwargs):
+		self._move_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
+
 	def set_audio_only(self, client, *args, **kwargs):
 		self._audio_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
 		

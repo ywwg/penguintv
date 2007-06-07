@@ -259,6 +259,19 @@
      </locale>
    </schema>
    
+   <schema>
+     <key>/schemas/apps/penguintv/sync_move</key>
+     <applyto>/apps/penguintv/sync_move</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>False</default>
+     <locale name="C">
+	<short>Delete files from the database after copying</short>
+	<long>Moves the files instead of copying.  After the synchronization process,
+	the files won't be available from penguintv.  Default False</long>
+     </locale>
+   </schema>
+   
     <schema>
      <key>/schemas/apps/penguintv/sync_audio_only</key>
      <applyto>/apps/penguintv/sync_audio_only</applyto>

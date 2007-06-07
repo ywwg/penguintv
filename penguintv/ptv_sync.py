@@ -21,10 +21,11 @@ except:
 	import ptvDB
 
 class ptv_sync:
-	def __init__(self,dest_dir, delete=False, audio=False, dryrun=False):
+	def __init__(self,dest_dir, delete=False, move=False, audio=False, dryrun=False):
 		self.dest_dir = dest_dir
 		self.audio = audio
 		self.delete = delete
+		self.move = move
 		self.dryrun = dryrun
 		self.cancel = False
 		
@@ -47,7 +48,7 @@ class ptv_sync:
 				medialist = db.get_entry_media(entry[0])
 				if medialist:
 					for medium in medialist:
-						yield (0,-1,_("Building file list..."))
+						yield (0,-1,_("Building file list..."), None)
 						if medium['file']:
 							if self.audio == True:
 								if medium['file'].rsplit(".",1)[-1].upper() not in ("MP3","OGG","FLAC","WMA","M4A"):
@@ -56,10 +57,11 @@ class ptv_sync:
 								source_size = os.stat(medium['file'])[6]
 							except:
 								continue
-							locallist.append([feed[1],medium['file'],source_size])
+							locallist.append([feed[1],medium['file'],source_size, medium['media_id']])
 					
-		db._c.close() #ug
-		db._db.close() #yuck
+		if not self.move:
+			db._c.close() #ug
+			db._db.close() #yuck
 		
 		if self.delete:
 			for root,dirs,files in os.walk(self.dest_dir):
@@ -70,7 +72,7 @@ class ptv_sync:
 					i+=1
 					if f not in [os.path.split(l[1])[1] for l in locallist]:
 						d = {'filename': os.path.join(str(root),str(f))}
-						yield (0,-1,_("Removing %(filename)s") % d)
+						yield (0,-1,_("Removing %(filename)s") % d, None)
 						if self.dryrun==False:
 							os.remove(os.path.join(str(root),str(f)))
 							
@@ -93,29 +95,32 @@ class ptv_sync:
 			try:
 				dest_size = os.stat(os.path.join(sub_dir,filename))[6]
 				if f[2] == dest_size:
+					yield (i, len(locallist), _("%(filename)s already exists") % d, f[3])
 					continue
 			except:
 				pass
 			d = {'filename': filename}
-			yield (i, len(locallist), _("Copying %(filename)s") % d)
+			yield (i, len(locallist), _("Copying %(filename)s") % d, f[3])
 			if self.dryrun==False:
 				shutil.copyfile(f[1], os.path.join(sub_dir,filename))
+
+		if self.move:
+			db._c.close() #ug
+			db._db.close() #yuck
 				
 		if self.delete and not self.cancel:
 			for root,dirs,files in os.walk(self.dest_dir):
 				for d in dirs:
 					globlist = glob.glob(os.path.join(self.dest_dir,d,"*"))
 					if len(globlist)==0: #empty dir
-						#print "would delete",os.path.join(self.dest_dir,d)
-						yield (0, -1, _("Removing empty folders..."))
+						yield (0, -1, _("Removing empty folders..."), None)
 						if not self.dryrun:
 							utils.deltree(os.path.join(self.dest_dir,d))
-					
 				
 		if self.cancel:
-			yield (100,100,_("Synchronization cancelled"))
+			yield (100,100,_("Synchronization cancelled"), None)
 		else:
-			yield (100,100,_("Copying Complete"))
+			yield (100,100,_("Copying Complete"), None)
 
 def find_penguintv_lib():
     if os.environ.has_key("PENGUINTV_LIB"):
@@ -138,10 +143,13 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	delete = False
 	dryrun = False
 	audio = False
-	opts, args = getopt.getopt(sys.argv[1:], "andp:","path=")
+	move = False
+	opts, args = getopt.getopt(sys.argv[1:], "andmp:","path=")
 	for o, a in opts:
 		if o == "-d":
 			delete = True
+		elif o == "-m":
+			move = True
 		elif o == "-n":
 			print "Dry Run"
 			dryrun = True
@@ -152,7 +160,7 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 			
 	if dest_dir=="":
 		print """
-	ptv_sync.py (-n) (-d) -p [destination]:
+	ptv_sync.py (-n) (-d) (-m) -p [destination]:
 
 	Synchronizes a penguintv media directory with another directory.  It
 	doesn't just copy the files, however, it builds a different directory
@@ -165,6 +173,9 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 
 	-d                     Use to delete files on the remote end that don't
 	                       exist in the penguintv media directory
+
+	-m                     Move, don't copy.  Deletes media from the penguintv
+	                       database after copy is complete.	                       
 	                       
 	-n                     Dry run.  Demonstrates what would happen, but
 	                       doesn't perform any copy or delete actions.
@@ -173,7 +184,7 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	                       
 		sys.exit(1)
 
-	s = ptv_sync(dest_dir, delete, audio, dryrun)
+	s = ptv_sync(dest_dir, delete, move, audio, dryrun)
 	last_message = ""
 	for item in s.sync_gen():
 		if item[2] != last_message:

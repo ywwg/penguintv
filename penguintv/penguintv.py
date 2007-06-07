@@ -1411,13 +1411,16 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('entry-updated', entry_id, feed_id)
 		self.update_disk_usage()
 		
-	def delete_media(self, media_id):
+	def delete_media(self, media_id, update_ui=True):
 		"""Deletes specific media id"""
 		self.db.delete_media(media_id)
 		self.main_window.update_downloads()
 		self.mediamanager.generate_playlist()
 		self.db.set_media_viewed(media_id,True)
 		self.update_disk_usage()
+		if update_ui:
+			m = self.db.get_media(media_id)
+			self.emit('entry-updated', m['entry_id'], m['feed_id'])
 		
 	def delete_feed_media(self, feed_id):
 		"""Deletes media for an entire feed.  Calls generator _delete_media_generator"""
@@ -1432,7 +1435,7 @@ class PenguinTVApp(gobject.GObject):
 				if medialist:
 					for medium in medialist:
 						if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
-							self.delete_media(medium['media_id'])
+							self.delete_media(medium['media_id'], False)
 				self._entry_view.update_if_selected(entry[0])
 				#gtk.gdk.threads_leave()
 				yield True
