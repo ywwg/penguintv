@@ -114,7 +114,7 @@ class MainWindow(gobject.GObject):
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
 			gobject.idle_add(self.Show, window)
-			
+
 	def __link_activated_cb(self, o, link):
 		self._app.activate_link(link)
 				
@@ -159,7 +159,7 @@ class MainWindow(gobject.GObject):
 	def __app_loaded_cb(self, app):
 		if utils.RUNNING_SUGAR:
 			self._finish_sugar_toolbar()
-		
+			
 	def update_downloads(self):
 		self._download_view.update_downloads()
 		
@@ -218,6 +218,8 @@ class MainWindow(gobject.GObject):
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
+					
+			self._window.connect('key_press_event', self.on_app_key_press_event)
 			
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -879,14 +881,29 @@ class MainWindow(gobject.GObject):
 		
 	def on_app_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
+		print "got a key:", keyname
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if keyname == 'k':
 				self.search_entry.grab_focus()
-		if keyname == 'f':
-			if self._notebook.get_current_page() == N_PLAYER:
+		
+		if self._notebook.get_current_page() == N_PLAYER and \
+	      self._gstreamer_player is not None:
+			if keyname == 'f':
 				self._fullscreen = not self._fullscreen
 				self.toggle_fullscreen(self._fullscreen)
-		
+			else:
+				self._gstreamer_player.handle_key(keyname)
+		elif utils.RUNNING_SUGAR:
+			if keyname == 'KP_Left' or keyname == 'Left' or keyname == 'KP_4':
+				print "grabbing focus feed list"
+				#self._window.child_focus(gtk.DIR_LEFT)
+				self._app.feed_list_view.grab_focus()
+			elif keyname == 'KP_Right' or keyname == 'Right' \
+			  or keyname == 'KP_6':
+				print "grabbing focus planet"
+				#self._window.child_focus(gtk.DIR_RIGHT)
+				self.entry_view.grab_focus()
+			
 	def on_mark_entry_as_viewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()
 		self._app.mark_entry_as_viewed(entry['entry_id'], entry['feed_id'])

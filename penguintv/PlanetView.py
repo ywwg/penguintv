@@ -75,12 +75,13 @@ class PlanetView(gobject.GObject):
 		
 		self._first_entry = 0 #first entry visible
 		
-		html_dock = widget_tree.get_widget('html_dock')
-		scrolled_window = gtk.ScrolledWindow()
-		html_dock.add(scrolled_window)
-		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
-		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
-		style = html_dock.get_style().copy()
+		self._html_dock = widget_tree.get_widget('html_dock')
+		self._scrolled_window = gtk.ScrolledWindow()
+		self._html_dock.add(self._scrolled_window)
+		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		self._scrolled_window.set_flags(self._scrolled_window.flags() & gtk.CAN_FOCUS) 
+		style = self._html_dock.get_style().copy()
 		self._background_color = "#%.2x%.2x%.2x;" % (
                 style.base[gtk.STATE_NORMAL].red / 256,
                 style.base[gtk.STATE_NORMAL].blue / 256,
@@ -135,7 +136,7 @@ class PlanetView(gobject.GObject):
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("realize", self._moz_realize, True)
 			self._moz.connect("unrealize", self._moz_realize, False)
-			scrolled_window.add_with_viewport(self._moz)
+			self._scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
 			if utils.HAS_GCONF:
 				import gconf
@@ -143,7 +144,7 @@ class PlanetView(gobject.GObject):
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
 		self.display_item()
-		html_dock.show_all()
+		self._html_dock.show_all()
 		if self._USING_AJAX:
 			print "initializing ajax server"
 			import threading
@@ -216,6 +217,18 @@ class PlanetView(gobject.GObject):
 	def __size_changed_cb(self, screen):
 		"""Redraw after xrandr calls"""
 		self._render_entries()
+
+	def grab_focus(self):
+		print "trying to grab moz focus"
+		#can't figure out which widget to focus!
+		#scrollbar = self._scrolled_window.get_vscrollbar()
+		#print scrollbar
+		#if scrollbar is not None:
+	#		scrollbar.grab_focus()
+#		else:
+		#self._scrolled_window.grab_focus()
+		if utils.RUNNING_SUGAR:
+			self._moz.grab_focus()
 		
 	#entrylist functions
 	def get_selected(self):

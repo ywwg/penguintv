@@ -185,6 +185,9 @@ class FeedList(gobject.GObject):
 	
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_feed_list(feed_id,['readinfo','icon'])	
+		
+	def grab_focus(self):
+		self._widget.grab_focus()
 			
 	def populate_feeds(self,callback=None, subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""

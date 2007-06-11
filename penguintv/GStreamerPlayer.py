@@ -487,13 +487,17 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def _on_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
+		self.handle_key(keyname)
+	
+	def handle_key(self, keyname):
+		print "processing key", keyname
 		#if keyname == 'f':
 		#	self.toggle_fullscreen()
 		if keyname == 'n':
 			self.next()
-		elif keyname == 'p':
+		elif keyname == 'b':
 			self.prev()
-		elif keyname == 'space':
+		elif keyname == 'space' or keyname == 'p':
 			self.play_pause_toggle()
 		#FIXME: these don't work when we're embedded in penguintv.  why?
 		elif keyname == 'Right':
