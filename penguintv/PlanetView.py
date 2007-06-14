@@ -219,14 +219,6 @@ class PlanetView(gobject.GObject):
 		self._render_entries()
 
 	def grab_focus(self):
-		print "trying to grab moz focus"
-		#can't figure out which widget to focus!
-		#scrollbar = self._scrolled_window.get_vscrollbar()
-		#print scrollbar
-		#if scrollbar is not None:
-	#		scrollbar.grab_focus()
-#		else:
-		#self._scrolled_window.grab_focus()
 		if utils.RUNNING_SUGAR:
 			self._moz.grab_focus()
 		

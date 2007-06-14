@@ -60,11 +60,6 @@ class Browser(WebView):
 		else:
 			WebView.connect(self, signal, callback, *args)
 			
-	def grab_focus(self):
-		print "OLPCBrowser grabbing foooooooooooocus"
-		self._chrome.setFocus()
-		print "ok done"
-			
 	def open_stream(self, str_uri, mimetype):
 		uri = self._ioService.newURI(str_uri, None, None)
 		self._renderer.openStream(uri, mimetype)

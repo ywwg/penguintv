@@ -881,7 +881,6 @@ class MainWindow(gobject.GObject):
 		
 	def on_app_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
-		print "got a key:", keyname
 		if event.state & gtk.gdk.CONTROL_MASK:
 			if keyname == 'k':
 				self.search_entry.grab_focus()
@@ -895,13 +894,9 @@ class MainWindow(gobject.GObject):
 				self._gstreamer_player.handle_key(keyname)
 		elif utils.RUNNING_SUGAR:
 			if keyname == 'KP_Left' or keyname == 'Left' or keyname == 'KP_4':
-				print "grabbing focus feed list"
-				#self._window.child_focus(gtk.DIR_LEFT)
 				self._app.feed_list_view.grab_focus()
 			elif keyname == 'KP_Right' or keyname == 'Right' \
 			  or keyname == 'KP_6':
-				print "grabbing focus planet"
-				#self._window.child_focus(gtk.DIR_RIGHT)
 				self.entry_view.grab_focus()
 			
 	def on_mark_entry_as_viewed_activate(self,event):
