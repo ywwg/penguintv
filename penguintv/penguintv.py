@@ -1120,6 +1120,9 @@ class PenguinTVApp(gobject.GObject):
 			return
 
 	def refresh_feed(self, feed):
+		if not self._net_connected:
+			return
+			
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
 		self.main_window.display_status_message(_("Polling Feed..."))
