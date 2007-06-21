@@ -43,7 +43,7 @@ PAUSED  = 2
 #              where status is the enum above
 
 class MediaManager:
-	def __init__(self, progress_callback=None, finished_callback=None):
+	def __init__(self, app, progress_callback=None, finished_callback=None):
 		self.index=0
 		#should this be lucene compatible?
 		self.pool = ThreadPool.ThreadPool(5,"MediaManager")
@@ -53,6 +53,7 @@ class MediaManager:
 		self.bt_settings = {'min_port':6881, 'max_port':6999, 'ul_limit':0}
 		self.id_time=0
 		self.quitting = False
+		self._net_connected = True
 		self.pause_state = RUNNING
 		if finished_callback:
 			self.app_callback_finished = finished_callback
@@ -72,6 +73,8 @@ class MediaManager:
 			except:
 				raise NoDir, "error creating " +home+'/media'
 		self.media_dir = os.path.join(home, 'media')
+		
+		app.connect('online-status-changed', self.__online_status_changed)
 	
 	def finish(self):
 		self.quitting = True
@@ -83,6 +86,16 @@ class MediaManager:
 		
 	def __del__(self):
 		self.finish()
+		
+	def __online_status_changed(self, app, connected):
+		if not connected:
+			app.pause_downloads()
+		else:
+			if not self._net_connected:
+				self.unpause_downloads()
+				app.resume_resumable()
+
+		self._net_connected = connected
 		
 	def set_bt_settings(self, bt_settings):
 		self.bt_settings = bt_settings
@@ -228,8 +241,7 @@ class MediaManager:
 		except:
 			return 0
 		
-	def pause_all_downloads(self):
-		#print "downloads paused"
+	def stop_all_downloads(self):
 		#try:
 		if self.pause_state == RUNNING:
 			for download in self.downloads:
@@ -244,6 +256,15 @@ class MediaManager:
 			self.pause_state = PAUSED
 		#except:
 		#	pass
+
+	def pause_all_downloads(self):
+		if self.pause_state == RUNNING:
+			for download in self.downloads:
+				download.pause()
+			self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
+			if not self.quitting:
+				self.pool.setThreadCount(5)
+			self.pause_state = PAUSED
 		
 	def unpause_downloads(self):
 		"""DOES NOT requeue downloads.  Just clears the state"""

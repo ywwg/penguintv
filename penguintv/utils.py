@@ -138,21 +138,25 @@ def get_glade_prefix():
 			continue
 	return None
 	
-def get_icon_filename():
+def get_image_path(filename):
 	try:
-		icon_file = GetPrefix()+"/share/pixmaps/penguintvicon.png"
+		icon_file = os.path.join(GetPrefix(), 'share', 'pixmaps', filename)
 		os.stat(icon_file)
 	except:
 		try:
-			icon_file = GetPrefix()+"/share/penguintvicon.png" #in case the install is still in the source dirs
+			icon_file = os.path.join(GetPrefix(), 'share', filename) #in case the install is still in the source dirs
 			os.stat(icon_file)
 		except:
 			try:
-				icon_file = get_glade_prefix()+"/penguintvicon.png"
+				icon_file = os.path.join(get_glade_prefix(), filename)
 				os.stat(icon_file)
-			except Exception, e:
-				print "icon not found"
-				raise e
+			except:
+				try:
+					icon_file = os.path.join(get_glade_prefix(), 'pixmaps', filename)
+					os.stat(icon_file)
+				except Exception, e:
+					print "icon not found"
+					raise e
 	return icon_file		
 
 def hours(n):  #this func copyright Bram Cohen

@@ -40,8 +40,12 @@ import gobject
 import locale
 import gettext
 import getopt
-import dbus
-import dbus.service
+try:
+	import dbus
+	import dbus.service
+	HAS_DBUS = True
+except:
+	HAS_DBUS = False
 
 locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
@@ -56,7 +60,8 @@ DOWNLOAD_QUEUED=3
 
 import utils
 import ptvDB
-import ptvDbus
+if HAS_DBUS:
+	import ptvDbus
 import MediaManager
 import Player
 import UpdateTasksManager
@@ -120,7 +125,9 @@ class PenguinTVApp(gobject.GObject):
                            gobject.TYPE_NONE, 
                            ([])),
 		'setting-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-						   ([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_PYOBJECT]))
+						   ([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_PYOBJECT])),
+		'online-status-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+						   ([gobject.TYPE_BOOLEAN]))
 	}
 
 	def __init__(self, window=None):
@@ -128,20 +135,48 @@ class PenguinTVApp(gobject.GObject):
 		self._for_import = []
 		self._app_loaded = False
 		
-		#if we can get a dbus object, and it's using
-		#our database, penguintv is already running
-		bus = dbus.SessionBus()
-		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
-		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
-		if dubus_methods.NameHasOwner('com.ywwg.PenguinTV'):
-			remote_object = bus.get_object("com.ywwg.PenguinTV", "/PtvApp")
-			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
-			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv4.db"):
-				raise AlreadyRunning, remote_app
-		#initialize dbus object
-		name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
-		ptv_dbus = ptvDbus.ptvDbus(self, name)
-		
+		if HAS_DBUS:
+			#if we can get a dbus object, and it's using
+			#our database, penguintv is already running
+			bus = dbus.SessionBus()
+			dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
+			dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
+			if dubus_methods.NameHasOwner('com.ywwg.PenguinTV'):
+				remote_object = bus.get_object("com.ywwg.PenguinTV", "/PtvApp")
+				remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
+				if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv4.db"):
+					raise AlreadyRunning, remote_app
+			#initialize dbus object
+			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
+			ptv_dbus = ptvDbus.ptvDbus(self, name)
+			
+			sys_bus = dbus.SystemBus()
+			
+			try:
+				sys_bus.add_signal_receiver(self._nm_device_no_longer_active,
+											'DeviceNoLongerActive',
+											'org.freedesktop.NetworkManager',
+											'org.freedesktop.NetworkManager',
+											'/org/freedesktop/NetworkManager')
+	
+				sys_bus.add_signal_receiver(self._nm_device_now_active,
+											'DeviceNowActive',
+											'org.freedesktop.NetworkManager',
+											'org.freedesktop.NetworkManager',
+											'/org/freedesktop/NetworkManager')
+											
+				nm_ob = sys_bus.get_object("org.freedesktop.NetworkManager", 
+										   "/org/freedesktop/NetworkManager")
+										   
+				self._nm_interface = dbus.Interface(nm_ob, 
+											  "org.freedesktop.NetworkManager")
+				print "listening to networkmanager"
+			except:
+				self._nm_interface = None
+			
+		self._net_connected = True
+		self.connect('online-status-changed', self.__online_status_changed)
+			
 		found_glade = False
 		
 		self.glade_prefix = utils.get_glade_prefix()
@@ -156,7 +191,7 @@ class PenguinTVApp(gobject.GObject):
 		self._firstrun = self.db.maybe_initialize_db()
 
 		self.db.clean_media_status()
-		self.mediamanager = MediaManager.MediaManager(self._progress_callback, self._finished_callback)
+		self.mediamanager = MediaManager.MediaManager(self, self._progress_callback, self._finished_callback)
 		self._polled=0      #Used for updating the polling progress bar
 		self._polling_taskinfo = -1 # the taskid we can use to waitfor a polling operation,
 									# and the time of last polling
@@ -185,7 +220,8 @@ class PenguinTVApp(gobject.GObject):
 			
 		self._status_icon = None
 		if utils.HAS_STATUS_ICON:
-			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, utils.get_icon_filename())	
+			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, 
+							         utils.get_image_path('penguintvicon.png'))	
 			
 		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window, status_icon=self._status_icon) 
 		self.main_window.layout=window_layout
@@ -307,6 +343,14 @@ class PenguinTVApp(gobject.GObject):
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
+		
+	def __online_status_changed(self, o, connected):
+		self._net_connected = connected
+		if not self._net_connected:
+			if self._updater_thread_db:
+				self._updater_thread_db.interrupt_poll_multiple()
+			if self.db:
+				self.db.interrupt_poll_multiple()
 		
 	def _load_settings(self):
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 60)
@@ -472,6 +516,9 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
+					
+		if not self._net_connected:
+			return True
 
 		if self._polling_taskinfo != -1:
 			#print "I think we are already polling"
@@ -1258,8 +1305,14 @@ class PenguinTVApp(gobject.GObject):
 		"""stops downloading everything -- really just pauses them.  Just sets a flag, really.
 		progress_callback does the actual work"""
 		if self.mediamanager.pause_state == MediaManager.RUNNING:
-			download_stopper_thread = threading.Thread(None, self.mediamanager.pause_all_downloads)
+			download_stopper_thread = threading.Thread(None, self.mediamanager.stop_all_downloads)
 			download_stopper_thread.start() #this isn't gonna block any more!
+			self.db.pause_all_downloads() #blocks, but prevents race conditions
+
+	def pause_downloads(self):
+		if self.mediamanager.pause_state == MediaManager.RUNNING:
+			download_pauser_thread = threading.Thread(None, self.mediamanager.pause_all_downloads)
+			download_pauser_thread.start() #this isn't gonna block any more!
 			self.db.pause_all_downloads() #blocks, but prevents race conditions
 			
 	def change_layout(self, layout):
@@ -1649,6 +1702,25 @@ class PenguinTVApp(gobject.GObject):
 		
 	def get_database_name(self):
 		return os.path.join(utils.get_home(), "penguintv4.db")
+		
+	def toggle_net_connection(self):
+		self.emit('online-status-changed', not self._net_connected)
+		
+	def _nm_device_now_active(self, *args):
+		if self._nm_interface is not None:
+			state = self._nm_interface.state()
+			if state == 3 and not self._net_connected:
+				self.emit('online-status-changed', True)
+			elif state != 3 and self._net_connected:
+				self.emit('online-status-changed', False)
+	
+	def _nm_device_no_longer_active(self, *args):
+		if self._nm_interface is not None:
+			state = self._nm_interface.state()
+			if state == 3 and not self._net_connected:
+				self.emit('online-status-changed', True)
+			elif state != 3 and self._net_connected:
+				self.emit('online-status-changed', False)
 			
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""

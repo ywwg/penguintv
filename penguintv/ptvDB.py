@@ -784,6 +784,7 @@ class ptvDB:
 		"""Polls multiple feeds multithreadedly"""
 		successes=[]
 		cur_time = int(time.time())
+		self._cancel_poll_multiple = False
 		
 		if feeds is None:
 			if arguments & A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:

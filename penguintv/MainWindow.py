@@ -110,6 +110,7 @@ class MainWindow(gobject.GObject):
 		self._app.connect('setting-changed', self.__setting_changed_cb)
 		self._app.connect('tags-changed', self.__tags_changed_cb)
 		self._app.connect('app-loaded', self.__app_loaded_cb)
+		self._app.connect('online-status-changed', self.__online_status_changed_cb)
 	
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
@@ -159,6 +160,20 @@ class MainWindow(gobject.GObject):
 	def __app_loaded_cb(self, app):
 		if utils.RUNNING_SUGAR:
 			self._finish_sugar_toolbar()
+			
+	def __online_status_changed_cb(self, app, connected):
+		if connected:
+			if self._connection_button:
+				p = utils.get_image_path('ev_online.png')
+				i = gtk.Image()
+				i.set_from_file(p)
+				self._connection_button.set_image(i)
+		else:
+			if self._connection_button:
+				p = utils.get_image_path('ev_offline.png')
+				i = gtk.Image()
+				i.set_from_file(p)
+				self._connection_button.set_image(i)
 			
 	def update_downloads(self):
 		self._download_view.update_downloads()
@@ -356,10 +371,17 @@ class MainWindow(gobject.GObject):
 		show_notifs_item.set_active(self._db.get_setting(ptvDB.BOOL, 
 		                           '/apps/penguintv/show_notifications', True))
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
-		self.app_window.set_icon_from_file(utils.get_icon_filename())
+		self.app_window.set_icon_from_file(utils.get_image_path('penguintvicon.png'))
 		self._status_view = self._widgetTree.get_widget("appbar")
 		self._load_toolbar()
 		
+		self._connection_button = self._widgetTree.get_widget('connection_button')
+		self._connection_button.set_label('')
+		p = utils.get_image_path('ev_online.png')
+		i = gtk.Image()
+		i.set_from_file(p)
+		self._connection_button.set_image(i)
+
 		#load the layout
 		self._layout_dock = self.load_notebook()
 		notebook_dock.add(self._notebook)
@@ -641,6 +663,9 @@ class MainWindow(gobject.GObject):
 			response = dialog.run()
 			dialog.hide()
 			del dialog
+			
+	def on_connection_button_clicked(self, event):
+		self._app.toggle_net_connection()
 		
 	def on_feed_add_clicked(self, event):
 		if self._state == S_LOADING_FEEDS:

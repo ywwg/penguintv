@@ -490,7 +490,6 @@ class GStreamerPlayer(gobject.GObject):
 		self.handle_key(keyname)
 	
 	def handle_key(self, keyname):
-		print "processing key", keyname
 		#if keyname == 'f':
 		#	self.toggle_fullscreen()
 		if keyname == 'n':
