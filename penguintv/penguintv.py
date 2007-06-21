@@ -19,6 +19,9 @@ import sys, os, os.path
 import gc
 #gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_SAVEALL)
 import logging
+
+logging.basicConfig(level=logging.INFO)
+
 import urllib
 try:
 	import gnome
@@ -170,7 +173,7 @@ class PenguinTVApp(gobject.GObject):
 										   
 				self._nm_interface = dbus.Interface(nm_ob, 
 											  "org.freedesktop.NetworkManager")
-				print "listening to networkmanager"
+				logging.info("Listening to NetworkManager")
 			except:
 				self._nm_interface = None
 			
@@ -181,10 +184,10 @@ class PenguinTVApp(gobject.GObject):
 		
 		self.glade_prefix = utils.get_glade_prefix()
 		if self.glade_prefix is None:
-			print "error finding glade file."
+			logging.error("error finding glade file.")
 			sys.exit()
 						
-		logging.info("penguintv "+utils.VERSION+" startup")
+		logging.info("penguintv " + utils.VERSION + " startup")
 			
 		self.db = ptvDB.ptvDB(self._polling_callback, self._emit_change_setting)
 		
@@ -324,7 +327,7 @@ class PenguinTVApp(gobject.GObject):
 			except:
 				continue
 		if not found_subs:
-			print "ptvdb: error finding default subscription file."
+			logging.error("ptvdb: error finding default subscription file.")
 			sys.exit()
 		f = open(os.path.join(path,subs_name), "r")
 		self.main_window.display_status_message(_("Polling feeds for the first time..."))
@@ -567,14 +570,14 @@ class PenguinTVApp(gobject.GObject):
 		for d in download_list:
 			total_size=total_size+int(d[1])
 			
-		print "adding up downloads, we need", total_size, "bytes"
+		logging.info("adding up downloads, we need" + str(total_size) + "bytes")
 			
 		if self._free_media_space(total_size):
 			for d in download_list:
 				self.mediamanager.download(d[0])
 				self.emit('entry-updated', d[2], d[3])
 		else:
-			print "we were unable to free up enough space."
+			logging.error("we were unable to free up enough space.")
 			#print download_list
 		self.update_disk_usage()
 			
@@ -625,10 +628,10 @@ class PenguinTVApp(gobject.GObject):
 				disk_usage = self.mediamanager.get_disk_usage()
 				if self._auto_download_limiter:
 					if self._auto_download_limit*1024 - disk_usage < size_needed:
-						print "ERROR: didn't free up the space like we thought1"
+						logging.error("didn't free up the space like we thought1")
 						return False
 				if utils.get_disk_free(self.mediamanager.media_dir) < size_needed + free_buffer:
-					print "ERROR: didn't free up the space like we thought2",utils.get_disk_free(self.mediamanager.media_dir)
+					logging.error("didn't free up the space like we thought2" + str(utils.get_disk_free(self.mediamanager.media_dir)))
 					return False
 				return True
 				
@@ -639,7 +642,7 @@ class PenguinTVApp(gobject.GObject):
 			
 			size = os.stat(filename)[6]
 			removed_size += size
-			print "removing:",filename, size,"bytes for a total of",removed_size
+			logging.info("removing:" + filename +str(size) + "bytes for a total of" + str(removed_size))
 			self.db.delete_media(media_id)
 			self.db.set_entry_read(entry_id, True)
 			self.emit('entry-updated', entry_id, feed_id)
@@ -657,7 +660,7 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window.search_entry.set_text("")
 			self.main_window.set_active_filter(index)
 		else:
-			print "WARNING: we just added a search tag but it's not in the list"
+			logging.warning("we just added a search tag but it's not in the list")
 			
 	def remove_search_tag(self, tag_name):
 		self.db.remove_tag(tag_name)
@@ -782,7 +785,7 @@ class PenguinTVApp(gobject.GObject):
 			feed_id = self.db.get_entry(entry_id)['feed_id']
 			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="queue":
-			print parsed_url		
+			logging.info(parsed_url)
 		elif action=="stop":
 			newitem={}
 			newitem['media_id']=item
@@ -833,7 +836,7 @@ class PenguinTVApp(gobject.GObject):
 				uri=parsed_url[0]+"://"+quoted_url+http_arguments+anchor
 				activityfactory.create_with_uri('org.laptop.WebActivity', uri)
 		elif action=="file":
-			print parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2])
+			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			if HAS_GNOME:
 				gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			
@@ -1190,19 +1193,19 @@ class PenguinTVApp(gobject.GObject):
 			query = query.replace("!","")
 			result = self.db.search(query, blacklist=blacklist)
 		except Exception, e:
-			print "Error with that search term: ", query, e
+			logging.warning("Error with that search term: " + str(query) + str(e))
 			result=([],[])
 		return result
 	
 	def _show_search(self, query, result):
 		if self._state != MANUAL_SEARCH and self._state != TAG_SEARCH:
-			print "incorrect state, aborting", self._state
+			logging.warning("incorrect state, aborting" + str(self._state))
 			return
 		try:
 			self._entry_list_view.show_search_results(result[1], query)
 			self.feed_list_view.show_search_results(result[0])
 		except ptvDB.BadSearchResults, e:
-			print e
+			logging.warning(str(e))
 			self.db.reindex(result[0], [i[0] for i in result[1]])
 			self._show_search(query, self._search(query))
 			return
@@ -1527,7 +1530,7 @@ class PenguinTVApp(gobject.GObject):
 			feed_id = self.db.get_entry(item['entry_id'])['feed_id']
 			self.emit('entry-updated', item['entry_id'], feed_id)
 		except ptvDB.NoEntry:
-			print "noentry error, don't worry about it"
+			logging.warning("noentry error, don't worry about it")
 			#print "downloads finished pop"
 			#taken care of in callbacks?
 			self.main_window.search_container.set_sensitive(False)
@@ -1585,14 +1588,14 @@ class PenguinTVApp(gobject.GObject):
 			feed_id = self.db.get_entry(d.media['entry_id'])['feed_id']
 			self.emit('entry-updated', d.media['entry_id'], feed_id)
 		except ptvDB.NoEntry:
-			print "noentry error"
+			logging.warning("noentry error")
 			#print "downloads finished pop"
 			#taken care of in callbacks?
 			self.main_window.search_container.set_sensitive(False)
 			self._populate_feeds(self._done_populating, FeedList.DOWNLOADED)
 			self.feed_list_view.resize_columns()
 		except:
-			print "some other error"
+			logging.warning("some other error")
 		self.feed_list_view.filter_all() #to remove active downloads from the list
 			
 	def rename_feed(self, feed_id, name):
@@ -1699,7 +1702,7 @@ class PenguinTVApp(gobject.GObject):
 				try:
 					self.import_subscriptions(f)
 				except e:
-					print "Exception importing opml file:", e
+					logging.error("Exception importing opml file:" + str(e))
 
 		self._for_import = []
 		
@@ -1746,7 +1749,7 @@ class PenguinTVApp(gobject.GObject):
 			feed_id, update_data, total = args
 			if len(update_data)>0:
 				if update_data.has_key('ioerror'):
-					print "ioerror polling reset"
+					logging.warning("ioerror polling reset")
 					self._updater_thread_db.interrupt_poll_multiple()
 					self._polled = 0
 					self._polling_taskinfo = -1
@@ -1824,7 +1827,7 @@ class PenguinTVApp(gobject.GObject):
 				while self.updater.updater_gen().next():
 					if self.updater.exception is not None:
 						if isinstance(self.updater.exception, OperationalError):
-							print "detected a database lock error, restarting threaded db"
+							logging.warning("detected a database lock error, restarting threaded db")
 							self.db._db.close()
 							self.db = ptvDB.ptvDB(self.polling_callback)
 							self.reset_callback(self.db)
@@ -1915,7 +1918,7 @@ def main():
 			app = KApplication ()
 			
 		except:
-			print "Unable to initialize KDE"
+			logging.error("Unable to initialize KDE")
 			sys.exit(1)	
 	do_commandline(local_app=app)
 	gtk.main() 
@@ -1950,7 +1953,7 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 				app = KApplication ()
 				
 			except:
-				print "Unable to initialize KDE"
+				logging.error("Unable to initialize KDE")
 				sys.exit(1)
 	else: #no gnome, no gnomeapp
 		window = gtk.Window()

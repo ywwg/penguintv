@@ -10,6 +10,7 @@ import string
 import locale
 import gettext
 import shutil
+import logging
 
 import gtk
 
@@ -155,7 +156,7 @@ def get_image_path(filename):
 					icon_file = os.path.join(get_glade_prefix(), 'pixmaps', filename)
 					os.stat(icon_file)
 				except Exception, e:
-					print "icon not found"
+					logging.error("icon not found:" + filename)
 					raise e
 	return icon_file		
 
@@ -202,11 +203,11 @@ def get_play_command_for(filename):
 			#mimetype = str(kio.KMimeType.findByPath(filename).defaultMimeType())
 			service = kio.KServiceTypeProfile.preferredService(mimetype,"Application")
 			if service is None: #no service, so we use kfmclient and kde should launch a helper window
-				print "unknown type, using kfmclient"
+				logging.info("unknown type, using kfmclient")
 				return "kfmclient exec "
 			full_qual_prog = str(service.exec_()).replace("%U","").strip()
 		except:
-			print "error getting type, using kfmclient"
+			logging.info("error getting type, using kfmclient")
 			return "kfmclient exec "
 	else: #GNOME -- notice how short and sweet this is in comparison :P
 		if HAS_GNOMEVFS:
@@ -214,7 +215,7 @@ def get_play_command_for(filename):
 				mimetype = gnomevfs.get_mime_type(urllib.quote(filename)) #fix for penny arcade filenames
 				full_qual_prog = gnomevfs.mime_get_default_application(mimetype)[2]
 			except:
-				print "unknown type, using gnome-open"
+				logging.info("unknown type, using gnome-open")
 				return "gnome-open "
 		else:
 			# :(
@@ -388,7 +389,6 @@ def is_file_media(filename):
 		mimetype = gnomevfs.get_mime_type(urllib.quote(filename))
 	else:
 		return False
-	print mimetype
 	valid_mimes=['video','audio','mp4','realmedia','m4v','mov']
 	for mime in valid_mimes:
 		if mime in mimetype:
@@ -544,7 +544,7 @@ def init_gtkmozembed():
 	
 	_init_mozilla_proxy()
 	
-	print "initializing mozilla in", comp_path
+	logging.info("initializing mozilla in" + str(comp_path))
 	gtkmozembed.set_comp_path(comp_path)
 	
 	return True
@@ -592,13 +592,13 @@ def _init_mozilla_proxy():
 		os.stat(os.path.join(home, "gecko", "prefs.js"))
 		cur_proxy = _get_proxy_prefs(os.path.join(home, "gecko", "prefs.js"))
 		if sys_proxy == cur_proxy:
-			print "gecko proxy settings up to date"
+			logging.info("gecko proxy settings up to date")
 			return
 	except:
 		pass
 
 	try:
-		print "updating gecko proxy settings"
+		logging.info("updating gecko proxy settings")
 		f = open(os.path.join(home, "gecko", "prefs.js"), "w")
 		f.write("""# Mozilla User Preferences
 
@@ -618,7 +618,7 @@ def _init_mozilla_proxy():
 	""" % (sys_proxy['type'], sys_proxy['host'], sys_proxy['port'], sys_proxy['autoconfig_url']))
 		f.close()
 	except:
-		print "WARNING: couldn't create prefs.js, proxy server connections may not work"		
+		logging.warning("couldn't create prefs.js, proxy server connections may not work")
 		
 def _get_proxy_prefs(filename):
 	def isNumber(x):
@@ -637,7 +637,7 @@ def _get_proxy_prefs(filename):
 	try:
 		f = open(filename, "r")
 	except:
-		print "WARNING: couldn't open gecko preferences file ", filename
+		logging.warning("couldn't open gecko preferences file " + filename)
 		return proxy
 	
 	for line in f.readlines():
@@ -667,7 +667,7 @@ def get_pynotify_ok():
 	retval = p.wait()
 	stderr = p.stderr.read()
 	if len(stderr) > 1 or retval != 0:
-		print "trouble getting notify-python version from pkg-config, using fallback notifications"
+		logging.warning("trouble getting notify-python version from pkg-config, using fallback notifications")
 		return False
 	major,minor,rev = p.stdout.read().split('.')
 	
@@ -677,10 +677,10 @@ def get_pynotify_ok():
 
 	# if it's bad, return false
 	if minor < 1:
-		print "pynotify too old, using fallback notifications"
+		logging.info("pynotify too old, using fallback notifications")
 		return False
 	if minor == 1 and rev == 0:
-		print "pynotify too old, using fallback notifications"
+		logging.info("pynotify too old, using fallback notifications")
 		return False
 
 	# if it's good, check to see it's not lying about prefix
@@ -689,7 +689,7 @@ def get_pynotify_ok():
 	retval = p.wait()
 	stderr = p.stderr.read()
 	if len(stderr) > 1 or retval != 0:
-		print "trouble getting notify-python prefix from pkg-config, using fallback notifications"
+		logging.info("trouble getting notify-python prefix from pkg-config, using fallback notifications")
 		return False
 	pkgconfig_prefix = p.stdout.read().strip()
 	
@@ -697,7 +697,7 @@ def get_pynotify_ok():
 		dirname = os.path.split(pynotify.__file__)[0]
 		f = open(os.path.join(dirname, "_pynotify.la"))
 	except:
-		print "trouble opening _pynotify.la, using fallback notifications"
+		logging.info("trouble opening _pynotify.la, using fallback notifications")
 		return False
 	
 	libdir_line = ""
@@ -711,14 +711,14 @@ def get_pynotify_ok():
 	libdir_line = libdir_line.strip()
 	
 	if len(libdir_line) == 0:
-		print "trouble reading _pynotify.la, using fallback notifications"
+		logging.info("trouble reading _pynotify.la, using fallback notifications")
 		return False
 	
 	if pkgconfig_prefix not in libdir_line:
-		print "pkgconfig does not agree with _pynotify.la, using fallback notifications"
+		logging.info("pkgconfig does not agree with _pynotify.la, using fallback notifications")
 		return False
 
-	print "using pynotify notifications"
+	logging.info("Using pynotify notifications")
 	return True
 	
 if is_kde():

@@ -3,6 +3,7 @@ import gtk.glade
 import gobject
 import sys, os, os.path
 import sets
+import logging
 
 import code
 
@@ -91,6 +92,22 @@ class MainWindow(gobject.GObject):
 		self._active_filter_name = FeedList.BUILTIN_TAGS[FeedList.ALL]
 		self._active_filter_index = FeedList.ALL
 		
+		pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_online.png'))
+		source = gtk.IconSource()
+		source.set_pixbuf(pixbuf)
+		source.set_size(gtk.ICON_SIZE_DIALOG)
+		source.set_size_wildcarded(False)
+		self._connected_iconset = gtk.IconSet()
+		self._connected_iconset.add_source(source)
+
+		pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_offline.png'))
+		source = gtk.IconSource()
+		source.set_pixbuf(pixbuf)
+		source.set_size(gtk.ICON_SIZE_DIALOG)
+		source.set_size_wildcarded(False)
+		self._disconnected_iconset = gtk.IconSet()
+		self._disconnected_iconset.add_source(source)
+		
 		##other WINDOWS we open
 		if utils.HAS_LUCENE:
 			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
@@ -164,15 +181,15 @@ class MainWindow(gobject.GObject):
 	def __online_status_changed_cb(self, app, connected):
 		if connected:
 			if self._connection_button:
-				p = utils.get_image_path('ev_online.png')
+				#p = utils.get_image_path('ev_online.png')
 				i = gtk.Image()
-				i.set_from_file(p)
+				i.set_from_icon_set(self._connected_iconset, gtk.ICON_SIZE_DIALOG)
 				self._connection_button.set_image(i)
 		else:
 			if self._connection_button:
-				p = utils.get_image_path('ev_offline.png')
+				#p = utils.get_image_path('ev_offline.png')
 				i = gtk.Image()
-				i.set_from_file(p)
+				i.set_from_icon_set(self._disconnected_iconset, gtk.ICON_SIZE_DIALOG)
 				self._connection_button.set_image(i)
 			
 	def update_downloads(self):
@@ -196,7 +213,7 @@ class MainWindow(gobject.GObject):
 		#sys.stderr.write("show,"+str(dock_widget))
 		
 		if not utils.HAS_MOZILLA and self.layout == "planet":
-			print "requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)"
+			logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
 			self.layout = "standard"
 		
 		if not utils.RUNNING_SUGAR:  #if we are loading in a regular window...
@@ -379,9 +396,9 @@ class MainWindow(gobject.GObject):
 		self._load_toolbar()
 		
 		self._connection_button = self._widgetTree.get_widget('connection_button')
-		p = utils.get_image_path('ev_online.png')
+		#p = utils.get_image_path('ev_online.png')
 		i = gtk.Image()
-		i.set_from_file(p)
+		i.set_from_icon_set(self._connected_iconset, gtk.ICON_SIZE_DIALOG)
 		self._connection_button.set_image(i)
 
 		#load the layout
@@ -445,7 +462,7 @@ class MainWindow(gobject.GObject):
 		try:
 			return self._gstreamer_player
 		except:
-			print "no gstreamer player to get"
+			logging.warning("no gstreamer player to get")
 			return None
 		
 	def notebook_select_page(self, page):
@@ -465,7 +482,7 @@ class MainWindow(gobject.GObject):
 		if utils.HAS_MOZILLA:
 			renderer = EntryView.MOZILLA
 		else:
-			print "WARNING: gtkmozembed not found, falling back on gtkhtml. PlanetView disabled"
+			logging.warning("gtkmozembed not found, falling back on gtkhtml. PlanetView disabled")
 			renderer = EntryView.GTKHTML
 		
 		if self.layout == "planet" and renderer != EntryView.MOZILLA:
@@ -643,7 +660,7 @@ class MainWindow(gobject.GObject):
 			
 	def on_add_feed_activate(self, event):
 		if self._state == S_LOADING_FEEDS:
-			print "Please wait until feeds have loaded before adding a new one"
+			logging.warning("Please wait until feeds have loaded before adding a new one")
 			return 
 		self._app.window_add_feed.show() #not modal / blocking
 		
@@ -671,7 +688,7 @@ class MainWindow(gobject.GObject):
 		
 	def on_feed_add_clicked(self, event):
 		if self._state == S_LOADING_FEEDS:
-			print "Please wait until feeds have loaded before adding a new one" 
+			logging.warning("Please wait until feeds have loaded before adding a new one")
 			return 
 		self._app.window_add_feed.show() #not modal / blocking
 	
@@ -903,7 +920,7 @@ class MainWindow(gobject.GObject):
 			self.display_status_message(_("Importing Feeds, please wait..."))
 			self._app.import_subscriptions(f)
 		elif response == gtk.RESPONSE_CANCEL:
-			print 'Closed, no files selected'
+			logging.info('Closed, no files selected')
 		dialog.destroy()		
 		
 	def on_app_key_press_event(self, widget, event):

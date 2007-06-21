@@ -99,7 +99,6 @@ class PlanetView(gobject.GObject):
 		
 		if self._renderer == GTKHTML:
 			logging.error("gtkhtml and planetview not supported")
-			print "gtkhtml and planetview not supported"
 			return
 			#self._USING_AJAX = False
 		elif self._renderer == MOZILLA:
@@ -121,7 +120,7 @@ class PlanetView(gobject.GObject):
 				for l in f.readlines(): self._css += l
 				f.close()
 				if not utils.init_gtkmozembed():
-					print "Error initializing mozilla.  Penguintv may crash shortly"
+					logging.error("Error initializing mozilla.  Penguintv may crash shortly")
 				gtkmozembed.set_profile_path(self._db.home, 'gecko')
 				gtkmozembed.push_startup()
 				self._moz = gtkmozembed.MozEmbed()
@@ -146,7 +145,7 @@ class PlanetView(gobject.GObject):
 		self.display_item()
 		self._html_dock.show_all()
 		if self._USING_AJAX:
-			print "initializing ajax server"
+			logging.info("initializing ajax server")
 			import threading
 			from ajax import EntryInfoServer, MyTCPServer
 
@@ -160,12 +159,11 @@ class PlanetView(gobject.GObject):
 					PlanetView.PORT += 1
 			if PlanetView.PORT==8050:
 				logging.warning("tried a lot of ports without success.  Problem?")
-				print "tried a lot of ports without success.  Problem?"
 			t = threading.Thread(None, self._update_server.serve_forever)
 			t.setDaemon(True)
 			t.start()
 		else:
-			print "not using ajax"
+			logging.info("not using ajax")
 		
 		#signals
 		self._handlers = []
@@ -245,7 +243,7 @@ class PlanetView(gobject.GObject):
 		try:
 			db_entrylist = self._db.get_entrylist(feed_id)
 		except ptvDB.NoEntry, e:
-			print "error displaying search"
+			loggin.warning("error displaying search")
 			self._render(_("There was an error displaying the search results.  Please reindex searches and try again"))
 			return
 
@@ -285,7 +283,7 @@ class PlanetView(gobject.GObject):
 			self._load_entry(entry_id, True)
 			
 	def mark_as_viewed(self, entry_id=None):
-		print "doesn't apply in planet view, right?"
+		logging.error("doesn't apply in planet view, right?")
 	
 	def show_search_results(self, entries, query):
 		if entries is None:
@@ -296,7 +294,7 @@ class PlanetView(gobject.GObject):
 		try:
 			self._render_entries(query)
 		except ptvDB.NoEntry:
-			print "error displaying search"
+			logging.warning("error displaying search")
 			self._render(_("There was an error displaying the search results.  Please reindex searches and try again"))
 		
 	def unshow_search(self):
@@ -367,7 +365,7 @@ class PlanetView(gobject.GObject):
 			try:
 				urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
 			except:
-				print 'error closing planetview server'
+				logging.error('error closing planetview server')
 		self._render("<html><body></body></html")
 		if not utils.RUNNING_SUGAR:
 			gtkmozembed.pop_startup()
@@ -427,7 +425,7 @@ class PlanetView(gobject.GObject):
 			try:
 				del self._entry_store[e] #need to regen because it's not new anymore
 			except:
-				print "warning: can't remove non-existant entry from store"
+				logging.warning("can't remove non-existant entry from store")
 			
 		#######build HTML#######	
 		html = []

@@ -20,6 +20,7 @@ import locale
 import gettext
 import sets
 import traceback
+import logging
 
 import socket
 socket.setdefaulttimeout(30.0)
@@ -193,8 +194,7 @@ class ptvDB:
 			return c.execute(command, args)
 		except Exception, e:
 			#traceback.print_stack()
-			print "Database error:",
-			print command, args
+			logging.error("Database error:" + str(command) + " " + str(args))
 			raise e
 				
 	def __del__(self):
@@ -204,7 +204,7 @@ class ptvDB:
 		self._exiting=True
 		if utils.HAS_LUCENE:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
-				print "have leftover things to reindex, reindexing"
+				logging.info("have leftover things to reindex, reindexing")
 				#don't do it threadedly or else we will interrupt it on the next line
 				self.reindex(threaded=False) #it's usually not much...
 			self.searcher.finish(False)
@@ -213,7 +213,7 @@ class ptvDB:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
 		if randint(1,10) == 1 and closeok:
-			print "compacting database"
+			logging.info("compacting database")
 			self._c.execute('VACUUM')
 			self._c.close()
 			self._db.close()
@@ -222,7 +222,7 @@ class ptvDB:
 		try:
 			self._db_execute(self._c, u'SELECT * FROM feeds')
 		except:
-			print "initializing database"
+			logging.info("initializing database")
 			self._init_database()
 			return True	
 			
@@ -257,10 +257,10 @@ class ptvDB:
 				self._migrate_database_four_five()
 				self.clean_database_media()
 			elif db_ver > 5:
-				print "WARNING: This database comes from a later version of PenguinTV and may not work with this version"
+				logging.warning("This database comes from a later version of PenguinTV and may not work with this version")
 				raise DBError, "db_ver is "+str(db_ver)+" instead of "+str(LATEST_DB_VER)
 		except Exception, e:
-			print "exception:",e
+			logging.error("exception:" + str(e))
 			
 		#if self.searcher.needs_index:
 		#	print "indexing for the first time"
@@ -271,7 +271,7 @@ class ptvDB:
 			
 	def _migrate_database_one_two(self):
 		#add table settings
-		print "upgrading to database schema 2"
+		logging.info("upgrading to database schema 2")
 		try:
 			self._db_execute(self._c, u'SELECT * FROM settings')  #if it doesn't exist, 
 		except:                                        #we create it
@@ -295,7 +295,7 @@ class ptvDB:
 			self._db_execute(self._c, u'UPDATE entries SET fakedate = date')
 		except sqlite.OperationalError,e:
 			if e != "duplicate column name: fakedate":
-				print e #else pass
+				logging.warning(str(e)) #else pass
 			#change db_ver (last thing)
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN pollfreq INT')
 		self._db_execute(self._c, u'UPDATE feeds SET pollfreq=1800')
@@ -316,7 +316,7 @@ class ptvDB:
 			
 	def _migrate_database_two_three(self):
 		"""version 3 added flag cache, entry_count_cache, and unread_count_cache"""
-		print "upgrading to database schema 3"
+		logging.info("upgrading to database schema 3")
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN flag_cache INT')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN entry_count_cache INT')
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN unread_count_cache INT')
@@ -327,7 +327,7 @@ class ptvDB:
 		
 	def _migrate_database_three_four(self):
 		"""version 4 adds fulltext table"""
-		print "upgrading to database schema 4"
+		logging.info("upgrading to database schema 4")
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN type INT')
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN query')
 		self._db_execute(self._c, u'ALTER TABLE tags ADD COLUMN favorite INT')
@@ -350,7 +350,7 @@ class ptvDB:
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
 		
-		print "building new column, please wait..."
+		logging.info("building new column, please wait...")
 		self._db_execute(self._c, u'SELECT id FROM feeds')
 		for feed_id, in self._c.fetchall():
 			self._db_execute(self._c, u'SELECT media.id FROM entries INNER JOIN media ON media.entry_id = entries.id WHERE entries.feed_id=?', (feed_id,))
@@ -364,15 +364,7 @@ class ptvDB:
 		
 	def _migrate_database_four_five(self):
 		"""version five gets rid of 'id' column, 'new' column, adds option_flags column"""
-		print "upgrading to database schema 5, please wait..."
-		#BEGIN TRANSACTION;
-		#CREATE TEMPORARY TABLE t1_backup(a,b);
-		#INSERT INTO t1_backup SELECT a,b FROM t1;
-		#DROP TABLE t1;
-		#CREATE TABLE t1(a,b);
-		#INSERT INTO t1 SELECT a,b FROM t1_backup;
-		#DROP TABLE t1_backup;
-		#COMMIT;
+		logging.info("upgrading to database schema 5, please wait...")
 		
 		self.__remove_columns("settings","""data TEXT NOT NULL,
 											 value TEXT""", 
@@ -450,7 +442,7 @@ class ptvDB:
 		   (only called by migration function and with no user-programmable
 		   arguments)"""
 		   
-		print "updating", table, "..."
+		logging.info("updating" + table + "...")
 		
 		self._c.execute(u"CREATE TEMPORARY TABLE t_backup(" + new_schema + ")")
 		self._c.execute(u"INSERT INTO t_backup SELECT "+new_columns+" FROM " + table)
@@ -578,17 +570,17 @@ class ptvDB:
 						self._db_execute(self._c, u"SELECT rowid FROM media WHERE file=?",(os.path.join(root, file),))
 						result = self._c.fetchone()
 						if result is None:
-							print "deleting "+os.path.join(root,file)
+							logging.info("deleting "+os.path.join(root,file))
 							os.remove(os.path.join(root,file))
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
 			if root!=media_dir:
 				if len(files) == 1:
 					if files[0] == "playlist.m3u":
-						print "deleting "+root
+						logging.info("deleting "+root)
 						utils.deltree(root)
 				elif len(files) == 0:
-					print "deleting "+root
+					logging.info("deleting "+root)
 					utils.deltree(root)
 					
 	def get_setting(self, type, datum, default=None):
@@ -681,7 +673,7 @@ class ptvDB:
 			self._db_execute(self._c, """SELECT rowid FROM feeds WHERE url=?""",(url,))
 			feed_id = self._c.fetchone()
 			feed_id = feed_id[0]
-			print "db: feed already exists"
+			logging.info("db: feed already exists")
 			raise FeedAlreadyExists(feed_id)
 			
 		return feed_id
@@ -762,7 +754,7 @@ class ptvDB:
 			elif os.path.isdir(media['file']): #could be a dir if it was a bittorrent download
 				utils.deltree(media['file']) 
 		except os.error, detail:
-			print "Error deleting: "+str(detail)
+			logging.error("Error deleting: "+str(detail))
 		#but keep going in case the dirs are empty now
 		try:
 			#now check to see if we should get rid of the dated dir
@@ -772,7 +764,7 @@ class ptvDB:
 			if len(globlist)==0: #similarly, if dir is empty, we're done.
 				utils.deltree(os.path.split(media['file'])[0])
 		except os.error, detail:
-			print "Error deleting dirs: "+str(detail)
+			logging.error("Error deleting dirs: "+str(detail))
 		#if everything worked, set status
 		self.set_media_download_status(media_id,D_NOT_DOWNLOADED)			
 		
@@ -880,7 +872,7 @@ class ptvDB:
 				data = feedparser.parse(url,etag)
 			return (feed_id, arguments, total, data)
 		except Exception, e:
-			print e
+			logging.error(str(e))
 			return (feed_id, arguments, total, -1)
 
 	def _process_feed(self,feed_id, args, total, data, recurse=0):
@@ -899,32 +891,32 @@ class ptvDB:
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
 		except sqlite.OperationalError, e:
-			print "Database warning...", e
+			logging.warning("Database warning..." + str(e))
 			if recurse < 2:
 				time.sleep(5)
-				print "trying again..."
+				logging.warning("trying again...")
 				self._db.close()
 				self._db=sqlite.connect(os.path.join(self.home,"penguintv4.db"), timeout=30, isolation_level="IMMEDIATE")
 				self._c = self._db.cursor()
 				return self._process_feed(feed_id, args, total, data, recurse+1) #and reconnect
-			print "can't get lock, giving up"
+			logging.warning("can't get lock, giving up")
 			return (feed_id,{'pollfail':True}, total)
 		except FeedPollError,e:
 			#print "feed poll error",
-			print e
+			logging.warning(str(e))
 			return (feed_id,{'pollfail':True}, total)
 		except IOError, e:
 			#print "io error",
-			print e
+			logging.warning(str(e))
 			#we got an ioerror, but we won't take it out on the feed
 			return (feed_id,{'ioerror':e, 'pollfail':False}, total)
 		except:
-			print "other error polling feed:",feed_id
+			logging.warning("other error polling feed:" + str(feed_id))
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			error_msg = ""
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 				error_msg += s
-			print error_msg
+			logging.error(error_msg)
 			return (feed_id,{'pollfail':True}, total)
 			
 		#assemble our handy dictionary while we're in a thread
@@ -945,7 +937,7 @@ class ptvDB:
 				flag_list = self.get_entry_flags(feed_id)
 				
 				if len(self.get_pointer_feeds(feed_id)) > 0:
-					print "have pointers, reindexing now"
+					logging.info("have pointers, reindexing now")
 					self.reindex()
 					
 				update_data['flag_list']=flag_list
@@ -970,13 +962,13 @@ class ptvDB:
 			feed['new_entries'] = self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
-			print e
-			print "error polling feed:"
+			logging.warning(str(e))
+			logging.warning("error polling feed:")
 			exc_type, exc_value, exc_traceback = sys.exc_info()
 			error_msg = ""
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 				error_msg += s
-			print error_msg
+			logging.warning(error_msg)
 			self.reindex()
 			callback(feed, False)
 
@@ -1018,7 +1010,7 @@ class ptvDB:
 					self._set_new_update_freq(feed_id, 0)
 				self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				self._db.commit()
-				print e
+				logging.warning(str(e))
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 		else:
 			if preparsed == -1:
@@ -1092,7 +1084,7 @@ class ptvDB:
 					self._db.commit()					
 		
 		if arguments & A_DELETE_ENTRIES == A_DELETE_ENTRIES:
-			print "deleting existing entries", feed_id, arguments
+			logging.info("deleting existing entries"  + str(feed_id) + str(arguments))
 			self._db_execute(self._c, """DELETE FROM entries WHERE feed_id=?""",(feed_id,))
 			self._db.commit()
 		#to discover the old entries, first we mark everything as old
@@ -1142,7 +1134,7 @@ class ptvDB:
 				self._db_execute(self._c, """UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE rowid=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			self._reindex_feed_list.append(feed_id)
 		except Exception, e:
-			print e
+			logging.info(str(e))
 			#f = open("/var/log/penguintv.log",'a')
 			#f.write("borked on: UPDATE feeds SET title="+str(channel['title'])+", description="+str(channel['description'])+", modified="+str(modified)+", etag="+str(data['etag'])+", pollfail=0 WHERE rowid="+str(feed_id))
 			#f.close()	
@@ -1672,7 +1664,7 @@ class ptvDB:
 				try:
 					readinfo = self._c.fetchone()[0]
 				except:
-					print "error in search results, reindexing"
+					logging.info("error in search results, reindexing")
 					readinfo = 0
 					self.reindex()
 				entries.append([entry_id, title, fakedate, readinfo, feed_id])
@@ -1943,7 +1935,7 @@ class ptvDB:
 		self._db_execute(self._c, u'SELECT count(*) FROM media WHERE media.file=?',(filename,))
 		count = self._c.fetchone()[0]
 		if count>1:
-			print "WARNING: multiple entries in db for one filename"
+			logging.warning("multiple entries in db for one filename")
 		if count==0:
 			return False
 		return True
@@ -2252,14 +2244,14 @@ class ptvDB:
 			self._db_execute(self._c, u'UPDATE tags SET query=? WHERE tag=?',(query,tag))
 			self._db.commit()
 		except:
-			print "error updating tag"
+			logging.error("error updating tag")
 			
 	def set_tag_favorite(self, tag, favorite=False):
 		try:
 			self._db_execute(self._c, u'UPDATE tags SET favorite=? WHERE tag=?',(favorite,tag))
 			self._db.commit()
 		except:
-			print "error updating tag favorite"
+			logging.error("error updating tag favorite")
 
 	def rename_tag(self, old_tag, new_tag):
 		self._db_execute(self._c, u'UPDATE tags SET tag=? WHERE tag=?',(new_tag,old_tag))
@@ -2340,7 +2332,7 @@ class ptvDB:
 				error_msg = ""
 				for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 					error_msg += s
-				print error_msg
+				logging.warning(error_msg)
 				stream.close()
 				yield (-1,0)
 			added_feeds=[]
@@ -2361,7 +2353,7 @@ class ptvDB:
 					error_msg = ""
 					for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 						error_msg += s
-					print error_msg
+					logging.warning(error_msg)
 					yield (-1,0)
 			stream.close()
 			#return added_feeds
@@ -2394,7 +2386,7 @@ class ptvDB:
 					error_msg = ""
 					for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 						error_msg += s
-					print error_msg
+					logging.warning(error_msg)
 					yield (-1,0)
 			yield (-1,0)
 				
@@ -2423,7 +2415,7 @@ class ptvDB:
 			else:
 				self.searcher.Re_Index(self._reindex_feed_list, self._reindex_entry_list)
 		except:
-			print "reindex failure.  wait til next time I guess"
+			logging.warning("reindex failure.  wait til next time I guess")
 		self._reindex_feed_list = []
 		self._reindex_entry_list = []
 		
