@@ -824,6 +824,8 @@ class ptvDB:
 		
 		if self._cancel_poll_multiple:
 			self._parse_list = []
+			#pass dummy poll result, send cancel signal
+			self.polling_callback((-1, [], total), True)
 		else: # no need for manual join
 			while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 				if self._exiting:
@@ -834,7 +836,6 @@ class ptvDB:
 					return
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
-		#print "joined"
 		del pool
 		self.reindex()
 		self._cancel_poll_multiple = False

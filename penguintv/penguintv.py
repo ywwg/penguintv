@@ -1744,7 +1744,7 @@ class PenguinTVApp(gobject.GObject):
 	def _finished_callback(self,downloader):
 		self._gui_updater.queue(self._download_finished, downloader)
 		
-	def _polling_callback(self, args):
+	def _polling_callback(self, args, cancelled=False):
 		if not self._exiting:
 			feed_id, update_data, total = args
 			if len(update_data)>0:
@@ -1760,23 +1760,16 @@ class PenguinTVApp(gobject.GObject):
 				else:
 					update_data['polling_multiple'] = True
 					self._threaded_emit('feed-polled', feed_id, update_data)
-			else:
+			elif not cancelled:
 				#check image just in case
 				self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['image']))
-			self._gui_updater.queue(self._poll_update_progress,total)
+			self._gui_updater.queue(self._poll_update_progress, (total, cancelled))
 		
-	def _poll_update_progress(self, total=0, error = False, errmsg = ""):
+	def _poll_update_progress(self, total=0, cancelled=False):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
 
-		if error:
-			self._polled=0
-			self._polling_taskinfo = -1
-			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
-			self.main_window.display_status_message(errmsg,MainWindow.U_POLL)
-			gobject.timeout_add(2000, self.main_window.display_status_message,"")
-			return
 		self._polled += 1
-		if self._polled == total:
+		if self._polled == total or cancelled:
 			self._polled = 0
 			self._polling_taskinfo = -1
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)

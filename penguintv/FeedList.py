@@ -270,7 +270,7 @@ class FeedList(gobject.GObject):
 			if unviewed == 0 and flag & ptvDB.F_UNVIEWED:
 				print "WARNING: zero unread articles but flag says there should be some"
 				flag -= ptvDB.F_UNVIEWED
-			
+				
 			visible = self._feedlist[i][VISIBLE]
 			
 			if self._fancy:

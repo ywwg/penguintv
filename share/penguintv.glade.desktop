@@ -7074,6 +7074,10 @@ Tagged feeds will appear at the top of the list.</property>
   <property name="gravity">GDK_GRAVITY_NORTH_WEST</property>
   <property name="focus_on_map">True</property>
   <property name="urgency_hint">False</property>
+  <signal name="delete_event" handler="on_app_delete_event" last_modification_time="Thu, 21 Jun 2007 20:27:19 GMT"/>
+  <signal name="destroy_event" handler="on_app_destroy_event" last_modification_time="Thu, 21 Jun 2007 20:27:22 GMT"/>
+  <signal name="window_state_event" handler="on_app_window_state_event" last_modification_time="Thu, 21 Jun 2007 20:27:38 GMT"/>
+  <signal name="key_press_event" handler="on_app_key_press_event" last_modification_time="Thu, 21 Jun 2007 20:27:55 GMT"/>
 
   <child>
     <widget class="GtkVBox" id="vbox30">
