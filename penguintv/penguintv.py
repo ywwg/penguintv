@@ -20,7 +20,7 @@ import gc
 #gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_SAVEALL)
 import logging
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 
 import urllib
 try:
@@ -524,11 +524,11 @@ class PenguinTVApp(gobject.GObject):
 			return True
 
 		if self._polling_taskinfo != -1:
-			#print "I think we are already polling"
-			#print "poll id set:", self._polling_taskinfo, time.time(), "(", time.time() - self._polling_taskinfo, ")"
+			logging.debug("I think we are already polling")
+			logging.debug("poll id set: %i %d (%d)" % (self._polling_taskinfo, time.time(), time.time() - self._polling_taskinfo))
 			if time.time() - self._polling_taskinfo > 20*60:
-				#print "poll id reset"
-				#print "but it's been an awful long time.  Polling anyway"
+				logging.debug("poll id reset")
+				logging.debug("but it's been an awful long time.  Polling anyway")
 				self._polling_taskinfo = -1
 			else:
 				return True
