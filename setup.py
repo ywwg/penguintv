@@ -19,7 +19,7 @@ if HAS_SUGAR:
 			print "There was an error symlinking the glade file"
 			sys.exit(1)
 
-		bundlebuilder.start('MANIFEST-OLPC')
+		bundlebuilder.start(manifest='MANIFEST-OLPC')
 	except Exception, e:
 		print "problem building for OLPC:", e
 		sys.exit(1)
