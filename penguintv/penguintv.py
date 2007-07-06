@@ -570,7 +570,7 @@ class PenguinTVApp(gobject.GObject):
 		for d in download_list:
 			total_size=total_size+int(d[1])
 			
-		logging.info("adding up downloads, we need" + str(total_size) + "bytes")
+		logging.info("adding up downloads, we need %i bytes" % (total_size))
 			
 		if self._free_media_space(total_size):
 			for d in download_list:

@@ -92,21 +92,22 @@ class MainWindow(gobject.GObject):
 		self._active_filter_name = FeedList.BUILTIN_TAGS[FeedList.ALL]
 		self._active_filter_index = FeedList.ALL
 		
-		pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_online.png'))
-		source = gtk.IconSource()
-		source.set_pixbuf(pixbuf)
-		source.set_size(gtk.ICON_SIZE_DIALOG)
-		source.set_size_wildcarded(False)
-		self._connected_iconset = gtk.IconSet()
-		self._connected_iconset.add_source(source)
+		if not utils.RUNNING_SUGAR:
+			pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_online.png'))
+			source = gtk.IconSource()
+			source.set_pixbuf(pixbuf)
+			source.set_size(gtk.ICON_SIZE_DIALOG)
+			source.set_size_wildcarded(False)
+			self._connected_iconset = gtk.IconSet()
+			self._connected_iconset.add_source(source)
 
-		pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_offline.png'))
-		source = gtk.IconSource()
-		source.set_pixbuf(pixbuf)
-		source.set_size(gtk.ICON_SIZE_DIALOG)
-		source.set_size_wildcarded(False)
-		self._disconnected_iconset = gtk.IconSet()
-		self._disconnected_iconset.add_source(source)
+			pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_offline.png'))
+			source = gtk.IconSource()
+			source.set_pixbuf(pixbuf)
+			source.set_size(gtk.ICON_SIZE_DIALOG)
+			source.set_size_wildcarded(False)
+			self._disconnected_iconset = gtk.IconSet()
+			self._disconnected_iconset.add_source(source)
 		
 		##other WINDOWS we open
 		if utils.HAS_LUCENE:
@@ -242,6 +243,8 @@ class MainWindow(gobject.GObject):
 			dock_widget.show_all()
 			
 			self._window = dock_widget
+			
+			self._connection_button = None
 			
 			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar_holder','penguintv')
 			self.toolbar = self._load_sugar_toolbar()
@@ -612,13 +615,12 @@ class MainWindow(gobject.GObject):
 			self._notebook.set_show_tabs(True)
 			self._gstreamer_player.toggle_controls(fullscreen)
 			self._window.window.set_cursor(None)
+			self._widgetTree.get_widget('toolbar1').show()
 			if not utils.RUNNING_SUGAR:
 				self.app_window.window.unfullscreen()
-				self._widgetTree.get_widget('bonobodockitem1').show()
-				self._widgetTree.get_widget('bonobodockitem2').show()
-				self._widgetTree.get_widget('appbar').show()
+				self._widgetTree.get_widget('menubar2').show()
+				self._widgetTree.get_widget('status_hbox').show()
 			else:
-				self._widgetTree.get_widget('toolbar1').show()
 				self._status_view.show()
 		else:
 			self._notebook.set_show_tabs(False)
@@ -627,13 +629,12 @@ class MainWindow(gobject.GObject):
 			color = gtk.gdk.Color()
 			cursor = gtk.gdk.Cursor(pixmap, pixmap, color, color, 0, 0)
 			self._window.window.set_cursor(cursor)
+			self._widgetTree.get_widget('toolbar1').hide()
 			if not utils.RUNNING_SUGAR:
-				self._widgetTree.get_widget('bonobodockitem1').hide()
-				self._widgetTree.get_widget('bonobodockitem2').hide()
-				self._widgetTree.get_widget('appbar').hide()
+				self._widgetTree.get_widget('menubar2').hide()
+				self._widgetTree.get_widget('status_hbox').hide()
 				self.app_window.window.fullscreen()
 			else:
-				self._widgetTree.get_widget('toolbar1').hide()
 				self._status_view.hide()
 
 	def on_about_activate(self,event):
