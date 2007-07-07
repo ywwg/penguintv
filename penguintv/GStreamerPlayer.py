@@ -108,10 +108,12 @@ class GStreamerPlayer(gobject.GObject):
 		self._queue_listview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 		#dnd reorder
 		self._TARGET_TYPE_REORDER = 80
-		drop_types = [('reorder',gtk.TARGET_SAME_WIDGET, self._TARGET_TYPE_REORDER)]
+		self._TARGET_TYPE_URI_LIST = 81
+		drop_types = [('reorder',gtk.TARGET_SAME_WIDGET, self._TARGET_TYPE_REORDER),
+					  ('text/uri-list',0,self._TARGET_TYPE_URI_LIST)]
 		#for removing items from favorites and reordering
 		self._queue_listview.enable_model_drag_source(gtk.gdk.BUTTON1_MASK, drop_types, gtk.gdk.ACTION_MOVE)
-		self._queue_listview.enable_model_drag_dest(drop_types, gtk.gdk.ACTION_MOVE)
+		self._queue_listview.enable_model_drag_dest(drop_types, gtk.gdk.ACTION_DEFAULT)
 		self._queue_listview.connect('drag-data-received', self._on_queue_drag_data_received)
 		
 		s_w.add(self._queue_listview)
@@ -697,8 +699,8 @@ class GStreamerPlayer(gobject.GObject):
 	###drag and drop###
 		
 	def _on_queue_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
-		treeview.emit_stop_by_name('drag-data-received')
 		if targetType == self._TARGET_TYPE_REORDER:
+			treeview.emit_stop_by_name('drag-data-received')
 			model, paths_to_copy = treeview.get_selection().get_selected_rows()
 			if len(paths_to_copy) > 1:
 				print "can only move one at a time"
@@ -727,6 +729,11 @@ class GStreamerPlayer(gobject.GObject):
 			except:
 				model.append(row)
 				context.finish(True, True, time)
+		elif targetType == self._TARGET_TYPE_URI_LIST:
+			uri_list = [s for s in selection.data.split('\r\n') if len(s) > 0]
+			for uri in uri_list:
+				uri = uri.replace("file://", "")
+				self.queue_file(uri)			
 
 	def checkSanity(self, model, iter_to_copy, target_iter):
 		path_of_iter_to_copy = model.get_path(iter_to_copy)
