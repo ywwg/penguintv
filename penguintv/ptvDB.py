@@ -105,6 +105,7 @@ FF_NOSEARCH       = 2
 FF_NOAUTOEXPIRE   = 4
 FF_NOTIFYUPDATES  = 8
 FF_ADDNEWLINES    = 16
+FF_MARKASREAD     = 32
 
 DB_FILE="penguintv4.db"
 
@@ -212,7 +213,7 @@ class ptvDB:
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
-		if randint(1,10) == 1 and closeok:
+		if randint(1,30) == 1 and closeok:
 			logging.info("compacting database")
 			self._c.execute('VACUUM')
 			self._c.close()
@@ -982,7 +983,7 @@ class ptvDB:
 			a feedparser dictionary in the preparsed argument and avoid network operations"""
 		
 		# print "poll:",feed_id, arguments
-		
+
 		if preparsed is None:
 			#feed_id = self._resolve_pointed_feed(feed_id)
 			self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(feed_id,))
@@ -1178,6 +1179,8 @@ class ptvDB:
 		flag_list = []
 		not_old = []
 		
+		default_read = str(int(self.get_flags_for_feed(feed_id) & FF_MARKASREAD == FF_MARKASREAD))
+		
 		for item in data['items']:
 			#do a lot of normalizing
 			item['body'] = ''
@@ -1289,7 +1292,7 @@ class ptvDB:
 			
 			if status[0]==NEW:
 				new_items = new_items+1
-				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, old) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',(feed_id,item['title'],item['creator'],item['body'],'0',fake_time-i, int(time.mktime(item['date_parsed'])),item['guid'],item['link'],'0'))
+				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, old) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',(feed_id,item['title'],item['creator'],item['body'],default_read,fake_time-i, int(time.mktime(item['date_parsed'])),item['guid'],item['link'],'0'))
 
 				self._db_execute(self._c,  "SELECT last_insert_rowid()")
 				entry_id = self._c.fetchone()[0]
@@ -1298,7 +1301,7 @@ class ptvDB:
 					for media in item['enclosures']:
 						media.setdefault('length', 0)
 						media.setdefault('type', 'application/octet-stream')
-						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length'], feed_id))
+						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 				self._reindex_entry_list.append(entry_id)
 			elif status[0]==EXISTS:
 				not_old.append(status[1])
@@ -1335,7 +1338,7 @@ class ptvDB:
 								#if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
-								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], 0, D_NOT_DOWNLOADED, 0, media['length'], feed_id))
+								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?', (status[1],))
 				self._reindex_entry_list.append(status[1])
 			i+=1

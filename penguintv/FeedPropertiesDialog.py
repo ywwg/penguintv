@@ -4,7 +4,8 @@
 import penguintv
 import utils
 from ptvDB import FeedAlreadyExists, FF_NOAUTODOWNLOAD, FF_NOSEARCH, \
-				  FF_NOAUTOEXPIRE, FF_NOTIFYUPDATES, FF_ADDNEWLINES 
+				  FF_NOAUTOEXPIRE, FF_NOTIFYUPDATES, FF_ADDNEWLINES, \
+				  FF_MARKASREAD 
 import gtk
 import time, datetime
 from math import floor
@@ -36,7 +37,7 @@ class FeedPropertiesDialog:
 				
 	def show(self):
 		self._window.set_transient_for(self._app.main_window.get_parent())
-		
+		self._xml.get_widget('notebook1').set_current_page(0)
 		if not utils.HAS_LUCENE:
 			self._xml.get_widget('b_search').hide()
 		if utils.RUNNING_SUGAR:
@@ -120,6 +121,11 @@ class FeedPropertiesDialog:
 			self._xml.get_widget('b_addnewlines').set_active(True)
 		else:
 			self._xml.get_widget('b_addnewlines').set_active(False)
+			
+		if flags & FF_MARKASREAD == FF_MARKASREAD:
+			self._xml.get_widget('b_markasread').set_active(True)
+		else:
+			self._xml.get_widget('b_markasread').set_active(False)
 		
 	def on_window_feed_properties_delete_event(self, widget, event):
 		return self._window.hide_on_delete()
@@ -182,6 +188,18 @@ class FeedPropertiesDialog:
 		else:
 			if self._cur_flags & FF_ADDNEWLINES == FF_ADDNEWLINES:
 				self._cur_flags -= FF_ADDNEWLINES
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				self._app.emit('render-ops-updated')
+				
+	def on_b_markasread_toggled(self, b_markasread):
+		if b_markasread.get_active():
+			if not self._cur_flags & FF_MARKASREAD == FF_MARKASREAD:
+				self._cur_flags += FF_MARKASREAD
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				self._app.emit('render-ops-updated')
+		else:
+			if self._cur_flags & FF_MARKASREAD == FF_MARKASREAD:
+				self._cur_flags -= FF_MARKASREAD
 				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
 				self._app.emit('render-ops-updated')
 		
