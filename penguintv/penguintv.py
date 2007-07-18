@@ -235,6 +235,7 @@ class PenguinTVApp(gobject.GObject):
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
 		#gtk.gdk.threads_enter()
+		
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -295,6 +296,7 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				self._populate_feeds(self._done_populating)
 		else:
+			##PROFILE: comment out
 			self._populate_feeds(self._done_populating)
 
 		if self._autoresume:
@@ -304,7 +306,7 @@ class PenguinTVApp(gobject.GObject):
 			self._import_default_feeds()
 		elif self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
-			
+		
 		#gtk.gdk.threads_leave()
 		self.emit('app-loaded')
 		self._app_loaded = True
@@ -1887,6 +1889,7 @@ def do_commandline(remote_app=None, local_app=None):
 			local_app.add_feed(a, a)
 
 def main():
+	gtk.gdk.threads_init()
 	if HAS_GNOME:
 		gnome.init("PenguinTV", utils.VERSION)
 	try:
@@ -1895,7 +1898,6 @@ def main():
 		do_commandline(remote_app=e.remote_app)
 		sys.exit(0)
 	app.main_window.Show() 
-	gtk.gdk.threads_init()
 	if utils.is_kde():
 		try:
 			from kdecore import KApplication, KCmdLineArgs, KAboutData
@@ -1928,9 +1930,14 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		except AlreadyRunning, e:
 			do_commandline(remote_app=e.remote_app)
 			sys.exit(0)
-		app.main_window.Show() 
-		#import profile
-		#profile.run('gtk.main()', '/tmp/penguintv-prof')
+		
+		app.main_window.Show()
+		
+		##PROFILE
+		#import cProfile
+		#cProfile.run('gtk.main()', '/tmp/penguintv-prof')
+		#sys.exit(0)
+
 		if utils.is_kde():
 			try:
 				from kdecore import KApplication, KCmdLineArgs, KAboutData
