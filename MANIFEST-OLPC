@@ -81,8 +81,4 @@ share/icons/stock-stop.svg
 share/icons/stock-media-play.svg
 share/icons/stock-preferences.svg
 share/icons/stock-media-pause.svg
-lib/libcrypto.so.6
-lib/libcurl.so.3
-lib/libidn.so.11
-lib/libssl.so.6
 site-packages/pycurl.so

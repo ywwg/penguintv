@@ -311,8 +311,7 @@ class MainWindow(gobject.GObject):
 		b.connect('clicked', self.on_remove_feed_activate, True)
 		hbox.pack_start(b, False)
 		vbox.pack_start(hbox)
-		palette = Palette()
-		palette.set_primary_state(_('Remove Feed'))
+		palette = Palette(_('Remove Feed'))
 		palette.set_content(vbox)
 		vbox.show_all()
 		self._sugar_remove_button.set_palette(palette)
@@ -348,14 +347,12 @@ class MainWindow(gobject.GObject):
 		from sugar.graphics.palette import Palette
 		
 		content = self._app.window_add_feed.extract_content()
-		palette = Palette()
-		palette.set_primary_state(_('Add Feed'))
+		palette = Palette(_('Add Feed'))
 		palette.set_content(content)
 		self.sugar_add_button.set_palette(palette)
 		
 		content = self._app.window_preferences.extract_content()
-		palette = Palette()
-		palette.set_primary_state(_('Preferences'))
+		palette = Palette(_('Preferences'))
 		palette.set_content(content)
 		self._sugar_prefs_button.set_palette(palette)
 		
