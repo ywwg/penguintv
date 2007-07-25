@@ -2,18 +2,22 @@ import sys, os, logging
 import gtk, gobject
 from sugar.activity import activity
 
+import hulahop
+
 #need to set things up before we import penguintv
+
+activity_root = activity.get_bundle_path()
+	
+#chdir here so that relative RPATHs line up ('./lib')
+os.chdir(activity_root) 
+	
+#append to sys.path for the python packages
+sys.path = [activity_root,] + sys.path
 
 try:
 	import pycurl
 except:
 	logging.warning("Trying to load bundled pycurl libraries")
-	
-	#where are we?
-	activity_root = activity.get_bundle_path()
-	
-	#chdir here so that relative RPATHs line up ('./lib')
-	os.chdir(activity_root) 
 	
 	#append to sys.path for the python packages
 	sys.path.append(os.path.join(activity_root, 'site-packages'))

@@ -12,25 +12,18 @@ import gobject
 import gtk
 
 from EntryFormatter import *
-from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, LOADING_FEEDS
 import ptvDB
 import utils
 
-if not utils.RUNNING_SUGAR:
-	try:
-		import gtkmozembed
-	except:
-		pass
-else:
-	import hulahop
-	
+import hulahop
+
 ENTRIES_PER_PAGE = 10
 
 #states
 S_DEFAULT=0
 S_SEARCH=1
 
-class PlanetView(gobject.GObject):
+class PlanetViewLite(gobject.GObject):
 	"""PlanetView implementes the api for entrylist and entryview, so that the main program doesn't
 	need to know that the two objects are actually the same"""
 	
@@ -51,19 +44,16 @@ class PlanetView(gobject.GObject):
                            [])
     }	                       
 	
-	def __init__(self, widget_tree, feed_list_view, app, main_window, db, renderer=GTKHTML):
+	def __init__(self, dock_widget, main_window, db):
 		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
 		
 		#protected
-		self._app = app
+		#self._app = app
 		
-		self._mm = self._app.mediamanager
-		self._widget_tree = widget_tree
 		self._main_window = main_window
 		self._db = db
-		self._renderer = renderer
 		self._css = ""
 		self._current_feed_id = -1
 		self._moz_realized = False
@@ -79,7 +69,7 @@ class PlanetView(gobject.GObject):
 		
 		self._first_entry = 0 #first entry visible
 		
-		self._html_dock = widget_tree.get_widget('html_dock')
+		self._html_dock = dock_widget
 		self._scrolled_window = gtk.ScrolledWindow()
 		self._html_dock.add(self._scrolled_window)
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
@@ -101,92 +91,31 @@ class PlanetView(gobject.GObject):
                 style.base[gtk.STATE_INSENSITIVE].blue / 256,
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
-		if self._renderer == GTKHTML:
-			logging.error("gtkhtml and planetview not supported")
-			return
-			#self._USING_AJAX = False
-		elif self._renderer == MOZILLA:
-			if utils.RUNNING_SUGAR:
-				self._USING_AJAX = False
-				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet-olpc.css"))
-				for l in f.readlines(): self._css += l
-				f.close()
-				
-				hulahop.startup(os.path.join(self._db.home, 'gecko'))
-				import OLPCBrowser
-				self._moz = OLPCBrowser.Browser()
-				self._moz.load_uri("about:blank")
-				self._moz.connect("notify", self._hulahop_prop_changed)
-			else:
-				self._USING_AJAX = True
-				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
-				for l in f.readlines(): self._css += l
-				f.close()
-				if not utils.init_gtkmozembed():
-					logging.error("Error initializing mozilla.  Penguintv may crash shortly")
-				gtkmozembed.set_profile_path(self._db.home, 'gecko')
-				gtkmozembed.push_startup()
-				self._moz = gtkmozembed.MozEmbed()
-				self._moz.load_url("about:blank")
-			
-			#TEMP INDENT START	
-				#hard:
-				self._moz.connect("new-window", self._moz_new_window)
-				#requires changes to hulahop to get at _chrome:
-				self._moz.connect("link-message", self._moz_link_message)
-				
-			self._moz.connect("open-uri", self._moz_link_clicked)
-			self._moz.connect("realize", self._moz_realize, True)
-			self._moz.connect("unrealize", self._moz_realize, False)
-			self._scrolled_window.add_with_viewport(self._moz)
-			self._moz.show()
-			if utils.HAS_GCONF:
-				import gconf
-				self._conf = gconf.client_get_default()
-				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self._reset_moz_font()
-		self.display_item()
-		self._html_dock.show_all()
-		if self._USING_AJAX:
-			logging.info("initializing ajax server")
-			import threading
-			from ajax import EntryInfoServer, MyTCPServer
+		self._USING_AJAX = False
+		#FIXME
+		f = open (os.path.join("/home/owen/penguintv/share/mozilla-planet-olpc.css"))
+		for l in f.readlines(): self._css += l
+		f.close()
+		hulahop.startup(os.path.join(self._db.home, 'gecko'))
 
-			while True:
-				try:
-					if PlanetView.PORT == 8050:
-						break
-					self._update_server = MyTCPServer.MyTCPServer(('', PlanetView.PORT), EntryInfoServer.EntryInfoServer)
-					break
-				except:
-					PlanetView.PORT += 1
-			if PlanetView.PORT==8050:
-				logging.warning("tried a lot of ports without success.  Problem?")
-			t = threading.Thread(None, self._update_server.serve_forever)
-			t.setDaemon(True)
-			t.start()
-		else:
-			logging.info("not using ajax")
+		import OLPCBrowser
+		self._moz = OLPCBrowser.Browser()
+		self._moz.load_uri("about:blank")
+		self._moz.connect("notify", self._hulahop_prop_changed)
+			
+		self._moz.connect("open-uri", self._moz_link_clicked)
+		self._moz.connect("realize", self._moz_realize, True)
+		self._moz.connect("unrealize", self._moz_realize, False)
+		self._scrolled_window.add_with_viewport(self._moz)
+		self._moz.show()
+		self._reset_moz_font()
+		self.display_item()
+
+		self._html_dock.show_all()
 		
 		#signals
-		self._handlers = []
-		h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
-		self._handlers.append((feed_list_view.disconnect, h_id))
-		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
-		self._handlers.append((feed_list_view.disconnect, h_id))
-		h_id = self._app.connect('feed-added',self.__feed_added_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
-		self._handlers.append((self._app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
-		h_id = screen.connect('size-changed', self.__size_changed_cb)
-		self._handlers.append((screen.disconnect, h_id))
+		screen.connect('size-changed', self.__size_changed_cb)
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
@@ -322,11 +251,11 @@ class PlanetView(gobject.GObject):
 		self.clear_entries()
 	
 	def set_state(self, newstate, data=None):
-		d = {DEFAULT: S_DEFAULT,
-			 MANUAL_SEARCH: S_SEARCH,
-			 TAG_SEARCH: S_SEARCH,
-			 #ACTIVE_DOWNLOADS: S_DEFAULT,
-			 LOADING_FEEDS: S_DEFAULT}
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_SEARCH,
+			 penguintv.TAG_SEARCH: S_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
+			 penguintv.LOADING_FEEDS: S_DEFAULT}
 			 
 		newstate = d[newstate]
 		
@@ -366,7 +295,7 @@ class PlanetView(gobject.GObject):
 			import urllib
 			self._update_server.finish()
 			try:
-				urllib.urlopen("http://localhost:"+str(PlanetView.PORT)+"/") #pings the server, gets it to quit
+				urllib.urlopen("http://localhost:"+str(PlanetViewLite.PORT)+"/") #pings the server, gets it to quit
 			except:
 				logging.error('error closing planetview server')
 		self._render("<html><body></body></html")
@@ -423,7 +352,7 @@ class PlanetView(gobject.GObject):
 			
 			entries.append(entry_html)
 
-		self._app.mark_entrylist_as_viewed(unreads, False)
+		#self._app.mark_entrylist_as_viewed(unreads, False)
 		for e in unreads:
 			try:
 				del self._entry_store[e] #need to regen because it's not new anymore
@@ -470,93 +399,92 @@ class PlanetView(gobject.GObject):
 		self._render(html)
 	
 	def _build_header(self, media_exists):
-		if self._renderer == MOZILLA:
-			html = (
-            """<html><head>
-            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-			<style type="text/css">
-            body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
-            %s
-            </style>
-            <title>title</title>""") % (self._background_color,
-									   self._foreground_color,
-									   self._moz_font, 
-									   self._moz_size, 
-									   self._css)
-			if media_exists and self._USING_AJAX:
-				html += """
-	            <script type="text/javascript">
-	            <!--
-	            var xmlHttp
+		html = (
+        """<html><head>
+        <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<style type="text/css">
+        body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
+        %s
+        </style>
+        <title>title</title>""") % (self._background_color,
+								   self._foreground_color,
+								   self._moz_font, 
+								   self._moz_size, 
+								   self._css)
+		if media_exists and self._USING_AJAX:
+			html += """
+            <script type="text/javascript">
+            <!--
+            var xmlHttp
 
-				function refresh_entries(timed)
+			function refresh_entries(timed)
+			{
+				xmlHttp=GetXmlHttpObject()
+				if (xmlHttp==null)
 				{
-					xmlHttp=GetXmlHttpObject()
-					if (xmlHttp==null)
-					{
-						alert ("Browser does not support HTTP Request")
-						return
-					}        
-					xmlHttp.onreadystatechange=stateChanged 
-					try
-					{
-						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""",true)
-						xmlHttp.send(null)
-					} 
-					catch (error) 
-					{
-						document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
-					}
-					if (timed == 1)
-					{
-						SetTimer()
-					}
-				} 
-
-				function stateChanged() 
-				{ 
-					if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
-				    { 
-				    	if (xmlHttp.responseText.length > 0)
-				    	{
-					    	response_array = xmlHttp.responseText.split("\\n")
-							for (line in response_array)
-							{
-								line_split = response_array[line].split(" ")
-								entry_id = line_split[0]
-					    		split_point = response_array[line].indexOf(" ")
-								document.getElementById(entry_id).innerHTML=response_array[line].substring(split_point)
-							}
-							//keep refreshing
-							//refresh_entries(0) //don't queue timer
-						}
-					} 
-				} 
-
-				function GetXmlHttpObject()
-				{ 
-					var objXMLHttp=null
-					if (window.XMLHttpRequest)
-					{
-						objXMLHttp=new XMLHttpRequest()
-					}
-					else if (window.ActiveXObject)
-					{
-						objXMLHttp=new ActiveXObject("Microsoft.XMLHTTP")
-					}
-					return objXMLHttp
-				} 
-				
-				var timerObj;
-				function SetTimer()
+					alert ("Browser does not support HTTP Request")
+					return
+				}        
+				xmlHttp.onreadystatechange=stateChanged 
+				try
 				{
-	  				timerObj = setTimeout("refresh_entries(1)",2000);
+					xmlHttp.open("GET","http://localhost:"""+str(PlanetViewLite.PORT)+"/"+self._update_server.get_key()+"""",true)
+					xmlHttp.send(null)
+				} 
+				catch (error) 
+				{
+					document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
 				}
-				refresh_entries(1)
-				-->
-	            </script>"""
-			html += """</head><body><span id="errorMsg"></span><br>"""
+				if (timed == 1)
+				{
+					SetTimer()
+				}
+			} 
+
+			function stateChanged() 
+			{ 
+				if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
+			    { 
+			    	if (xmlHttp.responseText.length > 0)
+			    	{
+				    	response_array = xmlHttp.responseText.split("\\n")
+						for (line in response_array)
+						{
+							line_split = response_array[line].split(" ")
+							entry_id = line_split[0]
+				    		split_point = response_array[line].indexOf(" ")
+							document.getElementById(entry_id).innerHTML=response_array[line].substring(split_point)
+						}
+						//keep refreshing
+						//refresh_entries(0) //don't queue timer
+					}
+				} 
+			} 
+
+			function GetXmlHttpObject()
+			{ 
+				var objXMLHttp=null
+				if (window.XMLHttpRequest)
+				{
+					objXMLHttp=new XMLHttpRequest()
+				}
+				else if (window.ActiveXObject)
+				{
+					objXMLHttp=new ActiveXObject("Microsoft.XMLHTTP")
+				}
+				return objXMLHttp
+			} 
 			
+			var timerObj;
+			function SetTimer()
+			{
+  				timerObj = setTimeout("refresh_entries(1)",2000);
+			}
+			refresh_entries(1)
+			-->
+            </script>"""
+		html += """</head><body><span id="errorMsg"></span><br>"""
+		
 		return html
 		
 	def _load_entry_block(self, entry_id_list):
@@ -576,15 +504,15 @@ class PlanetView(gobject.GObject):
 					ret = []
 					ret.append(str(item['entry_id'])+" ")
 					for medium in item['media']:
-						ret += htmlify_media(medium, self._mm)
+						ret += htmlify_media(medium)
 					ret = "".join(ret)
 					self._update_server.push_update(ret)
 				
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 			else:
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 				
 	def _load_entry(self, entry_id, force = False):
 		if self._entry_store.has_key(entry_id) and not force:
@@ -597,9 +525,9 @@ class PlanetView(gobject.GObject):
 			item['media']=media
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+			self._entry_store[entry_id] = (htmlify_item(item, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 		else:
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+			self._entry_store[entry_id] = (htmlify_item(item, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 		
 		index = self._entrylist.index(entry_id)
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
@@ -610,7 +538,7 @@ class PlanetView(gobject.GObject):
 				ret = []
 				ret.append(str(entry_id)+" ")
 				for medium in entry['media']:
-					ret += htmlify_media(medium, self._mm)
+					ret += htmlify_media(medium)
 				ret = "".join(ret)
 				self._update_server.push_update(ret)
 		
@@ -619,7 +547,7 @@ class PlanetView(gobject.GObject):
 	def _render(self, html):
 		# temp until olpcbrowser dows moz_realized
 		if self._moz_realized or utils.RUNNING_SUGAR:
-			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+			self._moz.open_stream("http://localhost:"+str(PlanetViewLite.PORT),"text/html")
 			while len(html)>60000:
 					part = html[0:60000]
 					html = html[60000:]

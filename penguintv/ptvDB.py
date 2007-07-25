@@ -1072,7 +1072,7 @@ class ptvDB:
 			href = self._icon_manager.download_icon(feed_id, data)
 			if href is not None:
 				self._db_execute(self._c, u"""UPDATE feeds SET image=? WHERE rowid=?""",(href,feed_id))
-				self._db.commit()
+				#self._db.commit()
 		else:
 			self._db_execute(self._c, u"""SELECT image FROM feeds WHERE rowid=?""",(feed_id,))
 			try: old_href = self._c.fetchone()[0]
@@ -1083,18 +1083,18 @@ class ptvDB:
 				href = self._icon_manager.download_icon(feed_id, data)
 				if href is not None:
 					self._db_execute(self._c, u"""UPDATE feeds SET image=? WHERE rowid=?""",(href,feed_id))
-					self._db.commit()					
+					#self._db.commit()					
 		
 		if arguments & A_DELETE_ENTRIES == A_DELETE_ENTRIES:
 			logging.info("deleting existing entries"  + str(feed_id) + str(arguments))
 			self._db_execute(self._c, """DELETE FROM entries WHERE feed_id=?""",(feed_id,))
-			self._db.commit()
+			#self._db.commit()
 		#to discover the old entries, first we mark everything as old
 		#later, we well unset this flag for everything that is NEW,
 		#MODIFIED, and EXISTS. anything still flagged should be deleted  
 		self._db_execute(self._c, """UPDATE entries SET old=1 WHERE feed_id=?""",(feed_id,)) 
 		self._db_execute(self._c, """UPDATE feeds SET pollfail=0 WHERE rowid=?""",(feed_id,))
-		self._db.commit()
+		#self._db.commit()
 	
 		#normalize results
 		channel = data['feed']
@@ -1150,7 +1150,7 @@ class ptvDB:
 			link = link[0]
 			if link == "" and data['feed'].has_key('link'):
 				self._db_execute(self._c, u'UPDATE feeds SET link=? WHERE rowid=?',(data['feed']['link'],feed_id))
-		self._db.commit()
+		#self._db.commit()
 		
 		#populate the entries
 		self._db_execute(self._c, """SELECT rowid,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate DESC""",(feed_id,)) 
@@ -1354,7 +1354,7 @@ class ptvDB:
 			self._db_execute(self._c, """UPDATE entries SET old=0 WHERE rowid in (""" +
 							 qmarks + ')', tuple(not_old))
 		
-		self._db.commit()
+		#self._db.commit()
 		
 		# anything not set above as new, mod, or exists is no longer in
 		# the xml and therefore could be deleted if we have more articles than 

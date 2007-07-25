@@ -38,6 +38,7 @@ penguintv/utils.py
 penguintv/EntryView.py
 penguintv/AddFeedDialog.py
 penguintv/EntryList.py
+penguintv/EntryFormatter.py
 penguintv/Downloader.py
 penguintv/FeedList.py
 penguintv/__init__.py

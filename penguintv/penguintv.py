@@ -3,6 +3,12 @@
 # using pieces from Straw
 # see LICENSE for license information
 
+#states:
+DEFAULT            = 1
+MANUAL_SEARCH      = 2
+TAG_SEARCH         = 3
+LOADING_FEEDS      = 4
+DONE_LOADING_FEEDS = 5
 
 #memory profiling:
 
@@ -88,12 +94,6 @@ if utils.RUNNING_SUGAR:
 else:
 	AUTO_REFRESH_FREQUENCY=5*60*1000
 
-#states:
-DEFAULT            = 1
-MANUAL_SEARCH      = 2
-TAG_SEARCH         = 3
-LOADING_FEEDS      = 4
-DONE_LOADING_FEEDS = 5
 
 class PenguinTVApp(gobject.GObject):
 

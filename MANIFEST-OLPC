@@ -1,4 +1,5 @@
 __init__.py
+NewsReaderLite.py
 PenguinTVActivity.py
 penguintv/ajax/EntryInfoServer.py
 penguintv/ajax/MyTCPServer.py
@@ -12,6 +13,7 @@ penguintv/EditSearchesDialog.py
 penguintv/TagEditorNG.py
 penguintv/EntryList.py
 penguintv/EntryView.py
+penguintv/EntryFormatter.py
 penguintv/FeedFilterDialog.py
 penguintv/FeedFilterPropertiesDialog.py
 penguintv/FeedList.py
@@ -27,6 +29,7 @@ penguintv/MainWindow.py
 penguintv/MediaManager.py
 penguintv/OPML.py
 penguintv/penguintv.py
+penguintv/PlanetViewLite.py
 penguintv/PlanetView.py
 penguintv/Player.py
 penguintv/PreferencesDialog.py

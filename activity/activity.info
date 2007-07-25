@@ -4,5 +4,5 @@ service_name = com.ywwg.NewsReader
 id = com.ywwg.NewsReader
 class = PenguinTVActivity.PenguinTVActivity
 icon = activity-penguintv
-activity_version = 21
+activity_version = 22
 show_launcher = yes
