@@ -1,7 +1,6 @@
 # Written by Owen Williams
 # see LICENSE for license information
 
-import penguintv
 import gtk
 
 class LoginDialog(gtk.Dialog):

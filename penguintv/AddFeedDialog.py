@@ -27,15 +27,15 @@ class AddFeedDialog:
 	def __init__(self,xml,app):
 		self._xml = xml
 		self._app = app
+		
 		self._window = xml.get_widget("window_add_feed")
-		self._window.set_transient_for(self._app.main_window.get_parent())
+		if not utils.RUNNING_SUGAR:
+			self._window.set_transient_for(self._app.main_window.get_parent())
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))
 		self._feed_url_widget = self._xml.get_widget("feed_url")
 		self._edit_tags_widget = self._xml.get_widget("edit_tags_widget")
-		self._tag_hbox = self._xml.get_widget('tag_hbox')
-		self._label = self._xml.get_widget('add_feed_label')
 		
 	def extract_content(self):
 		box = self._xml.get_widget('add_feed_box')
@@ -52,6 +52,8 @@ class AddFeedDialog:
 		if autolocation:
 			self.set_location_automatically()
 		self._edit_tags_widget.set_text("")
+		if utils.RUNNING_SUGAR:
+			self._edit_tags_widget.hide()
 	
 	#ripped from straw
 	def set_location_automatically(self):
@@ -111,7 +113,8 @@ class AddFeedDialog:
 					self._window.set_sensitive(True)
 				return
 			feed_id = self._app.add_feed(url,title)
-			self._app.db.set_flags_for_feed(feed_id, flags)
+			if not utils.RUNNING_SUGAR:
+				self._app.db.set_flags_for_feed(feed_id, flags)
 		except AuthorizationFailed:
 			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("You must specify a valid username and password in order to add this feed."))
@@ -147,11 +150,12 @@ class AddFeedDialog:
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.
 		if len(tags) > 0:
-			self._app.apply_tags_to_feed(feed_id, None, tags)
-			#HACK: total hack to select the first tag they entered
-			#(tag order not preserved in DB, so we can't use the standard API
-			#self._app.main_window.select_feed(feed_id)
-			self._app.main_window.set_active_filter(self._app.main_window.get_filter_index(tags[0]))
+			if not utils.RUNNING_SUGAR:
+				self._app.apply_tags_to_feed(feed_id, None, tags)
+				#HACK: total hack to select the first tag they entered
+				#(tag order not preserved in DB, so we can't use the standard API
+				#self._app.main_window.select_feed(feed_id)
+				self._app.main_window.set_active_filter(self._app.main_window.get_filter_index(tags[0]))
 		self.hide()
 				
 	def on_button_ok_clicked(self,event):
@@ -211,7 +215,7 @@ class AddFeedDialog:
 				except:
 					raise BadFeedURL,"Error trying to get itunes podcast"
 				
-		urllib._urlopener = my_url_opener(gtk.glade.XML(self._app.glade_prefix+'/penguintv.glade', "dialog_login",'penguintv'))
+		urllib._urlopener = my_url_opener(gtk.glade.XML(os.path.join(self._app.glade_prefix, 'penguintv.glade'), "dialog_login", 'penguintv'))
 		url_stream = None
 		try:
 			url_stream = urllib.urlopen(url)	

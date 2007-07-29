@@ -4,7 +4,7 @@ import sys, os, logging
 import threading
 import time
 
-import gtk, gobject
+import gtk, gobject, gtk.glade
 import dbus
 
 from sugar.activity import activity
@@ -24,7 +24,14 @@ os.chdir(activity_root)
 #if user has desktop penguintv installed, don't use it
 sys.path = [activity_root,] + sys.path
 
-from penguintv import ptvDB, PlanetViewLite, EntryFormatter
+os.environ['SUGAR_PENGUINTV'] = '1' #set up variable so that utils knows we are running_sugar
+
+from penguintv import ptvDB
+from penguintv import PlanetViewLite
+from penguintv import EntryFormatter
+from penguintv import AddFeedDialog
+from penguintv import utils
+from penguintv import ptvDbus
 
 try:
 	import pycurl
@@ -36,17 +43,18 @@ except:
 	
 	#try again. if it fails now, let it fail
 	import pycurl 
-os.environ['SUGAR_PENGUINTV'] = '1' #set up variable so that utils knows we are running_sugar
 
 class NewsReaderLite(activity.Activity):
 	def __init__(self, handle):
 		activity.Activity.__init__(self, handle)
 		self.set_title('News Reader')
+		
+		self.glade_prefix = utils.get_glade_prefix()
+
 		toolbox = activity.ActivityToolbox(self)
-	
-		#toolbox.add_toolbar(_('Feeds'), self._load_toolbar)
 		self.set_toolbox(toolbox)
 		toolbox.show()
+
 		logging.debug("Loading DB")
 		self._db = ptvDB.ptvDB()
 		self._update_thread = None
@@ -54,13 +62,46 @@ class NewsReaderLite(activity.Activity):
 		
 		self.connect('destroy', self.do_quit)
 		
-		gobject.idle_add(self._post_show_init)
+		gobject.idle_add(self._post_show_init, toolbox)
+		
+	def add_feed(self, url, title):
+		logging.debug("please insert feed " + url + " title")
+		
+	def update_feedlist(self):
+		assert self._db is not None
+		
+		feedlist = self._db.get_feedlist()
+		self._feedlist.clear()
+		for feed_id, title in feedlist:
+			self._feedlist.append((feed_id, title))
+
+	def display_status_message(self, msg):
+		logging.info(msg)
 		
 	def do_quit(self, event):
 		logging.debug("telling update thread to go away")
 		if self._update_thread:
 			self._update_thread.goAway()
+
+	def _load_toolbar(self):
+		toolbar = gtk.Toolbar()
 		
+		# Add Feed Palette
+		button = ToolButton('gtk-add')
+		toolbar.insert(button, -1)
+		button.show()
+		
+		add_feed_dialog = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self.glade_prefix, 'penguintv.glade'), "window_add_feed",'penguintv'), self) #MAGIC
+		content = add_feed_dialog.extract_content()
+		content.show_all()
+		
+		palette = Palette(_('Add Feed'))
+		palette.set_content(content)
+		button.set_palette(palette)
+	
+		toolbar.show()
+		return toolbar
+			
 	def _build_ui(self):
 		logging.debug("Loading UI")
 		vbox = gtk.VBox()
@@ -83,7 +124,7 @@ class NewsReaderLite(activity.Activity):
 		logging.debug("Done loading UI")
 		return vbox
 		
-	def _post_show_init(self):
+	def _post_show_init(self, toolbox):
 		self.update_feedlist()
 		logging.debug("Updated list")
 		
@@ -95,49 +136,25 @@ class NewsReaderLite(activity.Activity):
 			logging.debug("No other News Reader found, starting polling thread")
 			self._update_thread = _threaded_db(self._polling_callback)
 			self._update_thread.start()
+			
+			#init dbus
+			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
+			ptv_dbus = ptvDbus.ptvDbus(self, name)
 		else:
 			logging.debug("Detected other News Reader, not starting polling thread")
 		
+		print "adding toolbar I think"
+		toolbox.add_toolbar(_('Feeds'), self._load_toolbar())
+		
 		return False
 		
-	def _polling_callback(self, args, cancelled=False):
-		pass
-		
-	def update_feedlist(self):
-		assert self._db is not None
-		
-		feedlist = self._db.get_feedlist()
-		self._feedlist.clear()
-		for feed_id, title in feedlist:
-			self._feedlist.append((feed_id, title))
-			
 	def _on_combo_select(self, combo):
 		active = combo.get_active()
 		
 		self._feed_viewer.populate_entries(self._feedlist[active][0])
 		
-	def display_status_message(self, msg):
-		logging.info(msg)
-		
-	def _load_toolbar(self):
-		#TODO
-		toolbar = gtk.Toolbar()
-		
-		# Add Feed Palette
-		button = ToolButton('gtk-add')
-		toolbar.insert(button, -1)
-		
-		#vbox = gtk.VBox()
-		#label = gtk.Label("Add a url")
-		
-		
-		palette = Palette(_('Add Feed'))
-		palette.set_content(content)
-		button.set_palette(palette)
-
-	
-		button.show()
-		return toolbar
+	def _polling_callback(self, args, cancelled=False):
+		pass
 		
 class _threaded_db(threading.Thread):
 	def __init__(self, polling_callback):

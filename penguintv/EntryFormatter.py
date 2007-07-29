@@ -1,5 +1,10 @@
+import os, os.path
 import htmllib, HTMLParser
 import time
+
+from ptvDB import D_NOT_DOWNLOADED, D_DOWNLOADING, D_DOWNLOADED, D_RESUMABLE, \
+				  D_ERROR, D_WARNING
+import utils
 
 GTKHTML=0
 MOZILLA=1
@@ -55,11 +60,11 @@ def htmlify_item(item, mm=None, ajax=False, with_feed_titles=False, indicate_new
 def htmlify_media(medium, mm, basic_progress=False):
 	ret = []
 	ret.append('<div class="media">')
-	if medium['download_status']==ptvDB.D_NOT_DOWNLOADED:    
+	if medium['download_status']==D_NOT_DOWNLOADED:    
 		ret.append('<p>'+utils.html_command('download:',medium['media_id'])+' '+
 						 utils.html_command('downloadqueue:',medium['media_id'])+
 				         ' (%s)</p>' % (utils.format_size(medium['size'],)))
-	elif medium['download_status'] == ptvDB.D_DOWNLOADING: 
+	elif medium['download_status'] == D_DOWNLOADING: 
 		if basic_progress:
 			ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
 		elif medium.has_key('progress_message'): #downloading and we have a custom message
@@ -86,7 +91,7 @@ def htmlify_media(medium, mm, basic_progress=False):
 			            utils.html_command('stop:',medium['media_id'])+'</p>')
 		else:       # we have nothing to go on
 			ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
-	elif medium['download_status'] == ptvDB.D_DOWNLOADED:
+	elif medium['download_status'] == D_DOWNLOADED:
 		if mm.has_downloader(medium['media_id']):	
 			downloader = mm.get_downloader(medium['media_id'])
 			ret.append('<p>'+ str(downloader.message)+'</p>')
@@ -105,11 +110,11 @@ def htmlify_media(medium, mm, basic_progress=False):
 			ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
 							 utils.html_command('redownload',medium['media_id'])+' '+
 							 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
-	elif medium['download_status'] == ptvDB.D_RESUMABLE:
+	elif medium['download_status'] == D_RESUMABLE:
 		ret.append('<p>'+utils.html_command('resume:',medium['media_id'])+' '+
 						 utils.html_command('redownload',medium['media_id'])+' '+
 						 utils.html_command('delete:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))	
-	elif medium['download_status'] == ptvDB.D_ERROR:
+	elif medium['download_status'] == D_ERROR:
 		if mm.has_downloader(medium['media_id']):	
 			downloader = mm.get_downloader(medium['media_id'])
 			error_msg = downloader.message
