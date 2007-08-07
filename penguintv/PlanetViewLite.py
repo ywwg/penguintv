@@ -44,7 +44,7 @@ class PlanetViewLite(gobject.GObject):
                            [])
     }	                       
 	
-	def __init__(self, dock_widget, main_window, db):
+	def __init__(self, dock_widget, main_window, db, gladefile):
 		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
@@ -93,7 +93,7 @@ class PlanetViewLite(gobject.GObject):
 		
 		self._USING_AJAX = False
 		#FIXME
-		f = open (os.path.join("/home/owen/penguintv/share/mozilla-planet-olpc.css"))
+		f = open (gladefile)
 		for l in f.readlines(): self._css += l
 		f.close()
 		hulahop.startup(os.path.join(self._db.home, 'gecko'))

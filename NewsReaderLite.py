@@ -160,7 +160,7 @@ class NewsReaderLite(activity.Activity):
 		#vbox.pack_start(combo, False)
 		vbox.pack_start(self._feed_viewer_dock, True)
 		
-		self._feed_viewer = PlanetViewLite.PlanetViewLite(self._feed_viewer_dock, self, self._db)
+		self._feed_viewer = PlanetViewLite.PlanetViewLite(self._feed_viewer_dock, self, self._db, os.path.join(self.glade_prefix, 'mozilla-planet-olpc.css'))
 		
 		vbox.show_all()
 		logging.debug("Done loading UI")
