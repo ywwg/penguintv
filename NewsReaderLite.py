@@ -90,14 +90,14 @@ class NewsReaderLite(activity.Activity):
 		
 	def update_feedlist(self):
 		assert self._db is not None
-		print self._session_tag
-		feedlist = self._db.get_feeds_for_tag(self._session_tag)
-		print feedlist
-		#feedlist = self._db.get_feedlist()
+		#print self._session_tag
+		#feedlist = self._db.get_feeds_for_tag(self._session_tag)
+		#print feedlist
+		feedlist = self._db.get_feedlist()
 		self._feedlist.clear()
-		for feed_id in feedlist:
-			print feed_id
-			title = self._db.get_feed_title(feed_id)
+		for feed_id, title in feedlist:
+			#print feed_id
+			#title = self._db.get_feed_title(feed_id)
 			logging.debug("appending %i %s" % (feed_id,title))
 			self._feedlist.append((feed_id, title))
 
