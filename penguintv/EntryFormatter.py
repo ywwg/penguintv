@@ -4,6 +4,7 @@ import time
 
 from ptvDB import D_NOT_DOWNLOADED, D_DOWNLOADING, D_DOWNLOADED, D_RESUMABLE, \
 				  D_ERROR, D_WARNING
+import Downloader
 import utils
 
 GTKHTML=0

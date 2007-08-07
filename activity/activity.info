@@ -2,7 +2,7 @@
 name = News Reader
 service_name = com.ywwg.NewsReader
 id = com.ywwg.NewsReader
-class = PenguinTVActivity.PenguinTVActivity
+class = NewsReaderLite.NewsReaderLite
 icon = activity-penguintv
 activity_version = 22
 show_launcher = yes

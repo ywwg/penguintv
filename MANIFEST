@@ -37,6 +37,7 @@ penguintv/Player.py
 penguintv/utils.py
 penguintv/EntryView.py
 penguintv/AddFeedDialog.py
+penguintv/AddFeedUtils.py
 penguintv/EntryList.py
 penguintv/EntryFormatter.py
 penguintv/Downloader.py

@@ -231,6 +231,7 @@ class ptvDB:
 			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
 			#db_ver = self._c.fetchone()
 			#db_ver = db_ver[0]
+			logging.debug("getting db version")
 			db_ver = self.get_setting(INT, "db_ver")
 			#print "current database version is",db_ver
 			if db_ver is None:
@@ -651,7 +652,7 @@ class ptvDB:
 		self.cache_dirty=True
 		return cache
 		
-	def insertURL(self, url,title=None):
+	def insertURL(self, url, title=None):
 		#if a feed with that url doesn't already exists, add it
 
 		self._db_execute(self._c, """SELECT url FROM feeds WHERE url=?""",(url,))
@@ -1695,6 +1696,15 @@ class ptvDB:
 		else:
 			result=[]
 		return dataList
+		
+	def get_feed_id_by_url(self, url):
+		self._db_execute(self._c, """SELECT rowid FROM feeds WHERE url=?""",(url,))
+		try:
+			result = self._c.fetchone()[0]
+		except TypeError:
+			return -1	
+		
+		return result
 		
 	def get_feed_title(self, feed_index):
 		self._db_execute(self._c, """SELECT title FROM feeds WHERE rowid=?""",(feed_index,))

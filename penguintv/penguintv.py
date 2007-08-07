@@ -742,6 +742,7 @@ class PenguinTVApp(gobject.GObject):
 		import urlparse
 		parsed_url = urlparse.urlparse(link)
 		action=parsed_url[0] #protocol
+		parameters=parsed_url[3]
 		http_arguments=parsed_url[4]
 		anchor = parsed_url[5]
 		try:
@@ -815,6 +816,13 @@ class PenguinTVApp(gobject.GObject):
 					gnome.url_show(reveal_url)
 		elif action == "http" or action == "https":
 			try:
+				if len(parameters)>0:
+					parameters = ";"+parameters
+				else:
+					parameters = ""
+			except:
+				parameters = ""
+			try:
 				if len(http_arguments)>0:
 					http_arguments = "?"+http_arguments
 				else:
@@ -832,10 +840,10 @@ class PenguinTVApp(gobject.GObject):
 			#however don't quote * (yahoo news don't like it quoted)
 			quoted_url = string.replace(quoted_url,"%2A","*")
 			if HAS_GNOME:
-				gnome.url_show(parsed_url[0]+"://"+quoted_url+http_arguments+anchor)
+				gnome.url_show(parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor)
 			elif utils.RUNNING_SUGAR:
 				from sugar.activity import activityfactory
-				uri=parsed_url[0]+"://"+quoted_url+http_arguments+anchor
+				uri=parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor
 				activityfactory.create_with_uri('org.laptop.WebActivity', uri)
 		elif action=="file":
 			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))

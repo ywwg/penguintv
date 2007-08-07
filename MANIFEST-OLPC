@@ -5,6 +5,7 @@ penguintv/ajax/EntryInfoServer.py
 penguintv/ajax/MyTCPServer.py
 penguintv/ajax/__init__.py
 penguintv/AddFeedDialog.py
+penguintv/AddFeedUtils.py
 penguintv/AddSearchTagDialog.py
 penguintv/BTDownloader.py
 penguintv/Downloader.py
