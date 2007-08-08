@@ -37,12 +37,16 @@ class AddFeedDialog:
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))
 		self._feed_url_widget = self._xml.get_widget("feed_url")
-		self._edit_tags_widget = self._xml.get_widget("edit_tags_widget")
+		if not utils.RUNNING_SUGAR:
+			self._edit_tags_widget = self._xml.get_widget("edit_tags_widget")
+		else:
+			self._edit_tags_widget = None
 		
 	def extract_content(self):
 		box = self._xml.get_widget('add_feed_box')
 		box.unparent()
 		box.show_all()
+			
 		self._window = None
 		return box
 				
@@ -53,9 +57,10 @@ class AddFeedDialog:
 		self._feed_url_widget.set_text("")
 		if autolocation:
 			self.set_location_automatically()
-		self._edit_tags_widget.set_text("")
-		if utils.RUNNING_SUGAR:
-			self._edit_tags_widget.hide()
+		
+		if not utils.RUNNING_SUGAR:
+			self._edit_tags_widget.set_text("")
+		
 	
 	#ripped from straw
 	def set_location_automatically(self):
@@ -101,9 +106,10 @@ class AddFeedDialog:
 				flags += FF_MARKASREAD
 	
 		tags=[]
-		if len(self._edit_tags_widget.get_text()) > 0:
-			for tag in self._edit_tags_widget.get_text().split(','):
-				tags.append(tag.strip())
+		if not utils.RUNNING_SUGAR:
+			if len(self._edit_tags_widget.get_text()) > 0:
+				for tag in self._edit_tags_widget.get_text().split(','):
+					tags.append(tag.strip())
 		url = self._feed_url_widget.get_text()
 		if self._window:
 			self._window.set_sensitive(False)
