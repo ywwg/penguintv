@@ -339,12 +339,16 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_list_view.connect('entry-selected', self.__entry_selected_cb)
 		self.feed_list_view.connect('state-change', self.__feedlist_state_change_cb)
 		self._entry_view.connect('entry-selected', self.__entry_selected_cb)
+		self._entry_view.connect('entries-selected', self.__entries_selected_cb)
 		
 	def __entry_selected_cb(self, o, entry_id, feed_id):
 		if self._state == MANUAL_SEARCH or self._state == TAG_SEARCH and feed_id != -1:
 			self.select_feed(feed_id)
 		#FIXME: we're not passing the query for highlighting purposes here
 		self.display_entry(entry_id)
+		
+	def __entries_selected_cb(self, o, feed_id, entrylist):
+		self.mark_entrylist_as_viewed(entrylist, False)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)

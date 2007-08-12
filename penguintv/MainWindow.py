@@ -495,8 +495,12 @@ class MainWindow(gobject.GObject):
 			self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
 										          self.entry_list_view, self._app, self, renderer)
 		else:
-			self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
-										            self._app, self, self._db, renderer)
+			#self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
+			#							            self._app, self, self._db, renderer)
+			self.entry_view = PlanetView.PlanetView(components.get_widget('html_dock'), 
+													self, self._db, self._app.glade_prefix,
+													self.feed_list_view, self._app, 
+													renderer)
 			self.entry_list_view = self.entry_view
 			
 		if renderer == EntryView.GTKHTML:

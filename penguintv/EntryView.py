@@ -33,7 +33,11 @@ class EntryView(gobject.GObject):
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
         'link-activated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_PYOBJECT]))
+                           ([gobject.TYPE_PYOBJECT])),
+		#unused except by planetview
+		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT]))
     }	
 
 	def __init__(self, widget_tree, feed_list_view, entry_list_view, 

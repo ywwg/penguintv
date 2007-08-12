@@ -26,6 +26,16 @@ body {
         padding: 6pt;
 }
 
+.entry {
+      border-width: 3px;
+      border-style: solid;
+      border-color: #333;
+      background-color: #f5f7fa;
+      margin-top: 6pt;
+      padding: 3pt;
+      overflow: auto;
+}
+
 .entry_new {
       border-width: 3px;
       border-style: solid;

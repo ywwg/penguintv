@@ -12,7 +12,6 @@ import gobject
 import gtk
 
 from EntryFormatter import *
-from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, LOADING_FEEDS
 import ptvDB
 import utils
 
@@ -40,6 +39,9 @@ class PlanetView(gobject.GObject):
        	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
+		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
 		#
 		#unused by planetview, but part of entrylist API
 		#
@@ -51,16 +53,16 @@ class PlanetView(gobject.GObject):
                            [])
     }	                       
 	
-	def __init__(self, widget_tree, feed_list_view, app, main_window, db, renderer=GTKHTML):
+	def __init__(self, dock_widget, main_window, db, glade_path, feed_list_view=None, app=None, renderer=MOZILLA):
 		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
 		
 		#protected
-		self._app = app
-		
-		self._mm = self._app.mediamanager
-		self._widget_tree = widget_tree
+		if app is not None:
+			self._mm = app.mediamanager
+		else:
+			self._mm = None
 		self._main_window = main_window
 		self._db = db
 		self._renderer = renderer
@@ -79,7 +81,7 @@ class PlanetView(gobject.GObject):
 		
 		self._first_entry = 0 #first entry visible
 		
-		self._html_dock = widget_tree.get_widget('html_dock')
+		self._html_dock = dock_widget
 		self._scrolled_window = gtk.ScrolledWindow()
 		self._html_dock.add(self._scrolled_window)
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
@@ -108,7 +110,7 @@ class PlanetView(gobject.GObject):
 		elif self._renderer == MOZILLA:
 			if utils.RUNNING_SUGAR:
 				self._USING_AJAX = False
-				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet-olpc.css"))
+				f = open(os.path.join(glade_path, "mozilla-planet-olpc.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
 				
@@ -119,7 +121,7 @@ class PlanetView(gobject.GObject):
 				self._moz.connect("notify", self._hulahop_prop_changed)
 			else:
 				self._USING_AJAX = True
-				f = open (os.path.join(self._app.glade_prefix,"mozilla-planet.css"))
+				f = open(os.path.join(glade_path, "mozilla-planet.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
 				if not utils.init_gtkmozembed():
@@ -170,20 +172,22 @@ class PlanetView(gobject.GObject):
 		
 		#signals
 		self._handlers = []
-		h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
-		self._handlers.append((feed_list_view.disconnect, h_id))
-		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
-		self._handlers.append((feed_list_view.disconnect, h_id))
-		h_id = self._app.connect('feed-added',self.__feed_added_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
-		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
-		self._handlers.append((self._app.disconnect, h_id))
+		if feed_list_view is not None:
+			h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+			self._handlers.append((feed_list_view.disconnect, h_id))
+			h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+			self._handlers.append((feed_list_view.disconnect, h_id))
+		if app is not None:
+			h_id = app.connect('feed-added',self.__feed_added_cb)
+			self._handlers.append((app.disconnect, h_id))
+			h_id = app.connect('feed-removed', self.__feed_removed_cb)
+			self._handlers.append((app.disconnect, h_id))
+			h_id = app.connect('feed-polled', self.__feed_polled_cb)
+			self._handlers.append((app.disconnect, h_id))
+			h_id = app.connect('entry-updated', self.__entry_updated_cb)
+			self._handlers.append((app.disconnect, h_id))
+			h_id = app.connect('render-ops-updated', self.__render_ops_updated_cb)
+			self._handlers.append((app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -322,11 +326,12 @@ class PlanetView(gobject.GObject):
 		self.clear_entries()
 	
 	def set_state(self, newstate, data=None):
-		d = {DEFAULT: S_DEFAULT,
-			 MANUAL_SEARCH: S_SEARCH,
-			 TAG_SEARCH: S_SEARCH,
-			 #ACTIVE_DOWNLOADS: S_DEFAULT,
-			 LOADING_FEEDS: S_DEFAULT}
+		import penguintv
+		d = {penguintv.DEFAULT: S_DEFAULT,
+			 penguintv.MANUAL_SEARCH: S_SEARCH,
+			 penguintv.TAG_SEARCH: S_SEARCH,
+			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
+			 penguintv.LOADING_FEEDS: S_DEFAULT}
 			 
 		newstate = d[newstate]
 		
@@ -423,7 +428,7 @@ class PlanetView(gobject.GObject):
 			
 			entries.append(entry_html)
 
-		self._app.mark_entrylist_as_viewed(unreads, False)
+		self.emit('entries-selected', self._current_feed_id, unreads)
 		for e in unreads:
 			try:
 				del self._entry_store[e] #need to regen because it's not new anymore
@@ -582,9 +587,9 @@ class PlanetView(gobject.GObject):
 				
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 			else:
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 				
 	def _load_entry(self, entry_id, force = False):
 		if self._entry_store.has_key(entry_id) and not force:
@@ -597,9 +602,9 @@ class PlanetView(gobject.GObject):
 			item['media']=media
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 		else:
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=True, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
 		
 		index = self._entrylist.index(entry_id)
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:

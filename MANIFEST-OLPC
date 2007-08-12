@@ -30,7 +30,6 @@ penguintv/MainWindow.py
 penguintv/MediaManager.py
 penguintv/OPML.py
 penguintv/penguintv.py
-penguintv/PlanetViewLite.py
 penguintv/PlanetView.py
 penguintv/Player.py
 penguintv/PreferencesDialog.py
