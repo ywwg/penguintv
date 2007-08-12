@@ -133,6 +133,26 @@ class NewsReaderLite(activity.Activity):
 	def _load_toolbar(self):
 		toolbar = gtk.Toolbar()
 		
+		# Remove Feed Palette
+		remove_button = ToolButton('gtk-remove')
+		vbox = gtk.VBox()
+		label = gtk.Label(_('Really delete feed?'))
+		vbox.pack_start(label)
+		hbox = gtk.HBox()
+		expander_label = gtk.Label(' ')
+		hbox.pack_start(expander_label)
+		b = gtk.Button('gtk-remove')
+		b.set_use_stock(True)
+		b.connect('clicked', self._on_remove_feed_activate)
+		hbox.pack_start(b, False)
+		vbox.pack_start(hbox)
+		palette = Palette(_('Remove Feed?'))
+		palette.set_content(vbox)
+		vbox.show_all()
+		remove_button.set_palette(palette)
+		toolbar.insert(remove_button, -1)
+		remove_button.show()
+		
 		# Add Feed Palette
 		button = ToolButton('gtk-add')
 		toolbar.insert(button, -1)
@@ -199,6 +219,15 @@ class NewsReaderLite(activity.Activity):
 		self._combo.set_active(0)
 		logging.debug("Updated list")
 		return False
+		
+	def _on_remove_feed_activate(self, event):
+		# get feed id of current selection
+		active = self._combo.get_active()
+		self._db.delete_feed(self._feedlist[active][0])
+		self.update_feedlist()
+		if active >= len(self._feedlist):
+			active = len(self._feedlist) - 1
+		self._combo.set_active(active)
 		
 	def _on_combo_select(self, combo):
 		active = combo.get_active()
