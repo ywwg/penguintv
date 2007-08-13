@@ -1688,7 +1688,7 @@ class ptvDB:
 		return self._c.fetchone()[0]
 
 	def get_feedlist(self):
-		self._db_execute(self._c, """SELECT rowid,title FROM feeds ORDER BY UPPER(title)""")
+		self._db_execute(self._c, """SELECT rowid,title,url FROM feeds ORDER BY UPPER(title)""")
 		result = self._c.fetchall()
 		dataList = []
 		if result: 

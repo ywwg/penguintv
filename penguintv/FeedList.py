@@ -197,7 +197,7 @@ class FeedList(gobject.GObject):
 			db_feedlist = self._db.get_feedlist()
 			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 			blank_pixbuf.fill(0xffffff00)			
-			for feed_id,title in db_feedlist:
+			for feed_id,title,url in db_feedlist:
 				if self._fancy:
 					title_m = title+"\n"
 				else:
@@ -235,7 +235,7 @@ class FeedList(gobject.GObject):
 		
 		#gtk.gdk.threads_leave()
 		
-		for feed_id,title in db_feedlist:
+		for feed_id,title,url in db_feedlist:
 			#gtk.gdk.threads_enter()
 			if self._cancel_load[0]:
 				break

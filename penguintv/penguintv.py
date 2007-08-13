@@ -861,7 +861,6 @@ class PenguinTVApp(gobject.GObject):
 
 	def download_unviewed(self):
 		self.mediamanager.unpause_downloads()
-		feeds = self.db.get_feedlist()
 		download_list=self.db.get_media_for_download()
 		total_size=0
 		

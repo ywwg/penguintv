@@ -9,8 +9,6 @@ import os.path
 import traceback
 import sys
 
-import logging
-
 #loaded as needed
 #import feedparser
 import HTMLParser 
@@ -36,10 +34,14 @@ class AddFeedDialog:
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))
-		self._feed_url_widget = self._xml.get_widget("feed_url")
+		
 		if not utils.RUNNING_SUGAR:
 			self._edit_tags_widget = self._xml.get_widget("edit_tags_widget")
+			self._feed_url_widget = self._xml.get_widget("feed_url")
 		else:
+			combo = self._xml.get_widget("feed_combo")
+			self._feed_url_widget = combo.child
+			combo.connect('changed', self.on_sugar_combo_changed)
 			self._edit_tags_widget = None
 		
 	def extract_content(self):
@@ -77,12 +79,29 @@ class AddFeedDialog:
 	def set_location(self, url=""):
 		self._feed_url_widget.set_text(url)
 		
+	#(olpc) Sugar-only
+	def set_existing_feeds(self, existing_list):
+		assert utils.RUNNING_SUGAR
+		
+		model = gtk.ListStore(int, str, str) #id, title, url
+		
+		combo = self._xml.get_widget("feed_combo")
+		old_model = combo.get_model()
+		
+		for feed_id, title, url in existing_list:
+			model.append([feed_id, title, url])
+			
+		combo.set_model(model)
+		combo.set_text_column(1)
+		
+		del old_model
+		
+		
 	def on_window_add_feed_delete_event(self, widget, event):
 		if self._window:
 			return self._window.hide_on_delete()
 		
 	def hide(self):
-		logging.debug("hiding ourselves")
 		self._feed_url_widget.set_text("")
 		if self._window:
 			self._window.hide()
@@ -121,7 +140,6 @@ class AddFeedDialog:
 				if self._window:
 					self._window.set_sensitive(True)
 				return
-			logging.debug("calling add feed in the app")
 			feed_id = self._app.add_feed(url,title)
 			if not utils.RUNNING_SUGAR:
 				self._app.db.set_flags_for_feed(feed_id, flags)
@@ -179,3 +197,13 @@ class AddFeedDialog:
 	
 	def on_button_cancel_clicked(self,event):
 		self.hide()
+		
+	def on_sugar_combo_changed(self, combo):
+		model = combo.get_model()
+		active = combo.get_active()
+		
+		if active == -1:
+			return
+		
+		self._feed_url_widget.set_text(model[active][2])
+

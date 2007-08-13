@@ -124,7 +124,7 @@ class TagEditorNG:
 
 	def _populate_lists(self):
 		self._feeds_model.clear()
-		for feed_id, title in self._db.get_feedlist():
+		for feed_id, title, url in self._db.get_feedlist():
 			self._feeds_model.append([feed_id, title, False, False, False])
 		self._feeds_model.append([-1, "None", False, True, False])
 

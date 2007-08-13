@@ -37,16 +37,16 @@ from penguintv import AddFeedDialog
 from penguintv import utils
 from penguintv import ptvDbus
 
-try:
-	import pycurl
-except:
-	logging.warning("Trying to load bundled pycurl libraries")
-	
-	#append to sys.path for the python packages
-	sys.path.append(os.path.join(activity_root, 'site-packages'))
-	
-	#try again. if it fails now, let it fail
-	import pycurl 
+#try:
+#	import pycurl
+#except:
+#	logging.warning("Trying to load bundled pycurl libraries")
+#	
+#	#append to sys.path for the python packages
+#	sys.path.append(os.path.join(activity_root, 'site-packages'))
+#	
+#	#try again. if it fails now, let it fail
+#	import pycurl 
 
 class NewsReaderLite(activity.Activity):
 	def __init__(self, handle):
@@ -55,6 +55,8 @@ class NewsReaderLite(activity.Activity):
 		
 		self.glade_prefix = utils.get_glade_prefix()
 		self._session_tag = self._get_session_tag()
+		
+		logging.debug("Activity ID: %s" % (str(self._session_tag),))
 
 		toolbox = activity.ActivityToolbox(self)
 		self.set_toolbox(toolbox)
@@ -71,7 +73,6 @@ class NewsReaderLite(activity.Activity):
 		gobject.idle_add(self._post_show_init, toolbox)
 		
 	def add_feed(self, url, title):
-		logging.debug("please insert feed " + url + " title")
 		new_feed_id = self._db.get_feed_id_by_url(url)
 		if new_feed_id > -1:
 			for feed_id, title in self._feedlist:
@@ -89,6 +90,13 @@ class NewsReaderLite(activity.Activity):
 		self.update_feedlist()
 		self.select_feed(new_feed_id)
 		
+	def remove_feed(self, position):		
+		self._db.delete_feed(self._feedlist[position][0])
+		self.update_feedlist()
+		if position >= len(self._feedlist):
+			position = len(self._feedlist) - 1
+		self._combo.set_active(position)
+
 	def select_feed(self, feed_id):
 		try:
 			index = [f[0] for f in self._feedlist].index(feed_id)
@@ -98,16 +106,17 @@ class NewsReaderLite(activity.Activity):
 		
 	def update_feedlist(self):
 		assert self._db is not None
-		#print self._session_tag
-		#feedlist = self._db.get_feeds_for_tag(self._session_tag)
+		print self._session_tag
+		feedlist = self._db.get_feeds_for_tag(self._session_tag)
 		#print feedlist
-		feedlist = self._db.get_feedlist()
+		#feedlist = self._db.get_feedlist()
 		self._feedlist.clear()
-		for feed_id, title in feedlist:
+		for feed_id in feedlist:
 			#print feed_id
-			#title = self._db.get_feed_title(feed_id)
-			logging.debug("appending %i %s" % (feed_id,title))
+			title = self._db.get_feed_title(feed_id)
 			self._feedlist.append((feed_id, title))
+			
+		self._update_unsubscribed_feeds()
 
 	def display_status_message(self, msg):
 		logging.info(msg)
@@ -158,11 +167,11 @@ class NewsReaderLite(activity.Activity):
 		toolbar.insert(button, -1)
 		button.show()
 		
-		add_feed_dialog = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self.glade_prefix, 'penguintv.glade'), "window_add_feed",'penguintv'), self) #MAGIC
-		content = add_feed_dialog.extract_content()
+		self._add_feed_dialog = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self.glade_prefix, 'penguintv.glade'), "window_add_feed",'penguintv'), self) #MAGIC
+		content = self._add_feed_dialog.extract_content()
 		content.show_all()
 		
-		#button.connect('clicked', add_feed_dialog.show)
+		#button.connect('clicked', self._add_feed_dialog.show)
 		
 		palette = Palette(_('Subscribe to Feed'))
 		palette.set_content(content)
@@ -181,6 +190,21 @@ class NewsReaderLite(activity.Activity):
 	
 		toolbar.show()
 		return toolbar
+		
+	def _update_unsubscribed_feeds(self):
+		# get a list of all feeds from DB
+		
+		db_feedlist = self._db.get_feedlist()
+		
+		# remove any feeds that we are subscribed to
+		unsub_feedlist = []
+		idlist = [f[0] for f in self._feedlist]
+		for row in db_feedlist:
+			if row[0] not in idlist:
+				unsub_feedlist.append(row)
+				
+		# reinit add_feed_dialog with this new list
+		self._add_feed_dialog.set_existing_feeds(unsub_feedlist)
 			
 	def _build_ui(self):
 		logging.debug("Loading UI")
@@ -222,17 +246,13 @@ class NewsReaderLite(activity.Activity):
 		
 	def _on_remove_feed_activate(self, event):
 		# get feed id of current selection
-		active = self._combo.get_active()
-		self._db.delete_feed(self._feedlist[active][0])
-		self.update_feedlist()
-		if active >= len(self._feedlist):
-			active = len(self._feedlist) - 1
-		self._combo.set_active(active)
-		
+		active = self._combo.get_active()		
+		self.remove_feed(active)
+
 	def _on_combo_select(self, combo):
 		active = combo.get_active()
-		
-		self._feed_viewer.populate_entries(self._feedlist[active][0])
+		if active >= 0 and len(self._feedlist) > 0:
+			self._feed_viewer.populate_entries(self._feedlist[active][0])
 		
 	def _polling_callback(self, args, cancelled=False):
 		pass
@@ -255,7 +275,6 @@ class _threaded_db(threading.Thread):
 			logging.debug("Polling")
 			self._db.poll_multiple(ptvDB.A_AUTOTUNE)
 			for i in range(0, self._poll_timeout / 2):
-				logging.debug("poll wait, "+str(self.__isDying))
 				if self.__isDying:
 					logging.debug("Quitting DB")
 					break
