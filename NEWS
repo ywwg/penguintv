@@ -1,0 +1,8 @@
+2007/08/13  
+
+The News Reader has transitioned over to "NewsReaderLite," a rewrite of the
+user interface that is much more appropriate for the laptop.  Among other
+improvements, the reader now starts up much faster, uses less memory, can
+safely open multiple instances, and is session-aware.  Soon it will be possible
+to share reader sessions.  I hope to completely implement the design guidelines
+in bug 2725 by the end of the week and push the new activity out for Trial-3.
