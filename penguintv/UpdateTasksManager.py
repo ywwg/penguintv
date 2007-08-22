@@ -2,6 +2,7 @@
 # see LICENSE for license information
 import time
 import traceback, sys
+import logging
 
 import gobject
 import threading

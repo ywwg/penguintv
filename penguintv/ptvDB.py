@@ -792,6 +792,7 @@ class ptvDB:
 			if data: 
 				feeds = [row[0] for row in data]
 			else:
+				self.polling_callback((-1, [], 0), False)
 				return
 		pool = ThreadPool.ThreadPool(5,"ptvDB", lucene_compat = utils.HAS_LUCENE)
 		self._parse_list = []
@@ -822,8 +823,6 @@ class ptvDB:
 			time.sleep(.1)
 		self._db_execute(self._c, 'PRAGMA cache_size=2000')
 		
-		#print "done polling, join now"
-		
 		if self._cancel_poll_multiple:
 			self._parse_list = []
 			#pass dummy poll result, send cancel signal
@@ -842,7 +841,6 @@ class ptvDB:
 		self.reindex()
 		self._cancel_poll_multiple = False
 		gc.collect()
-		#print "and out"
 		
 	def interrupt_poll_multiple(self):
 		self._cancel_poll_multiple = True

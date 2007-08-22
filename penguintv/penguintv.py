@@ -530,11 +530,7 @@ class PenguinTVApp(gobject.GObject):
 			return True
 
 		if self._polling_taskinfo != -1:
-			logging.debug("I think we are already polling")
-			logging.debug("poll id set: %i %d (%d)" % (self._polling_taskinfo, time.time(), time.time() - self._polling_taskinfo))
 			if time.time() - self._polling_taskinfo > 20*60:
-				logging.debug("poll id reset")
-				logging.debug("but it's been an awful long time.  Polling anyway")
 				self._polling_taskinfo = -1
 			else:
 				return True
@@ -1782,7 +1778,7 @@ class PenguinTVApp(gobject.GObject):
 		"""Updates progress for do_poll_multiple, and also displays the "done" message"""
 
 		self._polled += 1
-		if self._polled == total or cancelled:
+		if self._polled >= total or cancelled:
 			self._polled = 0
 			self._polling_taskinfo = -1
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
@@ -1817,7 +1813,7 @@ class PenguinTVApp(gobject.GObject):
 			self.__isDying = False
 			self.db = None
 			self.updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.MANUAL, "db updater")
-			self.threadSleepTime = 0.5
+			self.threadSleepTime = 1.0
 			self.polling_callback = polling_callback
 			self.reset_callback = reset_callback
 			
