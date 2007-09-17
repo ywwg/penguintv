@@ -571,7 +571,7 @@ class PenguinTVApp(gobject.GObject):
 		logging.debug("files ready to download:")		
 		total_size = 0
 		for d in download_list:
-			logging.DEBUG("%i, %i: %i" % (d[3], d[2], d[1])) 
+			logging.debug("%i, %i: %i" % (d[3], d[2], d[1])) 
 			total_size=total_size+int(d[1])
 			
 		logging.info("adding up downloads, we need %i bytes" % (total_size))
