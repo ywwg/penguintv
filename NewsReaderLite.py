@@ -143,15 +143,16 @@ class NewsReaderLite(activity.Activity):
 		toolbar = gtk.Toolbar()
 		
 		# Remove Feed Palette
-		remove_button = ToolButton('gtk-remove')
+		remove_button = ToolButton(icon_name='list-remove')
 		vbox = gtk.VBox()
 		label = gtk.Label(_('Really delete feed?'))
 		vbox.pack_start(label)
 		hbox = gtk.HBox()
 		expander_label = gtk.Label(' ')
 		hbox.pack_start(expander_label)
-		b = gtk.Button('gtk-remove')
-		b.set_use_stock(True)
+		#b = gtk.Button(icon_name='stock-remove')
+		b = ToolButton(icon_name='list-remove')
+		#b.set_use_stock(True)
 		b.connect('clicked', self._on_remove_feed_activate)
 		hbox.pack_start(b, False)
 		vbox.pack_start(hbox)
@@ -163,7 +164,7 @@ class NewsReaderLite(activity.Activity):
 		remove_button.show()
 		
 		# Add Feed Palette
-		button = ToolButton('gtk-add')
+		button = ToolButton(icon_name='list-add')
 		toolbar.insert(button, -1)
 		button.show()
 		

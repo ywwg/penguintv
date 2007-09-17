@@ -1,16 +1,17 @@
+import sys, os, re
+import glob
+import logging
+import random
+
 import gtk
 import gobject
+
 import penguintv
 import ptvDB
 import utils
-
 import IconManager
 import MainWindow
 
-import sys, os, re
-import glob
-
-import random
 
 
 NONE=-1 #unused, needs a value
@@ -367,7 +368,7 @@ class FeedList(gobject.GObject):
 		try:
 			feed = self._feedlist[self.find_index_of_item(feed_id)]
 		except:
-			print "error getting feed", feed_id, self.find_index_of_item(feed_id)
+			logging.warning("tried to update feed not in list: %i, %s, %s, %s" % (feed_id, str(update_what), str(update_data), str(recur_ok)))
 			return
 			
 		need_filter = False #some updates will require refiltering. 

@@ -567,9 +567,11 @@ class PenguinTVApp(gobject.GObject):
 		download_list=self.db.get_media_for_download(False) #don't resume paused downloads
 		if len(download_list)==0:
 			return #no need to bother
-		
+
+		logging.debug("files ready to download:")		
 		total_size = 0
 		for d in download_list:
+			logging.DEBUG("%i, %i: %i" % (d[3], d[2], d[1])) 
 			total_size=total_size+int(d[1])
 			
 		logging.info("adding up downloads, we need %i bytes" % (total_size))
@@ -858,6 +860,7 @@ class PenguinTVApp(gobject.GObject):
 	def download_unviewed(self):
 		self.mediamanager.unpause_downloads()
 		download_list=self.db.get_media_for_download()
+		logging.debug(str(download_list))
 		total_size=0
 		
 		if len(download_list)==0:
