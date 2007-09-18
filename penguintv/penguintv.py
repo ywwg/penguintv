@@ -1772,7 +1772,7 @@ class PenguinTVApp(gobject.GObject):
 				else:
 					update_data['polling_multiple'] = True
 					self._threaded_emit('feed-polled', feed_id, update_data)
-			elif not cancelled:
+			elif not cancelled and feed_id != -1:
 				#check image just in case
 				self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['image']))
 			self._gui_updater.queue(self._poll_update_progress, (total, cancelled))
