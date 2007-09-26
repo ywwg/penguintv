@@ -163,11 +163,11 @@ class EntryView(gobject.GObject):
 		self.display_item()
 		
 	def __entry_updated_cb(self, app, entry_id, feed_id):
-		self.update_if_selected(entry_id)
+		self.update_if_selected(entry_id, feed_id)
 		
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = (-1, False)
-		self.update_if_selected(self._current_entry['entry_id'])
+		self.update_if_selected(self._current_entry['entry_id'], self._current_entry['feed_id'])
 	
 	def on_url(self, view, url):
 		if url == None:
@@ -239,7 +239,7 @@ class EntryView(gobject.GObject):
 			return self._current_entry['entry_id']
 		return None
 	
-	def update_if_selected(self, entry_id=None):
+	def update_if_selected(self, entry_id, feed_id):
 		"""tests to see if this is the currently-displayed entry, 
 		and if so, goes back to the app and asks to redisplay it."""
 		#item, progress, message = data
@@ -253,7 +253,7 @@ class EntryView(gobject.GObject):
 		if entry_id != self._current_entry['entry_id'] or self._currently_blank:
 			return	
 		#assemble the updated info and display
-		self.emit('entry-selected', self._current_entry['entry_id'], -1)
+		self.emit('entry-selected', self._current_entry['entry_id'], feed_id)
 		
 	def display_custom_entry(self, message):
 		if self._renderer==GTKHTML:

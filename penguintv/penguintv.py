@@ -345,10 +345,11 @@ class PenguinTVApp(gobject.GObject):
 		if self._state == MANUAL_SEARCH or self._state == TAG_SEARCH and feed_id != -1:
 			self.select_feed(feed_id)
 		#FIXME: we're not passing the query for highlighting purposes here
-		self.display_entry(entry_id)
+		set_read = self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == 0
+		self.display_entry(entry_id, set_read)
 		
 	def __entries_selected_cb(self, o, feed_id, entrylist):
-		self.mark_entrylist_as_viewed(entrylist, False)
+		self.mark_entrylist_as_viewed(feed_id, entrylist, False)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
@@ -712,7 +713,7 @@ class PenguinTVApp(gobject.GObject):
 		self.main_window.display_status_message(_("Loading Feeds..."))
 		self.feed_list_view.populate_feeds(callback, subset)
 					
-	def display_entry(self, entry_id, set_read=1, query=""):
+	def display_entry(self, entry_id, set_read=True, query=""):
 		if entry_id is not None:
 			item = self.db.get_entry(entry_id)
 			media = self.db.get_entry_media(entry_id)
@@ -723,7 +724,7 @@ class PenguinTVApp(gobject.GObject):
 			return
 			
 		if item.has_key('media') == False:
-			if item['read']==0 and set_read==1:
+			if item['read']==0 and set_read:
 				self.db.set_entry_read(entry_id,1)
 				self._entry_list_view.mark_as_viewed(entry_id)
 				self.feed_list_view.mark_entries_read(1, feed_id=item['feed_id'])
@@ -1065,14 +1066,22 @@ class PenguinTVApp(gobject.GObject):
 		self._auto_download = True
 			
 	def mark_entry_as_viewed(self,entry, feed_id, update_entrylist=True):
+		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
+			print "not marking as viewed"
+			return
 		self.db.set_entry_read(entry,True)
 		if update_entrylist: #hack for PlanetView
 			self.update_entry_list(entry)
 		self.feed_list_view.mark_entries_read(1, feed_id)
 		
-	def mark_entrylist_as_viewed(self, entrylist, update_entrylist=True):
+	def mark_entrylist_as_viewed(self, feed_id, entrylist, update_entrylist=True):
 		if len(entrylist) == 0:
 			return
+		
+		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
+			print "not marking these as viewed"
+			return
+		
 		self.db.set_entrylist_read(entrylist,True)
 		for e in entrylist:
 			if update_entrylist: #hack for PlanetView
@@ -1507,7 +1516,7 @@ class PenguinTVApp(gobject.GObject):
 					for medium in medialist:
 						if medium['download_status']==ptvDB.D_DOWNLOADED or medium['download_status']==ptvDB.D_RESUMABLE:
 							self.delete_media(medium['media_id'], False)
-				self._entry_view.update_if_selected(entry[0])
+				self._entry_view.update_if_selected(entry[0], feed_id)
 				#gtk.gdk.threads_leave()
 				yield True
 			#gtk.gdk.threads_enter()
@@ -1750,7 +1759,7 @@ class PenguinTVApp(gobject.GObject):
 			if d.media['size_adjustment']==True:
 				self._db_updater.queue(self._updater_thread_db.set_media_size,(d.media['media_id'], d.media['size']))
 		if self.main_window.changing_layout == False:
-			self._gui_updater.queue(self._entry_view.update_if_selected,d.media['entry_id'])
+			self._gui_updater.queue(self._entry_view.update_if_selected,d.media['entry_id'],d.media['feed_id'])
 			self._gui_updater.queue(self.main_window.update_download_progress)
 
 	def _finished_callback(self,downloader):

@@ -216,7 +216,7 @@ class FeedList(gobject.GObject):
 									   False, 
 									   False,
 									   ""]) #assume invisible
-			
+		self.filter_all(False)	
 		gobject.idle_add(self._update_feeds_generator(callback,subset).next)
 		#self._update_feeds_generator(subset)
 		return False #in case this was called by the timeout below
@@ -617,7 +617,7 @@ class FeedList(gobject.GObject):
 		if utils.HAS_LUCENE and self.filter_setting == SEARCH:
 			print "not filtering, we have search results"
 			return #not my job
-	
+			
 		#gtk.gdk.threads_enter()
 		selected = self.get_selected()
 		index = self.find_index_of_item(selected)
@@ -931,16 +931,16 @@ class FeedList(gobject.GObject):
 				first_entry_title = first_entry_title[0:first_entry_title.find("<")] + "..."
 				
 			#selected = self.get_selected()
-#			if utils.RUNNING_SUGAR:
-#				if not selected:
-#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span color="#777777" size="xx-small"><i>'+first_entry_title+'</i></span>'
-#				else:
-#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span size="xx-small"><i>'+first_entry_title+'</i></span>'
-#			else:
+	#			if utils.RUNNING_SUGAR:
+	#				if not selected:
+	#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span color="#777777" size="xx-small"><i>'+first_entry_title+'</i></span>'
+	#				else:
+	#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span size="xx-small"><i>'+first_entry_title+'</i></span>'
+	#			else:
 			if not selected:
-				title = utils.my_quote(title)+'\n<span color="#777777" size="x-small"><i>'+first_entry_title+'</i></span>'
+				title = utils.my_quote(title)+'\n<span color="#777777" size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
 			else:
-				title = utils.my_quote(title)+'\n<span size="x-small"><i>'+first_entry_title+'</i></span>'
+				title = utils.my_quote(title)+'\n<span size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 				title="<b>"+title+'</b>'
 		except:

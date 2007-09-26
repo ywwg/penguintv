@@ -62,7 +62,7 @@ if utils.RUNNING_SUGAR:
 else:
 	MAX_ARTICLES = 1000
 
-_common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...'}
+_common_unicode = { u'\u0093':u'"', u'\u0091': u"'", u'\u0092': u"'", u'\u0094':u'"', u'\u0085':u'...', u'\u2026':u'...'}
 
 #Possible entry flags
 F_ERROR       = 64
@@ -1156,15 +1156,16 @@ class ptvDB:
 		existing_entries = self._c.fetchall()
 		
 		#only use GUID if there are no dupes -- thanks peter's feed >-(
-		guids = [e[1] for e in existing_entries]
-		guids.sort()
 		use_guid = True
-		prev_g = guids[0]
-		for g in guids[1:]:
-			if g == prev_g:
-				use_guid = False
-				break
-			prev_g = g
+		if len(existing_entries) > 0:
+			guids = [e[1] for e in existing_entries]
+			guids.sort()	
+			prev_g = guids[0]
+			for g in guids[1:]:
+				if g == prev_g:
+					use_guid = False
+					break
+				prev_g = g
 			
 		#we can't trust the dates inside the items for timing data
 		#bad formats, no dates at all, and timezones screw things up
@@ -1261,7 +1262,9 @@ class ptvDB:
 				item['body'] = item['body'].replace(uni, _common_unicode[uni])
 			
 			item['title'] = self._encode_text(item['title'])
-			
+			for uni in _common_unicode.keys():
+				item['title'] = item['title'].replace(uni, _common_unicode[uni])
+		
 			if item.has_key('creator') == 0:
 				item['creator']=""
 			if item.has_key('author') == 1:
@@ -2201,7 +2204,11 @@ class ptvDB:
 	def get_flags_for_feed(self, feed_id):
 		self._db_execute(self._c, u'SELECT flags FROM feeds WHERE rowid=?',(feed_id,))
 		result = self._c.fetchone()
-		return result[0]
+		if result:
+			return result[0]
+		print "no tags for", feed_id
+		traceback.print_stack()
+		return 0
 		
 	def set_flags_for_feed(self, feed_id, flags):
 		self._db_execute(self._c, u'UPDATE feeds SET flags=? WHERE rowid=?',(flags, feed_id))

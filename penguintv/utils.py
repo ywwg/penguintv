@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
 # Written by Owen Williams
 # see LICENSE for license information
+
 import os,sys,time, pwd, os.path
 import subprocess
 import string
@@ -301,13 +303,13 @@ def _mkdir(newdir):
 			os.mkdir(newdir)
 
 
-def my_quote(str):
+def my_quote(s):
 	"""Replaces some problematic characters with html equivalent if necessary"""
 	#right now just & to &amp;, but not &amp; to &amp;amp;
 	#instead of doing this with logic, just "unquote" the amps and then requote them
-	str=string.replace(str,"&amp;","&")
-	str=string.replace(str,"&","&amp;")
-	return str
+	s=string.replace(s,"&amp;","&")
+	s=string.replace(s,"&","&amp;")
+	return s
 	
 def uniquer(seq, idfun=None):
 	if not seq:
@@ -544,7 +546,7 @@ def init_gtkmozembed():
 	
 	_init_mozilla_proxy()
 	
-	logging.info("initializing mozilla in" + str(comp_path))
+	logging.info("initializing mozilla in " + str(comp_path))
 	gtkmozembed.set_comp_path(comp_path)
 	
 	return True

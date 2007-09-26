@@ -342,7 +342,7 @@ class PlanetView(gobject.GObject):
 		self._state = newstate
 
 	#entryview functions
-	def update_if_selected(self, entry_id=None):
+	def update_if_selected(self, entry_id=None, feed_id=None):
 		self.update_entry_list(entry_id)
 		
 	def display_custom_entry(self, message):
