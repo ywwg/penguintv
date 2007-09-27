@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# If we are running on Ubuntu, we need to patch /etc/ld.so.conf to
+# prevent mozilla crashes.
+
+moz_file=`env python -c "import gtkmozembed ; print gtkmozembed.__file__"`
+xpcom_file=`ldd $moz_file |grep xpcom.so | cut -d" " -f 3`
+problems=`ldd $xpcom_file | grep "not found" | wc -l`
+
+if [ $problems = 0 ] ; then
+	echo "No Mozilla linking problems found"
+	exit 0
+fi	
+
+if [ ! -f /etc/ld.so.conf ] ; then
+	touch /etc/ld.so.conf
+fi
+
+moz_dir=`dirname $xpcom_file`
+workaround_done=`cat /etc/ld.so.conf | grep $moz_dir | wc -l`
+
+if [ $workaround_done -gt 0 ] ; then
+	echo "Detected Ubuntu bug 26436, but the workaround seems to already have been applied.  Email owen-penguintv@ywwg.com for help"
+	exit 1
+fi
+
+echo "Detected Ubuntu bug 26436, appending to /etc/ld.so.conf to workaround"
+
+echo "        cp /etc/ld.so.conf /etc/ld.so.conf.deb_old"
+cp /etc/ld.so.conf /etc/ld.so.conf.deb_old
+echo "        echo $moz_dir >> /etc/ld.so.conf"
+echo $moz_dir >> /etc/ld.so.conf
+echo "        /sbin/ldconfig"
+/sbin/ldconfig
+
+new_problems=`ldd $xpcom_file | grep "not found" | wc -l`
+if [ $new_problems -gt 0 ] ; then
+	echo "There are still mozilla linking problems.  Please email the following to owen-penguintv@ywwg.com :"
+	echo $xpcom_file
+	ldd $xpcom_file
+	exit 1
+else
+	echo "Linking problems solved"
+fi

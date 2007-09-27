@@ -96,7 +96,7 @@ url              = 'http://penguintv.sourceforge.net',
 license          = 'GPL',
 scripts          = ['PenguinTV'],
 data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css','share/mozilla-planet.css']),
-					('share/pixmaps',		['share/penguintvicon.png', 'share/ev_online.png', 'share/ev_offline.png']),
+					('share/pixmaps',		['share/penguintvicon.png', 'share/pixmaps/ev_online.png', 'share/pixmaps/ev_offline.png']),
 					('share/applications',	['penguintv.desktop'])]+locales,
 packages = ["penguintv", 
 			"penguintv/ptvbittorrent", 
@@ -104,6 +104,15 @@ packages = ["penguintv",
 			"penguintv/ajax"])
 
 if "install" in sys.argv:
+	print "checking for mozilla linking problems..."
+	sp = my_subProcess.subProcess('''./postinst''')
+	if sp.read() != 0:
+		print sp.outdata
+		print "There was an error fixing mozilla linking problems"
+		sys.exit(1)
+	else:
+		print sp.outdata
+
 	sp = my_subProcess.subProcess('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''')
 	if sp.read() != 0:
 		print sp.outdata
