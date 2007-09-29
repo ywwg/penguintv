@@ -125,11 +125,11 @@ class ptvDB:
 				os.mkdir(self.home)
 			except:
 				raise DBError, "error creating directories: "+self.home
-		new_db = False
+		self._new_db = False
 		try:	
 			#also check db connection in _process_feed
 			if os.path.isfile(os.path.join(self.home,"penguintv4.db")) == False:
-				new_db = True
+				self._new_db = True
 				if os.path.isfile(os.path.join(self.home,"penguintv3.db")):
 					try: 
 						shutil.copyfile(os.path.join(self.home,"penguintv3.db"), os.path.join(self.home,"penguintv4.db"))
@@ -153,7 +153,7 @@ class ptvDB:
 		self._c.execute('PRAGMA synchronous="NORMAL"')
 		self.cache_dirty = True
 		try:
-			if not new_db:
+			if not self._new_db:
 				self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty", True)
 		except:
 			pass
@@ -178,7 +178,7 @@ class ptvDB:
 			
 		self._blacklist = []
 		try:
-			if not new_db:
+			if not self._new_db:
 				self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
 		except:
 			pass
@@ -586,6 +586,8 @@ class ptvDB:
 					utils.deltree(root)
 					
 	def get_setting(self, type, datum, default=None):
+		if utils.HAS_GCONF and self._new_db:
+			return default #always return default, gconf LIES
 		if utils.HAS_GCONF and datum[0] == '/':
 			if   type == BOOL:
 				retval = self._conf.get_bool(datum)

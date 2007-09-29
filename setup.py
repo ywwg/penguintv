@@ -3,6 +3,7 @@
 
 import sys,os
 from penguintv import subProcess as my_subProcess
+import subprocess
 
 try:
 	from sugar.activity import bundlebuilder
@@ -45,36 +46,47 @@ gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
 _=gettext.gettext
 
+missing_something = []
+
 try:
 	import gtkmozembed
 except:
-	sys.exit("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
+	missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
 
 try:
 	from pysqlite2 import dbapi2 as sqlite
 except:
-	sys.exit("Need pysqlite version 2 or higher (http://pysqlite.org/)")
+	missing_something.append("Need pysqlite version 2 or higher (http://pysqlite.org/)")
 	
 try:
 	import pycurl
 except:
-	sys.exit("Need pycurl (http://pycurl.sourceforge.net/)")
+	missing_something.append("Need pycurl (http://pycurl.sourceforge.net/)")
 	
 try:
 	import gnome
 except:
-	sys.exit("Need gnome python bindings")
+	missing_something.append("Need gnome python bindings")
 	
 try:
 	from xml.sax import saxutils
 	test = saxutils.DefaultHandler
 except:
-	sys.exit("Need python-xml")
+	missing_something.append("Need python-xml")
+	
+
+code = subprocess.call(["which","msgfmt"])
+if code != 0:
+	missing_something.append("Need gettext")
+	
+if len(missing_something) > 0:
+	sys.exit("\n".join(missing_something))
 	
 from penguintv import utils
 
 locales = []
 if "build" in sys.argv or "install" in sys.argv:
+	
 	for f in GlobDirectoryWalker("./po", "*.po"):	
 		this_locale = os.path.basename(f)	
 		this_locale = this_locale[0:this_locale.rfind('.')]

@@ -1886,26 +1886,27 @@ def do_commandline(remote_app=None, local_app=None):
 		usage()
 		sys.exit(2)
 		
-	for o, a in opts:
-		if o in ('-h', '--help'):
-			usage()
-			sys.exit(0)
-		elif o == '-o':
-			if local_app is None:
-				remote_app.ImportOpml(a)
-			else:
-				local_app.import_subscriptions(a)
-		elif o == '-u':
-			if local_app is None:
-				remote_app.AddFeed(a)
-			else:
-				local_app.add_feed(a, a)
+	if len(opts) > 0:
+		for o, a in opts:
+			if o in ('-h', '--help'):
+				usage()
+				sys.exit(0)
+			elif o == '-o':
+				if local_app is None:
+					remote_app.ImportOpml(a)
+				else:
+					local_app.import_subscriptions(a)
+			elif o == '-u':
+				if local_app is None:
+					remote_app.AddFeed(a)
+				else:
+					local_app.add_feed(a, a)
 				
 	if len(opts) == 0 and len(sys.argv) > 1:
 		if local_app is None:
-			remote_app.AddFeed(a)
+			remote_app.AddFeed(sys.argv[1])
 		else:
-			local_app.add_feed(a, a)
+			local_app.add_feed(sys.argv[1], sys.argv[1])
 
 def main():
 	gtk.gdk.threads_init()
