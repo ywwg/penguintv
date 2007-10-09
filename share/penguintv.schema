@@ -226,7 +226,7 @@
      <applyto>/apps/penguintv/auto_download_limit</applyto>
      <owner>penguintv</owner>
      <type>int</type>
-     <default>True</default>
+     <default>1000</default>
      <locale name="C">
 	<short>Auto download limit</short>
 	<long>Sets the amount after which penguintv will not download new media automatically.  Default 1000

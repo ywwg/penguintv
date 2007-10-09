@@ -94,7 +94,7 @@ class itunesHandler(saxutils.DefaultHandler):
 	def endElement(self, name):
 		if name == 'key':
 			if self._in_key is not None:
-				if self._in_key == 'episodeURL':
+				if self._in_key == 'feedURL':
 					self.url = self._last_value
 				self._in_key = None
 		elif name == 'string':

@@ -414,7 +414,7 @@ class MainWindow(gobject.GObject):
 		if x < 0: x = 0
 		if y < 0: y = 0
 		self.app_window.move(x,y)
-		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 500)
+		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 800)
 		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
 		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
 			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
@@ -565,10 +565,10 @@ class MainWindow(gobject.GObject):
 									 ('text/plain',0,self._TARGET_TYPE_TEXT)]
 		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 		
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 132)
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
 		if val < 10: val=50
 		self.feed_pane.set_position(val)
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 309)
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
 		if val < 10: val = 50
 		self.entry_pane.set_position(val)
 		

@@ -812,6 +812,7 @@ class ptvDB:
 			pool.queueTask(self._pool_poll_feed,(feed,arguments,len(feeds), data),self._poll_mult_cb)
 			
 		polled = 0
+		total = 0
 		#grow the cache while we do this operation
 		self._db_execute(self._c, 'PRAGMA cache_size=6000')
 		while polled < len(feeds):
