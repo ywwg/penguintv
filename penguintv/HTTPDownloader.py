@@ -1,3 +1,6 @@
+import logging
+import time
+
 from Downloader import *
 
 import ptvDB
@@ -27,6 +30,7 @@ class HTTPDownloader(Downloader):
 		Downloader.__init__(self, media, media_dir, params, resume, queue, progress_callback, finished_callback)
 		#no params
 		self._resume_from = 0
+		self._last_progress = 0
 		
 	def download(self,args_unused):
 		Downloader.download(self,args_unused)
@@ -114,6 +118,10 @@ class HTTPDownloader(Downloader):
 				self._finished_callback()
 		
 	def _wrap_progress_callback(self, dl_total, dl_now, ul_total, ul_now):
+		now = time.time()
+		if now - self._last_progress < 2.0:
+			return
+		self._last_progress = now
 		if self._resume: #adjust sizes so that the percentages are correct
 			dl_total += self._resume_from
 			dl_now   += self._resume_from

@@ -44,7 +44,7 @@ class UpdateTasksManager:
 		task_id = self.get_task_id()
 		if priority==1:
 			self.my_tasks.reverse()
-		self.my_tasks.append((func, arg, task_id, waitfor, clear_completed))	
+		self.my_tasks.append((func, arg, task_id, waitfor, clear_completed))
 		if priority==1:
 			self.my_tasks.reverse()
 		if self.updater_running == False:

@@ -1759,7 +1759,7 @@ class PenguinTVApp(gobject.GObject):
 			if d.media['size_adjustment']==True:
 				self._db_updater.queue(self._updater_thread_db.set_media_size,(d.media['media_id'], d.media['size']))
 		if self.main_window.changing_layout == False:
-			self._gui_updater.queue(self._entry_view.update_if_selected,d.media['entry_id'],d.media['feed_id'])
+			self._gui_updater.queue(self._entry_view.update_if_selected,(d.media['entry_id'],d.media['feed_id']))
 			self._gui_updater.queue(self.main_window.update_download_progress)
 
 	def _finished_callback(self,downloader):
