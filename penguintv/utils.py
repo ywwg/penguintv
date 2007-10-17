@@ -94,7 +94,7 @@ else:
 	except:
 		HAS_GSTREAMER = False
 	
-VERSION="3.1"
+VERSION="3.3"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
@@ -328,7 +328,7 @@ def uniquer(seq, idfun=None):
 		result.append(item)
 	return result
 	
-commands={	'play:':_("Open"),
+commands={	'play:':_("Open with PenguinTV"),
 			'download:':_("Download"),
 			'downloadqueue:':_("Download And Open"),
 			'pause:':_("Pause"),

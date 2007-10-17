@@ -13,6 +13,7 @@ import Player
 import UpdateTasksManager
 import utils
 import Downloader
+#from trayicon.SonataNotification import TrayIconTips as tooltips
 
 #status of the main window progress bar
 U_NOBODY=0
@@ -995,6 +996,9 @@ class MainWindow(gobject.GObject):
 		#	except:
 		#		pass #fails while loading
 		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
+		#if self._state != S_LOADING_FEEDS:
+		#	tip = tooltips(self._player_label)
+		#	tip.display_notification("title", "text")
 		
 	def _on_player_items_removed(self, player):
 		if player.get_queue_count() == 0:
@@ -1038,11 +1042,13 @@ class MainWindow(gobject.GObject):
 		
 	def on_remove_feed_activate(self, event, override=False):
 		assert self._state != S_LOADING_FEEDS
+		
 		selected = self.feed_list_view.get_selected()
 		if selected:
+			self._notebook.set_current_page(N_FEEDS)
 			if not override:
 				dialog = gtk.Dialog(title=_("Really Delete Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_DELETE, gtk.RESPONSE_ACCEPT))
-				label = gtk.Label(_("Are you sure you want to delete this feed?"))
+				label = gtk.Label(_("Are you sure you want to delete this feed, all its entries, and all its media?  \nThis operation cannot be undone."))
 				dialog.vbox.pack_start(label, True, True, 0)
 				label.show()
 				dialog.set_transient_for(self._app.main_window.get_parent())

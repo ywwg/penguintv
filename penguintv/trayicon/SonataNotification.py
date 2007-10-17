@@ -77,11 +77,18 @@ class TrayIconTips(gtk.Window):
 		self.set_size_request(500,96)
 
 	def _calculate_pos(self, widget):
-		icon_screen, icon_rect, icon_orient = widget.get_geometry()
-		x = icon_rect[0]
-		y = icon_rect[1]
-		width = icon_rect[2]
-		height = icon_rect[3]
+		try:
+			icon_screen, icon_rect, icon_orient = widget.get_geometry()
+			x = icon_rect[0]
+			y = icon_rect[1]
+			width = icon_rect[2]
+			height = icon_rect[3]
+		except:
+			x,y,width,height = widget.get_allocation()
+			x2,y2 = widget.translate_coordinates(widget.get_parent(), 0, 0)
+			x += x2
+			y += y2 + height
+		
 		w, h = self.size_request()
 
 		screen = self.get_screen()

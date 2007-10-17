@@ -5,6 +5,7 @@ import random
 
 import gtk
 import gobject
+import pango
 
 import penguintv
 import ptvDB
@@ -94,48 +95,50 @@ class FeedList(gobject.GObject):
 		self._loading_details = False
 		self._state = S_DEFAULT
 		self._fancy = fancy
+		self.__widget_width = 0
 		
 		#build list view
+		
 		self._feed_filter = self._feedlist.filter_new()
 		self._feed_filter.set_visible_column(VISIBLE)
 		self._widget.set_model(self._feed_filter)
-		renderer = gtk.CellRendererText()
+		
+		# Icon Column
 		self._icon_renderer = gtk.CellRendererPixbuf()
-		feed_image_renderer = gtk.CellRendererPixbuf()
+		self._icon_column = gtk.TreeViewColumn(_('Icon'))
+		self._icon_column.pack_start(self._icon_renderer, False)
+		self._icon_column.set_attributes(self._icon_renderer, stock_id=STOCKID)
+		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._widget.append_column(self._icon_column)
+		
+		# Feed Column
+		renderer = gtk.CellRendererText()
+		renderer.set_property("ellipsize", pango.ELLIPSIZE_END)
 		self._feed_column = gtk.TreeViewColumn(_('Feeds'))
-		self._feed_column.set_resizable(True)
-		
-		#primary column
-		#if self._fancy:
-		#	self._feed_column.pack_start(self._icon_renderer, False)
-		#	self._feed_column.pack_start(feed_image_renderer, False)
-		#	self._feed_column.pack_start(renderer, True)
-		#else:
-	
-		self._feed_column.pack_start(self._icon_renderer, False)
 		self._feed_column.pack_start(renderer, True)
-		
 		self._feed_column.set_attributes(renderer, markup=MARKUPTITLE)
-		self._feed_column.set_attributes(self._icon_renderer, stock_id=STOCKID)
-		
-		#self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._feed_column.set_resizable(True)
 		self._widget.append_column(self._feed_column)
 		
+		# Articles column
 		renderer = gtk.CellRendererText()
 		self._articles_column = gtk.TreeViewColumn(_(''))
 		self._articles_column.set_resizable(True)
 		self._articles_column.pack_start(renderer, True)
 		self._articles_column.set_attributes(renderer, markup=READINFO)		
-		#self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._widget.append_column(self._articles_column)
 		
-		#if self._fancy:
-		image_column = gtk.TreeViewColumn(_('Image'))
-		image_column.pack_start(feed_image_renderer, False)
-		image_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
-		self._widget.append_column(image_column)
+		# Image Column
+		feed_image_renderer = gtk.CellRendererPixbuf()
+		self._image_column = gtk.TreeViewColumn(_('Image'))
+		self._image_column.pack_start(feed_image_renderer, True)
+		self._image_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
+		self._image_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._widget.append_column(self._image_column)
 		
-		self._widget.columns_autosize()
+		self.resize_columns()
 		
 		#signals are MANUAL ONLY
 		self._widget.get_selection().connect("changed", self._item_selection_changed)
@@ -154,6 +157,8 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('tags-changed', self.__tags_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._widget.connect('size-allocate', self.__size_allocate_cb)
+		self._handlers.append((self._widget.disconnect, h_id))
 		
 		#init style
 		if self._fancy:
@@ -186,6 +191,20 @@ class FeedList(gobject.GObject):
 	
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_feed_list(feed_id,['readinfo','icon'])	
+		
+	def __size_allocate_cb(self, widget, allocation):
+		# If there's an hadjustment, its upper value is equal to the width
+		# of the total widget plus the value hidden by the pane.  Kind of weird
+		# I know, but this math works.
+		adj = widget.get_hadjustment()
+		if adj is not None:
+			actual_width = allocation.width - (adj.upper - allocation.width)
+		else:
+			actual_width = allocation.width
+		if actual_width != self.__widget_width:
+			self.__widget_width = actual_width
+			# pass the actual width
+			self.resize_columns(actual_width)
 		
 	def grab_focus(self):
 		self._widget.grab_focus()
@@ -441,7 +460,7 @@ class FeedList(gobject.GObject):
 				need_filter = True
 				#columns_autosize produces a flicker, so only do it if we need to
 				if abs(new_title_len - old_title_len) > 5:
-					self._widget.columns_autosize()
+					self.resize_columns()
 			
 		if 'icon' in update_what:
 			if not update_data.has_key('pollfail'):
@@ -743,6 +762,7 @@ class FeedList(gobject.GObject):
 																  row[FLAG], 
 																  row[FEEDID] == selected)
 				#gtk.gdk.threads_leave()
+				self.resize_columns()
 				yield True
 		if self._cancel_load[1]:
 			self._cancel_load[1] = False
@@ -788,7 +808,24 @@ class FeedList(gobject.GObject):
 		#self._app.activate_link(link)
 		self.emit('link-activated', link)
 		
-	def resize_columns(self, pane_size=0):
+	def resize_columns(self, w=None):
+		if w is None:
+			x,y,w,h = self._widget.get_allocation()
+		else:
+			w = int(w)
+		
+		# image column resizes to fill available space, so instead of using
+		# its actual width, use the maximum it could be: MAX_WIDTH
+		# and then make it a little smaller
+
+		min_width = w - self._icon_column.get_width() - \
+					self._articles_column.get_width() - MAX_WIDTH - 24
+		if min_width < MIN_SIZE:
+			min_width = MIN_SIZE
+
+		self._feed_column.set_min_width(min_width)
+		self._image_column.set_min_width(MIN_SIZE)
+		self._image_column.set_max_width(MAX_WIDTH)
 		self._widget.columns_autosize()
 			
 	def set_filter(self, new_filter, name):
@@ -827,7 +864,7 @@ class FeedList(gobject.GObject):
 		self._app.write_feed_cache()
 		self.clear_list()
 		self.populate_feeds(self._app._done_populating)
-		self._widget.columns_autosize()
+		self.resize_columns()
 		
 	def set_unread_toggle(self, active):
 		if self._state == S_SEARCH:
@@ -913,30 +950,6 @@ class FeedList(gobject.GObject):
 		if not title:
 			return _("Please wait...")
 		try:
-			#limit title to 30 chars, but
-			#don't include hacked-off entities
-			m = re.compile('&[^;]+;').search(first_entry_title)
-			if m is not None: #entity found
-				span = m.span()
-				if span[0]<30 and span[1]-span[0] < 10: 
-					first_entry_title = first_entry_title[0:span[0]]+"..."
-				else:
-					if len(first_entry_title) > 30:
-						first_entry_title = first_entry_title[0:30]+"..."
-			else:
-				if len(first_entry_title) > 30:
-					first_entry_title = first_entry_title[0:30]+"..."
-				
-			if first_entry_title.find("<") != -1:
-				first_entry_title = first_entry_title[0:first_entry_title.find("<")] + "..."
-				
-			#selected = self.get_selected()
-	#			if utils.RUNNING_SUGAR:
-	#				if not selected:
-	#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span color="#777777" size="xx-small"><i>'+first_entry_title+'</i></span>'
-	#				else:
-	#					title = '<span size="x-small">'+utils.my_quote(title)+'</span>\n<span size="xx-small"><i>'+first_entry_title+'</i></span>'
-	#			else:
 			if not selected:
 				title = utils.my_quote(title)+'\n<span color="#777777" size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
 			else:
