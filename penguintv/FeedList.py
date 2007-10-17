@@ -121,6 +121,7 @@ class FeedList(gobject.GObject):
 		self._feed_column.set_attributes(renderer, markup=MARKUPTITLE)
 		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._feed_column.set_resizable(True)
+		self._feed_column.set_expand(True)
 		self._widget.append_column(self._feed_column)
 		
 		# Articles column
@@ -129,8 +130,8 @@ class FeedList(gobject.GObject):
 		self._articles_column.set_resizable(False)
 		self._articles_column.pack_start(self._articles_renderer, False)
 		self._articles_column.set_attributes(self._articles_renderer, markup=READINFO)		
-		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._articles_column.set_min_width(64)
+		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._articles_column.set_expand(True)
 		self._widget.append_column(self._articles_column)
 		
 		# Image Column
@@ -258,7 +259,9 @@ class FeedList(gobject.GObject):
 		blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		blank_pixbuf.fill(0xffffff00)
 		
-		#gtk.gdk.threads_leave()
+		# While populating, allow articles column to autosize
+		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._articles_column.set_expand(True)
 		
 		for feed_id,title,url in db_feedlist:
 			#gtk.gdk.threads_enter()
@@ -349,6 +352,11 @@ class FeedList(gobject.GObject):
 #				pass
 			#gtk.gdk.threads_leave()
 			yield True
+			
+		# Once we are done populating, set size to fixed, otherwise we get
+		# a nasty flicker when we click on feeds
+		self._reset_articles_column()
+		
 		
 		if not self._cancel_load[0]:
 			#self.filter_all()
@@ -364,6 +372,17 @@ class FeedList(gobject.GObject):
 		else:
 			self._cancel_load[0] = False
 		yield False
+		
+	def _reset_articles_column(self):
+		#temporarily allow articles column to size itself, then set it
+		#to fixed again to avoid flicker.
+		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._articles_column.set_expand(True)
+		self.resize_columns()
+		width = self._articles_column.get_width()
+		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._articles_column.set_expand(False)
+		self._articles_column.set_min_width(width)
 		
 	def update_feed_list(self, feed_id=None, update_what=None, update_data=None, recur_ok=True):  #returns True if this is the already-displayed feed
 		"""updates the feed list.  Right now uses db to get flags, entrylist (for unread count), pollfail
@@ -692,6 +711,7 @@ class FeedList(gobject.GObject):
 			if feed[VISIBLE] != passed_filter:
 				feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
+		self._reset_articles_column()
 		#gtk.gdk.threads_leave()
 		return False
 
@@ -771,6 +791,7 @@ class FeedList(gobject.GObject):
 				yield True
 		if self._cancel_load[1]:
 			self._cancel_load[1] = False
+
 		self._loading_details = False
 		yield False
 				
