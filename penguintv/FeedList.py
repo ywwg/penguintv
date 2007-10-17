@@ -2,6 +2,7 @@ import sys, os, re
 import glob
 import logging
 import random
+import traceback
 
 import gtk
 import gobject
@@ -108,7 +109,8 @@ class FeedList(gobject.GObject):
 		self._icon_column = gtk.TreeViewColumn(_('Icon'))
 		self._icon_column.pack_start(self._icon_renderer, False)
 		self._icon_column.set_attributes(self._icon_renderer, stock_id=STOCKID)
-		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._icon_column.set_min_width(32)
 		self._widget.append_column(self._icon_column)
 		
 		# Feed Column
@@ -122,20 +124,23 @@ class FeedList(gobject.GObject):
 		self._widget.append_column(self._feed_column)
 		
 		# Articles column
-		renderer = gtk.CellRendererText()
+		self._articles_renderer = gtk.CellRendererText()
 		self._articles_column = gtk.TreeViewColumn(_(''))
-		self._articles_column.set_resizable(True)
-		self._articles_column.pack_start(renderer, True)
-		self._articles_column.set_attributes(renderer, markup=READINFO)		
-		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._articles_column.set_resizable(False)
+		self._articles_column.pack_start(self._articles_renderer, False)
+		self._articles_column.set_attributes(self._articles_renderer, markup=READINFO)		
+		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._articles_column.set_min_width(64)
 		self._widget.append_column(self._articles_column)
 		
 		# Image Column
 		feed_image_renderer = gtk.CellRendererPixbuf()
 		self._image_column = gtk.TreeViewColumn(_('Image'))
-		self._image_column.pack_start(feed_image_renderer, True)
+		self._image_column.pack_start(feed_image_renderer, False)
 		self._image_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
-		self._image_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._image_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._image_column.set_min_width(MAX_WIDTH)
+		self._image_column.set_max_width(MAX_WIDTH)
 		self._widget.append_column(self._image_column)
 		
 		self.resize_columns()
@@ -162,10 +167,10 @@ class FeedList(gobject.GObject):
 		
 		#init style
 		if self._fancy:
-			if utils.RUNNING_SUGAR:
-				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
-			else:
-				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
+			#if utils.RUNNING_SUGAR:
+			#	self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
+			#else:
+			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
 			
 	def finalize(self):
@@ -762,7 +767,7 @@ class FeedList(gobject.GObject):
 																  row[FLAG], 
 																  row[FEEDID] == selected)
 				#gtk.gdk.threads_leave()
-				self.resize_columns()
+				#self.resize_columns()
 				yield True
 		if self._cancel_load[1]:
 			self._cancel_load[1] = False
@@ -824,8 +829,6 @@ class FeedList(gobject.GObject):
 			min_width = MIN_SIZE
 
 		self._feed_column.set_min_width(min_width)
-		self._image_column.set_min_width(MIN_SIZE)
-		self._image_column.set_max_width(MAX_WIDTH)
 		self._widget.columns_autosize()
 			
 	def set_filter(self, new_filter, name):
