@@ -373,13 +373,26 @@ class FeedList(gobject.GObject):
 			self._cancel_load[0] = False
 		yield False
 		
-	def _reset_articles_column(self):
+	def _reset_articles_column(self, allow_recur=True):
 		#temporarily allow articles column to size itself, then set it
 		#to fixed again to avoid flicker.
+		
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._articles_column.set_expand(True)
 		self.resize_columns()
 		width = self._articles_column.get_width()
+		if width < 10:
+			if allow_recur:
+				logging.debug("very small width, trying again")
+				self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+				self._articles_column.set_min_width(60)
+				self._widget.columns_autosize()
+				
+				#try again once
+				self._reset_articles_column(False)
+				return
+			else:
+				width = 10
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._articles_column.set_expand(False)
 		self._articles_column.set_min_width(width)
