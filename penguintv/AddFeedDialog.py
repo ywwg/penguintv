@@ -180,10 +180,6 @@ class AddFeedDialog:
 		if len(tags) > 0:
 			if not utils.RUNNING_SUGAR:
 				self._app.apply_tags_to_feed(feed_id, None, tags)
-				#HACK: total hack to select the first tag they entered
-				#(tag order not preserved in DB, so we can't use the standard API
-				#self._app.main_window.select_feed(feed_id)
-				self._app.main_window.set_active_filter(self._app.main_window.get_filter_index(tags[0]))
 		self.hide()
 				
 	def on_button_ok_clicked(self,event):
