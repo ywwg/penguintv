@@ -105,6 +105,7 @@ class GStreamerPlayer(gobject.GObject):
 		column.set_attributes(renderer, markup=1)
 		self._queue_listview.append_column(column)
 		self._queue_listview.connect('row-activated', self._on_queue_row_activated)
+		self._queue_listview.connect('button-press-event', self._on_queue_row_button_press)
 		self._queue_listview.get_selection().set_mode(gtk.SELECTION_MULTIPLE)
 		#dnd reorder
 		self._TARGET_TYPE_REORDER = 80
@@ -119,7 +120,7 @@ class GStreamerPlayer(gobject.GObject):
 		s_w.add(self._queue_listview)
 		self._sidepane_vbox.pack_start(s_w, True)
 		button_box = gtk.HButtonBox()
-		button_box.set_property('layout-style', gtk.BUTTONBOX_END)
+		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
 		button = gtk.Button(stock='gtk-remove')
 		button.connect("clicked", self._on_remove_clicked)
 		button_box.add(button)
@@ -128,7 +129,6 @@ class GStreamerPlayer(gobject.GObject):
 		self._hpaned.add2(self._sidepane_vbox)
 		
 		main_vbox.add(self._hpaned)
-		
 		
 		self._controls_hbox = gtk.HBox()
 		self._controls_hbox.set_spacing(6)
@@ -486,6 +486,24 @@ class GStreamerPlayer(gobject.GObject):
 		self._last_index = -1
 		self._current_index = path[0]
 		self.play()
+		
+	def _on_queue_row_button_press(self, widget, event):
+		if event.button==3: #right click     
+			menu = gtk.Menu()   
+			
+			path = widget.get_path_at_pos(int(event.x),int(event.y))
+			model = widget.get_model()
+			if path is None: #nothing selected
+				return
+
+			item = gtk.ImageMenuItem(_("_Remove"))
+			img = gtk.image_new_from_stock('gtk-remove',gtk.ICON_SIZE_MENU)
+			item.set_image(img)
+			item.connect('activate',self._on_remove_clicked)
+			menu.append(item)
+				
+			menu.show_all()
+			menu.popup(None,None,None, event.button,event.time)
 		
 	def _on_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
