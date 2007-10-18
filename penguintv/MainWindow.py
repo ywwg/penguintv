@@ -1399,7 +1399,8 @@ class MainWindow(gobject.GObject):
 		#feeds)
 		tags = self._db.get_tags_for_feed(feed_id)
 		if len(tags) > 0:
-			self.set_active_filter(self.get_filter_index(tags[0]))
+			if not self._active_filter_name in tags:
+				self.set_active_filter(FeedList.ALL)
 		else:
 			self.set_active_filter(FeedList.ALL)
 		self.feed_list_view.set_selected(feed_id)
