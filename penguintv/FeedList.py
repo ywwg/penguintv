@@ -119,7 +119,7 @@ class FeedList(gobject.GObject):
 		self._feed_column = gtk.TreeViewColumn(_('Feeds'))
 		self._feed_column.pack_start(renderer, True)
 		self._feed_column.set_attributes(renderer, markup=MARKUPTITLE)
-		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._feed_column.set_resizable(True)
 		self._feed_column.set_expand(True)
 		self._widget.append_column(self._feed_column)
@@ -142,6 +142,7 @@ class FeedList(gobject.GObject):
 		self._image_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._image_column.set_min_width(MAX_WIDTH)
 		self._image_column.set_max_width(MAX_WIDTH)
+		self._articles_column.set_expand(False)
 		self._widget.append_column(self._image_column)
 		
 		self.resize_columns()
@@ -163,8 +164,6 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('tags-changed', self.__tags_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._widget.connect('size-allocate', self.__size_allocate_cb)
-		self._handlers.append((self._widget.disconnect, h_id))
 		
 		#init style
 		if self._fancy:
@@ -197,20 +196,6 @@ class FeedList(gobject.GObject):
 	
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_feed_list(feed_id,['readinfo','icon'])	
-		
-	def __size_allocate_cb(self, widget, allocation):
-		# If there's an hadjustment, its upper value is equal to the width
-		# of the total widget plus the value hidden by the pane.  Kind of weird
-		# I know, but this math works.
-		adj = widget.get_hadjustment()
-		if adj is not None:
-			actual_width = allocation.width - (adj.upper - allocation.width)
-		else:
-			actual_width = allocation.width
-		if actual_width != self.__widget_width:
-			self.__widget_width = actual_width
-			# pass the actual width
-			self.resize_columns(actual_width)
 		
 	def grab_focus(self):
 		self._widget.grab_focus()
@@ -261,7 +246,6 @@ class FeedList(gobject.GObject):
 		
 		# While populating, allow articles column to autosize
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-		self._articles_column.set_expand(True)
 		
 		for feed_id,title,url in db_feedlist:
 			#gtk.gdk.threads_enter()
@@ -373,29 +357,27 @@ class FeedList(gobject.GObject):
 			self._cancel_load[0] = False
 		yield False
 		
+	def resize_columns(self):
+		self._reset_articles_column()
+
+		#self._widget.columns_autosize()
+		
 	def _reset_articles_column(self, allow_recur=True):
 		#temporarily allow articles column to size itself, then set it
 		#to fixed again to avoid flicker.
 		
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-		self._articles_column.set_expand(True)
-		self.resize_columns()
-		width = self._articles_column.get_width()
-		if width < 10:
-			if allow_recur:
-				logging.debug("very small width, trying again")
-				self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-				self._articles_column.set_min_width(60)
-				self._widget.columns_autosize()
-				
-				#try again once
-				self._reset_articles_column(False)
-				return
-			else:
-				width = 10
+		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		self._feed_column.set_expand(False)
+		self._feed_column.set_min_width(20)
+		self._feed_column.set_max_width(20)
+		
+		self._widget.columns_autosize()
+
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._articles_column.set_expand(False)
-		self._articles_column.set_min_width(width)
+		self._articles_column.set_min_width(self._articles_column.get_width())
+		self._feed_column.set_expand(True)
+		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		
 	def update_feed_list(self, feed_id=None, update_what=None, update_data=None, recur_ok=True):  #returns True if this is the already-displayed feed
 		"""updates the feed list.  Right now uses db to get flags, entrylist (for unread count), pollfail
@@ -847,24 +829,6 @@ class FeedList(gobject.GObject):
 		#self._app.activate_link(link)
 		self.emit('link-activated', link)
 		
-	def resize_columns(self, w=None):
-		if w is None:
-			x,y,w,h = self._widget.get_allocation()
-		else:
-			w = int(w)
-		
-		# image column resizes to fill available space, so instead of using
-		# its actual width, use the maximum it could be: MAX_WIDTH
-		# and then make it a little smaller
-
-		min_width = w - self._icon_column.get_width() - \
-					self._articles_column.get_width() - MAX_WIDTH - 24
-		if min_width < MIN_SIZE:
-			min_width = MIN_SIZE
-
-		self._feed_column.set_min_width(min_width)
-		self._widget.columns_autosize()
-			
 	def set_filter(self, new_filter, name):
 		self.filter_setting = new_filter
 		self.filter_name = name
