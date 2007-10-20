@@ -275,6 +275,7 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/show_notification_always',self._gconf_set_show_notification_always)
 			conf.notify_add('/apps/penguintv/auto_download_limiter',self._gconf_set_auto_download_limiter)
 			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
+			conf.notify_add('/apps/penguintv/auto_mark_viewed',self._gconf_set_auto_mark_viewed)
 
 		self._load_settings()
 		
@@ -345,11 +346,15 @@ class PenguinTVApp(gobject.GObject):
 		if self._state == MANUAL_SEARCH or self._state == TAG_SEARCH and feed_id != -1:
 			self.select_feed(feed_id)
 		#FIXME: we're not passing the query for highlighting purposes here
-		set_read = self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == 0
+		if self._auto_mark_viewed:
+			set_read = self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == 0
+		else:
+			set_read = False
 		self.display_entry(entry_id, set_read)
 		
 	def __entries_selected_cb(self, o, feed_id, entrylist):
-		self.mark_entrylist_as_viewed(feed_id, entrylist, False)
+		if self._auto_mark_viewed:
+			self.mark_entrylist_as_viewed(feed_id, entrylist, False)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
@@ -399,6 +404,10 @@ class PenguinTVApp(gobject.GObject):
 		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup', True)
 		self.poll_on_startup = val
 		self.window_preferences.set_poll_on_startup(val)
+		
+		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
+		self._auto_mark_viewed = val
+		self.window_preferences.set_auto_mark_viewed(val)
 		
 		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_download', False)
 		self._auto_download = val
@@ -725,6 +734,7 @@ class PenguinTVApp(gobject.GObject):
 			
 		if item.has_key('media') == False:
 			if item['read']==0 and set_read:
+				item['read'] = 1
 				self.db.set_entry_read(entry_id,1)
 				self._entry_list_view.mark_as_viewed(entry_id)
 				self.feed_list_view.mark_entries_read(1, feed_id=item['feed_id'])
@@ -752,7 +762,15 @@ class PenguinTVApp(gobject.GObject):
 			item=int(parsed_url[2])
 		except:
 			pass
-		if action == "download":
+		if action == "read":
+			entry = self.db.get_entry(item)
+			self.db.set_entry_read(item, 1)
+			self.emit('entry-updated', item, entry['feed_id'])
+		elif action == "unread":
+			entry = self.db.get_entry(item)
+			self.db.set_entry_read(item, 0)
+			self.emit('entry-updated', item, entry['feed_id'])
+		elif action == "download":
 			self.mediamanager.unpause_downloads()
 			self.mediamanager.download(item)
 			entry_id = self.db.get_entryid_for_media(item)
@@ -1371,6 +1389,14 @@ class PenguinTVApp(gobject.GObject):
 			#don't set selected if they've done anything since the switch
 			if new_selected is None and selected is not None and old_filter == new_filter:
 				self.feed_list_view.set_selected(selected)
+	
+	def set_auto_mark_viewed(self, auto_mark):
+		self._auto_mark_viewed = auto_mark
+		self._emit_change_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', self._auto_mark_viewed)
+				
+	def _gconf_set_auto_mark_viewed(self, client, *args, **kwargs):
+		self._auto_mark_viewed = client.get_bool('/apps/penguintv/auto_mark_viewed')
+		self.window_preferences.set_auto_mark_viewed(self._auto_mark_viewed)
 			
 	def on_window_changing_layout_delete_event(self, widget, event):
 		self.main_window.changing_layout = False
@@ -1428,7 +1454,7 @@ class PenguinTVApp(gobject.GObject):
 				self._gconf_set_polling_frequency(client,None,None)
 			else:
 				self.set_polling_frequency(self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 5))
-			
+				
 	def add_feed(self, url, title):
 		"""Inserts the url and starts the polling process"""
 		

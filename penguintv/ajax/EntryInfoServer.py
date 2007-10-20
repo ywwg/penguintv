@@ -1,4 +1,5 @@
 import SimpleHTTPServer
+import logging
 
 class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):	
 	"""for some reason, any variable I change in this class changes RIGHT FUCKING BACK
@@ -15,5 +16,5 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		if self.server.update_count()==0:
 			self.wfile.write("")
 		else:
-			update = self.server.peek_all()
+			update = self.server.peek_update()
 			self.wfile.write(update)

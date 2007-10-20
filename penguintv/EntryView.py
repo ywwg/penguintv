@@ -2,7 +2,7 @@ import gobject
 import gtk
 import ptvDB
 from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, LOADING_FEEDS
-from EntryFormatter import *
+import EntryFormatter
 import Downloader
 import utils
 import time
@@ -41,7 +41,7 @@ class EntryView(gobject.GObject):
     }	
 
 	def __init__(self, widget_tree, feed_list_view, entry_list_view, 
-				 app, main_window, renderer=GTKHTML):
+				 app, main_window, renderer=EntryFormatter.GTKHTML):
 		gobject.GObject.__init__(self)
 		self._app = app
 		self._db = self._app.db
@@ -58,7 +58,7 @@ class EntryView(gobject.GObject):
 		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		
-		if self._renderer == GTKHTML:
+		if self._renderer == EntryFormatter.GTKHTML:
 			import SimpleImageCache
 			import gtkhtml2
 			#scrolled_window = gtk.ScrolledWindow()
@@ -99,7 +99,7 @@ class EntryView(gobject.GObject):
         #const found in __init__   
         
 		self._css = ""
-		if self._renderer==GTKHTML:
+		if self._renderer==EntryFormatter.GTKHTML:
 			f = open (os.path.join(self._app.glade_prefix,"gtkhtml.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
@@ -120,7 +120,7 @@ class EntryView(gobject.GObject):
 			self._htmlview = htmlview
 			self._document_lock = threading.Lock()
 			self._image_cache = SimpleImageCache.SimpleImageCache()
-		elif self._renderer==MOZILLA:
+		elif self._renderer==EntryFormatter.MOZILLA:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
@@ -145,6 +145,9 @@ class EntryView(gobject.GObject):
 		html_dock.show_all()
 		#self.display_custom_entry("<html></html>")
 		
+		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm)
+		#self._auto_mark_viewed = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
+		
 		#signals
 		self._handlers = []
 		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
@@ -155,6 +158,8 @@ class EntryView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
+		#self._handlers.append((app.disconnect, h_id))
 		
 	def __feedlist_none_selected_cb(self, o):
 		self.display_item()
@@ -168,6 +173,10 @@ class EntryView(gobject.GObject):
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = (-1, False)
 		self.update_if_selected(self._current_entry['entry_id'], self._current_entry['feed_id'])
+		
+	#def __setting_changed_cb(self, app, typ, datum, value):
+	#	if datum == '/apps/penguintv/auto_mark_viewed':
+	#		self._auto_mark_viewed = value
 	
 	def on_url(self, view, url):
 		if url == None:
@@ -253,10 +262,15 @@ class EntryView(gobject.GObject):
 		if entry_id != self._current_entry['entry_id'] or self._currently_blank:
 			return	
 		#assemble the updated info and display
-		self.emit('entry-selected', self._current_entry['entry_id'], feed_id)
+		item = self._db.get_entry(entry_id)
+		media = self._db.get_entry_media(entry_id)
+		if media:
+			item['media']=media
+
+		self.display_item(item)
 		
 	def display_custom_entry(self, message):
-		if self._renderer==GTKHTML:
+		if self._renderer==EntryFormatter.GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
@@ -264,7 +278,7 @@ class EntryView(gobject.GObject):
             body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._renderer==MOZILLA:
+		elif self._renderer==EntryFormatter.MOZILLA:
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html")
 				while len(message)>60000:
@@ -280,14 +294,14 @@ class EntryView(gobject.GObject):
 	def undisplay_custom_entry(self):
 		if self._custom_entry:
 			message = "<html></html>"
-			if self._renderer==GTKHTML:
+			if self._renderer==EntryFormatter.GTKHTML:
 				self._document_lock.acquire()
 				self._document.clear()
 				self._document.open_stream("text/html")
 				self._document.write_stream(message)
 				self._document.close_stream()
 				self._document_lock.release()
-			elif self._renderer==MOZILLA:
+			elif self._renderer==EntryFormatter.MOZILLA:
 				if self._moz_realized:
 					self._moz.open_stream("http://ywwg.com","text/html")
 					self._moz.append_data(message, long(len(message)))
@@ -319,13 +333,13 @@ class EntryView(gobject.GObject):
 		#entry is the same id as before the blank, we restore those old values.
 		#we have a bool to figure out if the current page is blank, in which case we shouldn't
 		#save its scroll values.
-		if self._renderer == GTKHTML:
+		if self._renderer == EntryFormatter.GTKHTML:
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			rescroll=0
 			
 		if item:
-			if self._renderer == GTKHTML:
+			if self._renderer == EntryFormatter.GTKHTML:
 				try:
 					if item['entry_id'] == self._current_entry['entry_id']:
 						if not self._currently_blank:
@@ -349,11 +363,11 @@ class EntryView(gobject.GObject):
 		else:
 			self._convert_newlines = (-1, False)
 			self._currently_blank = True
-			if self._renderer == GTKHTML:
+			if self._renderer == EntryFormatter.GTKHTML:
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
 	
-		if self._renderer == MOZILLA:
+		if self._renderer == EntryFormatter.MOZILLA:
 			if item is not None:
 				#no comments in css { } please!
 				#FIXME windows: os.path.join... wrong direction slashes?  does moz care?
@@ -369,7 +383,7 @@ class EntryView(gobject.GObject):
 	            														 self._moz_font, 
 	            														 self._moz_size, 
 	            														 self._css, 
-	            														 htmlify_item(item, self._mm, convert_newlines=self._convert_newlines[1]))
+	            														 self._entry_formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
@@ -385,7 +399,7 @@ class EntryView(gobject.GObject):
 	            <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
 	            														 self._foreground_color,
 	            														 self._css,
-	            														 htmlify_item(item, self._mm, convert_newlines=self._convert_newlines[1]))
+	            														 self._entry_formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
@@ -411,7 +425,7 @@ class EntryView(gobject.GObject):
 				
 		#print html
 			
-		if self._renderer == GTKHTML:
+		if self._renderer == EntryFormatter.GTKHTML:
 			p = HTMLimgParser()
 			p.feed(html)
 			uncached=0
@@ -441,7 +455,7 @@ class EntryView(gobject.GObject):
 			else:
 				va.set_value(va.lower)
 				ha.set_value(ha.lower)
-		elif self._renderer == MOZILLA:	
+		elif self._renderer == EntryFormatter.MOZILLA:	
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
 				while len(html)>60000:
@@ -488,7 +502,7 @@ class EntryView(gobject.GObject):
 			disconnector(h_id)
 	
 		#just make it gray for quitting
-		if self._renderer==GTKHTML:
+		if self._renderer==EntryFormatter.GTKHTML:
 			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
@@ -496,7 +510,7 @@ class EntryView(gobject.GObject):
             body { background-color: %s; }</style><body></body></html>""" % (self._insensitive_color,))
 			self._document.close_stream()
 			self._document_lock.release()
-		elif self._renderer==MOZILLA:
+		elif self._renderer==EntryFormatter.MOZILLA:
 			#FIXME: this doesn't work, we quit before it renders
 			message = """<html><head><style type="text/css">
             body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)

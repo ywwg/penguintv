@@ -48,7 +48,7 @@ import FeedPropertiesDialog
 import FeedFilterPropertiesDialog
 import SynchronizeDialog
 import FilterSelectorDialog
-import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView
+import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView, EntryFormatter
 
 if utils.HAS_GSTREAMER:
 	import GStreamerPlayer
@@ -482,12 +482,12 @@ class MainWindow(gobject.GObject):
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
 		if utils.HAS_MOZILLA:
-			renderer = EntryView.MOZILLA
+			renderer = EntryFormatter.MOZILLA
 		else:
 			logging.warning("gtkmozembed not found, falling back on gtkhtml. PlanetView disabled")
-			renderer = EntryView.GTKHTML
+			renderer = EntryFormatter.GTKHTML
 		
-		if self.layout == "planet" and renderer != EntryView.MOZILLA:
+		if self.layout == "planet" and renderer != EntryFormatter.MOZILLA:
 			self.layout = "standard"
 			return self.load_layout()	
 		
@@ -505,7 +505,7 @@ class MainWindow(gobject.GObject):
 													renderer)
 			self.entry_list_view = self.entry_view
 			
-		if renderer == EntryView.GTKHTML:
+		if renderer == EntryFormatter.GTKHTML:
 			self._widgetTree.get_widget('planet_layout').hide()	
 			
 		for key in dir(self.__class__): #python insaneness

@@ -18,13 +18,10 @@ class MyTCPServer(SocketServer.ForkingTCPServer):
 			if self._quitting:
 				logging.info('quitting tcp server')
 				return
-			#if len(self._updates)>0:
+			if len(self._updates)>0:
 				#We must have posted an update.  So pop it (unlike in the request handler,
 				#changes actually have an effect here!)
-				#self._updates.pop(0)
-				#self._updates = []
-				#print "popped all"
-				#logging.info('popped all')
+				self._updates.pop(0)
 				
 	def finish(self):
 		self._quitting = True

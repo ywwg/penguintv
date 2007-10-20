@@ -11,7 +11,7 @@ import os, os.path
 import gobject
 import gtk
 
-from EntryFormatter import *
+import EntryFormatter
 import ptvDB
 import utils
 
@@ -53,7 +53,7 @@ class PlanetView(gobject.GObject):
                            [])
     }	                       
 	
-	def __init__(self, dock_widget, main_window, db, glade_path, feed_list_view=None, app=None, renderer=MOZILLA):
+	def __init__(self, dock_widget, main_window, db, glade_path, feed_list_view=None, app=None, renderer=EntryFormatter.MOZILLA):
 		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
@@ -63,6 +63,7 @@ class PlanetView(gobject.GObject):
 			self._mm = app.mediamanager
 		else:
 			self._mm = None
+		
 		self._main_window = main_window
 		self._db = db
 		self._renderer = renderer
@@ -73,9 +74,9 @@ class PlanetView(gobject.GObject):
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
 		self._custom_message = ""
+		self._auto_mark_viewed = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
 		
 		self._entrylist = []
-		self._readinfo  = None
 		self._entry_store = {}
 		self._convert_newlines = False
 		
@@ -103,11 +104,11 @@ class PlanetView(gobject.GObject):
                 style.base[gtk.STATE_INSENSITIVE].blue / 256,
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
-		if self._renderer == GTKHTML:
+		if self._renderer == EntryFormatter.GTKHTML:
 			logging.error("gtkhtml and planetview not supported")
 			return
 			#self._USING_AJAX = False
-		elif self._renderer == MOZILLA:
+		elif self._renderer == EntryFormatter.MOZILLA:
 			if utils.RUNNING_SUGAR:
 				self._USING_AJAX = False
 				f = open(os.path.join(glade_path, "mozilla-planet-olpc.css"))
@@ -169,6 +170,8 @@ class PlanetView(gobject.GObject):
 			t.start()
 		else:
 			logging.info("not using ajax")
+			
+		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, not self._USING_AJAX)
 		
 		#signals
 		self._handlers = []
@@ -187,6 +190,8 @@ class PlanetView(gobject.GObject):
 			h_id = app.connect('entry-updated', self.__entry_updated_cb)
 			self._handlers.append((app.disconnect, h_id))
 			h_id = app.connect('render-ops-updated', self.__render_ops_updated_cb)
+			self._handlers.append((app.disconnect, h_id))
+			h_id = app.connect('setting-changed', self.__setting_changed_cb)
 			self._handlers.append((app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
@@ -211,8 +216,8 @@ class PlanetView(gobject.GObject):
 		
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
-		if feed_id == self._current_feed_id:
-			self._render_entries()
+		if feed_id == self._current_feed_id and not self._USING_AJAX:
+			self._render_entries(mark_read=True, force=True)
 			
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = self._db.get_flags_for_feed(self._current_feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
@@ -222,6 +227,10 @@ class PlanetView(gobject.GObject):
 	def __size_changed_cb(self, screen):
 		"""Redraw after xrandr calls"""
 		self._render_entries()
+		
+	def __setting_changed_cb(self, app, typ, datum, value):
+		if datum == '/apps/penguintv/auto_mark_viewed':
+			self._auto_mark_viewed = value
 
 	def grab_focus(self):
 		if utils.RUNNING_SUGAR:
@@ -254,7 +263,9 @@ class PlanetView(gobject.GObject):
 			self._render(_("There was an error displaying the search results.  Please reindex searches and try again"))
 			return
 
+		new_feed = False
 		if feed_id != self._current_feed_id:
+			new_feed = True
 			self._current_feed_id = feed_id
 			self._first_entry = 0
 			self._entry_store={}
@@ -268,14 +279,12 @@ class PlanetView(gobject.GObject):
 		#always update title in case it changed... it's a cheap lookup
 		self._feed_title = self._db.get_feed_title(feed_id)
 		self._entrylist = []
-		self._readinfo = []
 		for e in db_entrylist:
 			self._entrylist.append(e[0])
-			self._readinfo.append(e[3])
 			
 		self._convert_newlines = self._db.get_flags_for_feed(feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
 			
-		self._render_entries()
+		self._render_entries(mark_read=new_feed)
 		
 	def auto_pane(self):
 		pass
@@ -317,7 +326,6 @@ class PlanetView(gobject.GObject):
 		self._entry_store={}
 		self._entrylist = []
 		self._convert_newlines = False
-		self._readinfo  = None
 		self._render("<html><body></body></html")
 		if self._USING_AJAX:
 			self._update_server.clear_updates()
@@ -379,7 +387,7 @@ class PlanetView(gobject.GObject):
 			gtkmozembed.pop_startup()
 		
 	#protected functions
-	def _render_entries(self, highlight=None):
+	def _render_entries(self, highlight=None, mark_read=False, force=False):
 		"""Takes a block on entry_ids and throws up a page.  also calls penguintv so that entries
 		are marked as read"""
 
@@ -397,7 +405,7 @@ class PlanetView(gobject.GObject):
 		unreads = []
 		
 		#preload the block of entries, which is nicer to the db
-		self._load_entry_block(self._entrylist[self._first_entry:last_entry])
+		self._load_entry_block(self._entrylist[self._first_entry:last_entry], mark_read=mark_read, force=force)
 
 		i=self._first_entry-1
 		for entry_id in self._entrylist[self._first_entry:last_entry]:
@@ -406,11 +414,9 @@ class PlanetView(gobject.GObject):
 			if item.has_key('media'):
 				media_exists = True
 			else:
-				if self._readinfo:
-					if self._readinfo[i]==0:
+				if item.has_key('new'):
+					if item['new']:
 						unreads.append(entry_id)
-				else:
-					unreads.append(entry_id)
 			if highlight is not None:
 				entry_html = entry_html.encode('utf-8')
 				try:
@@ -426,7 +432,12 @@ class PlanetView(gobject.GObject):
 				p.feed(entry_html)
 				entry_html = p.new_data
 			
+			if self._USING_AJAX:
+				entries.append('\n\n<span id="%i">' % (entry_id,))
 			entries.append(entry_html)
+			if self._USING_AJAX:
+				entries.append('</span>\n\n')
+			
 
 		self.emit('entries-selected', self._current_feed_id, unreads)
 		for e in unreads:
@@ -475,7 +486,7 @@ class PlanetView(gobject.GObject):
 		self._render(html)
 	
 	def _build_header(self, media_exists):
-		if self._renderer == MOZILLA:
+		if self._renderer == EntryFormatter.MOZILLA:
 			html = (
             """<html><head>
             <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
@@ -488,7 +499,7 @@ class PlanetView(gobject.GObject):
 									   self._moz_font, 
 									   self._moz_size, 
 									   self._css)
-			if media_exists and self._USING_AJAX:
+			if self._USING_AJAX:
 				html += """
 	            <script type="text/javascript">
 	            <!--
@@ -524,16 +535,10 @@ class PlanetView(gobject.GObject):
 				    { 
 				    	if (xmlHttp.responseText.length > 0)
 				    	{
-					    	response_array = xmlHttp.responseText.split("\\n")
-							for (line in response_array)
-							{
-								line_split = response_array[line].split(" ")
-								entry_id = line_split[0]
-					    		split_point = response_array[line].indexOf(" ")
-								document.getElementById(entry_id).innerHTML=response_array[line].substring(split_point)
-							}
-							//keep refreshing
-							//refresh_entries(0) //don't queue timer
+							line_split = xmlHttp.responseText.split(" ")
+							entry_id = line_split[0]
+				    		split_point = xmlHttp.responseText.indexOf(" ")
+							document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
 						}
 					} 
 				} 
@@ -555,7 +560,7 @@ class PlanetView(gobject.GObject):
 				var timerObj;
 				function SetTimer()
 				{
-	  				timerObj = setTimeout("refresh_entries(1)",2000);
+	  				timerObj = setTimeout("refresh_entries(1)",1000);
 				}
 				refresh_entries(1)
 				-->
@@ -564,58 +569,61 @@ class PlanetView(gobject.GObject):
 			
 		return html
 		
-	def _load_entry_block(self, entry_id_list):
-		for entry in entry_id_list:
-			if self._entry_store.has_key(entry):
+	def _load_entry_block(self, entry_id_list, mark_read=False, force=False):
+		#if not forcing, load what we can from cache
+		entries = []
+		if not force:
+			l = [entry for entry in entry_id_list if self._entry_store.has_key(entry)]
+			for entry in l:
+				entries.append(self._entry_store[entry][1])
 				entry_id_list.remove(entry)
 		
-		if len(entry_id_list) == 0:
-			return
-				
-		entries = self._db.get_entry_block(entry_id_list)
-		media = self._db.get_entry_media_block(entry_id_list)
+		#load the rest from db
+		if len(entry_id_list) > 0:
+			db_entries = self._db.get_entry_block(entry_id_list)
+			media = self._db.get_entry_media_block(entry_id_list)
+		
+			for item in db_entries:
+				if media.has_key(item['entry_id']):
+					item['media'] = media[item['entry_id']]
+					
+			#combine them
+			entries += db_entries
+		
 		for item in entries:
-			if media.has_key(item['entry_id']):
-				item['media'] = media[item['entry_id']]
-				if self._USING_AJAX:
-					ret = []
-					ret.append(str(item['entry_id'])+" ")
-					for medium in item['media']:
-						ret += htmlify_media(medium, self._mm)
-					ret = "".join(ret)
-					self._update_server.push_update(ret)
-				
+			item['new'] = not item['read']
+			if self._auto_mark_viewed:
+				if mark_read and not item.has_key('media'):
+					item['read'] = True
+			
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 			else:
-				self._entry_store[item['entry_id']] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 				
-	def _load_entry(self, entry_id, force = False):
+	def _load_entry(self, entry_id, force=False):
 		if self._entry_store.has_key(entry_id) and not force:
-			#print "loaded:", self._entry_store[entry_id]
 			return self._entry_store[entry_id]
 		
 		item = self._db.get_entry(entry_id)
 		media = self._db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
+		item['new'] = not item['read']
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, with_feed_titles=True, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+			self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 		else:
-			self._entry_store[entry_id] = (htmlify_item(item, mm=self._mm, ajax=self._USING_AJAX, indicate_new=not utils.RUNNING_SUGAR, basic_progress=not self._USING_AJAX, convert_newlines=self._convert_newlines),item)
+			self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 		
 		index = self._entrylist.index(entry_id)
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
-			if not entry.has_key('media'):
-				return self._entry_store[entry_id]
 			if self._USING_AJAX:
 				ret = []
 				ret.append(str(entry_id)+" ")
-				for medium in entry['media']:
-					ret += htmlify_media(medium, self._mm)
+				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
 				self._update_server.push_update(ret)
 		
@@ -623,6 +631,9 @@ class PlanetView(gobject.GObject):
 		
 	def _render(self, html):
 		# temp until olpcbrowser dows moz_realized
+	#	logging.debug("="*80)
+	#	logging.debug(html)
+	#	logging.debug("="*80)
 		if self._moz_realized or utils.RUNNING_SUGAR:
 			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
 			while len(html)>60000:
@@ -640,10 +651,10 @@ class PlanetView(gobject.GObject):
 		link = link.strip()
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE
-			self._render_entries()
+			self._render_entries(mark_read=True)
 		elif link == "planet:down":
 			self._first_entry += ENTRIES_PER_PAGE
-			self._render_entries()
+			self._render_entries(mark_read=True)
 		else:
 			self.emit('link-activated', link)
 		return True #don't load url please

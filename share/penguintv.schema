@@ -195,6 +195,19 @@
      </locale>
    </schema>
    
+    <schema>
+     <key>/schemas/apps/penguintv/auto_mark_viewed</key>
+     <applyto>/apps/penguintv/auto_mark_viewed</applyto>
+     <owner>penguintv</owner>
+     <type>bool</type>
+     <default>True</default>
+     <locale name="C">
+	<short>Automatically Mark Entries as Viewed</short>
+	<long>If true, penguintv will automatically mark entries as viewed when they are shown.  Default True
+	</long>
+     </locale>
+   </schema>
+   
    <schema>
      <key>/schemas/apps/penguintv/auto_download</key>
      <applyto>/apps/penguintv/auto_download</applyto>
