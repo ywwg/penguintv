@@ -284,7 +284,7 @@ class PlanetView(gobject.GObject):
 			
 		self._convert_newlines = self._db.get_flags_for_feed(feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
 			
-		self._render_entries(mark_read=new_feed)
+		self._render_entries(mark_read=new_feed, force=True)
 		
 	def auto_pane(self):
 		pass

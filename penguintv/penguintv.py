@@ -1137,10 +1137,6 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
 	def play_unviewed(self):
-		#objs = scanner.Objects()
-		#code.interact(local = {'objs': objs})
-		#code.interact()
-		#return
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
 		self.player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist])
@@ -1148,18 +1144,20 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_list_view.update_feed_list(row[2],['readinfo'])
 			
 	def _on_item_not_supported(self, player, filename, name, userdata):
-		if not utils.RUNNING_SUGAR:
-			self.player.play(filename, name, userdata, force_external=True) #retry, force external player
-		else:
-			dialog = gtk.Dialog(title=_("Unknown file type"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
-			label = gtk.Label("Gstreamer did not recognize this file. (email owen-olpc@ywwg.com for more info)")
-			dialog.vbox.pack_start(label, True, True, 0)
-			label.show()
-			dialog.set_transient_for(self.main_window.get_parent())
-			response = dialog.run()
-			dialog.hide()
-			del dialog
+		#if not utils.RUNNING_SUGAR:
+		#	self.player.play(filename, name, userdata, force_external=True) #retry, force external player
+		#else:
+		dialog = gtk.Dialog(title=_("Can't Play File"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OPEN, gtk.RESPONSE_ACCEPT))
+		label = gtk.Label("PenguinTV can not play this file. Would you like to try opening it in the default system player?")
+		dialog.vbox.pack_start(label, True, True, 0)
+		label.show()
+		dialog.set_transient_for(self.main_window.get_parent())
+		response = dialog.run()
+		dialog.hide()
+		del dialog
+		if response != gtk.RESPONSE_ACCEPT:		
 			return
+		self.player.play(filename, name, userdata, force_external=True) #retry, force external player
 
 	def refresh_feed(self, feed):
 		if not self._net_connected:
