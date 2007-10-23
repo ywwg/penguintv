@@ -45,7 +45,7 @@ def get_rss_from_itunes(url):
 	parser = viewPodcastParser()
 	parser.feed(uncompressed.read())
 
-	if parser.url == None:
+	if parser.url is None:
 		raise ItunesError, "error getting viewpodcast url from itunes"
 		
 	# Part 2, find the actual rss link in the itunes "webpage"
