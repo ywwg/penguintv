@@ -417,7 +417,7 @@ class EntryView(gobject.GObject):
 			
 		if self._auth_info[0] >= 0:	
 			try:
-				p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
+				p = EntryFormatter.HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
 				p.feed(html)
 				html = p.new_data
 			except:

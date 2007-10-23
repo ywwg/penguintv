@@ -428,7 +428,7 @@ class PlanetView(gobject.GObject):
 					pass	
 					
 			if self._auth_info[0] != -1:
-				p = HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
+				p = EntryFormatter.HTMLImgAuthParser(self._auth_info[2], self._auth_info[1])
 				p.feed(entry_html)
 				entry_html = p.new_data
 			

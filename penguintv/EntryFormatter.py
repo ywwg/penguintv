@@ -211,7 +211,10 @@ class HTMLImgAuthParser(HTMLParser.HTMLParser):
 		new_attrs = []
 		if tag.upper() != "A":
 			for a in attrs:
-				attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+				if a[1] is not None:
+					attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+				else:
+					attr = (a[0], "")
 				new_attrs.append(attr)
 			attrs = new_attrs
 		else:
@@ -227,7 +230,10 @@ class HTMLImgAuthParser(HTMLParser.HTMLParser):
 	def handle_startendtag(self, tag, attrs):
 		new_attrs = []
 		for a in attrs:
-			attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+			if a[1] is not None:
+					attr = (a[0], a[1].replace(self._domain, self._userpass+"@"+self._domain))
+				else:
+					attr = (a[0], "")
 			new_attrs.append(attr)
 		attrs = new_attrs
 		if len(attrs)>0:
