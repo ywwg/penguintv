@@ -1,8 +1,10 @@
+import string
+import logging
+import time
+
 import gtk, gobject
 import ptvDB
 import penguintv
-
-import string
 
 TITLE         = 0 
 MARKEDUPTITLE = 1
@@ -49,6 +51,8 @@ class EntryList(gobject.GObject):
 		self._search_query = ""
 		self._search_results = []
 		self._state = S_DEFAULT
+		self.__populating = False
+		self.__cancel_populating = False
 		self.presently_selecting = False
 		
 		#build list view
@@ -129,6 +133,11 @@ class EntryList(gobject.GObject):
 					self.show_search_results(self._search_results, self._search_query)
 					self.highlight_results(feed_id)
 					return
+					
+		if self.__populating:
+			self.__cancel_populating = True
+			while gtk.events_pending():
+				gtk.main_iteration()
 	
 		if feed_id == self._feed_id:
 			dont_autopane = True 
@@ -152,9 +161,12 @@ class EntryList(gobject.GObject):
 		self.emit('no-entry-selected')
 		
 		def populate_gen():
+			self.__populating = True
 			i=-1
 			for entry_id,title,date,read,placeholder in db_entrylist:
-				#gtk.gdk.threads_enter()
+				if self.__cancel_populating:
+					self.__cancel_populating = False
+					break
 				i=i+1	
 				flag = self._db.get_entry_flag(entry_id)
 				icon = self._get_icon(flag)
@@ -169,25 +181,26 @@ class EntryList(gobject.GObject):
 					gobject.idle_add(self.auto_pane)
 					#gtk.gdk.threads_leave()
 					yield True
-			#gtk.gdk.threads_enter()
-			if i<25 and not dont_autopane: #ie, DO auto_pane please
-				gobject.idle_add(self.auto_pane)
-			self._vadjustment.set_value(0)
-			self._hadjustment.set_value(0)
-			if selected>=0:
-				index = self.find_index_of_item(selected)
-				if index is not None:
-					selection.select_path((index),)
-				else:	
-					selection.unselect_all()
-			self._widget.columns_autosize()
-			#gtk.gdk.threads_leave()
+			if not self.__cancel_populating:
+				if i<25 and not dont_autopane: #ie, DO auto_pane please
+					gobject.idle_add(self.auto_pane)
+				self._vadjustment.set_value(0)
+				self._hadjustment.set_value(0)
+				if selected>=0:
+					index = self.find_index_of_item(selected)
+					if index is not None:
+						selection.select_path((index),)
+					else:	
+						selection.unselect_all()
+				self._widget.columns_autosize()
+			self.__populating = False
 			yield False
 		if len(db_entrylist) > 300: #only use an idler when the list is getting long
 			gobject.idle_add(populate_gen().next)
 		else:
 			for i in populate_gen():
-				pass
+				if not i: #said the cat
+					return
 		
 	def auto_pane(self):
 		"""Automatically adjusts the pane width to match the column width"""
