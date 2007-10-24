@@ -30,7 +30,12 @@ class EntryList(gobject.GObject):
                            []),
 		'entrylist-resized': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT]))
+                           ([gobject.TYPE_INT])),
+
+		##unused (planetview specific)
+		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
     }	
 	
 	def __init__(self, widget_tree, app, feed_list_view, main_window, db):
@@ -85,6 +90,8 @@ class EntryList(gobject.GObject):
 		self._handlers.append((app.disconnect, h_id))
 		h_id = app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((app.disconnect, h_id))
+		h_id = app.connect('entrylist-read', self.__entrylist_read_cb)
+		self._handlers.append((app.disconnect, h_id))
 		
 	def finalize(self):
 		for disconnector, h_id in self._handlers:
@@ -106,6 +113,10 @@ class EntryList(gobject.GObject):
 			
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
+		
+	def __entrylist_read_cb(self, app, feed_id, entrylist):
+		for e in entrylist:
+			self.update_entry_list(e)
 		
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:
@@ -351,12 +362,14 @@ class EntryList(gobject.GObject):
 		if selected is None:
 			self.presently_selecting = False
 			return
-		self._last_entry = selected['entry_id']
-		#print "selected item: "+str(selected) #CONVENIENT
-		#if self._showing_search:
 		
-		if selection.count_selected_rows()==1:
-			self.emit('entry-selected', selected['entry_id'], selected['feed_id'], )
+		if selected['entry_id'] != self._last_entry:	
+			self._last_entry = selected['entry_id']
+			#print "selected item: "+str(selected) #CONVENIENT
+			#if self._showing_search:
+		
+			if selection.count_selected_rows()==1:
+				self.emit('entry-selected', selected['entry_id'], selected['feed_id'])
 		self.presently_selecting = False
 			
 	def get_selected(self, selection=None):

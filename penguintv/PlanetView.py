@@ -217,7 +217,7 @@ class PlanetView(gobject.GObject):
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
 		if feed_id == self._current_feed_id and not self._USING_AJAX:
-			self._render_entries(mark_read=True, force=True)
+			self._render_entries(mark_read=False, force=True)
 			
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = self._db.get_flags_for_feed(self._current_feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES

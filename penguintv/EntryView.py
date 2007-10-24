@@ -154,9 +154,13 @@ class EntryView(gobject.GObject):
 		self._handlers.append((feed_list_view.disconnect, h_id))
 		h_id = entry_list_view.connect('no-entry-selected', self.__entrylist_none_selected_cb)
 		self._handlers.append((entry_list_view.disconnect, h_id))
+		h_id = entry_list_view.connect('entry-selected', self.__entry_selected_cb)
+		self._handlers.append((entry_list_view.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
+		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
@@ -167,12 +171,26 @@ class EntryView(gobject.GObject):
 	def __entrylist_none_selected_cb(self, o):
 		self.display_item()
 		
+	def __entry_selected_cb(self, o, entry_id, feed_id):
+		item = self._db.get_entry(entry_id)
+		media = self._db.get_entry_media(entry_id)
+		if media:
+			item['media']=media
+		#if self._auto_mark_viewed:
+		#	if self._db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD:
+		#		item['read'] = 1
+		self.display_item(item)
+		
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_if_selected(entry_id, feed_id)
 		
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = (-1, False)
 		self.update_if_selected(self._current_entry['entry_id'], self._current_entry['feed_id'])
+		
+	def __entrylist_read_cb(self, app, feed_id, entrylist):
+		for e in entrylist:
+			self.update_if_selected(e, feed_id)
 		
 	#def __setting_changed_cb(self, app, typ, datum, value):
 	#	if datum == '/apps/penguintv/auto_mark_viewed':

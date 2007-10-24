@@ -164,6 +164,8 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('tags-changed', self.__tags_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 		#init style
 		if self._fancy:
@@ -172,6 +174,12 @@ class FeedList(gobject.GObject):
 			#else:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
+			
+	#def set_entry_list(self, entry_list):
+	#	h_id = entry_list.connect('entry-selected', self.__entry_selected_cb)
+	#	self._handlers.append((entry_list.disconnect, h_id))
+	#	h_id = entry_list.connect('entries-selected', self.__entries_selected_cb)
+	#	self._handlers.append((entry_list.disconnect, h_id))
 			
 	def finalize(self):
 		for disconnector, h_id in self._handlers:
@@ -197,6 +205,13 @@ class FeedList(gobject.GObject):
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_feed_list(feed_id,['readinfo','icon'])	
 		
+	#def __entry_selected_cb(self, feed_id, entry_id):
+	#	self.mark_entries_read(feed_id, 1)
+	#	
+	
+	def __entrylist_read_cb(self, app, feed_id, entrylist):
+		self.mark_entries_read(len(entrylist), feed_id)
+
 	def grab_focus(self):
 		self._widget.grab_focus()
 			
@@ -506,7 +521,7 @@ class FeedList(gobject.GObject):
 		#self._feed_filter, not self._feedlist, so we can't write to items
 		#in that model.  We have to go back and find where this feed is in the
 		#original model.
-
+		
 		if feed_id is None:
 			s = self._widget.get_selection().get_selected()
 			if s is None:
