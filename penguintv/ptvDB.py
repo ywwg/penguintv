@@ -667,7 +667,7 @@ class ptvDB:
 			d={ 'title':_("Waiting for first poll"),
 				'description':_("This feed has not yet been polled successfully.  There might be an error with this feed.<br>"+str(url)),
 			  }
-			self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, old) VALUES (?, ?, NULL, ?, ?, 0, ?, ?, "http://", "0")',(feed_id,d['title'],d['description'],'0', int(time.time()), int(time.time())))
+			self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, old, keep) VALUES (?, ?, NULL, ?, ?, 0, ?, ?, "http://", "0", 0)',(feed_id,d['title'],d['description'],'0', int(time.time()), int(time.time())))
 			self._db.commit()
 		else:
 			self._db_execute(self._c, """SELECT rowid FROM feeds WHERE url=?""",(url,))
@@ -1293,7 +1293,7 @@ class ptvDB:
 			
 			if status[0]==NEW:
 				new_items = new_items+1
-				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, old) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',(feed_id,item['title'],item['creator'],item['body'],default_read,fake_time-i, int(time.mktime(item['date_parsed'])),item['guid'],item['link'],'0'))
+				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, old, keep) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',(feed_id,item['title'],item['creator'],item['body'],default_read,fake_time-i, int(time.mktime(item['date_parsed'])),item['guid'],item['link'],'0'))
 
 				self._db_execute(self._c,  "SELECT last_insert_rowid()")
 				entry_id = self._c.fetchone()[0]
