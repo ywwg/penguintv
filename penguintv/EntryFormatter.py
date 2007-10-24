@@ -50,7 +50,8 @@ class EntryFormatter:
 		cb_status = item['keep'] and "CHECKED" or "UNCHECKED"
 		cb_function = item['keep'] and "unkeep" or "keep"
 
-		ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s:%i'" %s>%s</form>''' % (cb_function, item['entry_id'], cb_status, _('Keep New')))
+		ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s:%i'" %s><a href="%s:%i">%s</a></form>''' % 
+		           (cb_function, item['entry_id'], cb_status, cb_function, item['entry_id'], _('Keep New')))
 
 		ret.append('</td></tr></table>')
 

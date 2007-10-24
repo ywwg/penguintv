@@ -760,7 +760,10 @@ class PenguinTVApp(gobject.GObject):
 	def activate_link(self, link):
 		"""links can be basic hrefs, or they might be custom penguintv commands"""
 		import urlparse
-		parsed_url = urlparse.urlparse(link)
+		try:
+			parsed_url = urlparse.urlparse(link)
+		except:
+			logging.warning("Invalid link clicked: %s" % (link,))
 		action=parsed_url[0] #protocol
 		parameters=parsed_url[3]
 		http_arguments=parsed_url[4]
@@ -777,6 +780,8 @@ class PenguinTVApp(gobject.GObject):
 			self._delayed_viewed_list = None
 			entry = self.db.get_entry(item)
 			self.db.set_entry_keep(item, 0)
+			if self._auto_mark_viewed and entry['read'] == False:
+				self._delayed_set_viewed(entry['feed_id'], [item])
 			self.emit('entry-updated', item, entry['feed_id'])
 		elif action == "download":
 			self.mediamanager.unpause_downloads()
@@ -1399,6 +1404,7 @@ class PenguinTVApp(gobject.GObject):
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
+			self._delayed_viewed_list = None
 			selected = self.feed_list_view.get_selected()
 			old_filter = self.main_window.get_active_filter()[1]
 			self.feed_list_view.interrupt()
