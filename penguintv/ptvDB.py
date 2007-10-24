@@ -236,29 +236,18 @@ class ptvDB:
 			#print "current database version is",db_ver
 			if db_ver is None:
 				self._migrate_database_one_two()
-				self._migrate_database_two_three()
-				self._migrate_database_three_four()
-				self._migrate_database_four_five()
-				#self.clean_database_media()
-			elif db_ver < 2:
+			if db_ver < 2:
 				self._migrate_database_one_two()
+			if db_ver < 3:
 				self._migrate_database_two_three()
+			if db_ver < 4:
 				self._migrate_database_three_four()
+			if db_ver < 5:
 				self._migrate_database_four_five()
+			if db_ver < 6:
+				self._migrate_database_five_six()
 				self.clean_database_media()
-			elif db_ver < 3:
-				self._migrate_database_two_three()
-				self._migrate_database_three_four()
-				self._migrate_database_four_five()
-				self.clean_database_media()
-			elif db_ver < 4:
-				self._migrate_database_three_four()
-				self._migrate_database_four_five()
-				self.clean_database_media()
-			elif db_ver < 5:
-				self._migrate_database_four_five()
-				self.clean_database_media()
-			elif db_ver > 5:
+			if db_ver > 6:
 				logging.warning("This database comes from a later version of PenguinTV and may not work with this version")
 				raise DBError, "db_ver is "+str(db_ver)+" instead of "+str(LATEST_DB_VER)
 		except Exception, e:
@@ -437,6 +426,13 @@ class ptvDB:
 							"tag, feed_id, query, favorite, type")
 							
 		self._db_execute(self._c, u'UPDATE settings SET value=5 WHERE data="db_ver"')
+		self._db.commit()
+		
+	def _migrate_database_five_six(self):
+		logging.info("upgrading to database schema 6, please wait...")
+		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN keep BOOL')
+		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
+		self._db_execute(self._c, u'UPDATE settings SET value=6 WHERE data="db_ver"')
 		self._db.commit()
 		
 	def __remove_columns(self, table, new_schema, new_columns):
@@ -1374,12 +1370,12 @@ class ptvDB:
 			if MAX_ARTICLES > 0: #zero means never delete
 				if new_entries >= MAX_ARTICLES:
 					#deleting all old because we got more than enough new
-					self._db_execute(self._c, """DELETE FROM entries WHERE old=1 AND feed_id=?""",(feed_id,))
+					self._db_execute(self._c, """DELETE FROM entries WHERE old=1 AND feed_id=? and keep=0""",(feed_id,))
 				elif new_entries+old_entries > MAX_ARTICLES:
 					old_articles_to_keep = MAX_ARTICLES-new_entries
 					if old_articles_to_keep > 0:
 						old_articles_to_ditch = old_entries - old_articles_to_keep
-						self._db_execute(self._c, """SELECT rowid,title FROM entries WHERE old=1 AND feed_id=? ORDER BY fakedate LIMIT ?""",(feed_id,old_articles_to_ditch))
+						self._db_execute(self._c, """SELECT rowid,title FROM entries WHERE old=1 AND feed_id=? AND keep=0 ORDER BY fakedate LIMIT ?""",(feed_id,old_articles_to_ditch))
 						ditchables = self._c.fetchall()
 						for e in ditchables:
 							self._db_execute(self._c, """DELETE FROM entries WHERE rowid=?""",(e[0],))
@@ -1615,7 +1611,7 @@ class ptvDB:
 		return self._c.fetchone()[0]
 	
 	def get_entry(self, entry_id):
-		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
+		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read, keep FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
 		result = self._c.fetchone()
 		
 		entry_dic={}
@@ -1627,6 +1623,7 @@ class ptvDB:
 			entry_dic['feed_id']= result[4]
 			entry_dic['date'] = result[5]
 			entry_dic['read'] = result[6]
+			entry_dic['keep'] = result[7]
 			entry_dic['entry_id'] = entry_id
 		except TypeError: #this error occurs when feed or item is wrong
 			raise NoEntry, entry_id
@@ -1636,7 +1633,7 @@ class ptvDB:
 		if len(entry_list) == 0:
 			return
 		qmarks = "?,"*(len(entry_list)-1)+"?"
-		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, rowid FROM entries WHERE rowid in ('+qmarks+')', (tuple(entry_list)))
+		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, rowid, keep FROM entries WHERE rowid in ('+qmarks+')', (tuple(entry_list)))
 		result = self._c.fetchall()
 		if result is None:
 			return []
@@ -1651,6 +1648,7 @@ class ptvDB:
 			entry_dic['date'] = entry[5]
 			entry_dic['read'] = entry[6]
 			entry_dic['entry_id'] = entry[7]
+			entry_dic['keep'] = entry[8]
 			retval.append(entry_dic)
 		return retval
 		
@@ -1840,6 +1838,14 @@ class ptvDB:
 		self._db.commit()
 		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 		
+	def set_entry_keep(self, entry_id, keep):
+		self._db_execute(self._c, u'UPDATE entries SET keep=? WHERE rowid=?',(int(keep),entry_id))
+		if keep:
+			self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?',(entry_id,))
+			self._db_execute(self._c, u'UPDATE media SET viewed=0 WHERE entry_id=?',(entry_id,))
+		self._db.commit()
+		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
+		
 	def set_entrylist_read(self, entrylist, read):
 		if len(entrylist) == 0:
 			return
@@ -1898,11 +1904,11 @@ class ptvDB:
 		
 	def get_deletable_media(self):
 		no_expire = self.get_feeds_for_flag(FF_NOAUTOEXPIRE)
-		if len(no_expire) > 0:
+		if len(no_expire) > 0: 
 			qmarks = "?,"*(len(no_expire)-1)+"?"
-			self._db_execute(self._c, u'SELECT rowid, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 AND feed_id not in ('+qmarks+') ORDER BY viewed DESC, download_date', tuple(no_expire))
+			self._db_execute(self._c, u'SELECT media.rowid, media.entry_id, media.feed_id, media.file, media.download_date FROM media INNER JOIN entries ON media.entry_id = entries.rowid WHERE entries.keep=0 AND media.download_status=2 AND media.feed_id not in ('+qmarks+') ORDER BY media.viewed DESC, media.download_date', tuple(no_expire))
 		else:
-			self._db_execute(self._c, u'SELECT rowid, entry_id, feed_id, file, download_date FROM media WHERE download_status=2 ORDER BY viewed DESC, download_date')
+			self._db_execute(self._c, u'SELECT media.rowid, media.entry_id, media.feed_id, media.file, media.download_date FROM media INNER JOIN entries ON media.entry_id = entries.rowid WHERE entries.keep=0 AND media.download_status=2 ORDER BY media.viewed DESC, media.download_date')
 		
 		result = self._c.fetchall()
 		if result:
@@ -1929,14 +1935,14 @@ class ptvDB:
 		if self._filtered_entries.has_key(feed_id):
 			list = []
 			for entry in self._filtered_entries[feed_id]:
-				self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE rowid=? AND read=0',(entry[0],))
+				self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE rowid=? AND read=0 AND keep=0',(entry[0],))
 				self._db_execute(self._c, u'SELECT rowid, download_status FROM media WHERE entry_id=?',(entry[0],))
 				list = list+self._c.fetchall()
 			feed_id = self._resolve_pointed_feed(feed_id)
 		else:
 			#feed_id = self._resolve_pointed_feed(feed_id)
-			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE feed_id=? AND read=0',(feed_id,))
-			self._db_execute(self._c, u'SELECT rowid, download_status FROM media WHERE feed_id = ?',(feed_id,))
+			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE feed_id=? AND read=0 AND keep=0',(feed_id,))
+			self._db_execute(self._c, u'SELECT media.rowid, media.download_status FROM media INNER JOIN entries ON media.entry_id = entries.rowid WHERE entries.keep=0 AND media.feed_id = ?',(feed_id,))
 			list = self._c.fetchall()
 		for item in list:
 			self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE rowid=? AND viewed=0',(1,item[0]))

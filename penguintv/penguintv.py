@@ -769,14 +769,14 @@ class PenguinTVApp(gobject.GObject):
 			item=int(parsed_url[2])
 		except:
 			pass
-		if action == "read":
+		if action == "keep":
 			entry = self.db.get_entry(item)
-			self.db.set_entry_read(item, 1)
+			self.db.set_entry_keep(item, 1)
 			self.emit('entry-updated', item, entry['feed_id'])
-		elif action == "unread":
+		elif action == "unkeep":
 			self._delayed_viewed_list = None
 			entry = self.db.get_entry(item)
-			self.db.set_entry_read(item, 0)
+			self.db.set_entry_keep(item, 0)
 			self.emit('entry-updated', item, entry['feed_id'])
 		elif action == "download":
 			self.mediamanager.unpause_downloads()
@@ -801,8 +801,9 @@ class PenguinTVApp(gobject.GObject):
 			media = self.db.get_media(item)
 			entry = self.db.get_entry(media['entry_id'])
 			feed_title = self.db.get_feed_title(entry['feed_id'])
-			self.db.set_entry_read(media['entry_id'],True)
-			self.db.set_media_viewed(item,True)
+			if not entry['keep']:
+				self.db.set_entry_read(media['entry_id'],True)
+				self.db.set_media_viewed(item,True)
 			if utils.is_known_media(media['file']):
 				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'])
 			else:
@@ -1095,10 +1096,12 @@ class PenguinTVApp(gobject.GObject):
 		self._delayed_viewed_list = None
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
-		self.db.set_entry_read(entry,True)
+		entry = self.db.get_entry(entry)
+		if not entry['keep']:
+			self.db.set_entry_read(entry,True)
 		#if update_entrylist: #hack for PlanetView
 		#	self.update_entry_list(entry)
-		self.emit('entrylist-read', feed_id, [entry])
+			self.emit('entrylist-read', feed_id, [entry])
 		#self.feed_list_view.mark_entries_read(1, feed_id)
 		
 	def mark_entrylist_as_viewed(self, feed_id, entrylist): #, update_entrylist=True):
@@ -1119,7 +1122,10 @@ class PenguinTVApp(gobject.GObject):
 		#it's been checked already.
 		
 		if len(entrylist) == 1:
-			if self.db.get_entry_read(entrylist[0]) or len(self.db.get_entry_media(entrylist[0])) > 0:
+			item = self.db.get_entry(entrylist[0])
+			if item['read'] or item['keep']:
+				return
+			if len(self.db.get_entry_media(entrylist[0])) > 0:
 				return
 
 		self.db.set_entrylist_read(entrylist,True)
@@ -1158,12 +1164,14 @@ class PenguinTVApp(gobject.GObject):
 		media = self.db.get_entry_media(entry_id)
 		entry = self.db.get_entry(entry_id)
 		feed_title = self.db.get_feed_title(entry['feed_id'])
-		self.db.set_entry_read(entry_id, True)
+		if not entry['keep']:
+			self.db.set_entry_read(entry_id, True)
 		filelist=[]
 		if media:
 			for medium in media:
 				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title'], medium['media_id']])
-				self.db.set_media_viewed(medium['media_id'],True)
+				if not entry['keep']:
+					self.db.set_media_viewed(medium['media_id'],True)
 		self.player.play_list(filelist)
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
@@ -1647,14 +1655,18 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				self.main_window.update_download_progress()
 				if d.status==Downloader.FINISHED_AND_PLAY:
-					self.db.set_entry_read(d.media['entry_id'],True)
-					self.db.set_media_viewed(d.media['media_id'], True)
+					entry = self.db.get_entry(d.media['entry_id'])
+					if not entry['keep']:
+						self.db.set_entry_read(d.media['entry_id'],True)
+						self.db.set_media_viewed(d.media['media_id'], True)
 					entry = self.db.get_entry(d.media['entry_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
 					self.player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'])
 				else:
-					self.db.set_entry_read(d.media['entry_id'],False)
-					self.db.set_media_viewed(d.media['media_id'],False)
+					entry = self.db.get_entry(d.media['entry_id'])
+					if not entry['keep']:
+						self.db.set_entry_read(d.media['entry_id'],False)
+						self.db.set_media_viewed(d.media['media_id'],False)
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)	
 		self.emit('download-finished', d)
 		if self._exiting:

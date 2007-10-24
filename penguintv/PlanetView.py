@@ -415,7 +415,7 @@ class PlanetView(gobject.GObject):
 				media_exists = True
 			else:
 				if item.has_key('new'):
-					if item['new']:
+					if item['new'] and not item['keep']:
 						unreads.append(entry_id)
 			if highlight is not None:
 				entry_html = entry_html.encode('utf-8')
