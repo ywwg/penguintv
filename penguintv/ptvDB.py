@@ -509,6 +509,7 @@ class ptvDB:
 					        	guid TEXT,
 					        	link TEXT,
 					        	flags INTEGER,
+					        	keep INTEGER,
 								read INTEGER NOT NULL,
 					        	old INTEGER NOT NULL
 							);""")
