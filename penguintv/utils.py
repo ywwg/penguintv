@@ -14,7 +14,11 @@ import gettext
 import shutil
 import logging
 
-import gtk
+try:
+	import gtk
+	GTK_OK = True
+except:
+	GTK_OK = False
 
 from subprocess import Popen, PIPE, STDOUT
 
@@ -75,10 +79,11 @@ else:
 	except:
 		HAS_PYXML = False
 		
-	if gtk.pygtk_version >= (2, 10, 0):
-		HAS_STATUS_ICON = True
-	else:
-		HAS_STATUS_ICON = False
+	if GTK_OK:
+		if gtk.pygtk_version >= (2, 10, 0):
+			HAS_STATUS_ICON = True
+		else:
+			HAS_STATUS_ICON = False
 		
 	try:
 		import pynotify
