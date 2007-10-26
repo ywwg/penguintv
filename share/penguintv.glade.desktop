@@ -4693,7 +4693,7 @@ Tagged feeds will appear at the top of the list.</property>
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="entry1">
+              <widget class="GtkMenuItem" id="entry_menu_item">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">E_ntry</property>
                 <property name="use_underline">True</property>
@@ -4752,6 +4752,26 @@ Tagged feeds will appear at the top of the list.</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_mark_entry_as_unviewed_activate"/>
                         <accelerator key="u" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="keep_entry_new">
+                        <property name="visible">True</property>
+                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                        <property name="label" translatable="yes">_Keep New</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_keep_entry_new_activate"/>
+                        <accelerator key="k" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkMenuItem" id="unkeep_entry_new">
+                        <property name="visible">True</property>
+                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                        <property name="label" translatable="yes">D_on't Keep New</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_unkeep_entry_new_activate"/>
+                        <accelerator key="n" modifiers="GDK_CONTROL_MASK" signal="activate"/>
                       </widget>
                     </child>
                     <child>

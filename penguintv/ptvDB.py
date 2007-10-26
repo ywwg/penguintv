@@ -1846,6 +1846,11 @@ class ptvDB:
 		self._db.commit()
 		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 		
+	def get_entry_keep(self, entry_id):
+		self._db_execute(self._c, u'SELECT keep FROM entries WHERE rowid=? LIMIT 1',(entry_id,))
+		retval = self._c.fetchone()[0]
+		return int(retval)
+		
 	def set_entrylist_read(self, entrylist, read):
 		if len(entrylist) == 0:
 			return

@@ -525,10 +525,13 @@ class MainWindow(gobject.GObject):
 		#major WIDGETS
 		self.feed_pane = components.get_widget('feed_pane')
 		self._feedlist = components.get_widget('feedlistview')
-		if self.layout != "planet":
-			self.entry_pane = components.get_widget('entry_pane')
-		else:
+		if self.layout == "planet":
 			self.entry_pane = self.feed_pane #cheat
+			self._widgetTree.get_widget('entry_menu_item').hide()
+			
+		else:
+			self.entry_pane = components.get_widget('entry_pane')
+			self._widgetTree.get_widget('entry_menu_item').show()
 		
 		self._filter_container = components.get_widget('filter_container')
 		self._filter_unread_checkbox = components.get_widget('unread_filter')
@@ -974,6 +977,14 @@ class MainWindow(gobject.GObject):
 	def on_mark_entry_as_unviewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()['entry_id']
 		self._app.mark_entry_as_unviewed(entry)
+		
+	def on_keep_entry_new_activate(self, event):
+		entry = self.entry_list_view.get_selected()['entry_id']
+		self._app.activate_link("keep:%i" % (entry,))
+
+	def on_unkeep_entry_new_activate(self, event):
+		entry = self.entry_list_view.get_selected()['entry_id']
+		self._app.activate_link("unkeep:%i" % (entry,))
 		
 	def on_mark_feed_as_viewed_activate(self,event):
 		feed = self.feed_list_view.get_selected()

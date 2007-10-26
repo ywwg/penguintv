@@ -1,5 +1,6 @@
 import gtk
 import gobject
+import logging
 
 import ptvDB
 from Downloader import FINISHED, FINISHED_AND_PLAY
@@ -109,8 +110,10 @@ class PtvTrayIcon:
 					self.clear_notifications()
 
 	def _app_loaded_cb(self, app):
+		logging.debug("ptvtrayicon gets app-loaded event")
 		play, pause = self._get_playpause_menuitems()
 		if self._app.player.using_internal_player():
+			logging.debug("connecting to gstreamer player")
 			self._app.player.connect_internal('playing', self.__gst_playing_cb)
 			self._app.player.connect_internal('paused', self.__gst_paused_cb)
 			
@@ -248,11 +251,13 @@ class PtvTrayIcon:
 		self._player_showing = False
 		
 	def __gst_playing_cb(self, obj):
+		logging.debug("got playing event")
 		play, pause = self._get_playpause_menuitems()
 		play.hide()
 		pause.show()
 	
 	def __gst_paused_cb(self, obj):
+		logging.debug("got paused event")
 		play, pause = self._get_playpause_menuitems()
 		play.show()
 		pause.hide()

@@ -463,5 +463,15 @@ class EntryList(gobject.GObject):
 			item.connect('activate',self._main_window.on_mark_entry_as_unviewed_activate)
 			menu.append(item)
 			
+		keep = self._db.get_entry_keep(selected['entry_id'])
+		if keep:
+			item = gtk.MenuItem(_("_Don't Keep New"))
+			item.connect('activate',self._main_window.on_unkeep_entry_new_activate)
+			menu.append(item)
+		else:
+			item = gtk.MenuItem(_("_Keep New"))
+			item.connect('activate',self._main_window.on_keep_entry_new_activate)
+			menu.append(item)
+			
 		menu.show_all()
 		menu.popup(None,None,None, event.button,event.time)
