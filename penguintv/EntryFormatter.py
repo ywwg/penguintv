@@ -96,7 +96,8 @@ class EntryFormatter:
 				if downloader.status == Downloader.DOWNLOADING:
 					d = {'progress':downloader.progress,
 						 'size':utils.format_size(medium['size'])}
-					ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
+					#ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
+					ret.append(self._html_progress_bar(d['progress'], d['size']) +
 						        utils.html_command('pause:',medium['media_id'])+' '+
 						        utils.html_command('stop:',medium['media_id'])+'</p>')
 				elif downloader.status == Downloader.QUEUED:
@@ -106,7 +107,8 @@ class EntryFormatter:
 			elif medium.has_key('progress'):       #no custom message, but we have a progress value
 				d = {'progress':medium['progress'],
 					 'size':utils.format_size(medium['size'])}
-				ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
+				#ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
+				ret.append(self._html_progress_bar(d['progress'], d['size']) +
 					        utils.html_command('pause:',medium['media_id'])+' '+
 					        utils.html_command('stop:',medium['media_id'])+'</p>')
 			else:       # we have nothing to go on
@@ -146,6 +148,22 @@ class EntryFormatter:
 									 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
 		ret.append('</div>')
 		return ret
+		
+	def _html_progress_bar(self, percent, size):
+		ret = []
+		
+		width = 200
+		height = 15
+		bar_color = "#333333"
+		
+		ret.append('''<table style="text-align: left; " border="0" cellpadding="0" cellspacing="10px"><tr><td>''')
+		ret.append("""<div id="empty" style="background-color:#cccccc;border:1px solid black;height:%ipx;width:%ipx;padding:0px;" align="left">""" % (height, width))
+		#ret.append("""<div id="d1" style="position:relative;top:0px;left:0px;color:#f0ffff;height:%ipx;text-align:center;font:bold;font-size:%ipxpadding:0px;padding-top:0px;">%i%%""" % (height, height * 0.8, percent))
+		ret.append("""<div id="d2" style="position:relative;top:0px;left:0px;background-color:%s;height:%ipx;width:%ipx;padding-top:5px;padding:0px;">""" % (bar_color, height, percent * (width / 100)))
+		ret.append("""</div></div></td><td>""")
+		ret.append(""" (%s)""" % (size,))
+		ret.append("""</td></tr></table>""")
+		return "\n".join(ret)
 
 class HTMLimgParser(htmllib.HTMLParser):
 	def __init__(self):

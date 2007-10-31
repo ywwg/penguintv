@@ -74,7 +74,6 @@ class PlanetView(gobject.GObject):
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
 		self._custom_message = ""
-		self._auto_mark_viewed = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
 		
 		self._entrylist = []
 		self._entry_store = {}
@@ -191,8 +190,6 @@ class PlanetView(gobject.GObject):
 			self._handlers.append((app.disconnect, h_id))
 			h_id = app.connect('render-ops-updated', self.__render_ops_updated_cb)
 			self._handlers.append((app.disconnect, h_id))
-			h_id = app.connect('setting-changed', self.__setting_changed_cb)
-			self._handlers.append((app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -228,10 +225,6 @@ class PlanetView(gobject.GObject):
 		"""Redraw after xrandr calls"""
 		self._render_entries()
 		
-	def __setting_changed_cb(self, app, typ, datum, value):
-		if datum == '/apps/penguintv/auto_mark_viewed':
-			self._auto_mark_viewed = value
-
 	def grab_focus(self):
 		if utils.RUNNING_SUGAR:
 			self._moz.grab_focus()
@@ -592,9 +585,8 @@ class PlanetView(gobject.GObject):
 		
 		for item in entries:
 			item['new'] = not item['read']
-			if self._auto_mark_viewed:
-				if mark_read and not item.has_key('media'):
-					item['read'] = True
+			if mark_read and not item.has_key('media'):
+				item['read'] = True
 			
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])

@@ -33,8 +33,6 @@ class PreferencesDialog:
 		self.poll_on_startup = self.xml.get_widget("poll_on_startup")
 		self.show_notification_always = self.xml.get_widget("show_notification_always")
 		
-		self.auto_mark_viewed = self.xml.get_widget("auto_mark_viewed")
-		
 		self.auto_download_widget = self.xml.get_widget("auto_download")
 		self.auto_download_limiter_widget = self.xml.get_widget("auto_download_limiter")
 		self.auto_download_limit_widget = self.xml.get_widget("auto_download_limit")
@@ -95,9 +93,6 @@ class PreferencesDialog:
 	def set_show_notification_always(self, always):
 		self.show_notification_always.set_active(always)
 		
-	def set_auto_mark_viewed(self, automark):
-		self.auto_mark_viewed.set_active(automark)
-		
 	def set_auto_download(self, auto_download):
 		self.auto_download_widget.set_active(auto_download)
 			
@@ -150,11 +145,6 @@ class PreferencesDialog:
 		if not utils.HAS_GCONF:
 			self._app.set_poll_on_startup(self.poll_on_startup.get_active())
 			
-	def on_auto_mark_viewed_toggled(self, event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', self.auto_mark_viewed.get_active())
-		if not utils.HAS_GCONF:
-			self._app.set_auto_mark_viewed(self.auto_mark_viewed.get_active())
-		
 	def on_auto_download_toggled(self, event):
 		auto_download = self.auto_download_widget.get_active()
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download', auto_download)
