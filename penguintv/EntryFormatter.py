@@ -87,8 +87,16 @@ class EntryFormatter:
 			ret.append('(%s)</p>' % (utils.format_size(medium['size'],)) + "</td></tr></table>")
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
+				if self._ajax_url is None:
+					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+				else:
+					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
 			elif medium.has_key('progress_message'): #downloading and we have a custom message
+				if self._ajax_url is None:
+					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+				else:
+					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append('<p><i>'+medium['progress_message']+'</i></p>')
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
 				ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
@@ -99,7 +107,13 @@ class EntryFormatter:
 					d = {'progress':downloader.progress,
 						 'size':utils.format_size(medium['size'])}
 					#ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
-					ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+					ret.append('''<table border="0" cellpadding="0" cellspacing="12pt">''')
+					ret.append('''<tr><td rowspan="2">''')
+					if self._ajax_url is None:
+						ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+					else:
+						ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
+					ret.append("</td><td>")
 					ret.append(self._html_progress_bar(d['progress'], d['size']) + "</td><td>")
 					ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
 					ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
@@ -112,7 +126,13 @@ class EntryFormatter:
 				d = {'progress':medium['progress'],
 					 'size':utils.format_size(medium['size'])}
 				#ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
-				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt">''')
+				ret.append('''<tr><td rowspan="2">''')
+				if self._ajax_url is None:
+					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+				else:
+					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
+				ret.append("</td><td>")
 				ret.append(self._html_progress_bar(d['progress'], d['size']) + "</td><td>")
 				ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
 				ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")

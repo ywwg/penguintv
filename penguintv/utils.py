@@ -132,7 +132,15 @@ def GetPrefix():
 	h, t = os.path.split(os.path.split(os.path.abspath(sys.argv[0]))[0])
 	return h
 	
+_glade_prefix = None
+	
 def get_glade_prefix():
+	global _glade_prefix
+	if _glade_prefix is not None:
+		return _glade_prefix
+
+	logging.debug("finding glade prefix")
+
 	import utils
 	for p in (os.path.join(GetPrefix(),"share","penguintv"),
 		  os.path.join(GetPrefix(),"share"),
@@ -141,7 +149,9 @@ def get_glade_prefix():
 		  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
 		try:
 			os.stat(os.path.join(p,"penguintv.glade"))
-			return p
+			logging.debug("glade prefix found: %s" % (p,))
+			_glade_prefix = p
+			return _glade_prefix
 		except:
 			continue
 	return None
@@ -365,12 +375,12 @@ def html_command(command,arg,ajax_url=None):
 	
 	#a couple special cases
 	if command == "redownload":
-		return _get_img_html(commands['download:'][1], ajax_url)+'<a href="download:'+str(arg)+'">'+_("Re-Download")+"</a>"
+		return _get_img_html(commands['download:'][1], ajax_url)+' <a href="download:'+str(arg)+'">'+_("Re-Download")+"</a>"
 		
 	if command == "retry":
-		return _get_img_html(commands['download:'][1], ajax_url)+'<a href="download:'+str(arg)+'">'+_("Retry")+'</a>'
+		return _get_img_html(commands['download:'][1], ajax_url)+' <a href="download:'+str(arg)+'">'+_("Retry")+'</a>'
 	
-	return _get_img_html(commands[command][1], ajax_url)+'<a href="'+command+str(arg)+'">'+commands[command][0]+'</a>'
+	return _get_img_html(commands[command][1], ajax_url)+' <a href="'+command+str(arg)+'">'+commands[command][0]+'</a>'
 	
 def is_kde():
 	"""Returns true if the user is running a full KDE desktop, or if it has been overridden for debug

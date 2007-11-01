@@ -1,7 +1,9 @@
+import os
 import logging
 
 import gtk
 
+import utils
 import SimpleHTTPServer
 import SimpleImageCache
 
@@ -50,3 +52,6 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			else:
 				logging.error("no icon found for: %s" % (arg,))
 				self.wfile.write("")
+		elif command == "pixmaps":
+			image_data = self._image_cache.get_image_from_file(os.path.join(utils.get_glade_prefix(), "pixmaps", arg))
+			self.wfile.write(image_data)

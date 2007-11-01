@@ -91,6 +91,7 @@ share/mozilla.css
 share/mozilla-planet.css
 share/pixmaps/ev_online.png
 share/pixmaps/ev_offline.png
+share/pixmaps/throbber.gif
 po/penguintv.pot
 po/pt.po
 po/pt_BR.po
