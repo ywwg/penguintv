@@ -167,10 +167,12 @@ class PlanetView(gobject.GObject):
 			t = threading.Thread(None, self._update_server.serve_forever)
 			t.setDaemon(True)
 			t.start()
+			img_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()
 		else:
 			logging.info("not using ajax")
+			img_url = None
 			
-		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, not self._USING_AJAX)
+		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=img_url)
 		
 		#signals
 		self._handlers = []
@@ -509,7 +511,7 @@ class PlanetView(gobject.GObject):
 					xmlHttp.onreadystatechange=stateChanged 
 					try
 					{
-						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""",true)
+						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
 						xmlHttp.send(null)
 					} 
 					catch (error) 
@@ -623,15 +625,18 @@ class PlanetView(gobject.GObject):
 		
 	def _render(self, html):
 		# temp until olpcbrowser dows moz_realized
-	#	logging.debug("="*80)
-	#	logging.debug(html)
-	#	logging.debug("="*80)
+		#logging.debug("="*80)
+		#logging.debug(html)
+		#logging.debug("="*80)
 		if self._moz_realized or utils.RUNNING_SUGAR:
-			self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+			if self._USING_AJAX:
+				self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+			else:
+				self._moz.open_stream("file:///","text/html")
 			while len(html)>60000:
-					part = html[0:60000]
-					html = html[60000:]
-					self._moz.append_data(part, long(len(part)))
+				part = html[0:60000]
+				html = html[60000:]
+				self._moz.append_data(part, long(len(part)))
 			self._moz.append_data(html, long(len(html)))
 			self._moz.close_stream()
 			

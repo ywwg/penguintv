@@ -1,5 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
+import logging
+
 import pycurl
 
 class SimpleImageCache:
@@ -13,30 +15,49 @@ class SimpleImageCache:
 			return True
 		return False
 		
-	def get_image(self, url):
+	def _check_cache(self, url):
 		if len(self.image_dict) > 100:  #flush it every so often
 			del self.image_dict
 			self.image_dict = {}
 		if self.image_dict.has_key(url):
-			#if self.image_dict[url]=="":
-			#	print "image not cached nicely"
-				#raise
 			return self.image_dict[url]
-		else:
-			d = SimpleImageCache.downloader()
-			c = pycurl.Curl()
-			c.setopt(c.URL, url)
-			c.setopt(c.WRITEFUNCTION, d.body_callback)
-			c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
-			c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
-			c.setopt(pycurl.FOLLOWLOCATION, 1)
-			try:
-				c.perform()
-				c.close()
-			except:
-				self.image_dict[url]=""
-			self.image_dict[url]=d.contents
-			return d.contents
+		return None
+		
+	def get_image_from_file(self, filename):
+		url = "file://" + filename
+		cache = self._check_cache(url)
+		if cache is not None:
+			return cache
+			
+		try:
+			f = open(filename, "rb")
+			self.image_dict[url]=f.read()
+			f.close()
+		except Exception, e:
+			logging.error("Error retrieving local file: %s" % (str(e),))
+			self.image_dict[url] = ""
+			
+		return self.image_dict[url]
+		
+	def get_image(self, url):
+		cache = self._check_cache(url)
+		if cache is not None:
+			return cache
+
+		d = SimpleImageCache.downloader()
+		c = pycurl.Curl()
+		c.setopt(c.URL, url)
+		c.setopt(c.WRITEFUNCTION, d.body_callback)
+		c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
+		c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
+		c.setopt(pycurl.FOLLOWLOCATION, 1)
+		try:
+			c.perform()
+			c.close()
+		except:
+			self.image_dict[url]=""
+		self.image_dict[url]=d.contents
+		return d.contents
 			
 	class downloader:
 		def __init__(self):

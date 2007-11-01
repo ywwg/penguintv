@@ -67,7 +67,7 @@ body {
 	border-color:#000000; 
 	border-width:2px; 
 	border-style: solid; 
-	padding:8pt; 
+	//padding:8pt; 
 	margin:8pt; 
 	overflow: auto;
 }

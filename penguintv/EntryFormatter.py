@@ -11,12 +11,12 @@ GTKHTML=0
 MOZILLA=1
 
 class EntryFormatter:
-	def __init__(self, mm=None, with_feed_titles=False, indicate_new=False, basic_progress=False, auto_mark=True):
+	def __init__(self, mm=None, with_feed_titles=False, indicate_new=False, basic_progress=False, ajax_url=None):
 		self._mm = mm
 		self._with_feed_titles = with_feed_titles
 		self._indicate_new = indicate_new
 		self._basic_progress = basic_progress
-		self._auto_mark = auto_mark
+		self._ajax_url = ajax_url
 		
 	def htmlify_item(self, item, convert_newlines=False):
 		""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
@@ -80,39 +80,47 @@ class EntryFormatter:
 	def htmlify_media(self, medium):
 		ret = []
 		ret.append('<div class="media">')
-		if medium['download_status']==D_NOT_DOWNLOADED:    
-			ret.append('<p>'+utils.html_command('download:',medium['media_id'])+' '+
-							 utils.html_command('downloadqueue:',medium['media_id'])+
-						     ' (%s)</p>' % (utils.format_size(medium['size'],)))
+		if medium['download_status']==D_NOT_DOWNLOADED:  
+			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+			ret.append(utils.html_command('download:',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append(utils.html_command('downloadqueue:',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append('(%s)</p>' % (utils.format_size(medium['size'],)) + "</td></tr></table>")
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
 				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
 			elif medium.has_key('progress_message'): #downloading and we have a custom message
-				ret.append('<p><i>'+medium['progress_message']+'</i> '+
-					                utils.html_command('pause:',medium['media_id'])+' '+
-					                utils.html_command('stop:',medium['media_id'])+'</p>')
+				ret.append('<p><i>'+medium['progress_message']+'</i></p>')
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
 			elif self._mm.has_downloader(medium['media_id']): #we have a downloader object
 				downloader = self._mm.get_downloader(medium['media_id'])
 				if downloader.status == Downloader.DOWNLOADING:
 					d = {'progress':downloader.progress,
 						 'size':utils.format_size(medium['size'])}
 					#ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
-					ret.append(self._html_progress_bar(d['progress'], d['size']) +
-						        utils.html_command('pause:',medium['media_id'])+' '+
-						        utils.html_command('stop:',medium['media_id'])+'</p>')
+					ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+					ret.append(self._html_progress_bar(d['progress'], d['size']) + "</td><td>")
+					ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
+					ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
 				elif downloader.status == Downloader.QUEUED:
-					ret.append('<p><i>'+_("Download queued") +'</i> '+
-						        utils.html_command('pause:',medium['media_id'])+' '+
-						        utils.html_command('stop:',medium['media_id'])+'</p>')
+					ret.append('<p><i>'+_("Download queued") +'</i></p>')
+					ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+					ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
+					ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
 			elif medium.has_key('progress'):       #no custom message, but we have a progress value
 				d = {'progress':medium['progress'],
 					 'size':utils.format_size(medium['size'])}
 				#ret.append('<p><i>'+_("Downloaded %(progress)d%% of %(size)s") % d +'</i> '+
-				ret.append(self._html_progress_bar(d['progress'], d['size']) +
-					        utils.html_command('pause:',medium['media_id'])+' '+
-					        utils.html_command('stop:',medium['media_id'])+'</p>')
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append(self._html_progress_bar(d['progress'], d['size']) + "</td><td>")
+				ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
 			else:       # we have nothing to go on
-				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
+				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i></p>')
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append(utils.html_command('pause:',medium['media_id']) + "</td><td>")
+				ret.append(utils.html_command('stop:',medium['media_id'])+"</td></tr></table>")
 		elif medium['download_status'] == D_DOWNLOADED:
 			if self._mm.has_downloader(medium['media_id']):	
 				downloader = self._mm.get_downloader(medium['media_id'])
@@ -121,31 +129,40 @@ class EntryFormatter:
 			if utils.is_known_media(medium['file']): #we have a handler
 				if os.path.isdir(medium['file']) and medium['file'][-1]!='/':
 					medium['file']=medium['file']+'/'
-				ret.append('<p>'+utils.html_command('play:',medium['media_id'])+' '+
-								 utils.html_command('redownload',medium['media_id'])+' '+
-								 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append(utils.html_command('play:',medium['media_id'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr>")
+				ret.append('<tr><td colspan="3"><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
 			elif os.path.isdir(medium['file']): #it's a folder
-				ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
-								 utils.html_command('redownload',medium['media_id'])+' '+
-								 utils.html_command('delete:',medium['media_id'])+'</p>')
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append(utils.html_command('file://',medium['file'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
 			else:                               #we have no idea what this is
-				ret.append('<p>'+utils.html_command('file://',medium['file'])+' '+
-								 utils.html_command('redownload',medium['media_id'])+' '+
-								 utils.html_command('delete:',medium['media_id'])+' <br/><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></p>' % (medium['file'], filename, utils.format_size(medium['size'])))
+				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+				ret.append(utils.html_command('file://',medium['file'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
+				ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr>")
+				ret.append('<tr><td colspan="3"><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
 		elif medium['download_status'] == D_RESUMABLE:
-			ret.append('<p>'+utils.html_command('resume:',medium['media_id'])+' '+
-							 utils.html_command('redownload',medium['media_id'])+' '+
-							 utils.html_command('delete:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))	
+			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+			ret.append(utils.html_command('resume:',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr><tr><td>")
+			ret.append('(%s)</td></tr></table>' % (utils.format_size(medium['size']),))	
 		elif medium['download_status'] == D_ERROR:
 			if self._mm.has_downloader(medium['media_id']):	
 				downloader = self._mm.get_downloader(medium['media_id'])
 				error_msg = downloader.message
 			else:
 				error_msg = _("There was an error downloading the file.")
-			ret.append('<p>'+medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg)+'  '+
-									 utils.html_command('retry',medium['media_id'])+' '+
-									 utils.html_command('tryresume:',medium['media_id'])+' '+
-									 utils.html_command('cancel:',medium['media_id'])+'(%s)</p>' % (utils.format_size(medium['size']),))
+			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+			ret.append(medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg) + "</td><td>")
+			ret.append(utils.html_command('retry',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append(utils.html_command('tryresume:',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append(utils.html_command('cancel:',medium['media_id'],self._ajax_url)+"</td></tr><tr><td>")
+			ret.append('(%s)</td></tr></table>' % (utils.format_size(medium['size']),))
 		ret.append('</div>')
 		return ret
 		
@@ -156,7 +173,7 @@ class EntryFormatter:
 		height = 15
 		bar_color = "#333333"
 		
-		ret.append('''<table style="text-align: left; " border="0" cellpadding="0" cellspacing="10px"><tr><td>''')
+		ret.append('''<table style="text-align: left; padding:0px;" border="0" cellpadding="0" cellspacing="10px"><tr><td>''')
 		ret.append("""<div id="empty" style="background-color:#cccccc;border:1px solid black;height:%ipx;width:%ipx;padding:0px;" align="left">""" % (height, width))
 		#ret.append("""<div id="d1" style="position:relative;top:0px;left:0px;color:#f0ffff;height:%ipx;text-align:center;font:bold;font-size:%ipxpadding:0px;padding-top:0px;">%i%%""" % (height, height * 0.8, percent))
 		ret.append("""<div id="d2" style="position:relative;top:0px;left:0px;background-color:%s;height:%ipx;width:%ipx;padding-top:5px;padding:0px;">""" % (bar_color, height, percent * (width / 100)))
