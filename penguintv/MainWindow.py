@@ -409,6 +409,11 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.add(self.load_layout())
 
 		self.app_window.show_all()
+		
+		if self.layout == "planet":
+			self._widgetTree.get_widget('entry_menu_item').hide()
+		else:
+			self._widgetTree.get_widget('entry_menu_item').show()
 
 		#final setup for the window comes from gconf
 		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
@@ -527,11 +532,8 @@ class MainWindow(gobject.GObject):
 		self._feedlist = components.get_widget('feedlistview')
 		if self.layout == "planet":
 			self.entry_pane = self.feed_pane #cheat
-			self._widgetTree.get_widget('entry_menu_item').hide()
-			
 		else:
 			self.entry_pane = components.get_widget('entry_pane')
-			self._widgetTree.get_widget('entry_menu_item').show()
 		
 		self._filter_container = components.get_widget('filter_container')
 		self._filter_unread_checkbox = components.get_widget('unread_filter')
@@ -1160,6 +1162,10 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.remove(self._layout_container)
 		
 		self._layout_dock.add(self.load_layout())
+		if self.layout == "planet":
+			self._widgetTree.get_widget('entry_menu_item').hide()
+		else:
+			self._widgetTree.get_widget('entry_menu_item').show()
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()

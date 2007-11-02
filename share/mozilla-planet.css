@@ -72,6 +72,8 @@ body {
 	overflow: auto;
 }
 
+.media a img { border: none ; }
+
 dd { 
 	padding-left: 20pt; 
 }  

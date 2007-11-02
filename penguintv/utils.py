@@ -342,46 +342,7 @@ def uniquer(seq, idfun=None):
 		seen[marker] = 1
 		result.append(item)
 	return result
-	
-commands={	'play:': (_("Open with PenguinTV"), "gtk-media-play-ltr"), #FIXME: detect rtl ltr i18n
-			'download:': (_("Download"), "gtk-go-down"),
-			'downloadqueue:': (_("Download And Open"), "gtk-go-down"),
-			'pause:': (_("Pause"), "gtk-media-pause"),
-			'cancel:': (_("Cancel"), "gtk-cancel"),
-			'file://': (_("Open File"), "gtk-open"),
-			'delete:': (_("Delete"), "gtk-delete"),
-			'resume:': (_("Resume"), "gtk-go-down"),
-			'clear:': (_("Cancel"), "gtk-cancel"),
-			'stop:': (_("Stop"), "gtk-stop"),
-			'tryresume:': (("Try Resume"),	"gtk-go-down")}
-	
-def html_command(command,arg,ajax_url=None):
-	"""returns something like '<a href="play:%s">Open</a>' for all the commands I have.
-	Dictionary has keys of commands, and returns located strings.  If ajax_url is given,
-	return the icon name appended to it.  Otherwise return a file:/// version"""
-	
-	theme = gtk.icon_theme_get_default()
-	
-	def _get_img_html(icon_name, ajax_url=None):
-		if ajax_url is not None:
-			return '<img src="' + ajax_url + "/icon/" + icon_name + '"/>'
-		else:
-			iconinfo = theme.lookup_icon(icon_name, 16, gtk.ICON_LOOKUP_NO_SVG)
-			icon_markup = ""
-			if iconinfo is not None:
-				icon_filename = iconinfo.get_filename()
-				return '<img src="file://' + icon_filename + '"/>'
-			return ""
-	
-	#a couple special cases
-	if command == "redownload":
-		return _get_img_html(commands['download:'][1], ajax_url)+' <a href="download:'+str(arg)+'">'+_("Re-Download")+"</a>"
 		
-	if command == "retry":
-		return _get_img_html(commands['download:'][1], ajax_url)+' <a href="download:'+str(arg)+'">'+_("Retry")+'</a>'
-	
-	return _get_img_html(commands[command][1], ajax_url)+' <a href="'+command+str(arg)+'">'+commands[command][0]+'</a>'
-	
 def is_kde():
 	"""Returns true if the user is running a full KDE desktop, or if it has been overridden for debug
 		purposes"""

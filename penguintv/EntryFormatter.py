@@ -2,6 +2,8 @@ import os, os.path
 import htmllib, HTMLParser
 import time
 
+import gtk
+
 from ptvDB import D_NOT_DOWNLOADED, D_DOWNLOADING, D_DOWNLOADED, D_RESUMABLE, \
 				  D_ERROR, D_WARNING
 import Downloader
@@ -82,8 +84,8 @@ class EntryFormatter:
 		ret.append('<div class="media">')
 		if medium['download_status']==D_NOT_DOWNLOADED:  
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-			ret.append(utils.html_command('download:',medium['media_id'],self._ajax_url) + "</td><td>")
-			ret.append(utils.html_command('downloadqueue:',medium['media_id'],self._ajax_url) + "</td><td>")
+			ret.append(self._html_command('download:',medium['media_id']) + "</td><td>")
+			ret.append(self._html_command('downloadqueue:',medium['media_id']) + "</td><td>")
 			ret.append('(%s)</p>' % (utils.format_size(medium['size'],)) + "</td></tr></table>")
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
@@ -91,7 +93,7 @@ class EntryFormatter:
 					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
-				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+utils.html_command('pause:',medium['media_id'])+' '+utils.html_command('stop:',medium['media_id'])+'</p>')
+				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+self._html_command('pause:',medium['media_id'])+' '+self._html_command('stop:',medium['media_id'])+'</p>')
 			elif medium.has_key('progress_message'): #downloading and we have a custom message
 				if self._ajax_url is None:
 					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
@@ -99,8 +101,8 @@ class EntryFormatter:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append('<p><i>'+medium['progress_message']+'</i></p>')
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-				ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
+				ret.append(self._html_command('pause:',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('stop:',medium['media_id'])+"</td></tr></table>")
 			elif self._mm.has_downloader(medium['media_id']): #we have a downloader object
 				downloader = self._mm.get_downloader(medium['media_id'])
 				if downloader.status == Downloader.DOWNLOADING:
@@ -115,13 +117,13 @@ class EntryFormatter:
 						ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 					ret.append("</td><td>")
 					ret.append(self._html_progress_bar(d['progress'], d['size']) + "</td><td>")
-					ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
-					ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
+					ret.append(self._html_command('pause:',medium['media_id']) + "</td><td>")
+					ret.append(self._html_command('stop:',medium['media_id'])+"</td></tr></table>")
 				elif downloader.status == Downloader.QUEUED:
 					ret.append('<p><i>'+_("Download queued") +'</i></p>')
 					ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-					ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
-					ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
+					ret.append(self._html_command('pause:',medium['media_id']) + "</td><td>")
+					ret.append(self._html_command('stop:',medium['media_id'])+"</td></tr></table>")
 			elif medium.has_key('progress'):       #no custom message, but we have a progress value
 				d = {'progress':medium['progress'],
 					 'size':utils.format_size(medium['size'])}
@@ -134,13 +136,13 @@ class EntryFormatter:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append("</td><td>")
 				ret.append(self._html_progress_bar(d['progress'], d['size']) + "</td><td>")
-				ret.append(utils.html_command('pause:',medium['media_id'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('stop:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
+				ret.append(self._html_command('pause:',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('stop:',medium['media_id'])+"</td></tr></table>")
 			else:       # we have nothing to go on
 				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i></p>')
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-				ret.append(utils.html_command('pause:',medium['media_id']) + "</td><td>")
-				ret.append(utils.html_command('stop:',medium['media_id'])+"</td></tr></table>")
+				ret.append(self._html_command('pause:',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('stop:',medium['media_id'])+"</td></tr></table>")
 		elif medium['download_status'] == D_DOWNLOADED:
 			if self._mm.has_downloader(medium['media_id']):	
 				downloader = self._mm.get_downloader(medium['media_id'])
@@ -150,26 +152,26 @@ class EntryFormatter:
 				if os.path.isdir(medium['file']) and medium['file'][-1]!='/':
 					medium['file']=medium['file']+'/'
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-				ret.append(utils.html_command('play:',medium['media_id'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr>")
+				ret.append(self._html_command('play:',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('redownload',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('delete:',medium['media_id'])+"</td></tr>")
 				ret.append('<tr><td colspan="3"><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
 			elif os.path.isdir(medium['file']): #it's a folder
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-				ret.append(utils.html_command('file://',medium['file'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr></table>")
+				ret.append(self._html_command('file://',medium['file']) + "</td><td>")
+				ret.append(self._html_command('redownload',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('delete:',medium['media_id'])+"</td></tr></table>")
 			else:                               #we have no idea what this is
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-				ret.append(utils.html_command('file://',medium['file'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
-				ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr>")
+				ret.append(self._html_command('file://',medium['file']) + "</td><td>")
+				ret.append(self._html_command('redownload',medium['media_id']) + "</td><td>")
+				ret.append(self._html_command('delete:',medium['media_id'])+"</td></tr>")
 				ret.append('<tr><td colspan="3"><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
 		elif medium['download_status'] == D_RESUMABLE:
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-			ret.append(utils.html_command('resume:',medium['media_id'],self._ajax_url) + "</td><td>")
-			ret.append(utils.html_command('redownload',medium['media_id'],self._ajax_url) + "</td><td>")
-			ret.append(utils.html_command('delete:',medium['media_id'],self._ajax_url)+"</td></tr><tr><td>")
+			ret.append(self._html_command('resume:',medium['media_id']) + "</td><td>")
+			ret.append(self._html_command('redownload',medium['media_id']) + "</td><td>")
+			ret.append(self._html_command('delete:',medium['media_id'])+"</td></tr><tr><td>")
 			ret.append('(%s)</td></tr></table>' % (utils.format_size(medium['size']),))	
 		elif medium['download_status'] == D_ERROR:
 			if self._mm.has_downloader(medium['media_id']):	
@@ -179,12 +181,52 @@ class EntryFormatter:
 				error_msg = _("There was an error downloading the file.")
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
 			ret.append(medium['url'][medium['url'].rfind('/')+1:]+': '+str(error_msg) + "</td><td>")
-			ret.append(utils.html_command('retry',medium['media_id'],self._ajax_url) + "</td><td>")
-			ret.append(utils.html_command('tryresume:',medium['media_id'],self._ajax_url) + "</td><td>")
-			ret.append(utils.html_command('cancel:',medium['media_id'],self._ajax_url)+"</td></tr><tr><td>")
+			ret.append(self._html_command('retry',medium['media_id']) + "</td><td>")
+			ret.append(self._html_command('tryresume:',medium['media_id']) + "</td><td>")
+			ret.append(self._html_command('cancel:',medium['media_id'])+"</td></tr><tr><td>")
 			ret.append('(%s)</td></tr></table>' % (utils.format_size(medium['size']),))
 		ret.append('</div>')
 		return ret
+		
+	commands={	'play:': (_("Open with PenguinTV"), "gtk-media-play-ltr"), #FIXME: detect rtl ltr i18n
+			'download:': (_("Download"), "gtk-go-down"),
+			'downloadqueue:': (_("Download And Open"), "gtk-go-down"),
+			'pause:': (_("Pause"), "gtk-media-pause"),
+			'cancel:': (_("Cancel"), "gtk-cancel"),
+			'file://': (_("Open File"), "gtk-open"),
+			'delete:': (_("Delete"), "gtk-delete"),
+			'resume:': (_("Resume"), "gtk-go-down"),
+			'clear:': (_("Cancel"), "gtk-cancel"),
+			'stop:': (_("Stop"), "gtk-stop"),
+			'tryresume:': (("Try Resume"),	"gtk-go-down")}
+	
+	def _html_command(self, command,arg):
+		"""returns something like '<a href="play:%s">Open</a>' for all the commands I have.
+		Dictionary has keys of commands, and returns located strings.  If ajax_url is given,
+		return the icon name appended to it.  Otherwise return a file:/// version"""
+	
+		theme = gtk.icon_theme_get_default()
+	
+		def _get_img_html(icon_name, ajax_url=None):
+			if self._ajax_url is not None:
+				return '<img src="' + self._ajax_url + "/icon/" + icon_name + '"/>'
+			else:
+				iconinfo = theme.lookup_icon(icon_name, 16, gtk.ICON_LOOKUP_NO_SVG)
+				icon_markup = ""
+				if iconinfo is not None:
+					icon_filename = iconinfo.get_filename()
+					return '<img src="file://' + icon_filename + '"/>'
+				return ""
+	
+		#a couple special cases
+		if command == "redownload":
+			return ' <a href="download:'+str(arg)+'">'+_get_img_html(self.commands['download:'][1], self._ajax_url)+_("Re-Download")+"</a>"
+		
+		if command == "retry":
+			return ' <a href="download:'+str(arg)+'">'+_get_img_html(self.commands['download:'][1], self._ajax_url)+_("Retry")+'</a>'
+	
+		return ' <a href="'+command+str(arg)+'">'+_get_img_html(self.commands[command][1], self._ajax_url)+self.commands[command][0]+'</a>'
+
 		
 	def _html_progress_bar(self, percent, size):
 		ret = []
