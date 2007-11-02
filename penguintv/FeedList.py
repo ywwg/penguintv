@@ -37,6 +37,8 @@ VISIBLE=10
 POLLFAIL=11
 FIRSTENTRYTITLE=12
 
+NOTVISIBLE=13
+
 #STATES
 S_DEFAULT          = 0
 S_SEARCH           = 1 
@@ -242,37 +244,52 @@ class FeedList(gobject.GObject):
 									   False, 
 									   False,
 									   ""]) #assume invisible
-		self.filter_all(False)	
+		self.filter_all(False)
 		gobject.idle_add(self._update_feeds_generator(callback,subset).next)
 		#self._update_feeds_generator(subset)
 		return False #in case this was called by the timeout below
 		
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
-		#gtk.gdk.threads_enter()
 		selection = self._widget.get_selection()
 		selected = self.get_selected()
 		feed_cache = self._db.get_feed_cache()
 		db_feedlist = self._db.get_feedlist()
 		
-		i=-1
-	
 		blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		blank_pixbuf.fill(0xffffff00)
 		
 		# While populating, allow articles column to autosize
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		
-		for feed_id,title,url in db_feedlist:
-			#gtk.gdk.threads_enter()
+		# create a sorted list of feedids with the visible ones first
+		# if not ALL, then we don't sort and it's all fine
+		i=-1
+		loadlist = []
+		for f in self._feedlist:
+			i+=1
+			loadlist.append((not f[VISIBLE], i))
+		if subset == ALL:
+			loadlist.sort()
+	
+		j=-1
+		for vis, i in loadlist:
+			feed_id,title,url = db_feedlist[i]
 			if self._cancel_load[0]:
 				break
-			i=i+1
+			j+=1
 			
 			if subset==DOWNLOADED:
 				flag = self._feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADED==0 and flag & ptvDB.F_PAUSED==0:
 					continue
+			elif subset==VISIBLE: 
+				if not self._feedlist[i][VISIBLE]:
+					continue
+			elif subset==NOTVISIBLE:
+				if self._feedlist[i][VISIBLE]:
+					continue
+			
 			if feed_cache is not None:
 				cached     = feed_cache[i]
 				unviewed   = cached[2]
@@ -342,15 +359,9 @@ class FeedList(gobject.GObject):
 								 visible, 
 								 pollfail, 
 								 m_first_entry_title]
-#			try:
-				#if i % (len(db_feedlist)/10) == 0:
-				#	self.filter_all()
 			self._filter_one(self._feedlist[i])
 
-			self._app.main_window.update_progress_bar(float(i)/len(db_feedlist),MainWindow.U_LOADING)
-#			except:
-#				pass
-			#gtk.gdk.threads_leave()
+			self._app.main_window.update_progress_bar(float(j)/len(db_feedlist),MainWindow.U_LOADING)
 			yield True
 			
 		# Once we are done populating, set size to fixed, otherwise we get
@@ -359,13 +370,10 @@ class FeedList(gobject.GObject):
 		
 		
 		if not self._cancel_load[0]:
-			#self.filter_all()
 			if self._fancy:
 				gobject.idle_add(self._load_visible_details().next)
 			if selected:
-				#gtk.gdk.threads_enter()
 				self.set_selected(selected)
-				#gtk.gdk.threads_leave()
 			if callback is not None:
 				try: callback()
 				except: pass
@@ -375,8 +383,6 @@ class FeedList(gobject.GObject):
 		
 	def resize_columns(self):
 		self._reset_articles_column()
-
-		#self._widget.columns_autosize()
 		
 	def _reset_articles_column(self, allow_recur=True):
 		#temporarily allow articles column to size itself, then set it
