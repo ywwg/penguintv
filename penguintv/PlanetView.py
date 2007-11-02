@@ -39,12 +39,15 @@ class PlanetView(gobject.GObject):
        	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
-		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
+		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
 		#
 		#unused by planetview, but part of entrylist API
 		#
+        'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
         'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
@@ -195,6 +198,9 @@ class PlanetView(gobject.GObject):
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
+		
+	def set_entry_view(self, entry_view):
+		pass
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
@@ -383,35 +389,34 @@ class PlanetView(gobject.GObject):
 		
 	#protected functions
 	def _render_entries(self, highlight=None, mark_read=False, force=False):
-		"""Takes a block on entry_ids and throws up a page.  also calls penguintv so that entries
-		are marked as read"""
+		"""Takes a block on entry_ids and throws up a page."""
 
 		if self._first_entry < 0:
 			self._first_entry = 0
 			
 		if len(self._entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
-			last_entry = self._first_entry+ENTRIES_PER_PAGE
+			self._last_entry = self._first_entry+ENTRIES_PER_PAGE
 		else:
-			last_entry = len(self._entrylist)
+			self._last_entry = len(self._entrylist)
 			
 		media_exists = False
 		entries = []
 		html = ""
-		unreads = []
+		#unreads = []
 		
 		#preload the block of entries, which is nicer to the db
-		self._load_entry_block(self._entrylist[self._first_entry:last_entry], mark_read=mark_read, force=force)
+		self._load_entry_block(self._entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
 
 		i=self._first_entry-1
-		for entry_id in self._entrylist[self._first_entry:last_entry]:
+		for entry_id in self._entrylist[self._first_entry:self._last_entry]:
 			i+=1
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
 				media_exists = True
-			else:
-				if item.has_key('new'):
-					if item['new'] and not item['keep']:
-						unreads.append(entry_id)
+			#else:
+			#	if item.has_key('new'):
+			#		if item['new'] and not item['keep']:
+			#			unreads.append(entry_id)
 			if highlight is not None:
 				entry_html = entry_html.encode('utf-8')
 				try:
@@ -434,12 +439,13 @@ class PlanetView(gobject.GObject):
 				entries.append('</span>\n\n')
 			
 
-		self.emit('entries-selected', self._current_feed_id, unreads)
-		for e in unreads:
-			try:
-				del self._entry_store[e] #need to regen because it's not new anymore
-			except:
-				logging.warning("can't remove non-existant entry from store")
+		#self.emit('entries-selected', self._current_feed_id, unreads)
+		gobject.timeout_add(2000, self._do_delayed_set_viewed, self._current_feed_id, self._first_entry, self._last_entry)
+		#for e in unreads:
+		#	try:
+		#		del self._entry_store[e] #need to regen because it's not new anymore
+		#	except:
+		#		logging.warning("can't remove non-existant entry from store")
 			
 		#######build HTML#######	
 		html = []
@@ -455,7 +461,7 @@ class PlanetView(gobject.GObject):
 		if self._first_entry > 0:
 			html.append('<a href="planet:up">Newer Entries</a>')
 		html.append('</td><td style="text-align: right;">')
-		if last_entry < len(self._entrylist):
+		if self._last_entry < len(self._entrylist):
 			html.append('<a href="planet:down">Older Entries</a>')
 		html.append("</td></tr></tbody></table></div>")
 		
@@ -471,7 +477,7 @@ class PlanetView(gobject.GObject):
 		if self._first_entry > 0:
 			html.append('<a href="planet:up">Newer Entries</a>')
 		html.append('</td><td style="text-align: right;">')
-		if last_entry < len(self._entrylist):
+		if self._last_entry < len(self._entrylist):
 			html.append('<a href="planet:down">Older Entries</a>')
 		html.append("</td></tr></tbody></table></div>")
 		html.append("</body></html>")
@@ -581,6 +587,8 @@ class PlanetView(gobject.GObject):
 			for item in db_entries:
 				if media.has_key(item['entry_id']):
 					item['media'] = media[item['entry_id']]
+				else:
+					item['media'] = []
 					
 			#combine them
 			entries += db_entries
@@ -589,7 +597,7 @@ class PlanetView(gobject.GObject):
 			item['new'] = not item['read']
 			if mark_read and not item.has_key('media'):
 				item['read'] = True
-			
+				
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
 				self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
@@ -604,6 +612,8 @@ class PlanetView(gobject.GObject):
 		media = self._db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
+		else:
+			item['media'] = []
 		item['new'] = not item['read']
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
@@ -620,8 +630,22 @@ class PlanetView(gobject.GObject):
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
 				self._update_server.push_update(ret)
+			gobject.timeout_add(2000, self._do_delayed_set_viewed, self._current_feed_id, self._first_entry, self._last_entry, True)
 		
 		return self._entry_store[entry_id]
+		
+	def _update_entry(self, entry_id, item, show_change):
+		self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
+		index = self._entrylist.index(entry_id)
+		if not show_change:
+			return
+		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
+			if self._USING_AJAX:
+				ret = []
+				ret.append(str(entry_id)+" ")
+				ret.append(self._entry_store[entry_id][0])
+				ret = "".join(ret)
+				self._update_server.push_update(ret)
 		
 	def _render(self, html):
 		# temp until olpcbrowser dows moz_realized
@@ -640,6 +664,27 @@ class PlanetView(gobject.GObject):
 			self._moz.append_data(html, long(len(html)))
 			self._moz.close_stream()
 			
+	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
+		#if entrylist == [self._current_item['entry_id']]:
+		if (feed_id, first_entry, last_entry) == \
+		   (self._current_feed_id, self._first_entry, self._last_entry):
+			keepers = []
+
+			self._load_entry_block(self._entrylist[self._first_entry:self._last_entry])
+			for entry_id in self._entrylist[self._first_entry:self._last_entry]:
+				item = self._entry_store[entry_id][1]
+				if not item['read'] and not item['keep'] and len(item['media']) == 0:
+					keepers.append(item)
+			
+			for item in keepers:
+				item['read'] = True
+				item['new'] = False
+				self._update_entry(item['entry_id'], item, show_change)
+					
+			if len(keepers) > 0:
+				self.emit('entries-viewed', feed_id, keepers)
+		return False
+
 	def _hulahop_prop_changed(self, obj, pspec):
 		if pspec.name == 'status':
 			self._main_window.display_status_message(self._moz.get_property('status'))
@@ -654,6 +699,7 @@ class PlanetView(gobject.GObject):
 			self._render_entries(mark_read=True)
 		else:
 			self.emit('link-activated', link)
+			
 		return True #don't load url please
 		
 	def _moz_new_window(self, mozembed, retval, chromemask):

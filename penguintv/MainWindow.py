@@ -504,7 +504,7 @@ class MainWindow(gobject.GObject):
 													self.feed_list_view, self._app, 
 													renderer)
 			self.entry_list_view = self.entry_view
-			
+		
 		if renderer == EntryFormatter.GTKHTML:
 			self._widgetTree.get_widget('planet_layout').hide()	
 			

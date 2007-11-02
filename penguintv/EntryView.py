@@ -1,16 +1,19 @@
-import gobject
-import gtk
-import ptvDB
-from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, LOADING_FEEDS
-import EntryFormatter
-import Downloader
-import utils
+import logging
 import time
 import os
 import htmllib, HTMLParser
 import formatter
 import threading
 import re
+
+import gobject
+import gtk
+import ptvDB
+
+import utils
+from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, LOADING_FEEDS
+import EntryFormatter
+import Downloader
 
 try:
 	#not good enough to load it below.  need to load it module-wide
@@ -28,12 +31,12 @@ S_SEARCH  = 1
 class EntryView(gobject.GObject):
 
 	__gsignals__ = {
-		'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
         'link-activated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
+		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
 		#unused except by planetview
 		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
@@ -162,6 +165,7 @@ class EntryView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
 		
@@ -176,6 +180,8 @@ class EntryView(gobject.GObject):
 		media = self._db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
+		else:
+			item['media']=[]
 		#if self._auto_mark_viewed:
 		#	if self._db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD:
 		#		item['read'] = 1
@@ -284,6 +290,8 @@ class EntryView(gobject.GObject):
 		media = self._db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
+		else:
+			item['media']=[]
 
 		self.display_item(item)
 		
@@ -475,15 +483,26 @@ class EntryView(gobject.GObject):
 				ha.set_value(ha.lower)
 		elif self._renderer == EntryFormatter.MOZILLA:	
 			if self._moz_realized:
-				self._moz.open_stream("http://ywwg.com","text/html") #that's a base uri for local links.  should be current dir
+				self._moz.open_stream("file:///","text/html") #that's a base uri for local links.  should be current dir
 				while len(html)>60000:
 					part = html[0:60000]
 					html = html[60000:]
 					self._moz.append_data(part, long(len(part)))
 				self._moz.append_data(html, long(len(html)))
 				self._moz.close_stream()
+		
+		if item is not None:		
+			gobject.timeout_add(2000, self._do_delayed_set_viewed, item)
 		return
 		
+	def _do_delayed_set_viewed(self, entry):
+		if entry == self._current_entry:
+			if not self._current_entry['read'] and \
+			   not self._current_entry['keep'] and \
+			   len(self._current_entry['media']) == 0:
+				self.emit('entries-viewed', self._current_entry['feed_id'], [self._current_entry])
+		return False
+
 	def _do_download_images(self, entry_id, html, images):
 		self._document_lock.acquire()
 		for url in images:

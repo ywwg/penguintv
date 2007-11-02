@@ -339,22 +339,28 @@ class PenguinTVApp(gobject.GObject):
 		self.import_subscriptions(f, utils.HAS_PYXML)
 		
 	def _connect_signals(self):
-		self._entry_list_view.connect('entry-selected', self.__entry_selected_cb)
+		#self._entry_list_view.connect('entry-selected', self.__entry_selected_cb)
 		self.feed_list_view.connect('state-change', self.__feedlist_state_change_cb)
-		self._entry_view.connect('entry-selected', self.__entry_selected_cb)
-		self._entry_view.connect('entries-selected', self.__entries_selected_cb)
+		#self._entry_view.connect('entry-selected', self.__entry_selected_cb)
+		self._entry_view.connect('entries-viewed', self.__entries_viewed_cb)
 		
-	def __entry_selected_cb(self, o, entry_id, feed_id):
-		if self._state == MANUAL_SEARCH or self._state == TAG_SEARCH and feed_id != -1:
-			self.select_feed(feed_id)
-		#FIXME: we're not passing the query for highlighting purposes here
-		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == 0:
-			#self.db.set_entry_read(entry_id, 1)
-			self._delayed_set_viewed(feed_id, [entry_id])
-				
-	def __entries_selected_cb(self, o, feed_id, entrylist):
-		#self.mark_entrylist_as_viewed(feed_id, entrylist, False)
-		self._delayed_set_viewed(feed_id, entrylist)
+		self.feed_list_view.set_entry_view(self._entry_view)	
+		self._entry_list_view.set_entry_view(self._entry_view)
+		
+	#def __entry_selected_cb(self, o, entry_id, feed_id):
+	#	if self._state == MANUAL_SEARCH or self._state == TAG_SEARCH and feed_id != -1:
+	#		self.select_feed(feed_id)
+	#	#FIXME: we're not passing the query for highlighting purposes here
+	#	if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == 0:
+	#		#self.db.set_entry_read(entry_id, 1)
+	#		self._delayed_set_viewed(feed_id, [entry_id])
+	#			
+	#def __entries_selected_cb(self, o, feed_id, entrylist):
+	#	#self.mark_entrylist_as_viewed(feed_id, entrylist, False)
+	#	self._delayed_set_viewed(feed_id, entrylist)
+	
+	def __entries_viewed_cb(self, o, feed_id, entrylist):
+		self.mark_entrylist_as_viewed(feed_id, entrylist)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
@@ -770,11 +776,8 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_entry_keep(item, 1)
 			self.emit('entry-updated', item, entry['feed_id'])
 		elif action == "unkeep":
-			self._delayed_viewed_list = None
 			entry = self.db.get_entry(item)
 			self.db.set_entry_keep(item, 0)
-			if entry['read'] == False:
-				self._delayed_set_viewed(entry['feed_id'], [item])
 			self.emit('entry-updated', item, entry['feed_id'])
 		elif action == "download":
 			self.mediamanager.unpause_downloads()
@@ -1091,73 +1094,44 @@ class PenguinTVApp(gobject.GObject):
 		self._auto_download = True
 			
 	def mark_entry_as_viewed(self,entry, feed_id): #, update_entrylist=True):
-		self._delayed_viewed_list = None
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
 		entry = self.db.get_entry(entry)
 		if not entry['keep']:
-			self.db.set_entry_read(entry,True)
-		#if update_entrylist: #hack for PlanetView
-		#	self.update_entry_list(entry)
-			self.emit('entrylist-read', feed_id, [entry])
-		#self.feed_list_view.mark_entries_read(1, feed_id)
+			self.db.set_entry_read(entry['entry_id'],True)
+			self.emit('entry-updated', entry['entry_id'], feed_id)
 		
 	def mark_entrylist_as_viewed(self, feed_id, entrylist): #, update_entrylist=True):
-		self._delayed_viewed_list = None
 		if len(entrylist) == 0:
 			return
 		
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
 		
-		
-		#for e in entrylist:
-		#	if update_entrylist: #hack for PlanetView
-		#		self.update_entry_list(e)
-		#self.feed_list_view.mark_entries_read(len(entrylist), feed_id)
-		
-		#HACK: if the length is one, check it.  If the length is over one,
-		#it's been checked already.
-		
-		if len(entrylist) == 1:
-			item = self.db.get_entry(entrylist[0])
-			if item['read'] or item['keep']:
-				return
-			if len(self.db.get_entry_media(entrylist[0])) > 0:
-				return
+		l = [e['entry_id'] for e in entrylist]
 
-		self.db.set_entrylist_read(entrylist,True)
-		self.emit('entrylist-read', feed_id, entrylist)
+		self.db.set_entrylist_read(l,True)
+		#self.emit('entrylist-read', feed_id, entrylist)
 			
 	def mark_entry_as_unviewed(self,entry):
-		self._delayed_viewed_list = None
 		media = self.db.get_entry_media(entry)
 		self.db.set_entry_read(entry, 0)
 		if media:
 			for medium in media:
 				self.db.set_media_viewed(medium['media_id'],False)
-			self.update_entry_list(entry)
+			#self.update_entry_list(entry)
 		else:
 			self.db.set_entry_read(entry, 0)
-			self.update_entry_list(entry)
-		self.feed_list_view.mark_entries_read(-1)
+			#self.update_entry_list(entry)
+		e = self.db.get_entry(entry)
+		self.emit('entry-updated', entry, e['feed_id'])
+		#self.feed_list_view.mark_entries_read(-1)
 		
 	def mark_feed_as_viewed(self,feed):
-		self._delayed_viewed_list = None
 		self.db.mark_feed_as_viewed(feed)
 		self._entry_list_view.populate_entries(feed)
 		self.feed_list_view.update_feed_list(feed,['readinfo'],{'unread_count':0})
 		
-	def _delayed_set_viewed(self, feed_id, entrylist):
-		self._delayed_viewed_list = entrylist
-		gobject.timeout_add(2000, self._do_delayed_set_viewed, feed_id, entrylist)
-		
-	def _do_delayed_set_viewed(self, feed_id, entrylist):
-		if entrylist == self._delayed_viewed_list:
-			#update_entrylist = isinstance(self._entry_list_view, PlanetView.PlanetView)
-			self.mark_entrylist_as_viewed(feed_id, entrylist) #, update_entrylist)
-		return False
-
 	def play_entry(self,entry_id):
 		media = self.db.get_entry_media(entry_id)
 		entry = self.db.get_entry(entry_id)
@@ -1397,7 +1371,6 @@ class PenguinTVApp(gobject.GObject):
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
-			self._delayed_viewed_list = None
 			selected = self.feed_list_view.get_selected()
 			old_filter = self.main_window.get_active_filter()[1]
 			self.feed_list_view.interrupt()

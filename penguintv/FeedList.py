@@ -175,15 +175,13 @@ class FeedList(gobject.GObject):
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
 			
-	#def set_entry_list(self, entry_list):
-	#	h_id = entry_list.connect('entry-selected', self.__entry_selected_cb)
-	#	self._handlers.append((entry_list.disconnect, h_id))
-	#	h_id = entry_list.connect('entries-selected', self.__entries_selected_cb)
-	#	self._handlers.append((entry_list.disconnect, h_id))
-			
 	def finalize(self):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
+			
+	def set_entry_view(self, entry_view):
+		h_id = entry_view.connect('entries-viewed', self.__entries_viewed_cb)
+		self._handlers.append((entry_view.disconnect, h_id))
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		if update_data.has_key('no_changes'):
@@ -208,6 +206,9 @@ class FeedList(gobject.GObject):
 	#def __entry_selected_cb(self, feed_id, entry_id):
 	#	self.mark_entries_read(feed_id, 1)
 	#	
+
+	def __entries_viewed_cb(self, app, feed_id, entrylist):
+		self.mark_entries_read(len(entrylist), feed_id)
 	
 	def __entrylist_read_cb(self, app, feed_id, entrylist):
 		self.mark_entries_read(len(entrylist), feed_id)
