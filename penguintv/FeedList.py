@@ -397,7 +397,7 @@ class FeedList(gobject.GObject):
 		self._widget.columns_autosize()
 
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._articles_column.set_min_width(self._articles_column.get_width() + 10)
+		self._articles_column.set_min_width(self._articles_column.get_width())
 		self._feed_column.set_expand(True)
 		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		
