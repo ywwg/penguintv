@@ -7,8 +7,8 @@
 DEFAULT            = 1
 MANUAL_SEARCH      = 2
 TAG_SEARCH         = 3
-LOADING_FEEDS      = 4
-DONE_LOADING_FEEDS = 5
+MAJOR_DB_OPERATION      = 4
+DONE_MAJOR_DB_OPERATION = 5
 
 #memory profiling:
 
@@ -528,6 +528,9 @@ class PenguinTVApp(gobject.GObject):
 			checks to see that the frequency it 'was setup' with is the same 
 			as the current frequency.  If not, exit with False to stop 
 			the timer."""
+			
+		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
+			return True
 		
 		if was_setup is not None:
 			if self.feed_refresh_method==REFRESH_AUTO:
@@ -720,7 +723,7 @@ class PenguinTVApp(gobject.GObject):
 		#		self.emit('notify-tags-changed')
 	
 	def _populate_feeds(self, callback=None, subset=FeedList.ALL):
-		self.set_state(LOADING_FEEDS)
+		self.set_state(MAJOR_DB_OPERATION)
 		self.main_window.display_status_message(_("Loading Feeds..."))
 		self.feed_list_view.populate_feeds(callback, subset)
 					
@@ -992,7 +995,7 @@ class PenguinTVApp(gobject.GObject):
 		self.do_poll_multiple(None, args)
 			
 	def import_subscriptions(self, f, opml=True):
-		if self._state == LOADING_FEEDS or not self._app_loaded:
+		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
 			self._for_import.append((1, f))
 			return
 	
@@ -1129,8 +1132,27 @@ class PenguinTVApp(gobject.GObject):
 		
 	def mark_feed_as_viewed(self,feed):
 		self.db.mark_feed_as_viewed(feed)
-		self._entry_list_view.populate_entries(feed)
+		self._entry_list_view.populate_if_selected(feed)
 		self.feed_list_view.update_feed_list(feed,['readinfo'],{'unread_count':0})
+		
+	def mark_all_viewed(self):
+		feedlist = self.db.get_feedlist()
+		feedlist = [f[0] for f in feedlist]
+		def _mark_viewed_gen(feedlist):
+			self.main_window.display_status_message(_("Marking everything as viewed..."), MainWindow.U_LOADING)
+			self.set_state(MAJOR_DB_OPERATION)
+			i=-1.0
+			for f in feedlist:
+				i+=1.0
+				self.mark_feed_as_viewed(f)
+				self.main_window.update_progress_bar(i/len(feedlist), MainWindow.U_LOADING)
+				yield True
+			self.set_state(DEFAULT)
+			self.main_window.update_progress_bar(-1)
+			self.main_window.display_status_message("")
+			yield False
+		
+		gobject.idle_add(_mark_viewed_gen(feedlist).next)
 		
 	def play_entry(self,entry_id):
 		media = self.db.get_entry_media(entry_id)
@@ -1191,11 +1213,11 @@ class PenguinTVApp(gobject.GObject):
 			#save filter for later
 			self._saved_filter = self.main_window.get_active_filter()[1]
 		
-		if self._state == LOADING_FEEDS:
+		if self._state == MAJOR_DB_OPERATION:
 			if not authorize:
 				raise CantChangeState,"can't interrupt feed loading"
 			else:
-				self._state = DONE_LOADING_FEEDS #we don't know what the new state will be...
+				self._state = DONE_MAJOR_DB_OPERATION #we don't know what the new state will be...
 				return
 				
 		if self._state == DEFAULT:
@@ -1205,7 +1227,7 @@ class PenguinTVApp(gobject.GObject):
 		if self._state == new_state:
 			return	
 			
-		if new_state == DEFAULT and self._state == LOADING_FEEDS:
+		if new_state == DEFAULT and self._state == MAJOR_DB_OPERATION:
 			return #do nothing
 
 		self._unset_state()
@@ -1214,7 +1236,7 @@ class PenguinTVApp(gobject.GObject):
 			pass
 		elif new_state == TAG_SEARCH:
 			pass
-		elif new_state == LOADING_FEEDS:
+		elif new_state == MAJOR_DB_OPERATION:
 			pass
 			
 		self.main_window.set_state(new_state, data)
@@ -1459,7 +1481,7 @@ class PenguinTVApp(gobject.GObject):
 	def add_feed(self, url, title):
 		"""Inserts the url and starts the polling process"""
 		
-		if self._state == LOADING_FEEDS or not self._app_loaded:
+		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
 			self._for_import.append((0, url, title))
 			return
 		

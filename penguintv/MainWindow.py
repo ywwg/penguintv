@@ -26,7 +26,7 @@ U_STANDARD=4
 S_DEFAULT       = 0
 S_MANUAL_SEARCH = 1
 S_TAG_SEARCH    = 2
-S_LOADING_FEEDS = 3
+S_MAJOR_DB_OPERATION = 3
 
 #filter model
 F_FAVORITE = 0
@@ -675,7 +675,7 @@ class MainWindow(gobject.GObject):
 			self.window_maximized = False
 			
 	def on_add_feed_activate(self, event):
-		if self._state == S_LOADING_FEEDS:
+		if self._state == S_MAJOR_DB_OPERATION:
 			logging.warning("Please wait until feeds have loaded before adding a new one")
 			return 
 		self._app.window_add_feed.show() #not modal / blocking
@@ -703,7 +703,7 @@ class MainWindow(gobject.GObject):
 		self._app.toggle_net_connection()
 		
 	def on_feed_add_clicked(self, event):
-		if self._state == S_LOADING_FEEDS:
+		if self._state == S_MAJOR_DB_OPERATION:
 			logging.warning("Please wait until feeds have loaded before adding a new one")
 			return 
 		self._app.window_add_feed.show() #not modal / blocking
@@ -827,7 +827,7 @@ class MainWindow(gobject.GObject):
 			img = gtk.image_new_from_stock('gtk-remove',gtk.ICON_SIZE_MENU)
 			item.set_image(img)
 			item.connect('activate',self.on_remove_feed_activate)
-			if self._state == S_LOADING_FEEDS:
+			if self._state == S_MAJOR_DB_OPERATION:
 				item.set_sensitive(False)
 			menu.append(item)
 
@@ -839,7 +839,7 @@ class MainWindow(gobject.GObject):
 				if utils.HAS_LUCENE:
 					item = gtk.MenuItem(_("_Create Feed Filter"))
 					item.connect('activate',self.on_add_feed_filter_activate)
-					if self._state == S_LOADING_FEEDS:
+					if self._state == S_MAJOR_DB_OPERATION:
 						item.set_sensitive(False)
 					menu.append(item)
 				
@@ -921,7 +921,7 @@ class MainWindow(gobject.GObject):
 
 	def _activate_filter(self):
 		current_filter = self._filters[self._active_filter_index]
-		if current_filter[F_TYPE] == ptvDB.T_SEARCH and self._state == S_LOADING_FEEDS:
+		if current_filter[F_TYPE] == ptvDB.T_SEARCH and self._state == S_MAJOR_DB_OPERATION:
 			self.set_active_filter(FeedList.ALL)
 			return
 		self._app.change_filter(current_filter[F_NAME],current_filter[F_TYPE])
@@ -993,6 +993,9 @@ class MainWindow(gobject.GObject):
 		if feed:
 			self._app.mark_feed_as_viewed(feed)
 			
+	def on_mark_all_viewed_activate(self, event):
+		self._app.mark_all_viewed()
+			
 	def _on_notebook_realized(self, widget):
 		self._notebook.show_page(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -1030,7 +1033,7 @@ class MainWindow(gobject.GObject):
 		#	except:
 		#		pass #fails while loading
 		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
-		#if self._state != S_LOADING_FEEDS:
+		#if self._state != S_MAJOR_DB_OPERATION:
 		#	tip = tooltips(self._player_label)
 		#	tip.display_notification("title", "text")
 		
@@ -1075,7 +1078,7 @@ class MainWindow(gobject.GObject):
 		self.search_container.set_sensitive(True)
 		
 	def on_remove_feed_activate(self, event, override=False):
-		assert self._state != S_LOADING_FEEDS
+		assert self._state != S_MAJOR_DB_OPERATION
 		
 		selected = self.feed_list_view.get_selected()
 		if selected:
@@ -1234,7 +1237,7 @@ class MainWindow(gobject.GObject):
 		#bring state back to default
 		if self._state == S_MANUAL_SEARCH:
 			self.search_entry.set_text("")
-		if self._state == S_LOADING_FEEDS:
+		if self._state == S_MAJOR_DB_OPERATION:
 			if not utils.RUNNING_SUGAR:
 				self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
 				self._widgetTree.get_widget("feed_remove").set_sensitive(True)
@@ -1255,7 +1258,7 @@ class MainWindow(gobject.GObject):
 			 penguintv.MANUAL_SEARCH: S_MANUAL_SEARCH,
 			 penguintv.TAG_SEARCH: S_TAG_SEARCH,
 			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
-			 penguintv.LOADING_FEEDS: S_LOADING_FEEDS}
+			 penguintv.MAJOR_DB_OPERATION: S_MAJOR_DB_OPERATION}
 			 
 		new_state = d[new_state]
 		if self._state == new_state:
@@ -1268,7 +1271,7 @@ class MainWindow(gobject.GObject):
 		if new_state == S_TAG_SEARCH:
 			self.search_entry.set_text("")
 		
-		if new_state == S_LOADING_FEEDS:
+		if new_state == S_MAJOR_DB_OPERATION:
 			if not utils.RUNNING_SUGAR: 
 				self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
 				self._widgetTree.get_widget("feed_remove").set_sensitive(False)

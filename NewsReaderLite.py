@@ -249,6 +249,7 @@ class NewsReaderLite(activity.Activity):
 		# get feed id of current selection
 		active = self._combo.get_active()		
 		self.remove_feed(active)
+		self._feed_viewer.display_item(None)
 
 	def _on_combo_select(self, combo):
 		active = combo.get_active()

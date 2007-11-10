@@ -340,7 +340,7 @@ class PlanetView(gobject.GObject):
 			 penguintv.MANUAL_SEARCH: S_SEARCH,
 			 penguintv.TAG_SEARCH: S_SEARCH,
 			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
-			 penguintv.LOADING_FEEDS: S_DEFAULT}
+			 penguintv.MAJOR_DB_OPERATION: S_DEFAULT}
 			 
 		newstate = d[newstate]
 		

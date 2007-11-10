@@ -42,7 +42,7 @@ NOTVISIBLE=13
 #STATES
 S_DEFAULT          = 0
 S_SEARCH           = 1 
-S_LOADING_FEEDS    = 2
+S_MAJOR_DB_OPERATION    = 2
 
 MAX_WIDTH  = 48
 MAX_HEIGHT = 48
@@ -142,8 +142,8 @@ class FeedList(gobject.GObject):
 		self._image_column.pack_start(feed_image_renderer, False)
 		self._image_column.set_attributes(feed_image_renderer, pixbuf=PIXBUF)
 		self._image_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._image_column.set_min_width(MAX_WIDTH)
-		self._image_column.set_max_width(MAX_WIDTH)
+		self._image_column.set_min_width(MAX_WIDTH + 10)
+		self._image_column.set_max_width(MAX_WIDTH + 10)
 		self._articles_column.set_expand(False)
 		self._widget.append_column(self._image_column)
 		
@@ -397,7 +397,7 @@ class FeedList(gobject.GObject):
 		self._widget.columns_autosize()
 
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._articles_column.set_min_width(self._articles_column.get_width())
+		self._articles_column.set_min_width(self._articles_column.get_width() + 10)
 		self._feed_column.set_expand(True)
 		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		
@@ -663,7 +663,7 @@ class FeedList(gobject.GObject):
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_SEARCH,
 			 penguintv.TAG_SEARCH: S_SEARCH,
-			 penguintv.LOADING_FEEDS: S_LOADING_FEEDS}
+			 penguintv.MAJOR_DB_OPERATION: S_MAJOR_DB_OPERATION}
 			 
 		newstate = d[newstate]
 		
@@ -868,12 +868,12 @@ class FeedList(gobject.GObject):
 	def set_fancy(self, fancy):
 		if fancy == self._fancy:
 			return #no need
-		if self._state == S_LOADING_FEEDS:
+		if self._state == S_MAJOR_DB_OPERATION:
 			self.interrupt()
 			while gtk.events_pending():
 				gtk.main_iteration()
-		#self._app.set_state(penguintv.LOADING_FEEDS)
-		self.emit('state-change', penguintv.LOADING_FEEDS)
+		#self._app.set_state(penguintv.MAJOR_DB_OPERATION)
+		self.emit('state-change', penguintv.MAJOR_DB_OPERATION)
 		self._fancy = fancy
 		if self._fancy:
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)

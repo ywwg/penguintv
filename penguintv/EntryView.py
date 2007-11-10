@@ -11,7 +11,7 @@ import gtk
 import ptvDB
 
 import utils
-from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, LOADING_FEEDS
+from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, MAJOR_DB_OPERATION
 import EntryFormatter
 import Downloader
 
@@ -342,7 +342,7 @@ class EntryView(gobject.GObject):
 			 MANUAL_SEARCH: S_SEARCH,
 			 TAG_SEARCH: S_SEARCH,
 			 #penguintv.ACTIVE_DOWNLOADS: S_DEFAULT,
-			 LOADING_FEEDS: S_DEFAULT}
+			 MAJOR_DB_OPERATION: S_DEFAULT}
 			 
 		newstate = d[newstate]
 		
