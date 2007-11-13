@@ -389,17 +389,15 @@ class FeedList(gobject.GObject):
 		#to fixed again to avoid flicker.
 		
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._feed_column.set_expand(False)
-		self._feed_column.set_min_width(20)
-		self._feed_column.set_max_width(20)
 		
 		self._widget.columns_autosize()
-
-		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._articles_column.set_min_width(self._articles_column.get_width())
-		self._feed_column.set_expand(True)
-		self._feed_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+		
+		def _finish_resize():
+			self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+			self._articles_column.set_min_width(self._articles_column.get_width())
+			return False
+			
+		gobject.idle_add(_finish_resize)
 		
 	def update_feed_list(self, feed_id=None, update_what=None, update_data=None, recur_ok=True):  #returns True if this is the already-displayed feed
 		"""updates the feed list.  Right now uses db to get flags, entrylist (for unread count), pollfail
@@ -468,6 +466,7 @@ class FeedList(gobject.GObject):
 			if self._fancy:
 				readinfo_string += "\n"
 			feed[READINFO] = self._get_markedup_title(readinfo_string,flag)
+			self._reset_articles_column()
 			
 			if self._filter_unread: 	 
 				if unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it 	 
