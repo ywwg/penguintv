@@ -781,11 +781,11 @@ class ptvDB:
 		
 		if feeds is None:
 			if arguments & A_AUTOTUNE and arguments & A_ALL_FEEDS == 0:
-				self._db_execute(self._c, 'SELECT rowid FROM feeds WHERE (? - lastpoll) >= pollfreq', (cur_time,))
+				self._db_execute(self._c, 'SELECT rowid FROM feeds WHERE (? - lastpoll) >= pollfreq ORDER BY pollfreq', (cur_time,))
 			elif arguments & A_ERROR_FEEDS:
-				self._db_execute(self._c, 'SELECT rowid FROM feeds WHERE pollfail=1')
+				self._db_execute(self._c, 'SELECT rowid FROM feeds WHERE pollfail=1 ORDER BY pollfreq')
 			else: #polling all
-				self._db_execute(self._c, 'SELECT rowid FROM feeds')
+				self._db_execute(self._c, 'SELECT rowid FROM feeds ORDER BY pollfreq')
 				
 			data=self._c.fetchall()
 			if data: 
