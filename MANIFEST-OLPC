@@ -10,7 +10,7 @@ penguintv/HTTPDownloader.py
 penguintv/__init__.py
 penguintv/LoginDialog.py
 penguintv/PlanetView.py
-penguintv/ptvDbus.py
+penguintv/NRLTube.py
 penguintv/OLPCBrowser.py
 penguintv/ptvDB.py
 penguintv/ThreadPool.py

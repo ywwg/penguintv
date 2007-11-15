@@ -243,6 +243,9 @@ class PlanetView(gobject.GObject):
 		if len(self._entrylist) > 0:
 			return self._entrylist[0]
 		return None
+		
+	def get_current_feed_id(self):
+		return self._current_feed_id
 	
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._current_feed_id:

@@ -539,10 +539,11 @@ class ptvDB:
 							
 		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
 							
 		self._db.commit()
 		
-		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 5)""")
+		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 6)""")
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
 		
