@@ -11,6 +11,7 @@ penguintv/__init__.py
 penguintv/LoginDialog.py
 penguintv/PlanetView.py
 penguintv/NRLTube.py
+penguintv/ptvDbus.py
 penguintv/OLPCBrowser.py
 penguintv/ptvDB.py
 penguintv/ThreadPool.py

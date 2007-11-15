@@ -47,6 +47,7 @@ from penguintv import EntryFormatter
 from penguintv import AddFeedDialog
 from penguintv import utils
 from penguintv import NRLTube
+from penguintv import ptvDbus
 
 #try:
 #	import pycurl
@@ -357,6 +358,7 @@ class NewsReaderLite(activity.Activity):
 			
 			#init dbus
 			name = dbus.service.BusName("com.ywwg.NewsReaderLite", bus=bus)
+			ptv_dbus = ptvDbus.ptvDbus(self, name)
 		else:
 			logging.debug("Detected other News Reader, not starting polling thread")
 		
