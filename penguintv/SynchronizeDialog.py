@@ -170,7 +170,7 @@ class SynchronizeDialog:
 			
 		def run(self):
 			self._cancel = False
-			sync = ptv_sync.ptv_sync(self._dest_dir, self._delete, self._move, self._audio)
+			sync = ptv_sync.ptv_sync(self._dest_dir, delete=self._delete, move=self._move, audio=self._audio)
 			try:
 				for event in sync.sync_gen():
 					if not self._cancel:
@@ -196,7 +196,10 @@ class SynchronizeDialog:
 			dialog.hide()
 			del dialog
 			return
-		sync = ptv_sync.ptv_sync(self._dest_dir, self._delete_check.get_active(), self._audio_check.get_active(), True)
+		sync = ptv_sync.ptv_sync(self._dest_dir, delete=self._delete_check.get_active(), 
+								 move=self._move_check.get_active(), 
+								 audio=self._audio_check.get_active(), 
+								 dryrun=True)
 		
 		self._preview_dialog.buff.set_text("")
 		self._preview_dialog.Show()
