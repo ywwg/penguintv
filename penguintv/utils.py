@@ -525,6 +525,9 @@ def init_gtkmozembed():
 
 	assert HAS_MOZILLA
 	os.chdir(os.getenv('HOME'))
+	#logging.debug("TTTTTTEEEEEEEEEEMMMMMMMMPPPPPPPPPPPP")
+	#gtkmozembed.set_comp_path("/usr/lib/firefox")
+	#return True
 	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom.so"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()

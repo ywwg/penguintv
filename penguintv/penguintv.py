@@ -1183,20 +1183,21 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_list_view.update_feed_list(row[2],['readinfo'])
 			
 	def _on_item_not_supported(self, player, filename, name, userdata):
-		#if not utils.RUNNING_SUGAR:
-		#	self.player.play(filename, name, userdata, force_external=True) #retry, force external player
-		#else:
+		# I thought this would be called from main thread, but apparently not
+		gtk.gdk.threads_enter()
 		dialog = gtk.Dialog(title=_("Can't Play File"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_OPEN, gtk.RESPONSE_ACCEPT))
-		label = gtk.Label("PenguinTV can not play this file. Would you like to try opening it in the default system player?")
+		label = gtk.Label("PenguinTV can not play this file. \nWould you like to try opening it in the default system player?")
 		dialog.vbox.pack_start(label, True, True, 0)
 		label.show()
 		dialog.set_transient_for(self.main_window.get_parent())
 		response = dialog.run()
 		dialog.hide()
-		del dialog
-		if response != gtk.RESPONSE_ACCEPT:		
-			return
-		self.player.play(filename, name, userdata, force_external=True) #retry, force external player
+
+		if response == gtk.RESPONSE_ACCEPT:		
+			self.player.play(filename, name, userdata, force_external=True) #retry, force external player
+
+		dialog.destroy()
+		gtk.gdk.threads_leave()
 
 	def refresh_feed(self, feed):
 		if not self._net_connected:

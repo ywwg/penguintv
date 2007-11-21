@@ -1194,7 +1194,6 @@ class MainWindow(gobject.GObject):
 			return
 		
 		#gtk.gdk.threads_enter()
-			
 		current_text = self._status_view.get_status().get_text()
 	
 		if current_text == "":
@@ -1225,6 +1224,7 @@ class MainWindow(gobject.GObject):
 		
 	def update_progress_bar(self, p, update_category=U_STANDARD):
 		"""Update the progress bar.  if both downloading and polling, polling wins"""
+		
 		if p==-1:
 			self._bar_owner = U_NOBODY
 			self._status_view.set_progress_percentage(0)
