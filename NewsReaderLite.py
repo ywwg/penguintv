@@ -70,7 +70,6 @@ class NewsReaderLite(activity.Activity):
 
 	def __init__(self, handle):
 		activity.Activity.__init__(self, handle)
-		self.set_title('News Reader')
 		
 		self.glade_prefix = utils.get_glade_prefix()
 		self._session_tag = self._get_session_tag()

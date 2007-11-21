@@ -118,8 +118,7 @@ def correct_url(url, glade_prefix):
 			if len(available_versions)==0: #this might actually be a feed
 				data = feedparser.parse(url)
 				if len(data['channel']) == 0 or len(data['items']) == 0: #nope
-					print "warning: no alt mimetypes:"+str(p.alt_tags)
-					raise BadFeedURL
+					raise BadFeedURL, "warning: no alt mimetypes: %s" % str(p.alt_tags)
 				else:
 					pass #we're good
 			else:
@@ -145,8 +144,7 @@ def correct_url(url, glade_prefix):
 				elif len(url_choices) == 1:
 					newurl, title = url_choices[0]
 				if newurl == "":
-					print "warning: unhandled alt mimetypes:"+str(p.alt_tags)
-					raise BadFeedURL
+					raise BadFeedURL, "warning: unhandled alt mimetypes: %s" % str(p.alt_tags)
 				url = newurl	
 		except HTMLParser.HTMLParseError:
 			exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -156,12 +154,9 @@ def correct_url(url, glade_prefix):
 			#sometimes this is actually the feed (pogue's posts @ nytimes.com)
 			p = feedparser.parse(url)
 			if len(p['channel']) == 0 or len(p['items']) == 0: #ok there really is a problem here
-				print "htmlparser error:"
-				print error_msg
-				raise BadFeedURL
+				raise BadFeedURL, "htmlparser error: %s" % error_msg
 	else:
-		print "warning: unhandled page mimetypes: "+str(mimetype)+"<--"
-		raise BadFeedURL
+		raise BadFeedURL, "warning: unhandled page mimetypes: %s<--" % str(mimetype)
 	return (url,title)
 	
 def _choose_url(url_list):
