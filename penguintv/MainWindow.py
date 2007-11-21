@@ -131,6 +131,7 @@ class MainWindow(gobject.GObject):
 		self._app.connect('tags-changed', self.__tags_changed_cb)
 		self._app.connect('app-loaded', self.__app_loaded_cb)
 		self._app.connect('online-status-changed', self.__online_status_changed_cb)
+		self._app.connect('state-changed', self.__state_changed_cb)
 	
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
@@ -1253,7 +1254,7 @@ class MainWindow(gobject.GObject):
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
 			
-	def set_state(self, new_state, data=None):
+	def __state_changed_cb(self, app, new_state, data=None):
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_MANUAL_SEARCH,
 			 penguintv.TAG_SEARCH: S_TAG_SEARCH,

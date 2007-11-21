@@ -132,6 +132,8 @@ class PenguinTVApp(gobject.GObject):
                            ([])),
 		'setting-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_PYOBJECT])),
+		'state-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+						   ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
 		'online-status-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_BOOLEAN]))
 	}
@@ -182,6 +184,7 @@ class PenguinTVApp(gobject.GObject):
 			
 		self._net_connected = True
 		self.connect('online-status-changed', self.__online_status_changed)
+		self.connect('state-changed', self._state_changed_cb)
 			
 		found_glade = False
 		
@@ -659,12 +662,15 @@ class PenguinTVApp(gobject.GObject):
 				if media_id in media_in_player:
 					continue
 			
-			size = os.stat(filename)[6]
-			removed_size += size
-			logging.info("removing:" + filename +str(size) + "bytes for a total of" + str(removed_size))
-			self.db.delete_media(media_id)
-			self.db.set_entry_read(entry_id, True)
-			self.emit('entry-updated', entry_id, feed_id)
+			try:
+				size = os.stat(filename)[6]
+				removed_size += size
+				logging.info("removing:" + filename +str(size) + "bytes for a total of" + str(removed_size))
+				self.db.delete_media(media_id)
+				self.db.set_entry_read(entry_id, True)
+				self.emit('entry-updated', entry_id, feed_id)
+			except OSError, e:
+				logging.warning("Couldn't remove %s: %s" % (filename, str(e)))
 		return False
 		
 	def add_search_tag(self, query, tag_name):
@@ -1224,10 +1230,14 @@ class PenguinTVApp(gobject.GObject):
 			return
 	
 	def set_state(self, new_state, data=None):
+		self.emit('state-changed', new_state, data)
+	
+	def _state_changed_cb(self, app, new_state, data):	
 		if self._state == new_state:
 			return	
 			
 		if new_state == DEFAULT and self._state == MAJOR_DB_OPERATION:
+			#self.main_window.set_state(new_state, data)
 			return #do nothing
 
 		self._unset_state()
@@ -1238,11 +1248,11 @@ class PenguinTVApp(gobject.GObject):
 			pass
 		elif new_state == MAJOR_DB_OPERATION:
 			pass
-			
-		self.main_window.set_state(new_state, data)
-		self._entry_view.set_state(new_state, data)
-		self._entry_list_view.set_state(new_state, data)
-		self.feed_list_view.set_state(new_state, data)
+		
+		#self.main_window.set_state(new_state, data)	
+		#self._entry_view.set_state(new_state, data)
+		#self._entry_list_view.set_state(new_state, data)
+		#self.feed_list_view.set_state(new_state, data)
 		
 		if self._state == MANUAL_SEARCH and new_state == DEFAULT and data != True:
 			self._saved_search = self.main_window.search_entry.get_text()

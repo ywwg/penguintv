@@ -165,6 +165,8 @@ class EntryView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('state-changed', self.__state_changed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
@@ -337,7 +339,7 @@ class EntryView(gobject.GObject):
 	def _unset_state(self):
 		self.display_custom_entry("")
 	
-	def set_state(self, newstate, data=None):
+	def __state_changed_cb(self, app, newstate, data=None):
 		d = {DEFAULT: S_DEFAULT,
 			 MANUAL_SEARCH: S_SEARCH,
 			 TAG_SEARCH: S_SEARCH,

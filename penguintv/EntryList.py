@@ -94,6 +94,8 @@ class EntryList(gobject.GObject):
 		self._handlers.append((app.disconnect, h_id))
 		h_id = app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((app.disconnect, h_id))
+		h_id = app.connect('state-changed', self.__state_changed_cb)
+		self._handlers.append((app.disconnect, h_id))
 		#h_id = app.connect('entries-viewed', self.__entries_viewed_cb)
 		#self._handlers.append((app.disconnect, h_id))
 		
@@ -125,7 +127,7 @@ class EntryList(gobject.GObject):
 	def __entries_viewed_cb(self, app, feed_id, entrylist):
 		for e in entrylist:
 			self.update_entry_list(e['entry_id'])
-		
+			
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:
 			self.populate_entries(feed_id, -1)
@@ -309,7 +311,7 @@ class EntryList(gobject.GObject):
 			self._search_results = []
 			self._entrylist.clear()
 	
-	def set_state(self, newstate, data=None):
+	def __state_changed_cb(self, app, newstate, data=None):
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_SEARCH,
 			 penguintv.TAG_SEARCH: S_SEARCH,
@@ -321,10 +323,6 @@ class EntryList(gobject.GObject):
 		if newstate == self._state:
 			return
 			
-		#print "what"
-		#if newstate == S_ACTIVE:
-		#	print "active downloads already!"
-		
 		self._unset_state()
 		self._state = newstate
 		

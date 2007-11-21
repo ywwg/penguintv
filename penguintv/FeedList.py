@@ -168,6 +168,8 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('state_changed', self.__state_changed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 		#init style
 		if self._fancy:
@@ -658,7 +660,7 @@ class FeedList(gobject.GObject):
 				self.emit('no-feed-selected')
 
 	
-	def set_state(self, newstate, data=None):
+	def __state_changed_cb(self, app, newstate, data=None):
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_SEARCH,
 			 penguintv.TAG_SEARCH: S_SEARCH,

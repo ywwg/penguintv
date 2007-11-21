@@ -195,6 +195,8 @@ class PlanetView(gobject.GObject):
 			self._handlers.append((app.disconnect, h_id))
 			h_id = app.connect('render-ops-updated', self.__render_ops_updated_cb)
 			self._handlers.append((app.disconnect, h_id))
+			h_id = app.connect('state-changed', self.__state_changed_cb)
+			self._handlers.append((app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -337,7 +339,7 @@ class PlanetView(gobject.GObject):
 	def _unset_state(self):
 		self.clear_entries()
 	
-	def set_state(self, newstate, data=None):
+	def __state_changed_cb(self, app, newstate, data=None):
 		import penguintv
 		d = {penguintv.DEFAULT: S_DEFAULT,
 			 penguintv.MANUAL_SEARCH: S_SEARCH,
