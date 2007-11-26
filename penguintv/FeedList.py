@@ -365,7 +365,7 @@ class FeedList(gobject.GObject):
 
 			self._app.main_window.update_progress_bar(float(j)/len(db_feedlist),MainWindow.U_LOADING)
 			yield True
-			
+		self._app.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
 		# Once we are done populating, set size to fixed, otherwise we get
 		# a nasty flicker when we click on feeds
 		self._reset_articles_column()

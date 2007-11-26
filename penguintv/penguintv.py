@@ -811,14 +811,13 @@ class PenguinTVApp(gobject.GObject):
 			media = self.db.get_media(item)
 			entry = self.db.get_entry(media['entry_id'])
 			feed_title = self.db.get_feed_title(entry['feed_id'])
-			if not entry['keep']:
-				self.db.set_entry_read(media['entry_id'],True)
-				self.db.set_media_viewed(item,True)
 			if utils.is_known_media(media['file']):
 				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'])
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
+			if not entry['keep']:
+				self.db.set_entry_read(media['entry_id'],True)
 			self.emit('entry-updated', media['entry_id'], entry['feed_id'])
 		elif action=="downloadqueue":
 			self.mediamanager.unpause_downloads()
@@ -1149,6 +1148,8 @@ class PenguinTVApp(gobject.GObject):
 			self.set_state(MAJOR_DB_OPERATION)
 			i=-1.0
 			for f in feedlist:
+				if self._exiting:
+					break
 				i+=1.0
 				self.mark_feed_as_viewed(f)
 				self.main_window.update_progress_bar(i/len(feedlist), MainWindow.U_LOADING)

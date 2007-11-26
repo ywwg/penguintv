@@ -433,6 +433,10 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN keep BOOL')
 		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
 		self._db_execute(self._c, u'UPDATE settings SET value=6 WHERE data="db_ver"')
+		
+		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+
 		self._db.commit()
 		
 	def __remove_columns(self, table, new_schema, new_columns):
@@ -1951,10 +1955,15 @@ class ptvDB:
 			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE feed_id=? AND read=0 AND keep=0',(feed_id,))
 			self._db_execute(self._c, u'SELECT media.rowid, media.download_status FROM media INNER JOIN entries ON media.entry_id = entries.rowid WHERE entries.keep=0 AND media.feed_id = ?',(feed_id,))
 			list = self._c.fetchall()
-		for item in list:
-			self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE rowid=? AND viewed=0',(1,item[0]))
-			if item[1] == D_ERROR:
-				self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE rowid=?', (D_NOT_DOWNLOADED,item[0]))
+		
+		if len(list) > 0:
+			qmarks = "?,"*(len(list)-1)+"?"
+			idlist = [l[0] for l in list]
+			self._db_execute(self._c, u'UPDATE media SET viewed=1 WHERE rowid IN ('+qmarks+')', tuple(idlist))
+		#for item in list:
+		#	self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE rowid=? AND viewed=0',(1,item[0]))
+		#	if item[1] == D_ERROR:
+		#		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE rowid=?', (D_NOT_DOWNLOADED,item[0]))
 		self._db.commit()
 		self._db_execute(self._c, u'SELECT rowid,read FROM entries WHERE feed_id=?',(feed_id,))
 		list = self._c.fetchall()
