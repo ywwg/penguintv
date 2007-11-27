@@ -436,6 +436,9 @@ class ptvDB:
 		
 		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX m_entryindex ON media (entry_id DESC);""")
 
 		self._db.commit()
 		
@@ -543,6 +546,9 @@ class ptvDB:
 							
 		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX m_entryindex ON media (entry_id DESC);""")
 		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
 							
 		self._db.commit()
