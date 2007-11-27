@@ -258,6 +258,7 @@ class ptvDB:
 		#	self.searcher.Do_Index_Threaded()
 			
 		self.fix_tags()
+		self._fix_indexes()
 		return False
 			
 	def _migrate_database_one_two(self):
@@ -434,7 +435,7 @@ class ptvDB:
 		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
 		self._db_execute(self._c, u'UPDATE settings SET value=6 WHERE data="db_ver"')
 		
-		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
@@ -545,7 +546,7 @@ class ptvDB:
 							favorite INT,
 							type INT);""")
 							
-		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (date DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
 		self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
@@ -558,6 +559,27 @@ class ptvDB:
 		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 6)""")
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
+		
+	def _fix_indexes(self):
+		self._db_execute(self._c, 'SELECT sql FROM sqlite_master WHERE name="pollindex"')
+		result = self._c.fetchone()
+		if "fakedate" not in result[0]:
+			logging.info("Rebuilding indexes")
+			#this means the user was using svn before I fixed the indexes
+			self._db_execute(self._c, 'SELECT name FROM sqlite_master WHERE type="index"')
+			result = self._c.fetchall()
+			for index in result:
+				if 'autoindex' not in index[0]:
+					self._db_execute(self._c, 'DROP INDEX %s' % index)
+			self._db.commit()
+			
+			self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
+			self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+			self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
+			self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
+			self._db_execute(self._c, u"""CREATE INDEX m_entryindex ON media (entry_id DESC);""")
+			self._db_execute(self._c, u"""CREATE INDEX t_feedindex ON tags (feed_id DESC);""")
+			logging.info("Indexes rebuilt")
 		
 	def clean_database_media(self):
 		self._db_execute(self._c, "SELECT rowid,file,entry_id FROM media")
@@ -1698,6 +1720,29 @@ class ptvDB:
 		if result=="":
 			raise NoFeed, feed_index
 		return result
+		
+	def get_first_entry_title(self, feed_id):
+		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_id,))
+		result = self._c.fetchone()
+		if result is None:
+			return []
+		if result[0] >= 0:
+			pointed_feed = result[0]
+			#this is where we perform a search
+			s_entries =  self.search(result[1],pointed_feed)[1]
+			if len(s_entries)==0:
+				return []
+			s_entries.sort(lambda x,y: int(y[2] - x[2]))
+			entries = []
+			entry_id,title, fakedate, feed_id = s_entries[0]
+			return title
+	
+		self._db_execute(self._c, """SELECT title FROM entries WHERE feed_id=? ORDER BY fakedate DESC LIMIT 1""",(feed_id,))
+		result = self._c.fetchone()
+		
+		if result=="":
+			raise NoFeed, feed_id
+		return result[0]
 		
 	def get_entry_count(self, feed_id):
 		self._db_execute(self._c, u'SELECT count(*) FROM entries WHERE feed_id=?', (feed_id,))

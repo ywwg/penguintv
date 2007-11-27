@@ -322,7 +322,7 @@ class FeedList(gobject.GObject):
 			
 			if self._fancy:
 				if visible:
-					try: m_first_entry_title = self._db.get_entrylist(feed_id)[0][1]
+					try: m_first_entry_title = self._db.get_first_entry_title(feed_id)
 					except: m_first_entry_title = ""
 					m_details_loaded = True
 				else:
@@ -483,7 +483,7 @@ class FeedList(gobject.GObject):
 			
 			# don't update feed[TITLE] yet, we need these data first
 			if self._fancy:
-				try: feed[FIRSTENTRYTITLE] = self._db.get_entrylist(feed_id)[0][1]
+				try: feed[FIRSTENTRYTITLE] = self._db.get_first_entry_title(feed_id)
 				except: feed[FIRSTENTRYTITLE] = ""
 				feed[MARKUPTITLE] = self._get_fancy_markedup_title(update_data['title'],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], flag, feed_id == selected)
 			else:
@@ -791,7 +791,7 @@ class FeedList(gobject.GObject):
 			if self._cancel_load[1]:
 				break
 			if row[VISIBLE] and not row[DETAILS_LOADED]:
-				try: row[FIRSTENTRYTITLE] = self._db.get_entrylist(row[FEEDID])[0][1]
+				try: row[FIRSTENTRYTITLE] = self._db.get_first_entry_title(row[FEEDID])
 				except: row[FIRSTENTRYTITLE] = ""
 				#row[PIXBUF] = self._get_pixbuf(row[FEEDID])
 				model, iter = self._widget.get_selection().get_selected()
