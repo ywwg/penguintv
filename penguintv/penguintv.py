@@ -2022,6 +2022,11 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		#import cProfile
 		#cProfile.run('gtk.main()', '/tmp/penguintv-prof')
 		#sys.exit(0)
+		
+		#import psyco
+		##psyco.log("/home/owen/Desktop/psyco.log")
+		##psyco.profile()
+		#psyco.full()
 
 		if utils.is_kde():
 			try:

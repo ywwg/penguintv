@@ -561,9 +561,13 @@ class ptvDB:
 		self._db.commit()
 		
 	def _fix_indexes(self):
-		self._db_execute(self._c, 'SELECT sql FROM sqlite_master WHERE name="pollindex"')
-		result = self._c.fetchone()
-		if "fakedate" not in result[0]:
+		try:
+			self._db_execute(self._c, 'SELECT sql FROM sqlite_master WHERE name="pollindex"')
+			result = self._c.fetchone()[0]
+		except:
+			result = ""
+
+		if "fakedate" not in result:
 			logging.info("Rebuilding indexes")
 			#this means the user was using svn before I fixed the indexes
 			self._db_execute(self._c, 'SELECT name FROM sqlite_master WHERE type="index"')
