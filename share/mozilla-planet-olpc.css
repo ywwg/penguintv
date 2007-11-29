@@ -100,3 +100,14 @@ blockquote {
 	padding:6pt; 
 	margin:6pt;
 }
+
+.blockquote { 
+	display: block; 
+	color: #444444; 
+	background-color:#EEEEFF; 
+	border-color:#DDDDDD; 
+	border-width:2px; 
+	border-style: solid; 
+	padding:12pt; 
+	margin:12pt;
+}
