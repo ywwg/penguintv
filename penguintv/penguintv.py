@@ -247,15 +247,7 @@ class PenguinTVApp(gobject.GObject):
 		if gst_player is not None:
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
-		self._update_thread = self.DBUpdaterThread(self._polling_callback, 
-												   self._reset_db_updater)
-		self._update_thread.start()
-		self._updater_thread_db = None
-		while self._updater_thread_db==None or self._db_updater == None:
-			#this may race, so be patient 
-			self._updater_thread_db = self._update_thread.get_db()
-			self._db_updater = self._update_thread.get_updater()
-			time.sleep(.1)
+		self._update_thread = None
 
 		#WINDOWS
 		self.window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self) #MAGIC
@@ -371,8 +363,13 @@ class PenguinTVApp(gobject.GObject):
 	def __online_status_changed(self, o, connected):
 		self._net_connected = connected
 		if not self._net_connected:
-			if self._updater_thread_db:
-				self._updater_thread_db.interrupt_poll_multiple()
+			logging.debug("offline")
+			if self._update_thread is not None:
+				logging.debug("update thread exists")
+				if self._update_thread.isAlive():
+					logging.debug("and is alive.  cancelling poll")
+					updater, db = self._get_updater()
+					db.interrupt_poll_multiple()
 			if self.db:
 				self.db.interrupt_poll_multiple()
 		
@@ -499,8 +496,9 @@ class PenguinTVApp(gobject.GObject):
 		self._exiting=1
 		self._entry_view.finish()
 		self.feed_list_view.interrupt()
-		self._update_thread.goAway()
-		self._updater_thread_db.finish(False)
+		if self._update_thread is not None:
+			if self._update_thread.isAlive():
+				self._update_thread.goAway()
 		self.main_window.finish()
 		logging.info('stopping downloads')
 		self.stop_downloads()
@@ -555,8 +553,9 @@ class PenguinTVApp(gobject.GObject):
 		#gtk.gdk.threads_enter()
 
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
-		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)			
-		task_id = self._db_updater.queue(self._updater_thread_db.poll_multiple, (arguments,feeds))
+		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)
+		updater, db = self._get_updater()			
+		task_id = updater.queue(db.poll_multiple, (arguments,feeds))
 		if arguments & ptvDB.A_ALL_FEEDS==0:
 			self._gui_updater.queue(self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
 			#insane: queueing a timeout
@@ -589,7 +588,8 @@ class PenguinTVApp(gobject.GObject):
 		logging.debug("files ready to download:")		
 		total_size = 0
 		for d in download_list:
-			logging.debug("%i, %i: %i" % (d[3], d[2], d[1])) 
+			title = self.db.get_feed_title(d[3])
+			logging.debug("%i, %i: %i" % (title, d[2], d[1])) 
 			total_size=total_size+int(d[1])
 			
 		logging.info("adding up downloads, we need %i bytes" % (total_size))
@@ -897,7 +897,12 @@ class PenguinTVApp(gobject.GObject):
 	def download_unviewed(self):
 		self.mediamanager.unpause_downloads()
 		download_list=self.db.get_media_for_download()
-		logging.debug(str(download_list))
+
+		if len(download_list) > 0:
+			for d in download_list:
+				title = self.db.get_feed_title(d[3])
+				logging.debug("%i, %i: %i" % (title, d[2], d[1])) 
+				
 		total_size=0
 		
 		if len(download_list)==0:
@@ -970,7 +975,8 @@ class PenguinTVApp(gobject.GObject):
 			try:
 				f = open(dialog.get_filename(), "w")
 				self.main_window.display_status_message(_("Exporting Feeds..."))
-				task_id = self._db_updater.queue(self._updater_thread_db.export_OPML, f)
+				updater, db = self._get_updater()
+				task_id = updater.queue(db.export_OPML, f)
 				self._gui_updater.queue(self.main_window.display_status_message, "", task_id)
 			except:
 				pass
@@ -1076,24 +1082,18 @@ class PenguinTVApp(gobject.GObject):
 					
 	def __first_poll_marking_list(self, list, saved_auto=False):
 		def marking_gen(list):
-			#gtk.gdk.threads_enter()
 			self.main_window.display_status_message(_("Finishing OPML import"))
 			selected = self.feed_list_view.get_selected()
-			#gtk.gdk.threads_leave()
 			for feed in list:
-				#gtk.gdk.threads_enter()
 				self._first_poll_marking(feed)
 				self.feed_list_view.update_feed_list(feed,['readinfo','icon','title'])
 				if feed == selected:
 					self._entry_list_view.update_entry_list()
-				#gtk.gdk.threads_leave()
 				yield True
-			#gtk.gdk.threads_enter()
 			self.main_window.display_status_message("")
 			if saved_auto:
 				self._auto_download_unviewed()
 				self._reset_auto_download()
-			#gtk.gdk.threads_leave()
 			yield False
 		
 		gobject.idle_add(marking_gen(list).next)
@@ -1207,7 +1207,8 @@ class PenguinTVApp(gobject.GObject):
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
 		self.main_window.display_status_message(_("Polling Feed..."))
-		task_id = self._db_updater.queue(self._updater_thread_db.poll_feed_trap_errors,(feed,  _refresh_cb))
+		updater, db = self._get_updater()
+		task_id = updater.queue(db.poll_feed_trap_errors,(feed,  _refresh_cb))
 		
 	def _unset_state(self, authorize=False):
 		"""gets app ready to display new state by unloading current state.
@@ -1504,7 +1505,8 @@ class PenguinTVApp(gobject.GObject):
 			#change to add_and_select (can't use signals because order is important)
 			self.feed_list_view.add_feed(feed_id)
 			self.main_window.select_feed(feed_id)
-			self._db_updater.queue(self._updater_thread_db.poll_feed_trap_errors, (feed_id,self._db_add_feed_cb))
+			updater, db = self._get_updater()
+			updater.queue(db.poll_feed_trap_errors, (feed_id,self._db_add_feed_cb))
 		except ptvDB.FeedAlreadyExists, e:
 			self.main_window.select_feed(e.feed)
 		self.window_add_feed.hide()
@@ -1822,7 +1824,8 @@ class PenguinTVApp(gobject.GObject):
 		
 		if d.media.has_key('size_adjustment'):
 			if d.media['size_adjustment']==True:
-				self._db_updater.queue(self._updater_thread_db.set_media_size,(d.media['media_id'], d.media['size']))
+				updater, db = self._get_updater()
+				updater.queue(db.set_media_size,(d.media['media_id'], d.media['size']))
 		if self.main_window.changing_layout == False:
 			self._gui_updater.queue(self._entry_view.update_if_selected,(d.media['entry_id'],d.media['feed_id']))
 			self._gui_updater.queue(self.main_window.update_download_progress)
@@ -1836,7 +1839,8 @@ class PenguinTVApp(gobject.GObject):
 			if len(update_data)>0:
 				if update_data.has_key('ioerror'):
 					logging.warning("ioerror polling reset")
-					self._updater_thread_db.interrupt_poll_multiple()
+					updater, db = self._get_updater()
+					db.interrupt_poll_multiple()
 					self._polled = 0
 					self._polling_taskinfo = -1
 					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
@@ -1870,9 +1874,6 @@ class PenguinTVApp(gobject.GObject):
 	def _entry_image_download_callback(self, entry_id, html):
 		self._gui_updater.queue(self._entry_view._images_loaded,(entry_id, html))
 		
-	def _reset_db_updater(self, db):
-		self._updater_thread_db = db
-		
 	def _emit_change_setting(self, typ, datum, value):
 		self.emit('setting-changed', typ, datum, value)
 		
@@ -1883,25 +1884,52 @@ class PenguinTVApp(gobject.GObject):
 			gtk.gdk.threads_leave()
 			return False
 		gobject.idle_add(do_emit, signal, *args, **{"priority" : gobject.PRIORITY_HIGH})
+		
+	def _get_updater(self):
+		"""if the updater thread is not running, or we never started one,
+		delete and restart it.  Otherwise return the current values"""
+		
+		if self._update_thread is not None:
+			if self._update_thread.isAlive():
+				updater = self._update_thread.get_updater()
+				updater_thread_db = self._update_thread.get_db()
+				return (updater, updater_thread_db)
+			else:
+				del self._update_thread
+
+		self._update_thread = self.DBUpdaterThread(self._polling_callback)
+		self._update_thread.start()
+		updater_thread_db = None
+		updater = None
+		while True:
+			#this may race, so be patient 
+			updater = self._update_thread.get_updater()
+			updater_thread_db = self._update_thread.get_db()
+			if updater_thread_db is not None and updater is not None:
+				break
+			time.sleep(.05)
+
+		return (updater, updater_thread_db)
 				
 	class DBUpdaterThread(threadclass):
-		def __init__(self, polling_callback, reset_callback):
+		def __init__(self, polling_callback):
 			PenguinTVApp.threadclass.__init__(self)
 			self.__isDying = False
 			self.db = None
 			self.updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.MANUAL, "db updater")
 			self.threadSleepTime = 1.0
+			self.threadDieTime = 30.0
 			self.polling_callback = polling_callback
-			self.reset_callback = reset_callback
 			
 		def run(self):
 	
 			""" Until told to quit, retrieve the next task and execute
 				it, calling the callback if any.  """
-				
+			
 			if self.db == None:
 				self.db = ptvDB.ptvDB(self.polling_callback)
 						
+			born_t = time.time()
 			while self.__isDying == False:
 				while self.updater.updater_gen().next():
 					if self.updater.exception is not None:
@@ -1909,8 +1937,12 @@ class PenguinTVApp(gobject.GObject):
 							logging.warning("detected a database lock error, restarting threaded db")
 							self.db._db.close()
 							self.db = ptvDB.ptvDB(self.polling_callback)
-							self.reset_callback(self.db)
+				if time.time() - born_t > self.threadDieTime:
+					self.__isDying = True
 				time.sleep(self.threadSleepTime)
+			
+			if self.db is not None:
+				self.db.finish(False)	
 						
 		def get_db(self):
 			return self.db
@@ -1919,10 +1951,12 @@ class PenguinTVApp(gobject.GObject):
 			return self.updater
 	
 		def goAway(self):
-	
+			
 			""" Exit the run loop next time through."""
-	        
+			logging.debug("got goAway signal, shutting down update thread")
 			self.__isDying = True
+			if self.db is not None:
+				self.db.finish(False)
 	
 class CantChangeState(Exception):
 	def __init__(self,m):

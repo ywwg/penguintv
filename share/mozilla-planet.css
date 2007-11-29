@@ -90,3 +90,14 @@ blockquote {
 	padding:12pt; 
 	margin:12pt;
 }
+
+.blockquote { 
+	display: block; 
+	color: #444444; 
+	background-color:#EEEEFF; 
+	border-color:#DDDDDD; 
+	border-width:2px; 
+	border-style: solid; 
+	padding:12pt; 
+	margin:12pt;
+}

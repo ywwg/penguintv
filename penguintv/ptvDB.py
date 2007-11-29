@@ -168,20 +168,20 @@ class ptvDB:
 			
 		self._change_setting_cb = change_setting_cb
 			
+		self._blacklist = []
 		if utils.HAS_LUCENE:
 			self.searcher = Lucene.Lucene()
+			try:
+				if not self._new_db:
+					self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
+			except:
+				pass
 			
 		if utils.HAS_GCONF:
 			self._conf = gconf.client_get_default()
 			
 		self._icon_manager = IconManager.IconManager(self.home)
-			
-		self._blacklist = []
-		try:
-			if not self._new_db:
-				self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
-		except:
-			pass
+		
 		self._reindex_entry_list = []
 		self._reindex_feed_list = []
 		self._filtered_entries = {}
@@ -202,6 +202,9 @@ class ptvDB:
 		self.finish()
 		
 	def finish(self, closeok=True):
+		#allow multiple finishes
+		if self._exiting:
+			return
 		self._exiting=True
 		if utils.HAS_LUCENE:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
