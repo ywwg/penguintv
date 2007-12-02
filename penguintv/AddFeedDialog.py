@@ -141,7 +141,7 @@ class AddFeedDialog:
 				if self._window:
 					self._window.set_sensitive(True)
 				return
-			feed_id = self._app.add_feed(url,title)
+			feed_id = self._app.add_feed(url, title, tags)
 			if not utils.RUNNING_SUGAR:
 				self._app.db.set_flags_for_feed(feed_id, flags)
 		except AddFeedUtils.AuthorizationFailed:
@@ -179,9 +179,7 @@ class AddFeedDialog:
 			self._window.set_sensitive(True)
 		if feed_id == -1:
 			return #don't hide, give them a chance to try again.
-		if len(tags) > 0:
-			if not utils.RUNNING_SUGAR:
-				self._app.apply_tags_to_feed(feed_id, None, tags)
+		
 		self.hide()
 				
 	def on_button_ok_clicked(self,event):

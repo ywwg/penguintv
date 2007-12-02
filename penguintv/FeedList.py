@@ -1097,6 +1097,7 @@ class FeedList(gobject.GObject):
 			else:
 				self._widget.get_selection().unselect_all()
 		else:
+			#FIXME: why are we crashing here sometimes???
 			self._widget.get_selection().select_path((index,))
 			self._widget.scroll_to_cell((index,))
 			

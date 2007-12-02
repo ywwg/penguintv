@@ -38,7 +38,6 @@ except:
 import time
 import sets
 import string
-import socket
 #socket.setdefaulttimeout(30.0)
 
 import pygtk
@@ -78,7 +77,7 @@ import Downloader
 
 import AddFeedDialog
 import PreferencesDialog
-import MainWindow, FeedList, EntryList, EntryView
+import MainWindow, FeedList
 
 if utils.HAS_STATUS_ICON:
 	import PtvTrayIcon
@@ -186,8 +185,6 @@ class PenguinTVApp(gobject.GObject):
 		self.connect('online-status-changed', self.__online_status_changed)
 		self.connect('state-changed', self._state_changed_cb)
 			
-		found_glade = False
-		
 		self.glade_prefix = utils.get_glade_prefix()
 		if self.glade_prefix is None:
 			logging.error("error finding glade file.")
@@ -436,17 +433,17 @@ class PenguinTVApp(gobject.GObject):
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.main_window.feed_pane.get_position())
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.main_window.entry_pane.get_position())
 		if self.main_window.app_window is not None:
-			x,y=self.main_window.app_window.get_position()
-			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x',x)
-			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y',y)
 			if self.main_window.window_maximized == False:
-				x,y=self.main_window.app_window.get_size()
+				x,y=self.main_window.app_window.get_position()
+				w,h=self.main_window.app_window.get_size()
+				self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x',x)
+				self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y',y)
 			else: #grabbing the size when we are maximized is pointless, so just go by the old resized size
-				x = self.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 500)
-				y = self.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
-				x,y=(-abs(x),-abs(y))
-			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x',x)
-			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y',y)
+				w = self.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 500)
+				h = self.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
+				w,h=(-abs(w),-abs(h))
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x',w)
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y',h)
 		
 		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout',self.main_window.layout)
 		if self.feed_refresh_method==REFRESH_AUTO:
@@ -589,7 +586,7 @@ class PenguinTVApp(gobject.GObject):
 		total_size = 0
 		for d in download_list:
 			title = self.db.get_feed_title(d[3])
-			logging.debug("%i, %i: %i" % (title, d[2], d[1])) 
+			logging.debug("%s, %i: %i" % (title, d[2], d[1])) 
 			total_size=total_size+int(d[1])
 			
 		logging.info("adding up downloads, we need %i bytes" % (total_size))
@@ -705,7 +702,7 @@ class PenguinTVApp(gobject.GObject):
 			if self.main_window.get_active_filter()[0] == current_tag:
 				self.set_state(TAG_SEARCH) #redundant, but good practice
 				self._show_search(new_query, self._search(new_query))
-
+				
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
 		old_set = sets.Set(old_tags)
@@ -901,7 +898,7 @@ class PenguinTVApp(gobject.GObject):
 		if len(download_list) > 0:
 			for d in download_list:
 				title = self.db.get_feed_title(d[3])
-				logging.debug("%i, %i: %i" % (title, d[2], d[1])) 
+				logging.debug("%s, %i: %i" % (title, d[2], d[1])) 
 				
 		total_size=0
 		
@@ -1491,9 +1488,11 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				self.set_polling_frequency(self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 5))
 				
-	def add_feed(self, url, title):
+	def add_feed(self, url, title, tags=[]):
 		"""Inserts the url and starts the polling process"""
 		
+		#FIXME:  if we add feed while doing a major db operation like mark all,
+		#FIXME:  this won't work
 		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
 			self._for_import.append((0, url, title))
 			return
@@ -1502,9 +1501,17 @@ class PenguinTVApp(gobject.GObject):
 		feed_id = -1
 		try:
 			feed_id = self.db.insertURL(url, title)
-			#change to add_and_select (can't use signals because order is important)
+			if len(tags) > 0 and not utils.RUNNING_SUGAR:
+				for tag in tags:
+					self.db.add_tag_for_feed(feed_id, tag)
+
 			self.feed_list_view.add_feed(feed_id)
+			#let signals take care of this???
 			self.main_window.select_feed(feed_id)
+			
+			if len(tags) > 0 and not utils.RUNNING_SUGAR:
+				self.emit('tags-changed', 0)
+			
 			updater, db = self._get_updater()
 			updater.queue(db.poll_feed_trap_errors, (feed_id,self._db_add_feed_cb))
 		except ptvDB.FeedAlreadyExists, e:
@@ -2020,8 +2027,6 @@ def main():
 	if utils.is_kde():
 		try:
 			from kdecore import KApplication, KCmdLineArgs, KAboutData
-			from kdeui import KMainWindow
-			import kio
 
 			description = "test kde"
 			version     = "1.0"
@@ -2037,7 +2042,7 @@ def main():
 	do_commandline(local_app=app)
 	gtk.main() 
 
-def do_quit(self, event, app):
+def do_quit(event, app):
 	app.do_quit()
         
 if __name__ == '__main__': # Here starts the dynamic part of the program 
@@ -2065,8 +2070,6 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		if utils.is_kde():
 			try:
 				from kdecore import KApplication, KCmdLineArgs, KAboutData
-				from kdeui import KMainWindow
-				import kio
 
 				description = "test kde"
 				version     = "1.0"

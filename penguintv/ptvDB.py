@@ -151,6 +151,7 @@ class ptvDB:
 		
 		self._c = self._db.cursor()
 		self._c.execute('PRAGMA synchronous="NORMAL"')
+		self._c.execute('PRAGMA cache_size=6000')
 		self.cache_dirty = True
 		try:
 			if not self._new_db:
@@ -684,6 +685,7 @@ class ptvDB:
 		
 	def get_feed_cache(self):
 		if self.cache_dirty:
+			logging.debug("Feed cache is dirty, returning empty set")
 			return None
 		self._db_execute(self._c, u'SELECT rowid, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(TITLE)')
 		cache = self._c.fetchall()
@@ -853,7 +855,7 @@ class ptvDB:
 		polled = 0
 		total = 0
 		#grow the cache while we do this operation
-		self._db_execute(self._c, 'PRAGMA cache_size=6000')
+		#self._db_execute(self._c, 'PRAGMA cache_size=6000')
 		while polled < len(feeds):
 			if self._cancel_poll_multiple or self._exiting:
 				break
@@ -863,7 +865,7 @@ class ptvDB:
 				self.polling_callback(self._process_feed(feed_id, args, total, parsed))
 				gc.collect()
 			time.sleep(.1)
-		self._db_execute(self._c, 'PRAGMA cache_size=2000')
+		#self._db_execute(self._c, 'PRAGMA cache_size=2000')
 		
 		if self._cancel_poll_multiple:
 			self._parse_list = []
@@ -1731,6 +1733,7 @@ class ptvDB:
 	def get_first_entry_title(self, feed_id):
 		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_id,))
 		result = self._c.fetchone()
+
 		if result is None:
 			return []
 		if result[0] >= 0:
@@ -1746,7 +1749,7 @@ class ptvDB:
 	
 		self._db_execute(self._c, """SELECT title FROM entries WHERE feed_id=? ORDER BY fakedate DESC LIMIT 1""",(feed_id,))
 		result = self._c.fetchone()
-		
+
 		if result=="":
 			raise NoFeed, feed_id
 		return result[0]

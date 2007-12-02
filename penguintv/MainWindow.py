@@ -215,7 +215,6 @@ class MainWindow(gobject.GObject):
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
 		#sys.stderr.write("show,"+str(dock_widget))
-		
 		if not utils.HAS_MOZILLA and self.layout == "planet":
 			logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
 			self.layout = "standard"
@@ -384,6 +383,7 @@ class MainWindow(gobject.GObject):
 		
 		notebook_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
+		
 		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
 		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, 
 		                               '/apps/penguintv/fancy_feedlist', True))
@@ -409,14 +409,7 @@ class MainWindow(gobject.GObject):
 		notebook_dock.add(self._notebook)
 		self._layout_dock.add(self.load_layout())
 
-		self.app_window.show_all()
-		
-		if self.layout == "planet":
-			self._widgetTree.get_widget('entry_menu_item').hide()
-		else:
-			self._widgetTree.get_widget('entry_menu_item').show()
-
-		#final setup for the window comes from gconf
+		#sizing for the window comes from gconf
 		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
 		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y', 40)
 		if x < 0: x = 0
@@ -424,12 +417,24 @@ class MainWindow(gobject.GObject):
 		self.app_window.move(x,y)
 		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 800)
 		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
-		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
-			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
+		
+		def do_maximize():
 			self.app_window.maximize()
 			self.window_maximized = True
+			return False
+		
+		if w<0 or h<0:  #very cheesy.  negative values really means "maximize"
+			self.app_window.resize(abs(w),abs(h)) #but be good and don't make assumptions about negativity
+			gobject.idle_add(do_maximize)
 		else:
 			self.app_window.resize(w,h)
+
+		if self.layout == "planet":
+			self._widgetTree.get_widget('entry_menu_item').hide()
+		else:
+			self._widgetTree.get_widget('entry_menu_item').show()
+			
+		self.app_window.show_all()
 			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
