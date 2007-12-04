@@ -43,6 +43,8 @@ class NRLTube(ExportedGObject):
 		if not self.entered:
 			self.tube.add_signal_receiver(self.change_feed_cb, 'ChangeFeed', IFACE,
 					path=PATH, sender_keyword='sender')
+			self.tube.add_signal_receiver(self.subscribe_feed_cb, 'SubscribeFeed', IFACE,
+					path=PATH, sender_keyword='sender')
 			if self.is_initiator:
 				self._logger.debug("I'm initiating the tube, will "
 					"watch for hellos.")
@@ -68,9 +70,9 @@ class NRLTube(ExportedGObject):
 		self._logger.debug('Newcomer %s has joined', sender)
 		self._logger.debug('Welcoming newcomer and sending them the current feed')
 		
-		#FIXME: Need to transmit the whole list of feeds in this session, not just
-		#the current one
 		if self.current_url is not None:
+			for title,url in self.activity.get_current_feedlist():
+				self.SubscribeFeed(url, title)
 			self.ChangeFeed(self.current_url, self.current_title)
 		
 	def add_hello_handler(self):
@@ -82,6 +84,10 @@ class NRLTube(ExportedGObject):
 	def ChangeFeed(self, new_url, new_title):
 		self._logger.debug("sending feed change signal: %s %s" % (new_url, new_title))
 		
+	@signal(dbus_interface=IFACE, signature='ss')
+	def SubscribeFeed(self, url, title):
+		self._logger.debug("sending feed subscribe signal: %s %s" % (url, title))
+		
 	def change_feed_cb(self, new_url, new_title, sender=None):
 		"""To be called on the incoming XO after they Hello."""
 		if new_url != self.current_url:
@@ -91,4 +97,10 @@ class NRLTube(ExportedGObject):
 			self.current_title = new_title
 			self.activity.select_by_url(new_url, new_title)
 		else:
-			self._logger.debug("omeone else changed the feed? no! Same Feed: %s %s"  % (new_url, new_title))
+			self._logger.debug("someone else changed the feed? no! Same Feed: %s %s"  % (new_url, new_title))
+	
+	def subscribe_feed_cb(self, url, title, sender=None):
+		"""To be called on the incoming XO after they Hello."""
+		self._logger.debug("we were told to subscribe: %s %s" % (url, title))
+		self.activity.add_feed(url, title, subscribe_only=True)
+

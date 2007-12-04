@@ -74,6 +74,8 @@ class NewsReaderLite(activity.Activity):
 		self.glade_prefix = utils.get_glade_prefix()
 		self._session_tag = self._get_session_tag()
 		
+		self._feedlist = None #feed_id, feed_info['title'], feed_info['url']
+		
 		logging.debug("Activity ID: %s" % (str(self._session_tag),))
 
 		toolbox = activity.ActivityToolbox(self)
@@ -82,7 +84,9 @@ class NewsReaderLite(activity.Activity):
 
 		logging.debug("Loading DB")
 		self._db = ptvDB.ptvDB()
-		self._db.maybe_initialize_db()
+		newdb = self._db.maybe_initialize_db()
+		if newdb:
+			self._import_defaults()
 		self._update_thread = None
 		self.set_canvas(self._build_ui())
 		
@@ -174,25 +178,46 @@ class NewsReaderLite(activity.Activity):
 			assert handle != 0
 		return self.pservice.get_buddy_by_telepathy_handle(
 			self.conn.service_name, self.conn.object_path, handle)
-
-	def add_feed(self, url, title):
+			
+	def _import_defaults(self):
+		try:
+			f = open(os.path.join(self.glade_prefix, "defaultsubs.txt"))
+		except Exception, e:
+			logging.error("Error importing default subscriptions: %s" % str(e))
+		feed_count = -1
+		for feed in self._db.import_subscriptions(f, False):
+			#status, value
+			if feed_count == -1:
+				#first yield is the total count
+				feed_count = feed[1]
+				continue
+			if feed==(-1,0): #either EOL or error on insert
+				continue
+		
+	def add_feed(self, url, title, subscribe_only=False):
 		new_feed_id = self._db.get_feed_id_by_url(url)
 		if new_feed_id > -1:
 			for feed_id, title, url in self._feedlist:
 				if new_feed_id == feed_id:
-					#we already have it
-					self.select_feed(feed_id)
+					#we already have it in the combo feedlist
+					if not subscribe_only:
+						self.select_feed(feed_id)
 					return feed_id
 			#else just update the feedlist
 		else:
 			#add the feed, poll it, get the title, etc
 			#this is blocking, but that's ok by me
 			new_feed_id = self._db.insertURL(url)
-			self._db.poll_feed(new_feed_id)
-			title = self._db.get_feed_title(new_feed_id)
+			if not subscribe_only:
+				self._db.poll_feed(new_feed_id)
+				#title = self._db.get_feed_title(new_feed_id)
+		logging.debug("add tag")
 		self._db.add_tag_for_feed(new_feed_id, self._session_tag)
+		logging.debug("update list")
 		self.update_feedlist()
-		self.select_feed(new_feed_id)
+		if not subscribe_only:
+			logging.debug("select")
+			self.select_feed(new_feed_id)
 		return new_feed_id
 		
 	def remove_feed(self, position):		
@@ -209,9 +234,18 @@ class NewsReaderLite(activity.Activity):
 			if active == index:
 				logging.debug("not reselecting the same feed")
 				return
-			self._combo.set_active(index)
 		except:
 			logging.warning("Feed not found, " + str(feed_id))
+			return
+
+		info = self._db.get_feed_info(feed_id)
+		logging.debug("info: %s" % str(info))
+		if info['lastpoll'] == 0:
+			logging.debug("polling now that the feed is selected")
+			self._db.poll_feed(feed_id)
+			self.update_feedlist()
+		logging.debug("setting active")
+		self._combo.set_active(index)
 			
 	def select_by_url(self, url, title):
 		assert url is not None
@@ -219,13 +253,17 @@ class NewsReaderLite(activity.Activity):
 		assert self._db is not None
 			
 		feed_id = self.add_feed(url, title)
-		self.select_feed(feed_id)
+		#self.select_feed(feed_id)
 			
 	def get_current_feed(self):
 		active = self._combo.get_active()
 		if active == -1:
 			return (None, None)
 		return (self._feedlist[active][1], self._feedlist[active][2])
+		
+	def get_current_feedlist(self):
+		retval = [(f[1],f[2]) for f in self._feedlist]
+		return retval
 		
 	def update_feedlist(self):
 		assert self._db is not None

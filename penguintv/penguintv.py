@@ -1008,7 +1008,6 @@ class PenguinTVApp(gobject.GObject):
 			return
 	
 		def import_gen(f):
-			#gtk.gdk.threads_enter()
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
 			label = gtk.Label(_("Loading the feeds from the OPML file"))
 			dialog.vbox.pack_start(label, True, True, 0)
@@ -1024,9 +1023,7 @@ class PenguinTVApp(gobject.GObject):
 			oldfeeds = []
 			feed_count=-1.0
 			i=1.0
-			#gtk.gdk.threads_leave()
 			for feed in gen:
-				#gtk.gdk.threads_enter()
 				#status, value
 				if feed_count == -1:
 					#first yield is the total count
@@ -1037,7 +1034,6 @@ class PenguinTVApp(gobject.GObject):
 				if self._exiting:
 					dialog.hide()
 					del dialog
-					#gtk.gdk.threads_leave()
 					yield False
 				#self.feed_list_view.add_feed(feed)
 				if feed[0]==1:
@@ -1046,9 +1042,7 @@ class PenguinTVApp(gobject.GObject):
 					oldfeeds.append(feed[1])
 				bar.set_fraction(i/feed_count)
 				i+=1.0
-				#gtk.gdk.threads_leave()
 				yield True
-			#gtk.gdk.threads_enter()
 			if len(newfeeds)>10:
 				#it's faster to just start over if we have a lot of feeds to add
 				self.main_window.search_container.set_sensitive(False)
@@ -1072,7 +1066,6 @@ class PenguinTVApp(gobject.GObject):
 				self.feed_list_view.set_selected(newfeeds[0])
 			elif len(oldfeeds)==1:
 				self.feed_list_view.set_selected(oldfeeds[0])
-			#gtk.gdk.threads_leave()
 			yield False
 		#schedule the import pseudo-threadidly
 		gobject.idle_add(import_gen(f).next)
