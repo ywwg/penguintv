@@ -1,7 +1,14 @@
 # Written by Owen Williams
 # see LICENSE for license information
 
-from pysqlite2 import dbapi2 as sqlite
+import logging
+try:
+	import sqlite3 as sqlite
+	logging.debug("Using built-in sqlite3")
+except:
+	logging.debug("Using external pysqlite2")
+	from pysqlite2 import dbapi2 as sqlite
+
 from math import floor,ceil
 from random import randint
 import feedparser
@@ -20,7 +27,6 @@ import locale
 import gettext
 import sets
 import traceback
-import logging
 
 import socket
 socket.setdefaulttimeout(30.0)
