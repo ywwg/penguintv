@@ -4,5 +4,5 @@ service_name = com.ywwg.NewsReader
 id = com.ywwg.NewsReader
 class = NewsReaderLite.NewsReaderLite
 icon = activity-penguintv
-activity_version = 23
+activity_version = 24
 show_launcher = yes
