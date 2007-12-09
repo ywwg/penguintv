@@ -111,8 +111,11 @@ class FeedList(gobject.GObject):
 		self._icon_column = gtk.TreeViewColumn(_('Icon'))
 		self._icon_column.pack_start(self._icon_renderer, False)
 		self._icon_column.set_attributes(self._icon_renderer, stock_id=STOCKID)
-		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._icon_column.set_min_width(32)
+		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		#if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
+		#	self._icon_column.set_min_width(24)
+		#else:
+		#	self._icon_column.set_min_width(32)
 		self._widget.append_column(self._icon_column)
 		
 		# Feed Column
@@ -145,7 +148,8 @@ class FeedList(gobject.GObject):
 		self._image_column.set_min_width(MAX_WIDTH + 10)
 		self._image_column.set_max_width(MAX_WIDTH + 10)
 		self._articles_column.set_expand(False)
-		self._widget.append_column(self._image_column)
+		if self._fancy:
+			self._widget.append_column(self._image_column)
 		
 		self.resize_columns()
 		
@@ -173,10 +177,10 @@ class FeedList(gobject.GObject):
 		
 		#init style
 		if self._fancy:
-			#if utils.RUNNING_SUGAR:
-			#	self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
-			#else:
-			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
+			if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
+				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
+			else:
+				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
 			
 	def finalize(self):
@@ -877,9 +881,11 @@ class FeedList(gobject.GObject):
 		self.emit('state-change', penguintv.MAJOR_DB_OPERATION)
 		self._fancy = fancy
 		if self._fancy:
+			self._widget.append_column(self._image_column)
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
 		else:
+			self._widget.remove_column(self._image_column)
 			self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
 			self._widget.set_property('rules-hint', False)
 		if self._state == S_SEARCH:
@@ -934,6 +940,8 @@ class FeedList(gobject.GObject):
 			return _("Please wait...")
 		if utils.RUNNING_SUGAR:
 			title='<span size="x-small">'+title+'</span>'
+		elif utils.RUNNING_HILDON:
+			title='<span size="xx-small">'+title+'</span>'
 		try:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					title="<b>"+utils.my_quote(title)+"</b>"

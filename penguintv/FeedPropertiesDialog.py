@@ -40,7 +40,7 @@ class FeedPropertiesDialog:
 		self._xml.get_widget('notebook1').set_current_page(0)
 		if not utils.HAS_LUCENE:
 			self._xml.get_widget('b_search').hide()
-		if utils.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 			self._xml.get_widget('b_notifyupdates').hide()
 		self._title_widget.grab_focus()
 		self._window.show()

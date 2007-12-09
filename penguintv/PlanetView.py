@@ -123,8 +123,13 @@ class PlanetView(gobject.GObject):
 				self._moz.load_uri("about:blank")
 				self._moz.connect("notify", self._hulahop_prop_changed)
 			else:
-				self._USING_AJAX = True
-				f = open(os.path.join(glade_path, "mozilla-planet.css"))
+				if utils.RUNNING_HILDON:
+					logging.debug("Hildon: Not using ajax view")
+					self._USING_AJAX = False
+					f = open(os.path.join(glade_path, "mozilla-planet-hildon.css"))
+				else:
+					self._USING_AJAX = True
+					f = open(os.path.join(glade_path, "mozilla-planet.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
 				if not utils.init_gtkmozembed():
@@ -171,11 +176,12 @@ class PlanetView(gobject.GObject):
 			t.setDaemon(True)
 			t.start()
 			img_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()
+			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=img_url)
 		else:
 			logging.info("not using ajax")
 			img_url = None
+			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True)
 			
-		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=img_url)
 		
 		#signals
 		self._handlers = []
@@ -389,9 +395,9 @@ class PlanetView(gobject.GObject):
 			except:
 				logging.error('error closing planetview server')
 		self._render("<html><body></body></html")
-		if not utils.RUNNING_SUGAR:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			gtkmozembed.pop_startup()
-		
+					
 	#protected functions
 	def _render_entries(self, highlight=None, mark_read=False, force=False):
 		"""Takes a block on entry_ids and throws up a page."""

@@ -81,6 +81,9 @@ import MainWindow, FeedList
 
 if utils.HAS_STATUS_ICON:
 	import PtvTrayIcon
+	
+if utils.RUNNING_HILDON:
+	HAS_DBUS = False
 
 CANCEL=0
 PAUSE=1
@@ -512,10 +515,10 @@ class PenguinTVApp(gobject.GObject):
 		#	print threading.enumerate()
 		#	print str(threading.activeCount())+" threads active..."
 		#	time.sleep(1)
-		
-		if not utils.RUNNING_SUGAR:
+			
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			gtk.main_quit()
-		
+			
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
 		
@@ -769,6 +772,7 @@ class PenguinTVApp(gobject.GObject):
 			parsed_url = urlparse.urlparse(link)
 		except:
 			logging.warning("Invalid link clicked: %s" % (link,))
+			return
 		action=parsed_url[0] #protocol
 		parameters=parsed_url[3]
 		http_arguments=parsed_url[4]
@@ -2025,7 +2029,7 @@ def main():
 			version     = "1.0"
 			aboutData   = KAboutData ("", "",\
 			    version, description, KAboutData.License_GPL,\
-			    "(C) 2006 Owen Williams")
+			    "(C) 2007 Owen Williams")
 			KCmdLineArgs.init (sys.argv, aboutData)
 			app = KApplication ()
 			
@@ -2040,6 +2044,7 @@ def do_quit(event, app):
         
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	if HAS_GNOME:
+		logging.debug("have gnome")
 		gtk.gdk.threads_init()
 		gnome.init("PenguinTV", utils.VERSION)
 		try:
@@ -2068,14 +2073,20 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 				version     = "1.0"
 				aboutData   = KAboutData ("", "",\
 				    version, description, KAboutData.License_GPL,\
-				    "(C) 2006 Owen Williams")
+				    "(C) 2007 Owen Williams")
 				KCmdLineArgs.init (sys.argv, aboutData)
 				app = KApplication ()
 				
 			except:
 				logging.error("Unable to initialize KDE")
 				sys.exit(1)
-	else: #no gnome, no gnomeapp
+	elif utils.RUNNING_HILDON: #no gnome, no gnomeapp
+		logging.debug("Starting Hildon version")
+		gtk.gdk.threads_init()
+		app = PenguinTVApp()
+		app.main_window.Show()
+	else:
+		logging.debug("no gnome")
 		window = gtk.Window()
 		gtk.gdk.threads_init()
 		app = PenguinTVApp()

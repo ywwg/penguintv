@@ -46,7 +46,7 @@ if utils.HAS_GCONF:
 	import gobject
 if utils.HAS_PYXML:
 	import OPML
-if utils.RUNNING_SUGAR:
+if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 	USING_FLAG_CACHE = False
 else:
 	USING_FLAG_CACHE = True
@@ -63,7 +63,7 @@ BOOL    = 1
 INT     = 2
 STRING  = 3
 
-if utils.RUNNING_SUGAR:
+if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 	MAX_ARTICLES = 50
 else:
 	MAX_ARTICLES = 1000
@@ -904,7 +904,7 @@ class ptvDB:
 		url,modified,etag=data
 		
 		#save ram by not piling up polled data
-		if utils.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 			parse_list_limit = 2
 		else:
 			parse_list_limit = 5

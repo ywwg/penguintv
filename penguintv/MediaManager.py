@@ -7,6 +7,7 @@ import ThreadPool
 import time
 import os,os.path
 import copy
+import logging
 
 import Downloader
 #import BTDownloader  loaded when needed

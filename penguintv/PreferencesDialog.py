@@ -49,6 +49,8 @@ class PreferencesDialog:
 			self.limiter_hbox_widget.hide()
 			self.show_notification_always.hide()
 			self.xml.get_widget("button_close").hide()
+		#if utils.RUNNING_HILDON:
+		#	self.show_notification_always.hide()
 		return vbox
 		
 	def show(self):
@@ -60,6 +62,8 @@ class PreferencesDialog:
 			self.limiter_hbox_widget.hide()
 			self.show_notification_always.hide()
 			self.xml.get_widget("button_close").hide()
+		#if utils.RUNNING_HILDON:
+		#	self.show_notification_always.hide()
 		        
 	def hide(self):
 		if self._window:

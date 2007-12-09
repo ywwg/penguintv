@@ -1,6 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
 import threading
+#import logging
 try:
 	import PyLucene
 	HAS_LUCENE = True
@@ -152,14 +153,12 @@ class ThreadPool:
 			self.__isJoining = False
 		finally:
 			self.__resizeLock.release()
-
-
 		
 class ThreadPoolThread(threading.Thread):
 
 	""" Pooled thread class. """
 	
-	threadSleepTime = 0.1
+	threadSleepTime = 0.5
 
 	def __init__(self, pool, n="ThreadPoolThread"):
 
@@ -187,7 +186,7 @@ class ThreadPoolThread(threading.Thread):
 				self.__pool.occupied_threads+=1
 				callback(cmd(args))
 				self.__pool.occupied_threads-=1
-	
+
 	def goAway(self):
 
 		""" Exit the run loop next time through."""

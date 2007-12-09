@@ -15,6 +15,9 @@ import utils
 import Downloader
 #from trayicon.SonataNotification import TrayIconTips as tooltips
 
+if utils.RUNNING_HILDON:
+	import hildon
+
 #status of the main window progress bar
 U_NOBODY=0
 U_DOWNLOAD=1
@@ -115,7 +118,7 @@ class MainWindow(gobject.GObject):
 		if utils.HAS_LUCENE:
 			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
 			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
-		if not utils.RUNNING_SUGAR:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._app)
 			
 		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
@@ -171,9 +174,10 @@ class MainWindow(gobject.GObject):
 		
 	def __setting_changed_cb(self, app, typ, datum, value):
 		if datum == '/apps/penguintv/show_notifications':
-			show_notifs_item = self._widgetTree.get_widget('show_notifications')
-			if show_notifs_item.get_active() != value:
-				show_notifs_item.set_active(value)
+			if not utils.RUNNING_HILDON:
+				show_notifs_item = self._widgetTree.get_widget('show_notifications')
+				if show_notifs_item.get_active() != value:
+					show_notifs_item.set_active(value)
 				
 	def __tags_changed_cb(self, app, val):
 		self.update_filters()
@@ -218,19 +222,7 @@ class MainWindow(gobject.GObject):
 		if not utils.HAS_MOZILLA and self.layout == "planet":
 			logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
 			self.layout = "standard"
-		
-		if not utils.RUNNING_SUGAR:  #if we are loading in a regular window...
-			self._load_app_window()
-			if not utils.HAS_LUCENE:
-				#remove UI elements that don't apply without search
-				self._widgetTree.get_widget('saved_searches').hide()
-				self._widgetTree.get_widget('separator11').hide()
-				self._widgetTree.get_widget('reindex_searches').hide()
-				self._widgetTree.get_widget('add_feed_filter').hide()
-			if not utils.HAS_MOZILLA:
-				self._widgetTree.get_widget('planet_layout').hide()
-			self._window = self.app_window
-		else:  #if we are in OLPC mode and just have to supply a widget...
+		if utils.RUNNING_SUGAR:  #if we are in OLPC mode and just have to supply a widget...
 			self._status_view = None
 			self._disk_usage_widget = None
 			self.app_window = None
@@ -257,12 +249,61 @@ class MainWindow(gobject.GObject):
 					self._widgetTree.signal_connect(key, getattr(self, key))
 					
 			self._window.connect('key_press_event', self.on_app_key_press_event)
+		elif utils.RUNNING_HILDON:
+			logging.debug("Hildon: setting up UI")
+			self._h_app = hildon.Program()
+			self._window = hildon.Window()
+			self._window.set_title("PenguinTV "+utils.VERSION)
+			
+			self._status_view = None
+			self._disk_usage_widget = None
+			self.app_window = None
+
+			vbox = gtk.VBox()
+			self._layout_dock = self.load_notebook()
+			self._layout_dock.add(self.load_layout())
+			
+			self._status_view = MainWindow._my_status_view()
+			
+			self._connection_button = None
+			
+			logging.debug("Hildon: getting toolbar")
+			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'hildon_toolbar_holder','penguintv')
+			self.toolbar = self._load_toolbar()
+			self.toolbar.unparent()
+			
+			vbox.pack_start(self._notebook)
+			vbox.pack_start(self._status_view, False, False)
+
+			self._window.add(vbox)
+			self._window.add_toolbar(self.toolbar)
+			self._h_app.add_window(self._window)
+			self._window.show_all()
+			
+			for key in dir(self.__class__): #python insaneness
+				if key[:3] == 'on_':
+					self._widgetTree.signal_connect(key, getattr(self, key))
+					
+			self._window.connect('destroy', self.on_app_destroy_event)
+			self._window.connect('delete-event', self.on_app_delete_event)
+			self._window.connect('key_press_event', self.on_app_key_press_event)
+		else:   #if we are loading in a regular window...
+			self._load_app_window()
+			if not utils.HAS_LUCENE:
+				#remove UI elements that don't apply without search
+				self._widgetTree.get_widget('saved_searches').hide()
+				self._widgetTree.get_widget('separator11').hide()
+				self._widgetTree.get_widget('reindex_searches').hide()
+				self._widgetTree.get_widget('add_feed_filter').hide()
+			if not utils.HAS_MOZILLA:
+				self._widgetTree.get_widget('planet_layout').hide()
+			self._window = self.app_window
 			
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
 			self.search_container.hide_all()
-		#if utils.RUNNING_SUGAR:
-		#	self._filter_container.hide_all()
+		if utils.RUNNING_HILDON:
+			self._filter_container.hide_all()
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
@@ -285,7 +326,7 @@ class MainWindow(gobject.GObject):
 		
 		self._disk_usage_widget = self._widgetTree.get_widget('disk_usage')
 		self._disk_usage_widget.set_use_markup(True)
-	
+		
 		return toolbar
 		
 	def _load_sugar_toolbar(self):
@@ -374,9 +415,22 @@ class MainWindow(gobject.GObject):
 			
 		def set_status(self, m):
 			self._status.set_text(m)
+			if utils.RUNNING_HILDON:
+				if m == "":
+					self._status.hide()
+				else:
+					self._status.show()
 			
 		def set_progress_percentage(self, p):
 			self._progress.set_fraction(p)
+			if utils.RUNNING_HILDON:
+				if p == 0.0:
+					self._progress.hide()
+				else:
+					self._progress.show()
+			
+		def get_progress_percentage(self):
+			return self._progress.get_fraction()
 			
 	def _load_app_window(self):
 		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv')
@@ -488,7 +542,7 @@ class MainWindow(gobject.GObject):
 		#dock_widget.add(self._layout_container)
 		
 		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
-		if utils.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 			fancy = False
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
@@ -637,7 +691,7 @@ class MainWindow(gobject.GObject):
 			self._gstreamer_player.toggle_controls(fullscreen)
 			self._window.window.set_cursor(None)
 			self._widgetTree.get_widget('toolbar1').show()
-			if not utils.RUNNING_SUGAR:
+			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				self.app_window.window.unfullscreen()
 				self._widgetTree.get_widget('menubar2').show()
 				self._widgetTree.get_widget('status_hbox').show()
@@ -651,7 +705,7 @@ class MainWindow(gobject.GObject):
 			cursor = gtk.gdk.Cursor(pixmap, pixmap, color, color, 0, 0)
 			self._window.window.set_cursor(cursor)
 			self._widgetTree.get_widget('toolbar1').hide()
-			if not utils.RUNNING_SUGAR:
+			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				self._widgetTree.get_widget('menubar2').hide()
 				self._widgetTree.get_widget('status_hbox').hide()
 				self.app_window.window.fullscreen()
@@ -671,8 +725,19 @@ class MainWindow(gobject.GObject):
 	def on_app_delete_event(self,event,data):
 		self._app.do_quit()
 		
-	def on_app_destroy_event(self,event,data):
-		self._app.do_quit()
+		def gtkquit():
+			gtk.main_quit()
+			return False
+
+		if utils.RUNNING_HILDON:
+			gobject.idle_add(gtkquit)
+			return self._window.hide_on_delete()
+		
+	def on_app_destroy_event(self,event,data=None):
+		if utils.RUNNING_HILDON:
+			gtk.main_quit()
+		else:
+			self._app.do_quit()
 		
 	def on_app_window_state_event(self, client, event):
 		if event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED:
@@ -1224,7 +1289,6 @@ class MainWindow(gobject.GObject):
 			#elif update_category == U_DOWNLOAD and self._status_owner == U_DOWNLOAD:
 			#	self._status_view.set_status(m)
 		
-		#gtk.gdk.threads_leave()	
 		return False #in case of timeouts
 		
 	def update_progress_bar(self, p, update_category=U_STANDARD):
@@ -1237,24 +1301,21 @@ class MainWindow(gobject.GObject):
 			if update_category >= self._bar_owner:
 				self._bar_owner = update_category
 				self._status_view.set_progress_percentage(p)
-		
+				
 	def _unset_state(self):
 		"""gets app ready to display new state by unloading current state"""
 		#bring state back to default
 		if self._state == S_MANUAL_SEARCH:
 			self.search_entry.set_text("")
 		if self._state == S_MAJOR_DB_OPERATION:
-			if not utils.RUNNING_SUGAR:
-				self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
-				self._widgetTree.get_widget("feed_remove").set_sensitive(True)
+			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
+			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
+			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(True)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
 				self._widgetTree.get_widget("remove_feed").set_sensitive(True)
 				self._widgetTree.get_widget("properties").set_sensitive(True)
-			else:
-				self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
-				self._widgetTree.get_widget("feed_remove").set_sensitive(True)
 			
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
@@ -1278,17 +1339,15 @@ class MainWindow(gobject.GObject):
 			self.search_entry.set_text("")
 		
 		if new_state == S_MAJOR_DB_OPERATION:
-			if not utils.RUNNING_SUGAR: 
-				self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
-				self._widgetTree.get_widget("feed_remove").set_sensitive(False)
+			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
+			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
+
+			if not utils.RUNNING_HILDON and not utils.RUNNING_SUGAR:
 				#these are menu items
 				self._widgetTree.get_widget("add_feed").set_sensitive(False)
 				self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
 				self._widgetTree.get_widget("remove_feed").set_sensitive(False)
 				self._widgetTree.get_widget("properties").set_sensitive(False)
-			else:
-				self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
-				self._widgetTree.get_widget("feed_remove").set_sensitive(False)
 			
 		self._state = new_state
 

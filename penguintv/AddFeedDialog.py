@@ -30,7 +30,7 @@ class AddFeedDialog:
 		self._app = app
 		
 		self._window = xml.get_widget("window_add_feed")
-		if not utils.RUNNING_SUGAR:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._window.set_transient_for(self._app.main_window.get_parent())
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
@@ -61,9 +61,12 @@ class AddFeedDialog:
 		if autolocation:
 			self.set_location_automatically()
 		
-		if not utils.RUNNING_SUGAR:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._edit_tags_widget.set_text("")
-		
+		if utils.RUNNING_HILDON:
+			l = self._xml.get_widget("add_feed_label")
+			l.set_text(_("Please enter the URL of the feed you would like to add:"))
+			self._xml.get_widget("tag_hbox").hide()
 	
 	#ripped from straw
 	def set_location_automatically(self):
@@ -126,7 +129,7 @@ class AddFeedDialog:
 				flags += FF_MARKASREAD
 	
 		tags=[]
-		if not utils.RUNNING_SUGAR:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			if len(self._edit_tags_widget.get_text()) > 0:
 				for tag in self._edit_tags_widget.get_text().split(','):
 					tags.append(tag.strip())
@@ -142,7 +145,7 @@ class AddFeedDialog:
 					self._window.set_sensitive(True)
 				return
 			feed_id = self._app.add_feed(url, title, tags)
-			if not utils.RUNNING_SUGAR:
+			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				self._app.db.set_flags_for_feed(feed_id, flags)
 		except AddFeedUtils.AuthorizationFailed:
 			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))

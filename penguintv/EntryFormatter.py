@@ -43,7 +43,11 @@ class EntryFormatter:
 		else:
 			if item.has_key('title'):
 				if self._indicate_new and item['new']:
-					ret.append('<div class="stitle"><a href="#%s"></a>&#10036;%s</div>' % (item['entry_id'],item['title']))
+					if utils.RUNNING_HILDON:
+						indicator="*"
+					else:
+						indicator="&#10036;"
+					ret.append('<div class="stitle"><a href="#%s"></a>%s%s</div>' % (item['entry_id'],indicator,item['title']))
 				else:
 					ret.append('<div class="stitle"><a href="#%s"></a>%s</div>' % (item['entry_id'],item['title']))
 
@@ -94,7 +98,7 @@ class EntryFormatter:
 					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
-				ret.append('<p><i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+self._html_command('pause:',medium['media_id'])+' '+self._html_command('stop:',medium['media_id'])+'</p>')
+				ret.append('<i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+self._html_command('pause:',medium['media_id'])+' '+self._html_command('stop:',medium['media_id']))
 			elif medium.has_key('progress_message'): #downloading and we have a custom message
 				if self._ajax_url is None:
 					ret.append('<img src="file://"' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')

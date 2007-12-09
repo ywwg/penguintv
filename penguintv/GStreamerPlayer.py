@@ -28,6 +28,12 @@ if os.environ.has_key('SUGAR_PENGUINTV'):
 	RUNNING_SUGAR = True
 else:
 	RUNNING_SUGAR = False
+	
+try:
+	import hildon
+	RUNNING_HILDON = True
+except:
+	RUNNING_HILDON = False
 
 class GStreamerPlayer(gobject.GObject):
 
@@ -434,7 +440,7 @@ class GStreamerPlayer(gobject.GObject):
 		if ismedia:
 			model = self._queue_listview.get_model()
 			uri = 'file://'+urllib.quote(filename)
-			if RUNNING_SUGAR:
+			if RUNNING_SUGAR or RUNNING_HILDON:
 				name = '<span size="x-small">'+name+'</span>'
 			model.append([uri, name, "", userdata])
 			self.emit('item-queued', filename, name, userdata)

@@ -19,6 +19,13 @@ try:
 	GTK_OK = True
 except:
 	GTK_OK = False
+	
+try:
+	import hildon
+	logging.debug("Detected hildon environment")
+	RUNNING_HILDON = True
+except:
+	RUNNING_HILDON = False
 
 from subprocess import Popen, PIPE, STDOUT
 
