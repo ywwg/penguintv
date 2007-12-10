@@ -1,9 +1,11 @@
 # Written by Owen Williams
 # see LICENSE for license information
+import gtk
+import logging
+
 import penguintv
 import ptvDB
 import utils
-import gtk
 
 class PreferencesDialog:
 	def __init__(self,xml,app):
@@ -37,6 +39,9 @@ class PreferencesDialog:
 		self.auto_download_limiter_widget = self.xml.get_widget("auto_download_limiter")
 		self.auto_download_limit_widget = self.xml.get_widget("auto_download_limit")
 		self.limiter_hbox_widget = self.xml.get_widget("limiter_hbox")
+		
+		if utils.RUNNING_HILDON:
+			self._hildon_inited = False
 				
 	def extract_content(self):
 		vbox = self.xml.get_widget('prefs_vbox')
@@ -54,16 +59,28 @@ class PreferencesDialog:
 		return vbox
 		
 	def show(self):
-		if self._window:
+		if utils.RUNNING_HILDON:
+			if not self._hildon_inited:
+				#put in a scrolled viewport so the user can see all the prefs
+				parent_vbox = self.xml.get_widget('dialog_vbox')
+				contents = self.xml.get_widget('prefs_vbox')
+				scrolled = gtk.ScrolledWindow()
+				scrolled.set_size_request(650, 200)
+				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+				viewport = gtk.Viewport()
+				contents.reparent(viewport)
+				scrolled.add(viewport)
+				parent_vbox.add(scrolled)
+				self._hildon_inited = True
 			self._window.show_all()
-		if utils.RUNNING_SUGAR:
+		elif utils.RUNNING_SUGAR:
 			self.auto_download_limiter_widget.hide()
 			self.auto_download_limit_widget.hide()
 			self.limiter_hbox_widget.hide()
 			self.show_notification_always.hide()
 			self.xml.get_widget("button_close").hide()
-		#if utils.RUNNING_HILDON:
-		#	self.show_notification_always.hide()
+		elif self._window:
+			self._window.show_all()
 		        
 	def hide(self):
 		if self._window:

@@ -86,6 +86,9 @@ class PtvTrayIcon:
 		pause.hide()
 		self._player_showing = False
 		
+	def set_parent(self, p):
+		self._tray_icon.set_parent(p)
+		
 	def set_show_always(self, b):
 		self._tray_icon.set_show_always(b)
 		

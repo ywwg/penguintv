@@ -83,6 +83,7 @@ if utils.HAS_STATUS_ICON:
 	import PtvTrayIcon
 	
 if utils.RUNNING_HILDON:
+	#FIXME: should do something
 	import HildonListener
 #	HAS_DBUS = False
 
@@ -229,20 +230,20 @@ class PenguinTVApp(gobject.GObject):
 			use_internal_player = True
 			
 		self._status_icon = None
+
 		if utils.HAS_STATUS_ICON:
 			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, 
 							         utils.get_image_path('penguintvicon.png'))	
-			
+
 		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window, status_icon=self._status_icon) 
 		self.main_window.layout=window_layout
-		
+
 		#some signals
 		self.connect('feed-added', self.__feed_added_cb)
 		
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
-		#gtk.gdk.threads_enter()
-		
+	
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -258,7 +259,9 @@ class PenguinTVApp(gobject.GObject):
 		self.window_add_feed.hide()
 		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
-					
+		
+		self._status_icon.set_parent(self.main_window.window)
+		
 		#gconf
 		if utils.HAS_GCONF:
 			import gconf
@@ -1458,7 +1461,7 @@ class PenguinTVApp(gobject.GObject):
 		self.window_preferences.set_bt_settings(self._bt_settings)
 		
 	def set_bt_ullimit(self, ullimit):
-		self._bt_settings['ullimit']=ullimit
+		self._bt_settings['ul_limit']=ullimit
 			
 	def _gconf_set_polling_frequency(self, client, *args, **kwargs):
 		freq = client.get_int('/apps/penguintv/feed_refresh_frequency')

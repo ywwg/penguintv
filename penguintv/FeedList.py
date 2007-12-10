@@ -233,7 +233,9 @@ class FeedList(gobject.GObject):
 			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title,url in db_feedlist:
-				if self._fancy:
+				if utils.RUNNING_HILDON:
+					title_m = '<span size="xx-small">%s</span>' % title
+				elif self._fancy:
 					title_m = title+"\n"
 				else:
 					title_m = title

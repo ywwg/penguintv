@@ -1025,18 +1025,12 @@ class MainWindow(gobject.GObject):
 		
 	def on_app_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
-		if event.state & gtk.gdk.CONTROL_MASK:
-			if keyname == 'k':
-				self.search_entry.grab_focus()
+		#if event.state & gtk.gdk.CONTROL_MASK:
+		#	if keyname == 'k':
+		#		self.search_entry.grab_focus()
 		
-		if self._notebook.get_current_page() == N_PLAYER and \
-	      self._gstreamer_player is not None:
-			if keyname == 'f':
-				self._fullscreen = not self._fullscreen
-				self.toggle_fullscreen(self._fullscreen)
-			else:
-				self._gstreamer_player.handle_key(keyname)
-		elif utils.RUNNING_SUGAR:
+		
+		if utils.RUNNING_SUGAR:
 			if keyname == 'KP_Left' or keyname == 'Left' or keyname == 'KP_4':
 				self._app.feed_list_view.grab_focus()
 			elif keyname == 'KP_Right' or keyname == 'Right' \
@@ -1063,6 +1057,14 @@ class MainWindow(gobject.GObject):
 				  self._gstreamer_player is not None:
 					self._fullscreen = not self._fullscreen
 					self.toggle_fullscreen(self._fullscreen)
+		else: #regular desktop version..
+			if self._notebook.get_current_page() == N_PLAYER and \
+			  self._gstreamer_player is not None:
+				if keyname == 'f':
+					self._fullscreen = not self._fullscreen
+					self.toggle_fullscreen(self._fullscreen)
+				else:
+					self._gstreamer_player.handle_key(keyname)
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()

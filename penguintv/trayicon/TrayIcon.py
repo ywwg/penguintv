@@ -4,6 +4,7 @@ import os, sys
 import traceback
 #debug so utils imports
 #sys.path.append("/home/owen/penguintv/penguintv")
+import logging
 
 import time
 
@@ -14,12 +15,14 @@ import gobject
 
 import utils
 
-if utils.get_pynotify_ok():
+HAS_PYNOTIFY = False
+if utils.RUNNING_HILDON:
+	import hildon
+elif utils.get_pynotify_ok():
 	import pynotify
 	HAS_PYNOTIFY = True
 else:
 	import SonataNotification
-	HAS_PYNOTIFY = False
 
 MAX_HEIGHT = 64
 MAX_WIDTH = 64
@@ -33,7 +36,7 @@ class StatusTrayIcon(gtk.StatusIcon):
                            ([gobject.TYPE_PYOBJECT])),
 	}
 
-	def __init__(self, icon, menu=None, show_always=True):
+	def __init__(self, icon, menu=None, show_always=True, parent=None):
 		#Init StatusIcon
 		gtk.StatusIcon.__init__(self)
 		
@@ -53,7 +56,11 @@ class StatusTrayIcon(gtk.StatusIcon):
 		self._updater_id = -1
 		self._notification_displaying = False
 		self._show_always = show_always
+		self._parent = parent
 		self.set_visible(self._show_always)
+		
+	def set_parent(self, p):
+		self._parent = p
 		
 	def set_show_always(self, b):
 		self._show_always = b
@@ -79,11 +86,26 @@ class StatusTrayIcon(gtk.StatusIcon):
 			return True
 		title, message, icon, userdata = self._notifications.pop(0)
 		icon_pixbuf = self._scale_pixbuf(icon)
-		if HAS_PYNOTIFY:
+		if utils.RUNNING_HILDON:
+			self._display_hildonnotification(title, message, icon, userdata)
+		elif HAS_PYNOTIFY:
 			self._display_pynotification(title, message, icon_pixbuf, userdata)
 		else:
 			self._display_sonatafication(title, message, icon_pixbuf, userdata)
 		return True
+	
+	def _display_hildonnotification(self, title, message, icon=None, userdata=None):
+		if self._parent is None:
+			logging.info("not showing notification, no parent widget")
+		logging.debug("showing notification: %s %s" % (title, message))
+		try:
+			b = hildon.hildon_banner_show_information_with_markup(self._parent, icon, "<b>%s</b>\n%s" % (title, message))
+		except TypeError:
+			#banner bug not fixed yet
+			b = hildon.hildon_banner_show_information_with_markup(self._parent, "NULL", "<b>%s</b>\n%s" % (title, message))
+		if icon is not None:
+			b.set_icon_from_file(icon)
+		b.set_timeout(5000)
 			
 	def _display_pynotification(self, title, message, icon=None, userdata=None):
 		self._notification_displaying = True
@@ -154,15 +176,22 @@ class StatusTrayIcon(gtk.StatusIcon):
 		self.emit('menu-clicked', action)
 
 def _test_tray_icon(icon):
-	icon.display_notification('title','message','/usr/share/pixmaps/penguintvicon.png')
+	icon.display_notification('title','message','/home/owen/src/penguintv/share/penguintvicon.png')
 	icon.set_tooltip('yo yo yo!')
-	icon.display_notification('title2','message2','/usr/share/pixmaps/penguintvicon.png')
-	icon.display_notification('title3','message3','/usr/share/pixmaps/penguintvicon.png')
-	icon.display_notification('title4','message4','/usr/share/pixmaps/penguintvicon.png')
+	icon.display_notification('title2','message2','/home/owen/src/penguintv/share/penguintvicon.png')
+	icon.display_notification('title3','message3','/home/owen/src/penguintv/share/penguintvicon.png')
+	icon.display_notification('title4','message4','/home/owen/src/penguintv/share/penguintvicon.png')
 	return False
 	
 if __name__ == '__main__': # Here starts the dynamic part of the program 
-	trayicon = StatusTrayIcon('/usr/share/pixmaps/penguintvicon.png')
+	h = None
+	if utils.RUNNING_HILDON:
+		h = hildon.Window()
+		l = gtk.Label("hello world")
+		h.add(l)
+		h.show_all()
+		
+	trayicon = StatusTrayIcon('/home/owen/src/penguintv/share/penguintvicon.png', parent=h)
 	gobject.timeout_add(2000, _test_tray_icon, trayicon)
 	
 	gtk.main()
