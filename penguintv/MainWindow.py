@@ -278,6 +278,9 @@ class MainWindow(gobject.GObject):
 			self.window.add(vbox)
 			self.window.add_toolbar(self.toolbar)
 			self._h_app.add_window(self.window)
+			
+			self.window.set_menu(self._build_hildon_menu())
+			
 			self.window.show_all()
 			
 			for key in dir(self.__class__): #python insaneness
@@ -314,6 +317,32 @@ class MainWindow(gobject.GObject):
 			self._window_inited = True
 			
 		return False
+		
+	def _build_hildon_menu(self):
+		menu = gtk.Menu()  
+			
+		filemenu = gtk.MenuItem('File')
+		submenu = gtk.Menu()	
+			
+		item = gtk.MenuItem('Import Subscriptions')
+		item.connect('activate', self.on_import_opml_activate)
+		submenu.append(item)
+			
+		item = gtk.MenuItem('Export Subscriptions')
+		item.connect('activate', self.on_export_opml_activate)
+		submenu.append(item)
+		
+		filemenu.set_submenu(submenu)
+		menu.append(filemenu)
+		
+		separator = gtk.SeparatorMenuItem()
+		menu.append(separator)
+		
+		item = gtk.ImageMenuItem('gtk-close')
+		item.connect('activate', self.on_app_delete_event)
+		menu.append(item)
+		
+		return menu
 			
 	def _load_toolbar(self):
 		toolbar = self._widgetTree.get_widget('toolbar1')
@@ -722,7 +751,7 @@ class MainWindow(gobject.GObject):
 	def on_about_response(self, widget, event):
 		widget.destroy()
 
-	def on_app_delete_event(self,event,data):
+	def on_app_delete_event(self, event, data=None):
 		self._app.do_quit()
 		
 		def gtkquit():
@@ -738,7 +767,7 @@ class MainWindow(gobject.GObject):
 			gtk.main_quit()
 		else:
 			self._app.do_quit()
-		
+			
 	def on_app_window_state_event(self, client, event):
 		if event.new_window_state & gtk.gdk.WINDOW_STATE_MAXIMIZED:
 			self.window_maximized = True
@@ -998,9 +1027,12 @@ class MainWindow(gobject.GObject):
 		self._app.change_filter(current_filter[F_NAME],current_filter[F_TYPE])
 		
 	def on_import_opml_activate(self, event):
-		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
+		if utils.RUNNING_HILDON:
+			dialog = hildon.FileChooserDialog(self.window, action=gtk.FILE_CHOOSER_ACTION_OPEN)
+		else:
+			dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_OPEN,
 								  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_OPEN,gtk.RESPONSE_OK))
-		dialog.set_default_response(gtk.RESPONSE_OK)
+			dialog.set_default_response(gtk.RESPONSE_OK)
 	
 		filter = gtk.FileFilter()
 		filter.set_name("OPML files")

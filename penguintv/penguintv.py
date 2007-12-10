@@ -84,6 +84,7 @@ if utils.HAS_STATUS_ICON:
 	
 if utils.RUNNING_HILDON:
 	#FIXME: should do something
+	import hildon
 	import HildonListener
 #	HAS_DBUS = False
 
@@ -961,9 +962,12 @@ class PenguinTVApp(gobject.GObject):
 		yield False
 	
 	def export_opml(self):
-		dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_SAVE,
+		if utils.RUNNING_HILDON:
+			dialog = hildon.FileChooserDialog(self.main_window.window, action=gtk.FILE_CHOOSER_ACTION_SAVE)
+		else:
+			dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_SAVE,
                                   buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
-		dialog.set_default_response(gtk.RESPONSE_OK)
+			dialog.set_default_response(gtk.RESPONSE_OK)
 
 		filter = gtk.FileFilter()
 		filter.set_name("OPML files")
