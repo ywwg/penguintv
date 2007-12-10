@@ -83,7 +83,8 @@ if utils.HAS_STATUS_ICON:
 	import PtvTrayIcon
 	
 if utils.RUNNING_HILDON:
-	HAS_DBUS = False
+	import HildonListener
+#	HAS_DBUS = False
 
 CANCEL=0
 PAUSE=1
@@ -248,6 +249,9 @@ class PenguinTVApp(gobject.GObject):
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
 		self._update_thread = None
+		
+		if utils.RUNNING_HILDON:
+			hildon_listener = HildonListener.HildonListener(self, self.main_window.window)
 
 		#WINDOWS
 		self.window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self) #MAGIC

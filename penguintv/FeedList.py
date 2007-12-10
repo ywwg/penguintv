@@ -111,11 +111,11 @@ class FeedList(gobject.GObject):
 		self._icon_column = gtk.TreeViewColumn(_('Icon'))
 		self._icon_column.pack_start(self._icon_renderer, False)
 		self._icon_column.set_attributes(self._icon_renderer, stock_id=STOCKID)
-		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-		#if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
-		#	self._icon_column.set_min_width(24)
-		#else:
-		#	self._icon_column.set_min_width(32)
+		if utils.RUNNING_HILDON:
+			self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		else:
+			self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+			self._icon_column.set_min_width(32)
 		self._widget.append_column(self._icon_column)
 		
 		# Feed Column

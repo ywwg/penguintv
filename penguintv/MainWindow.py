@@ -236,7 +236,7 @@ class MainWindow(gobject.GObject):
 			dock_widget.set_canvas(vbox)
 			dock_widget.show_all()
 			
-			self._window = dock_widget
+			self.window = dock_widget
 			
 			self._connection_button = None
 			
@@ -248,12 +248,12 @@ class MainWindow(gobject.GObject):
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
 					
-			self._window.connect('key_press_event', self.on_app_key_press_event)
+			self.window.connect('key_press_event', self.on_app_key_press_event)
 		elif utils.RUNNING_HILDON:
 			logging.debug("Hildon: setting up UI")
 			self._h_app = hildon.Program()
-			self._window = hildon.Window()
-			self._window.set_title("PenguinTV "+utils.VERSION)
+			self.window = hildon.Window()
+			self.window.set_title("PenguinTV "+utils.VERSION)
 			
 			self._status_view = None
 			self._disk_usage_widget = None
@@ -275,18 +275,18 @@ class MainWindow(gobject.GObject):
 			vbox.pack_start(self._notebook)
 			vbox.pack_start(self._status_view, False, False)
 
-			self._window.add(vbox)
-			self._window.add_toolbar(self.toolbar)
-			self._h_app.add_window(self._window)
-			self._window.show_all()
+			self.window.add(vbox)
+			self.window.add_toolbar(self.toolbar)
+			self._h_app.add_window(self.window)
+			self.window.show_all()
 			
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
 					
-			self._window.connect('destroy', self.on_app_destroy_event)
-			self._window.connect('delete-event', self.on_app_delete_event)
-			self._window.connect('key_press_event', self.on_app_key_press_event)
+			self.window.connect('destroy', self.on_app_destroy_event)
+			self.window.connect('delete-event', self.on_app_delete_event)
+			self.window.connect('key_press_event', self.on_app_key_press_event)
 		else:   #if we are loading in a regular window...
 			self._load_app_window()
 			if not utils.HAS_LUCENE:
@@ -297,7 +297,7 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('add_feed_filter').hide()
 			if not utils.HAS_MOZILLA:
 				self._widgetTree.get_widget('planet_layout').hide()
-			self._window = self.app_window
+			self.window = self.app_window
 			
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_LUCENE:
@@ -683,13 +683,13 @@ class MainWindow(gobject.GObject):
 		del self._disk_usage_widget
 		
 	def get_parent(self):
-		return self._window
+		return self.window
 		
 	def toggle_fullscreen(self, fullscreen):
 		if not fullscreen:
 			self._notebook.set_show_tabs(True)
 			self._gstreamer_player.toggle_controls(fullscreen)
-			self._window.window.set_cursor(None)
+			self.window.window.set_cursor(None)
 			self._widgetTree.get_widget('toolbar1').show()
 			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				self.app_window.window.unfullscreen()
@@ -703,7 +703,7 @@ class MainWindow(gobject.GObject):
 			pixmap = gtk.gdk.Pixmap(None, 1, 1, 1)
 			color = gtk.gdk.Color()
 			cursor = gtk.gdk.Cursor(pixmap, pixmap, color, color, 0, 0)
-			self._window.window.set_cursor(cursor)
+			self.window.window.set_cursor(cursor)
 			self._widgetTree.get_widget('toolbar1').hide()
 			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				self._widgetTree.get_widget('menubar2').hide()
@@ -731,7 +731,7 @@ class MainWindow(gobject.GObject):
 
 		if utils.RUNNING_HILDON:
 			gobject.idle_add(gtkquit)
-			return self._window.hide_on_delete()
+			return self.window.hide_on_delete()
 		
 	def on_app_destroy_event(self,event,data=None):
 		if utils.RUNNING_HILDON:
@@ -1042,6 +1042,27 @@ class MainWindow(gobject.GObject):
 			elif keyname == 'KP_Right' or keyname == 'Right' \
 			  or keyname == 'KP_6':
 				self.entry_view.grab_focus()
+		elif utils.RUNNING_HILDON:
+			#Move up  	                        Arrow key up  	GDK_Up
+			#Move down 	                        Arrow key down 	GDK_Down
+			#Move left 	                        Arrow key left 	GDK_Left
+			#Move right 	                    Arrow key right GDK_Right
+			#Select, Confirm 	                Return 	        GDK_Return
+			#Cancel, Close 	                    Esc 	        GDK_Escape
+			#Open menu 	                        F4 	            GDK_F4
+			#Full screen 	                    F6 	            GDK_F6
+			#Increase / Zoom in / Volume up 	F7 	            GDK_F7
+			#Decrease / Zoom out / Volume down 	F8 	            GDK_F8
+			
+			if keyname == 'KP_Left' or keyname == 'Left':
+				self._app.feed_list_view.grab_focus()
+			elif keyname == 'KP_Right' or keyname == 'Right':
+				self._app.entry_view.grab_focus()
+			elif keyname == 'F6':
+				if self._notebook.get_current_page() == N_PLAYER and \
+				  self._gstreamer_player is not None:
+					self._fullscreen = not self._fullscreen
+					self.toggle_fullscreen(self._fullscreen)
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()
