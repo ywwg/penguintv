@@ -304,12 +304,14 @@ class FeedList(gobject.GObject):
 				flag       = cached[1]
 				pollfail   = cached[4]
 				entry_count= cached[3]
+				m_first_entry_title = cached[5]
 			else:
 				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
+				m_first_entry_title = ""
 			if entry_count==0 or entry_count is None: #this is a good indication that the cache is bad
 				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
@@ -328,13 +330,14 @@ class FeedList(gobject.GObject):
 			
 			if self._fancy:
 				if visible:
-					try: m_first_entry_title = self._db.get_first_entry_title(feed_id)
-					except: m_first_entry_title = ""
+					if len(m_first_entry_title) == 0:
+						m_first_entry_title = self._db.get_first_entry_title(feed_id)
 					m_details_loaded = True
 				else:
-					m_first_entry_title = ""
-					m_pixbuf = blank_pixbuf
-					m_details_loaded = False
+					if len(m_first_entry_title) > 0:
+						m_details_loaded = True
+					else:
+						m_details_loaded = False
 				m_pixbuf = self._get_pixbuf(feed_id)
 				model, iter = selection.get_selected()
 				try: sel = model[iter][FEEDID]
@@ -1123,7 +1126,7 @@ class FeedList(gobject.GObject):
 			return None
 			
 	def get_feed_cache(self):
-		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL]] for f in self._feedlist]
+		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL],f[FIRSTENTRYTITLE]] for f in self._feedlist]
 		
 	def interrupt(self):
 		self._cancel_load = [True,True]

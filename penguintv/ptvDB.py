@@ -52,7 +52,7 @@ else:
 	USING_FLAG_CACHE = True
 #USING_FLAG_CACHE = False
 
-LATEST_DB_VER = 5
+LATEST_DB_VER = 6
 	
 NEW = 0
 EXISTS = 1
@@ -443,6 +443,29 @@ class ptvDB:
 		logging.info("upgrading to database schema 6, please wait...")
 		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN keep BOOL')
 		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
+		self.__remove_columns("feeds", """id INTEGER PRIMARY KEY,
+							    url TEXT NOT NULL,
+							    pollfail BOOL NOT NULL,
+							    title TEXT,
+							    description TEXT,
+							    link TEXT, 
+							    modified INT UNSIGNED NOT NULL,
+							    etag TEXT,
+							    pollfreq INT NOT NULL,
+							    lastpoll DATE,
+							    newatlast INT,
+							    flags INTEGER NOT NULL DEFAULT 0,
+							    flag_cache INT,
+							    entry_count_cache INT,
+							    unread_count_cache INT,
+							    feed_pointer INT,
+							    image TEXT,
+							    UNIQUE(url)""",
+						"""id, url, pollfail, title, description, link, 
+						   modified, etag,  pollfreq, lastpoll, newatlast, flags,
+						   flag_cache, entry_count_cache, unread_count_cache, 
+						   feed_pointer, image""")
+		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN first_entry_cache TEXT')
 		self._db_execute(self._c, u'UPDATE settings SET value=6 WHERE data="db_ver"')
 		
 		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
@@ -497,7 +520,6 @@ class ptvDB:
 							(
 								id INTEGER PRIMARY KEY,
 							    url TEXT NOT NULL,
-							    polled INT NOT NULL,
 							    pollfail BOOL NOT NULL,
 							    title TEXT,
 							    description TEXT,
@@ -679,25 +701,22 @@ class ptvDB:
 		"""Cachelist format:
 		   rowid, flag, unread, total"""
 		for cache in cachelist:
-			self._db_execute(self._c, u'UPDATE feeds SET flag_cache=? WHERE rowid=?',(cache[1],cache[0]))
-			self._db_execute(self._c, u'UPDATE feeds SET unread_count_cache=? WHERE rowid=?',(cache[2],cache[0]))
-			self._db_execute(self._c, u'UPDATE feeds SET entry_count_cache=? WHERE rowid=?',(cache[3],cache[0]))
+			self._db_execute(self._c, u'UPDATE feeds SET flag_cache=?, unread_count_cache=?, entry_count_cache=?, first_entry_cache=? WHERE rowid=?',\
+							(cache[1], cache[2], cache[3], cache[4], cache[0]))
+			#self._db_execute(self._c, u'UPDATE feeds SET unread_count_cache=? WHERE rowid=?',(cache[2],cache[0]))
+			#self._db_execute(self._c, u'UPDATE feeds SET entry_count_cache=? WHERE rowid=?',(cache[3],cache[0]))
 		self._db.commit()
 		#and only then...
 		self.set_setting(BOOL, "feed_cache_dirty", False)
-		#self._db_execute(self._c, u'UPDATE settings SET value=0 WHERE data="feed_cache_dirty"')
-		#self._db.commit()
 		self.cache_dirty = False
 		
 	def get_feed_cache(self):
 		if self.cache_dirty:
 			logging.debug("Feed cache is dirty, returning empty set")
 			return None
-		self._db_execute(self._c, u'SELECT rowid, flag_cache, unread_count_cache, entry_count_cache, pollfail FROM feeds ORDER BY UPPER(TITLE)')
+		self._db_execute(self._c, u'SELECT rowid, flag_cache, unread_count_cache, entry_count_cache, pollfail, first_entry_cache FROM feeds ORDER BY UPPER(TITLE)')
 		cache = self._c.fetchall()
 		self.set_setting(BOOL, "feed_cache_dirty", True)
-		#self._db_execute(self._c, u'UPDATE settings SET value=1 WHERE data="feed_cache_dirty"')
-		#self._db.commit()
 		self.cache_dirty=True
 		return cache
 		
@@ -708,13 +727,13 @@ class ptvDB:
 		#on success, fetch will return the url itself
 		if self._c.fetchone() != (url,):
 			if title is not None:
-				self._db_execute(self._c, u"""INSERT INTO feeds (title,url,polled,pollfail,modified,pollfreq,lastpoll,newatlast,flags,feed_pointer,image) VALUES (?, ?,0,0, 0,1800,0,0,0,-1,"")""", (title,url)) #default 30 minute polling
+				self._db_execute(self._c, u"""INSERT INTO feeds (title,url,pollfail,modified,pollfreq,lastpoll,newatlast,flags,feed_pointer,image) VALUES (?, ?,0, 0,1800,0,0,0,-1,"")""", (title,url)) #default 30 minute polling
 			else:
-				self._db_execute(self._c, u"""INSERT INTO feeds (title,url,polled,pollfail,modified,pollfreq,lastpoll,newatlast,flags,feed_pointer,image) VALUES (?, ?,0,0, 0,1800,0,0,0,-1,"")""", (url,url)) #default 30 minute polling
+				self._db_execute(self._c, u"""INSERT INTO feeds (title,url,pollfail,modified,pollfreq,lastpoll,newatlast,flags,feed_pointer,image) VALUES (?, ?,0, 0,1800,0,0,0,-1,"")""", (url,url)) #default 30 minute polling
 			self._db.commit()
-			self._db_execute(self._c, u"""SELECT rowid,url FROM feeds WHERE url=?""",(url,))
-			feed_id = self._c.fetchone()
-			feed_id = feed_id[0]
+			#self._db_execute(self._c, u"""SELECT rowid,url FROM feeds WHERE url=?""",(url,))
+			self._db_execute(self._c,  "SELECT last_insert_rowid()")
+			feed_id = self._c.fetchone()[0]
 			d={ 'title':_("Waiting for first poll"),
 				'description':_("This feed has not yet been polled successfully.  There might be an error with this feed.<br>"+str(url)),
 			  }
@@ -736,9 +755,10 @@ class ptvDB:
 			s = sha.new()
 			#this is lame I know.  We shouldn't ever get a collision here though!
 			s.update(filter_name+query)
-			self._db_execute(self._c, u'INSERT INTO feeds (title,url,feed_pointer,description,polled,pollfail,modified,pollfreq,lastpoll,newatlast,flags) VALUES (?, ?,?,?,0,0, 0,21600,0,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
+			self._db_execute(self._c, u'INSERT INTO feeds (title,url,feed_pointer,description,pollfail,modified,pollfreq,lastpoll,newatlast,flags) VALUES (?, ?,?,?,0, 0,21600,0,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
 			self._db.commit()
-			self._db_execute(self._c, u'SELECT rowid FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
+			#self._db_execute(self._c, u'SELECT rowid FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
+			self._db_execute(self._c,  "SELECT last_insert_rowid()")
 			return self._c.fetchone()[0]
 		else:
 			raise FeedAlreadyExists, result[0]
