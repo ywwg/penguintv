@@ -52,13 +52,15 @@
 }
 
 .media {
-	background-color:#EEEEEE; 
+	background-color:#ddd; 
 	border-color:#000000; 
 	border-width:2px; 
 	border-style: solid; 
-	padding:8pt; 
 	margin:8pt; 
+	overflow: auto;
 }
+
+.media a img { border: none ; }
 
 dd { 
 	padding-left: 20pt; 
