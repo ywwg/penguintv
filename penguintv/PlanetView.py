@@ -172,7 +172,7 @@ class PlanetView(gobject.GObject):
 					PlanetView.PORT += 1
 			if PlanetView.PORT==8050:
 				logging.warning("tried a lot of ports without success.  Problem?")
-			t = threading.Thread(None, self._update_server.serve_forever)
+			t = threading.Thread(None, self._update_server.serve_forever, name="PTV AJAX Server Thread")
 			t.setDaemon(True)
 			t.start()
 			img_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()

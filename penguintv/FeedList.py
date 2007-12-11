@@ -686,7 +686,7 @@ class FeedList(gobject.GObject):
 	def filter_all(self, keep_misfiltered=True):
 		if utils.HAS_LUCENE and self.filter_setting == SEARCH:
 			print "not filtering, we have search results"
-			return #not my job
+			return False#not my job
 			
 		#gtk.gdk.threads_enter()
 		selected = self.get_selected()

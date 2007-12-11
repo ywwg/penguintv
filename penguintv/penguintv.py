@@ -1943,7 +1943,7 @@ class PenguinTVApp(gobject.GObject):
 			
 			if self.db == None:
 				self.db = ptvDB.ptvDB(self.polling_callback)
-						
+			
 			born_t = time.time()
 			while self.__isDying == False:
 				while self.updater.updater_gen().next():
