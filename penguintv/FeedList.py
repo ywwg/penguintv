@@ -99,6 +99,7 @@ class FeedList(gobject.GObject):
 		self._state = S_DEFAULT
 		self._fancy = fancy
 		self.__widget_width = 0
+		self.__resetting_columns = False
 		
 		#build list view
 		
@@ -377,7 +378,7 @@ class FeedList(gobject.GObject):
 		self._app.main_window.update_progress_bar(-1,MainWindow.U_LOADING)
 		# Once we are done populating, set size to fixed, otherwise we get
 		# a nasty flicker when we click on feeds
-		self._reset_articles_column()
+		self.resize_columns()
 		
 		
 		if not self._cancel_load[0]:
@@ -395,17 +396,22 @@ class FeedList(gobject.GObject):
 	def resize_columns(self):
 		self._reset_articles_column()
 		
-	def _reset_articles_column(self, allow_recur=True):
+	def _reset_articles_column(self, harsh=False):
 		#temporarily allow articles column to size itself, then set it
 		#to fixed again to avoid flicker.
 		
+		#don't allow us to resize twice in a row (before idle_add can act)
+		if self.__resetting_columns:
+			return
+		self.__resetting_columns = True
+			
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-		
 		self._widget.columns_autosize()
 		
 		def _finish_resize():
 			self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 			self._articles_column.set_min_width(self._articles_column.get_width())
+			self.__resetting_columns = False
 			return False
 			
 		gobject.idle_add(_finish_resize)
@@ -441,6 +447,7 @@ class FeedList(gobject.GObject):
 			return
 			
 		need_filter = False #some updates will require refiltering. 
+		need_resize = False
 		
 		if 'title' in update_what or 'icon' in update_what:
 			if not update_data.has_key('flag_list'):
@@ -474,10 +481,12 @@ class FeedList(gobject.GObject):
 			feed[TOTAL]    = len(update_data['flag_list'])
 
 			readinfo_string = "("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")"			
-			if self._fancy:
-				readinfo_string += "\n"
-			feed[READINFO] = self._get_markedup_title(readinfo_string,flag)
-			self._reset_articles_column()
+			#if self._fancy:
+			#	readinfo_string += "\n"
+			if readinfo_string != feed[READINFO]:
+				feed[READINFO] = self._get_markedup_title(readinfo_string,flag)
+				#print feed[MARKUPTITLE], feed[READINFO]
+				need_resize = True
 			
 			if self._filter_unread: 	 
 				if unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it 	 
@@ -511,7 +520,8 @@ class FeedList(gobject.GObject):
 				need_filter = True
 				#columns_autosize produces a flicker, so only do it if we need to
 				if abs(new_title_len - old_title_len) > 5:
-					self.resize_columns()
+					need_resize = True
+					#self.resize_columns()
 			
 		if 'icon' in update_what:
 			if not update_data.has_key('pollfail'):
@@ -527,7 +537,11 @@ class FeedList(gobject.GObject):
 			 		need_filter = True	
 			
 		if need_filter and self._state != S_SEARCH:#not self._showing_search:
+			print "FILTERING"
 			self._filter_one(feed)
+			
+		if need_resize:
+			self.resize_columns()
 			
 	def mark_entries_read(self, num_to_mark, feed_id=None):
 	
@@ -738,7 +752,7 @@ class FeedList(gobject.GObject):
 			if feed[VISIBLE] != passed_filter:
 				feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
-		self._reset_articles_column()
+		self.resize_columns()
 		#gtk.gdk.threads_leave()
 		return False
 

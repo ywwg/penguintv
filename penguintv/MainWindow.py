@@ -654,7 +654,6 @@ class MainWindow(gobject.GObject):
 		
 		self.update_filters()
 		
-		
 		#dnd
 		self._TARGET_TYPE_TEXT = 80
 		self._TARGET_TYPE_URL = 81
@@ -666,7 +665,12 @@ class MainWindow(gobject.GObject):
 		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
 		if val < 10: val=50
 		self.feed_pane.set_position(val)
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
+		
+		if utils.RUNNING_HILDON:
+			e_p_default = 270
+		else:
+			e_p_default = 370
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', e_p_default)
 		if val < 10: val = 50
 		self.entry_pane.set_position(val)
 		

@@ -251,8 +251,6 @@ class MediaManager:
 				#	self.finished_callback(download, (download.media,MediaManager.STOPPED,None)) 
 			try:
 				self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
-				if not self.quitting:
-					self.pool.setThreadCount(5)
 			except AttributeError:
 				logging.warning("no pool to delete, no problem")
 			#reset
@@ -266,8 +264,6 @@ class MediaManager:
 			for download in self.downloads:
 				download.pause()
 			self.pool.joinAll(False,True) #don't wait for tasks, but let the threads die naturally
-			if not self.quitting:
-				self.pool.setThreadCount(5)
 			self.pause_state = PAUSED
 		
 	def unpause_downloads(self):

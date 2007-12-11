@@ -363,7 +363,8 @@ class PenguinTVApp(gobject.GObject):
 	#	self._delayed_set_viewed(feed_id, entrylist)
 	
 	def __entries_viewed_cb(self, o, feed_id, entrylist):
-		self.mark_entrylist_as_viewed(feed_id, entrylist)
+		id_list = [e['entry_id'] for e in entrylist]
+		self.mark_entrylist_as_viewed(feed_id, id_list)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
@@ -1099,6 +1100,7 @@ class PenguinTVApp(gobject.GObject):
 			if saved_auto:
 				self._auto_download_unviewed()
 				self._reset_auto_download()
+			self.feed_list_view.resize_columns()
 			yield False
 		
 		gobject.idle_add(marking_gen(list).next)
@@ -1121,9 +1123,7 @@ class PenguinTVApp(gobject.GObject):
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
 		
-		l = [e['entry_id'] for e in entrylist]
-
-		self.db.set_entrylist_read(l,True)
+		self.db.set_entrylist_read(entrylist, True)
 		#self.emit('entrylist-read', feed_id, entrylist)
 			
 	def mark_entry_as_unviewed(self,entry):
@@ -1540,10 +1540,14 @@ class PenguinTVApp(gobject.GObject):
 	def _first_poll_marking(self, feed_id): 
 		"""mark all media read except first one.  called when we first add a feed"""
 		all_feeds_list = self.db.get_media_for_download()
-		this_feed_list = [item for item in all_feeds_list if item[3] == feed_id]
-		for item in this_feed_list[1:]:
-			self.db.set_entry_read(item[2],1)
-			self.emit('entry-updated', item[2], feed_id)
+		this_feed_list = [item[2] for item in all_feeds_list if item[3] == feed_id]
+		self.db.set_entrylist_read(this_feed_list[1:], True)
+		self.mark_entrylist_as_viewed(feed_id, this_feed_list[1:])
+		self.emit('entrylist-read', feed_id, this_feed_list[1:])
+		
+		#for item in this_feed_list[1:]:
+		#	self.db.set_entry_read(item[2],1)
+		#	self.emit('entry-updated', item[2], feed_id)
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
 		try:

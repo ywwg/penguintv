@@ -533,6 +533,7 @@ class ptvDB:
 							    flag_cache INT,
 							    entry_count_cache INT,
 							    unread_count_cache INT,
+							    first_entry_cache TEXT,
 							    feed_pointer INT,
 							    image TEXT,
 							    UNIQUE(url)
@@ -2453,6 +2454,7 @@ class ptvDB:
 		"""A generator which first yields the number of feeds, and then the feedids as they
 		are inserted, and finally -1 on completion"""
 		if not utils.HAS_PYXML and opml == True:
+			logging.warning("Trying to import an OPML, but we don't have pyxml.  Aborting import")
 			yield (-1,0)
 			yield (1,0)
 			yield (-1,0)

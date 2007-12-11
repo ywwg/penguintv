@@ -722,7 +722,8 @@ class PlanetView(gobject.GObject):
 		self.display_item()
 		
 	def _moz_link_message(self, data):
-		self._main_window.display_status_message(self._moz.get_link_message())
+		if not utils.RUNNING_HILDON:
+			self._main_window.display_status_message(self._moz.get_link_message())
 	
 	def _gconf_reset_moz_font(self, client, *args, **kwargs):
 		self._reset_moz_font()
