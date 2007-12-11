@@ -481,8 +481,8 @@ class FeedList(gobject.GObject):
 			feed[TOTAL]    = len(update_data['flag_list'])
 
 			readinfo_string = "("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")"			
-			#if self._fancy:
-			#	readinfo_string += "\n"
+			if self._fancy:
+				readinfo_string += "\n"
 			if readinfo_string != feed[READINFO]:
 				feed[READINFO] = self._get_markedup_title(readinfo_string,flag)
 				#print feed[MARKUPTITLE], feed[READINFO]

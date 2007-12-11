@@ -272,7 +272,7 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/poll_on_startup',self._gconf_set_poll_on_startup)
 			conf.notify_add('/apps/penguintv/bt_max_port',self._gconf_set_bt_maxport)
 			conf.notify_add('/apps/penguintv/bt_min_port',self._gconf_set_bt_minport)
-			conf.notify_add('/apps/penguintv/ul_limit',self._gconf_set_bt_ullimit)
+			conf.notify_add('/apps/penguintv/bt_ul_limit',self._gconf_set_bt_ullimit)
 			conf.notify_add('/apps/penguintv/feed_refresh_frequency',self._gconf_set_polling_frequency)
 			conf.notify_add('/apps/penguintv/app_window_layout',self._gconf_set_app_window_layout)
 			conf.notify_add('/apps/penguintv/feed_refresh_method',self._gconf_set_feed_refresh_method)
