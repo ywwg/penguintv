@@ -19,7 +19,7 @@ class ptvDbus(dbus.service.Object):
 		if utils.RUNNING_SUGAR:
 			self.sugar_add_button.popup()
 		else:
-			self._app.window_add_feed.show(False)
+			self._app.main_window.on_add_feed_activate()
 		self._app.window_add_feed.set_location(url)
 
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")

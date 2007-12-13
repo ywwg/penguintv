@@ -137,7 +137,7 @@ class FeedList(gobject.GObject):
 		self._articles_column.pack_start(self._articles_renderer, False)
 		self._articles_column.set_attributes(self._articles_renderer, markup=READINFO)		
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
-		self._articles_column.set_expand(True)
+		self._articles_column.set_expand(False)
 		self._widget.append_column(self._articles_column)
 		
 		# Image Column
@@ -148,7 +148,7 @@ class FeedList(gobject.GObject):
 		self._image_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 		self._image_column.set_min_width(MAX_WIDTH + 10)
 		self._image_column.set_max_width(MAX_WIDTH + 10)
-		self._articles_column.set_expand(False)
+		self._image_column.set_expand(False)
 		if self._fancy:
 			self._widget.append_column(self._image_column)
 		
@@ -270,6 +270,7 @@ class FeedList(gobject.GObject):
 		
 		# While populating, allow articles column to autosize
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._articles_column.set_min_width(50)
 		
 		# create a sorted list of feedids with the visible ones first
 		# if not ALL, then we don't sort and it's all fine
@@ -406,6 +407,7 @@ class FeedList(gobject.GObject):
 		self.__resetting_columns = True
 			
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		self._articles_column.set_min_width(50)
 		self._widget.columns_autosize()
 		
 		def _finish_resize():
