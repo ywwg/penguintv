@@ -674,7 +674,7 @@ class PenguinTVApp(gobject.GObject):
 			try:
 				size = os.stat(filename)[6]
 				removed_size += size
-				logging.info("removing:" + filename +str(size) + "bytes for a total of" + str(removed_size))
+				logging.info("removing: %s %i bytes for a total of %i" % (filename, size, removed_size))
 				self.db.delete_media(media_id)
 				self.db.set_entry_read(entry_id, True)
 				self.emit('entry-updated', entry_id, feed_id)

@@ -1218,8 +1218,11 @@ class ptvDB:
 		link = self._c.fetchone()
 		if link is not None:
 			link = link[0]
-			if link == "" and data['feed'].has_key('link'):
-				self._db_execute(self._c, u'UPDATE feeds SET link=? WHERE rowid=?',(data['feed']['link'],feed_id))
+		#if there was no result, or result is None, it's blank
+		if link is None:
+			link = ""
+		if link == "" and data['feed'].has_key('link'):
+			self._db_execute(self._c, u'UPDATE feeds SET link=? WHERE rowid=?',(data['feed']['link'],feed_id))
 		#self._db.commit()
 		
 		#populate the entries
@@ -1560,6 +1563,11 @@ class ptvDB:
 				entry_id = entry_item[ID]
 				old_hash = entry_item[BODY]
 				new_hash = t_item['body']
+				break
+			elif entry_item[BODY] == t_item['body']:
+				entry_id = entry_item[ID]
+				old_hash = entry_item[TITLE]
+				new_hash = t_item['title']
 				break
 
 		if entry_id == -1:
