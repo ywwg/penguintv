@@ -372,11 +372,8 @@ class PenguinTVApp(gobject.GObject):
 	def __online_status_changed(self, o, connected):
 		self._net_connected = connected
 		if not self._net_connected:
-			logging.debug("offline")
 			if self._update_thread is not None:
-				logging.debug("update thread exists")
 				if self._update_thread.isAlive():
-					logging.debug("and is alive.  cancelling poll")
 					updater, db = self._get_updater()
 					db.interrupt_poll_multiple()
 			if self.db:
@@ -1068,14 +1065,9 @@ class PenguinTVApp(gobject.GObject):
 				for feed in newfeeds:
 					self.feed_list_view.add_feed(feed)
 			self.emit('tags-changed', 0)
-			saved_auto = False
 			self.main_window.display_status_message("")
-			#shut down auto-downloading for now (need to wait until feeds are marked)
-			if self._auto_download:
-				saved_auto = True
-				self._auto_download = False
 			self.do_poll_multiple(feeds=newfeeds)
-			task_id = self._gui_updater.queue(self.__first_poll_marking_list, (newfeeds,saved_auto), self._polling_taskinfo)
+			task_id = self._gui_updater.queue(self.__finish_import, None, self._polling_taskinfo)
 			dialog.hide()
 			del dialog
 			if len(newfeeds)==1:
@@ -1086,28 +1078,11 @@ class PenguinTVApp(gobject.GObject):
 		#schedule the import pseudo-threadidly
 		gobject.idle_add(import_gen(f).next)
 					
-	def __first_poll_marking_list(self, list, saved_auto=False):
-		def marking_gen(list):
-			self.main_window.display_status_message(_("Finishing OPML import"))
-			selected = self.feed_list_view.get_selected()
-			for feed in list:
-				self._first_poll_marking(feed)
-				self.feed_list_view.update_feed_list(feed,['readinfo','icon','title'])
-				if feed == selected:
-					self._entry_list_view.update_entry_list()
-				yield True
-			self.main_window.display_status_message("")
-			if saved_auto:
-				self._auto_download_unviewed()
-				self._reset_auto_download()
-			self.feed_list_view.resize_columns()
-			yield False
-		
-		gobject.idle_add(marking_gen(list).next)
+	def __finish_import(self):
+		self.main_window.display_status_message("")
+		self.feed_list_view.resize_columns()
+		selected = self.feed_list_view.get_selected()
 
-	def _reset_auto_download(self):
-		self._auto_download = True
-			
 	def mark_entry_as_viewed(self,entry, feed_id): #, update_entrylist=True):
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
@@ -1208,11 +1183,15 @@ class PenguinTVApp(gobject.GObject):
 	def refresh_feed(self, feed):
 		if not self._net_connected:
 			return
-			
+		
+		info = self.db.get_feed_info(feed)	
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
+			if info['lastpoll'] == 0 and success:
+				self._first_poll_marking(feed)
 		self.main_window.display_status_message(_("Polling Feed..."))
 		updater, db = self._get_updater()
+		
 		task_id = updater.queue(db.poll_feed_trap_errors,(feed,  _refresh_cb))
 		
 	def _unset_state(self, authorize=False):
@@ -1534,8 +1513,6 @@ class PenguinTVApp(gobject.GObject):
 	def __feed_added_cb(self, app, feed_id, success):
 		if success:
 			self._first_poll_marking(feed_id)
-			if self._auto_download:
-				self._auto_download_unviewed()
 		
 	def _first_poll_marking(self, feed_id): 
 		"""mark all media read except first one.  called when we first add a feed"""
@@ -1544,10 +1521,8 @@ class PenguinTVApp(gobject.GObject):
 		self.db.set_entrylist_read(this_feed_list[1:], True)
 		self.mark_entrylist_as_viewed(feed_id, this_feed_list[1:])
 		self.emit('entrylist-read', feed_id, this_feed_list[1:])
-		
-		#for item in this_feed_list[1:]:
-		#	self.db.set_entry_read(item[2],1)
-		#	self.emit('entry-updated', item[2], feed_id)
+		if self._auto_download:
+			self._auto_download_unviewed()
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
 		try:
@@ -1869,6 +1844,9 @@ class PenguinTVApp(gobject.GObject):
 				else:
 					update_data['polling_multiple'] = True
 					self._threaded_emit('feed-polled', feed_id, update_data)
+					if update_data.has_key('first_poll'):
+						if update_data['first_poll']:
+							self._gui_updater.queue(self._first_poll_marking, feed_id)
 			elif not cancelled and feed_id != -1:
 				#check image just in case
 				self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['image']))
@@ -2059,7 +2037,7 @@ def do_quit(event, app):
         
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	if HAS_GNOME:
-		logging.debug("have gnome")
+		logging.debug("Have GNOME")
 		gtk.gdk.threads_init()
 		gnome.init("PenguinTV", utils.VERSION)
 		try:
@@ -2101,7 +2079,7 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		app = PenguinTVApp()
 		app.main_window.Show()
 	else:
-		logging.debug("no gnome")
+		logging.debug("No gnome")
 		window = gtk.Window()
 		gtk.gdk.threads_init()
 		app = PenguinTVApp()

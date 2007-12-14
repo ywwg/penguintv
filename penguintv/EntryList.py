@@ -96,6 +96,8 @@ class EntryList(gobject.GObject):
 		self._handlers.append((app.disconnect, h_id))
 		h_id = app.connect('state-changed', self.__state_changed_cb)
 		self._handlers.append((app.disconnect, h_id))
+		h_id = app.connect('entrylist-read', self.__entrylist_read_cb)
+		self._handlers.append((app.disconnect, h_id))
 		#h_id = app.connect('entries-viewed', self.__entries_viewed_cb)
 		#self._handlers.append((app.disconnect, h_id))
 		
@@ -123,6 +125,10 @@ class EntryList(gobject.GObject):
 			
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
+		
+	def __entrylist_read_cb(self, app, feed_id, entrylist):
+		for e in entrylist:
+			self.update_entry_list(e)
 		
 	def __entries_viewed_cb(self, app, feed_id, entrylist):
 		for e in entrylist:

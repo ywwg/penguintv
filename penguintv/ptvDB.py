@@ -954,13 +954,16 @@ class ptvDB:
 		"""a wrapper function that returns the index along with the result
 		so we can sort.  Each poller needs its own db connection for locking reasons"""
 		
+		self._db_execute(self._c, u'SELECT lastpoll FROM feeds WHERE rowid=?', (feed_id,))
+		last_poll_time = self._c.fetchone()[0]
+		
 		poll_arguments = 0
 		result = 0
 		try:
 			#poll_arguments = args[1]
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
-				
+			
 			result = self.poll_feed(feed_id, args, preparsed=data)
 
 			if self._exiting:
@@ -998,6 +1001,7 @@ class ptvDB:
 		update_data={}
 		
 		if result > 0:
+			update_data['first_poll'] = last_poll_time == 0
 			update_data['new_entries'] = result
 			if self.is_feed_filter(feed_id):
 				entries = self.get_entrylist(feed_id) #reinitialize filtered_entries dict
@@ -1023,6 +1027,7 @@ class ptvDB:
 			update_data['flag_list']=flag_list
 			update_data['pollfail'] = False
 			update_data['no_changes'] = True
+			update_data['first_poll'] = False
 				
 		return (feed_id, update_data, total)
 			
@@ -1457,12 +1462,18 @@ class ptvDB:
 						ditchables = self._c.fetchall()
 						for e in ditchables:
 							self._db_execute(self._c, """DELETE FROM entries WHERE rowid=?""",(e[0],))
+		#delete pre-poll entry
 		self._db_execute(self._c, "DELETE FROM entries WHERE fakedate=0 AND feed_id=?",(feed_id,))
+
 		#self.update_entry_flags(feed_id,db)
 		#self.update_feed_flag(feed_id,db)
-		self._db.commit()
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
 			self._set_new_update_freq(feed_id, new_items)
+		else:
+			cur_time = int(time.time())
+			self._db_execute(self._c, u'UPDATE feeds SET lastpoll=? WHERE rowid=?',(cur_time,feed_id))
+		self._db.commit()
+		
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
 				self.reindex()
@@ -2332,8 +2343,6 @@ class ptvDB:
 		result = self._c.fetchone()
 		if result:
 			return result[0]
-		print "no tags for", feed_id
-		traceback.print_stack()
 		return 0
 		
 	def set_flags_for_feed(self, feed_id, flags):
