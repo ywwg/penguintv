@@ -722,8 +722,8 @@ class MainWindow(gobject.GObject):
 		#don't fullscreen under these exceptions
 		if self._notebook.get_current_page() == N_PLAYER:
 			assert self._gstreamer_player is not None
-		if self._notebook.get_current_page() == N_DOWNLOADS:
-			return
+		#if self._notebook.get_current_page() == N_DOWNLOADS:
+		#	return
 			
 		self._fullscreen = not self._fullscreen
 		if not self._fullscreen:
@@ -733,18 +733,21 @@ class MainWindow(gobject.GObject):
 
 	def _do_fullscreen(self):
 		if self._notebook.get_current_page() == N_PLAYER:
-			self._gstreamer_player.toggle_controls(True)
 			pixmap = gtk.gdk.Pixmap(None, 1, 1, 1)
 			color = gtk.gdk.Color()
 			cursor = gtk.gdk.Cursor(pixmap, pixmap, color, color, 0, 0)
 			self.window.window.set_cursor(cursor)
-		elif self._notebook.get_current_page() == N_FEEDS:
-			self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
-			self._db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
-			if self.layout == 'planet':
-				self.entry_pane.set_position(0)
-			else:
-				self.feed_pane.set_position(0)
+		if self._gstreamer_player:
+			self._gstreamer_player.toggle_controls(True)
+			
+		#elif self._notebook.get_current_page() == N_FEEDS:
+		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
+		self._db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
+		if self.layout == 'planet':
+			self.entry_pane.set_position(0)
+		else:
+			self.feed_pane.set_position(0)
+
 		self._notebook.set_show_tabs(False)
 		self._widgetTree.get_widget('toolbar1').hide()
 		if utils.RUNNING_SUGAR:
@@ -755,22 +758,29 @@ class MainWindow(gobject.GObject):
 			self._widgetTree.get_widget('menubar2').hide()
 			self._widgetTree.get_widget('status_hbox').hide()
 			self._filter_container.hide_all()
-			self.app_window.window.fullscreen()
+			self.app_window.fullscreen()
 
 	def _do_unfullscreen(self):
 		if self._notebook.get_current_page() == N_PLAYER:
-			self._gstreamer_player.toggle_controls(False)
 			self.window.window.set_cursor(None)
-		elif self._notebook.get_current_page() == N_FEEDS:
-			if self.layout == 'planet':
-				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
-				self.entry_pane.set_position(val)
-			else:
-				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
-				self.feed_pane.set_position(val)
+		if self._gstreamer_player is not None:
+			self._gstreamer_player.toggle_controls(False)
+			
+		#elif self._notebook.get_current_page() == N_FEEDS:
+		if self.layout == 'planet':
+			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
+			self.entry_pane.set_position(val)
+		else:
+			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
+			self.feed_pane.set_position(val)
 			
 		self._notebook.set_show_tabs_if_multi()
 		self._widgetTree.get_widget('toolbar1').show()
+		
+		def _unfullscreen_finish():
+			self.app_window.unfullscreen()
+			return False
+		
 		if utils.RUNNING_SUGAR:
 			self._status_view.show()
 		elif utils.RUNNING_HILDON:
@@ -779,7 +789,7 @@ class MainWindow(gobject.GObject):
 			self._widgetTree.get_widget('menubar2').show()
 			self._widgetTree.get_widget('status_hbox').show()
 			self._filter_container.show_all()
-			self.app_window.window.unfullscreen()
+			gobject.idle_add(_unfullscreen_finish)
 	
 	def on_about_activate(self,event):
 		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')

@@ -101,11 +101,13 @@ T_TAG     = 1
 T_SEARCH  = 2
 T_BUILTIN = 3
 
+#obsolete tag-based flags (needed for schema upgrades)
 T_NOAUTODOWNLOAD="noautodownload"
 T_NOSEARCH="nosearch"
 T_NOAUTOEXPIRE="noautoexpire"
 T_NOTIFYUPDATES="notify"
 
+#new bit-based flags
 FF_NOAUTODOWNLOAD = 1
 FF_NOSEARCH       = 2
 FF_NOAUTOEXPIRE   = 4
