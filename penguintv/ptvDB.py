@@ -468,6 +468,7 @@ class ptvDB:
 						   flag_cache, entry_count_cache, unread_count_cache, 
 						   feed_pointer, image""")
 		self._db_execute(self._c, u'ALTER TABLE feeds ADD COLUMN first_entry_cache TEXT')
+		self._db_execute(self._c, u'UPDATE feeds SET first_entry_cache=""')
 		self._db_execute(self._c, u'UPDATE settings SET value=6 WHERE data="db_ver"')
 		
 		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
