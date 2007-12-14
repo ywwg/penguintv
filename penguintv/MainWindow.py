@@ -718,6 +718,9 @@ class MainWindow(gobject.GObject):
 	def get_parent(self):
 		return self.window
 		
+	def on_toggle_fullscreen_activate(self, event=None):
+		self.toggle_fullscreen()
+		
 	def toggle_fullscreen(self):
 		#don't fullscreen under these exceptions
 		if self._notebook.get_current_page() == N_PLAYER:
@@ -726,10 +729,10 @@ class MainWindow(gobject.GObject):
 		#	return
 			
 		self._fullscreen = not self._fullscreen
-		if not self._fullscreen:
-			self._do_unfullscreen()
-		else:
+		if self._fullscreen:
 			self._do_fullscreen()
+		else:
+			self._do_unfullscreen()
 
 	def _do_fullscreen(self):
 		if self._notebook.get_current_page() == N_PLAYER:
@@ -1140,6 +1143,9 @@ class MainWindow(gobject.GObject):
 		else: #regular desktop version..
 			if keyname == 'F11':
 				self.toggle_fullscreen()
+				#the key press will also trigger the accelerator once the menu
+				#comes back -- stop it
+				widget.stop_emission("key-press-event")
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()

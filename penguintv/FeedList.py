@@ -307,6 +307,8 @@ class FeedList(gobject.GObject):
 				pollfail   = cached[4]
 				entry_count= cached[3]
 				m_first_entry_title = cached[5]
+				if m_first_entry_title is None:
+					m_first_entry_title = ""
 			else:
 				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
@@ -320,8 +322,6 @@ class FeedList(gobject.GObject):
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
-			if m_first_entry_title is None:
-				m_first_entry_title = ""
 				
 			if self._feedlist[i][FLAG]!=0:
 				flag = self._feedlist[i][FLAG] #don't overwrite flag (race condition)
