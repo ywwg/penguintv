@@ -1364,7 +1364,7 @@ class ptvDB:
 				item['date_parsed'] = item['update_parsed']
 			
 			if not item.has_key('date_parsed') or item['date_parsed'] is None:
-				item['date_parsed']=(0,0,0,0,0,0,0,0,0)
+				item['date_parsed']=time.localtime()
 				
 			status = self._get_status(item, existing_entries, use_guid)
 			
