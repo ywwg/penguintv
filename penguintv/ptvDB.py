@@ -1238,17 +1238,19 @@ class ptvDB:
 		existing_entries = self._c.fetchall()
 		
 		#only use GUID if there are no dupes -- thanks peter's feed >-(
-		use_guid = True
+		guid_quality = 0.0
 		if len(existing_entries) > 0:
 			guids = [e[1] for e in existing_entries]
 			guids.sort()	
-			prev_g = guids[0]
-			for g in guids[1:]:
-				if g == prev_g:
-					use_guid = False
-					break
-				prev_g = g
-			
+			if len(guids[0]) > 2: #too short to be valuable
+				prev_g = guids[0]
+				dupe_count = 0.0
+				for g in guids[1:50]: #up to first 50 is fine
+					if g == prev_g:
+						dupe_count += 1.0
+					prev_g = g
+				guid_quality = 1 - (dupe_count / len(existing_entries))
+		
 		#we can't trust the dates inside the items for timing data
 		#bad formats, no dates at all, and timezones screw things up
 		#so I introduce a fake date which works for determining read and
@@ -1372,7 +1374,7 @@ class ptvDB:
 			if not item.has_key('date_parsed') or item['date_parsed'] is None:
 				item['date_parsed']=time.localtime()
 				
-			status = self._get_status(item, existing_entries, use_guid)
+			status = self._get_status(item, existing_entries, guid_quality)
 			
 			if status[0]==NEW:
 				new_items = new_items+1
@@ -1544,7 +1546,7 @@ class ptvDB:
 		self._db_execute(self._c, 'UPDATE feeds SET pollfreq=? WHERE rowid=?',(poll_freq,feed_id))
 		self._db.commit()
 		
-	def _get_status(self, item, existing_entries, use_guid):
+	def _get_status(self, item, existing_entries, guid_quality):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
@@ -1559,20 +1561,32 @@ class ptvDB:
 				'link': item['link'],
 				'title': item['title']}
 				
-		#print item['title'], item['guid']
 		for entry_item in existing_entries:
-			if len(str(t_item['guid'])) > 2 and use_guid: #even 3 chars for a guid seems small, but oh well
-				if str(entry_item[GUID]) == str(t_item['guid']):# and entry_item[TITLE] == t_item['title']:
+			if guid_quality > 0.7: 
+				if str(entry_item[GUID]) == str(t_item['guid']):
 					entry_id = entry_item[ID]
 					old_hash = entry_item[BODY]
 					new_hash = t_item['body']
 					break
+			elif guid_quality > 0.1:
+				if str(entry_item[GUID]) == str(t_item['guid']):
+					if entry_item[TITLE] == t_item['title']:
+						entry_id = entry_item[ID]
+						old_hash = entry_item[BODY]
+						new_hash = t_item['body']
+						break
 			elif t_item['link']!='':
-				if entry_item[LINK] == t_item['link'] and entry_item[TITLE] == t_item['title']:
-					entry_id = entry_item[ID]
-					old_hash = entry_item[BODY]
-					new_hash = t_item['body']
-					break
+				if entry_item[LINK] == t_item['link']:
+					if entry_item[TITLE] == t_item['title']:
+						entry_id = entry_item[ID]
+						old_hash = entry_item[BODY]
+						new_hash = t_item['body']
+						break
+					elif entry_item[BODY] == t_item['body']:
+						entry_id = entry_item[ID]
+						old_hash = entry_item[TITLE]
+						new_hash = t_item['title']
+						break
 			elif entry_item[TITLE] == t_item['title']:
 				entry_id = entry_item[ID]
 				old_hash = entry_item[BODY]

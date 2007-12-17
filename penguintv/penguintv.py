@@ -373,7 +373,7 @@ class PenguinTVApp(gobject.GObject):
 		self._net_connected = connected
 		if not self._net_connected:
 			if self._update_thread is not None:
-				if self._update_thread.isAlive():
+				if self._update_thread.isAlive() and not self._update_thread.isDying():
 					updater, db = self._get_updater()
 					db.interrupt_poll_multiple()
 			if self.db:
@@ -1887,7 +1887,7 @@ class PenguinTVApp(gobject.GObject):
 		delete and restart it.  Otherwise return the current values"""
 		
 		if self._update_thread is not None:
-			if self._update_thread.isAlive():
+			if self._update_thread.isAlive() and not self._update_thread.isDying():
 				updater = self._update_thread.get_updater()
 				updater_thread_db = self._update_thread.get_db()
 				return (updater, updater_thread_db)
@@ -1954,6 +1954,9 @@ class PenguinTVApp(gobject.GObject):
 			self.__isDying = True
 			if self.db is not None:
 				self.db.finish(False)
+				
+		def isDying(self):
+			return self.__isDying
 	
 class CantChangeState(Exception):
 	def __init__(self,m):
