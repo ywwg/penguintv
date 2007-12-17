@@ -529,8 +529,9 @@ class GStreamerPlayer(gobject.GObject):
 			self.ff()
 		elif keyname == 'Left':
 			self.rew()
-		#else:
-		#	print keyname
+		else:
+			return False
+		return True
 			
 	def _on_drawing_area_exposed(self, widget, event):
 		if self._x_overlay is None:

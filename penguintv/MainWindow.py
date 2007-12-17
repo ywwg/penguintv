@@ -86,6 +86,7 @@ class MainWindow(gobject.GObject):
 		self._status_owner = U_NOBODY
 		self._state = S_DEFAULT
 		self._fullscreen = False
+		self._fullscreen_lock = False
 		
 		self._use_internal_player = False
 		if utils.HAS_GSTREAMER and use_internal_player:
@@ -764,6 +765,10 @@ class MainWindow(gobject.GObject):
 			self.app_window.fullscreen()
 
 	def _do_unfullscreen(self):
+		if self._fullscreen_lock:
+			return
+			
+		self._fullscreen_lock = True
 		if self._notebook.get_current_page() == N_PLAYER:
 			self.window.window.set_cursor(None)
 		if self._gstreamer_player is not None:
@@ -782,12 +787,15 @@ class MainWindow(gobject.GObject):
 		
 		def _unfullscreen_finish():
 			self.app_window.unfullscreen()
+			self._fullscreen_lock = False
 			return False
 		
 		if utils.RUNNING_SUGAR:
 			self._status_view.show()
+			self._fullscreen_lock = False
 		elif utils.RUNNING_HILDON:
 			self.window.unfullscreen()
+			self._fullscreen_lock = False
 		else:
 			self._widgetTree.get_widget('menubar2').show()
 			self._widgetTree.get_widget('status_hbox').show()
@@ -1114,7 +1122,16 @@ class MainWindow(gobject.GObject):
 		#if event.state & gtk.gdk.CONTROL_MASK:
 		#	if keyname == 'k':
 		#		self.search_entry.grab_focus()
-		
+
+		if event.state & gtk.gdk.MOD1_MASK:
+			if keyname == '1':
+				self._notebook.set_current_page(N_FEEDS)
+			elif keyname == '2':
+				if self._notebook.is_showing(N_PLAYER):
+					self._notebook.set_current_page(N_PLAYER)
+			elif keyname == '3':
+				if self._notebook.is_showing(N_DOWNLOADS):
+					self._notebook.set_current_page(N_DOWNLOADS)
 		
 		if utils.RUNNING_SUGAR:
 			if keyname == 'KP_Left' or keyname == 'Left' or keyname == 'KP_4':
@@ -1146,6 +1163,12 @@ class MainWindow(gobject.GObject):
 				#the key press will also trigger the accelerator once the menu
 				#comes back -- stop it
 				widget.stop_emission("key-press-event")
+			else:
+				if self._gstreamer_player:
+					#if gstreamer can do something with this key, stop further
+					#emission
+					if self._gstreamer_player.handle_key(keyname):
+						widget.stop_emission("key-press-event")
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()
@@ -1713,6 +1736,12 @@ class NotebookManager(gtk.Notebook):
 				showing_count+=1
 		if showing_count > 1:
 			self.set_show_tabs(True)
+			
+	def is_showing(self, n):
+		try:
+			return self._pages_showing[n]
+		except:
+			return False
 					
 class ShouldntHappenError(Exception):
 	def __init__(self,error):
