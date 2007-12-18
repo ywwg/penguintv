@@ -261,7 +261,7 @@ class FeedList(gobject.GObject):
 	def _update_feeds_generator(self, callback=None, subset=ALL):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
 		selection = self._widget.get_selection()
-		selected = self.get_selected()
+		#selected = self.get_selected()
 		feed_cache = self._db.get_feed_cache()
 		db_feedlist = self._db.get_feedlist()
 		
@@ -385,8 +385,8 @@ class FeedList(gobject.GObject):
 		if not self._cancel_load[0]:
 			if self._fancy:
 				gobject.idle_add(self._load_visible_details().next)
-			if selected:
-				self.set_selected(selected)
+			#if selected:
+			#	self.set_selected(selected)
 			if callback is not None:
 				try: callback()
 				except: pass

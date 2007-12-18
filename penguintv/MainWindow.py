@@ -662,18 +662,19 @@ class MainWindow(gobject.GObject):
 									 ('text/unicode',0,self._TARGET_TYPE_TEXT),
 									 ('text/plain',0,self._TARGET_TYPE_TEXT)]
 		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
-		
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
-		if val < 10: val=50
-		self.feed_pane.set_position(val)
+
+		if self.layout != "planet":		
+			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
+			if val < 10: val = 50
+			self.entry_pane.set_position(val)
 		
 		if utils.RUNNING_HILDON:
-			e_p_default = 270
+			f_p_default = 270
 		else:
-			e_p_default = 370
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', e_p_default)
-		if val < 10: val = 50
-		self.entry_pane.set_position(val)
+			f_p_default = 370
+		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', f_p_default)
+		if val < 10: val=50
+		self.feed_pane.set_position(val)
 		
 		if not self.changing_layout:
 			self.set_active_filter(FeedList.ALL)
@@ -769,8 +770,8 @@ class MainWindow(gobject.GObject):
 			return
 			
 		self._fullscreen_lock = True
-		if self._notebook.get_current_page() == N_PLAYER:
-			self.window.window.set_cursor(None)
+		#if self._notebook.get_current_page() == N_PLAYER:
+		self.window.window.set_cursor(None)
 		if self._gstreamer_player is not None:
 			self._gstreamer_player.toggle_controls(False)
 			
@@ -783,7 +784,7 @@ class MainWindow(gobject.GObject):
 			self.feed_pane.set_position(val)
 			
 		self._notebook.set_show_tabs_if_multi()
-		self._widgetTree.get_widget('toolbar1').show()
+		self._widgetTree.get_widget('toolbar1').show_all()
 		
 		def _unfullscreen_finish():
 			self.app_window.unfullscreen()
@@ -797,8 +798,8 @@ class MainWindow(gobject.GObject):
 			self.window.unfullscreen()
 			self._fullscreen_lock = False
 		else:
-			self._widgetTree.get_widget('menubar2').show()
-			self._widgetTree.get_widget('status_hbox').show()
+			self._widgetTree.get_widget('menubar2').show_all()
+			self._widgetTree.get_widget('status_hbox').show_all()
 			self._filter_container.show_all()
 			gobject.idle_add(_unfullscreen_finish)
 	
@@ -1164,7 +1165,7 @@ class MainWindow(gobject.GObject):
 				#comes back -- stop it
 				widget.stop_emission("key-press-event")
 			else:
-				if self._gstreamer_player:
+				if self._gstreamer_player and self._notebook.get_current_page() == N_PLAYER:
 					#if gstreamer can do something with this key, stop further
 					#emission
 					if self._gstreamer_player.handle_key(keyname):

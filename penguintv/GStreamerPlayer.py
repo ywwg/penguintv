@@ -126,7 +126,7 @@ class GStreamerPlayer(gobject.GObject):
 		s_w.add(self._queue_listview)
 		self._sidepane_vbox.pack_start(s_w, True)
 		button_box = gtk.HButtonBox()
-		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
+		button_box.set_property('layout-style', gtk.BUTTONBOX_END)
 		button = gtk.Button(stock='gtk-remove')
 		button.connect("clicked", self._on_remove_clicked)
 		button_box.add(button)

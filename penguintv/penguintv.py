@@ -304,6 +304,11 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			##PROFILE: comment out
 			self._populate_feeds(self._done_populating)
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
+		if val > 0:
+			self.feed_list_view.set_selected(val)
+		#crash protection: if we crash, we'll have resetted selected_feed to 0
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
 
 		if self._autoresume:
 			gobject.idle_add(self.resume_resumable)
@@ -472,6 +477,10 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',self.feed_list_view.filter_name)
 		else:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/default_filter',"")
+		if not self.main_window.changing_layout:
+			val = self.feed_list_view.get_selected()
+			if val is None: val = 0
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', val)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
 	def resume_resumable(self):
@@ -1390,8 +1399,7 @@ class PenguinTVApp(gobject.GObject):
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
-			selected = self.feed_list_view.get_selected()
-			old_filter = self.main_window.get_active_filter()[1]
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed',self.feed_list_view.get_selected())
 			self.feed_list_view.interrupt()
 			self.feed_list_view.set_selected(None)
 			self.feed_list_view.finalize()
@@ -1409,15 +1417,12 @@ class PenguinTVApp(gobject.GObject):
 			
 			self.main_window.changing_layout = False
 			self._populate_feeds(self._done_populating)
-			while gtk.events_pending(): #wait for pop to be done, _then_ select
-				gtk.main_iteration()
 			self.update_disk_usage()
-			new_selected = self.feed_list_view.get_selected()
-			new_filter = self.main_window.get_active_filter()[1]
-			#don't set selected if they've done anything since the switch
-			if new_selected is None and selected is not None and old_filter == new_filter:
-				self.feed_list_view.set_selected(selected)
-	
+			val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
+			if val > 0:
+				self.feed_list_view.set_selected(val)
+
+
 	def on_window_changing_layout_delete_event(self, widget, event):
 		self.main_window.changing_layout = False
 		return widget.hide_on_delete()
