@@ -307,8 +307,12 @@ class PenguinTVApp(gobject.GObject):
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
 		if val > 0:
 			self.feed_list_view.set_selected(val)
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
+		if val > 0:
+			self._entry_list_view.set_selected(val)
 		#crash protection: if we crash, we'll have resetted selected_feed to 0
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
 
 		if self._autoresume:
 			gobject.idle_add(self.resume_resumable)
@@ -481,6 +485,9 @@ class PenguinTVApp(gobject.GObject):
 			val = self.feed_list_view.get_selected()
 			if val is None: val = 0
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', val)
+			val = self._entry_list_view.get_selected_id()
+			if val is None: val = 0
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', val)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
 	def resume_resumable(self):
@@ -1399,7 +1406,12 @@ class PenguinTVApp(gobject.GObject):
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
-			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed',self.feed_list_view.get_selected())
+			val = self.feed_list_view.get_selected()
+			if val is None: val = 0
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', val)
+			val = self._entry_list_view.get_selected_id()
+			if val is None: val = 0
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', val)
 			self.feed_list_view.interrupt()
 			self.feed_list_view.set_selected(None)
 			self.feed_list_view.finalize()
@@ -1421,7 +1433,9 @@ class PenguinTVApp(gobject.GObject):
 			val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
 			if val > 0:
 				self.feed_list_view.set_selected(val)
-
+			val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
+			if val > 0:
+				self._entry_list_view.set_selected(val)
 
 	def on_window_changing_layout_delete_event(self, widget, event):
 		self.main_window.changing_layout = False

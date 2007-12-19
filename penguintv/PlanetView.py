@@ -252,6 +252,15 @@ class PlanetView(gobject.GObject):
 			return self._entrylist[0]
 		return None
 		
+	def get_selected_id(self):
+		val = self.get_selected()
+		if val is None:
+			return 0
+		return val
+				
+	def set_selected(self, entry_id):
+		pass
+		
 	def get_current_feed_id(self):
 		return self._current_feed_id
 	

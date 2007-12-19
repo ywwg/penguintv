@@ -409,6 +409,13 @@ class EntryList(gobject.GObject):
 			   'flag': s[FLAG],
 			   'feed_id': s[FEED]}
 		return selected
+		
+	def get_selected_id(self, selection=None):
+		selected = self.get_selected(selection)
+		if selected is None:
+			return 0
+		else:
+			return selected['entry_id']
 			
 	def set_selected(self, entry_id):
 		index = self.find_index_of_item(entry_id)
