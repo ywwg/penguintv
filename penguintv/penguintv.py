@@ -304,12 +304,13 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			##PROFILE: comment out
 			self._populate_feeds(self._done_populating)
-		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
-		if val > 0:
-			self.feed_list_view.set_selected(val)
+		#val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
+		#if val > 0:
+		#	self.feed_list_view.set_selected(val)
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
 		if val > 0:
-			self._entry_list_view.set_selected(val)
+			#self._entry_list_view.set_selected(val)
+			self.select_entry(val)
 		#crash protection: if we crash, we'll have resetted selected_feed to 0
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
@@ -1134,7 +1135,7 @@ class PenguinTVApp(gobject.GObject):
 	def mark_feed_as_viewed(self,feed):
 		self.db.mark_feed_as_viewed(feed)
 		self._entry_list_view.populate_if_selected(feed)
-		self.feed_list_view.update_feed_list(feed,['readinfo'],{'unread_count':0})
+		self.feed_list_view.update_feed_list(feed, ['readinfo'])
 		
 	def mark_all_viewed(self):
 		feedlist = self.db.get_feedlist()
@@ -1367,6 +1368,7 @@ class PenguinTVApp(gobject.GObject):
 	def select_entry(self, entry_id):
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.select_feed(feed_id)
+		#FIXME: doesn't display entry because list isn't populated yet
 		self.display_entry(entry_id)
 		self.main_window.notebook_select_page(0)
 
@@ -1430,12 +1432,13 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window.changing_layout = False
 			self._populate_feeds(self._done_populating)
 			self.update_disk_usage()
-			val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
-			if val > 0:
-				self.feed_list_view.set_selected(val)
+			#val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
+			#if val > 0:
+			#	self.feed_list_view.set_selected(val)
 			val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
 			if val > 0:
-				self._entry_list_view.set_selected(val)
+				#self._entry_list_view.set_selected(val)
+				self.select_entry(val)
 
 	def on_window_changing_layout_delete_event(self, widget, event):
 		self.main_window.changing_layout = False
