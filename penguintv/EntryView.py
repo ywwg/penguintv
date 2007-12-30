@@ -167,6 +167,8 @@ class EntryView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('state-changed', self.__state_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
@@ -199,6 +201,15 @@ class EntryView(gobject.GObject):
 	def __entrylist_read_cb(self, app, feed_id, entrylist):
 		for e in entrylist:
 			self.update_if_selected(e, feed_id)
+			
+	def __feed_polled_cb(self, app, feed_id, update_data):
+		pass
+		#FIXME: "custom entry" doesn't really work well
+		#if feed_id == self._current_entry['feed_id']:
+		#	if update_data['pollfail']:
+		#		self.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
+		#	else:
+		#		self.undisplay_custom_entry()
 		
 	#def __setting_changed_cb(self, app, typ, datum, value):
 	#	if datum == '/apps/penguintv/auto_mark_viewed':

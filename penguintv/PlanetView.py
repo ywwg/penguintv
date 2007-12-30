@@ -223,6 +223,10 @@ class PlanetView(gobject.GObject):
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		if feed_id == self._current_feed_id:
 			self.populate_entries(feed_id)
+			if update_data['pollfail']:
+				self.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
+			else:
+				self.undisplay_custom_entry()
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.clear_entries()

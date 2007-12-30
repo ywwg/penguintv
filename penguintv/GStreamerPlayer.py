@@ -4,6 +4,10 @@
 #Copyright 2006, Owen Williams
 #License: GPL
 
+import sys,os,os.path
+import pickle
+import urllib
+
 import pygst
 pygst.require("0.10")
 import gst
@@ -19,10 +23,6 @@ import gettext
 
 locale.setlocale(locale.LC_ALL, '')
 _=gettext.gettext
-
-import sys,os,os.path
-import pickle
-import urllib
 
 if os.environ.has_key('SUGAR_PENGUINTV'):
 	RUNNING_SUGAR = True
@@ -58,6 +58,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.__is_exposed = False
 		self._x_overlay = None
 		self._prepare_save = False
+		self._do_stop_resume = False
 		
 		self._error_dialog = GStreamerErrorDialog()
 		
@@ -327,6 +328,11 @@ class GStreamerPlayer(gobject.GObject):
 				return
 			self._prepare_display()
 			self._prepare_save = True
+		else:
+			if self._do_stop_resume:
+				self._do_stop_resume = False
+				self._prepare_display()
+				self._seek_to_saved_position()
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
@@ -354,9 +360,10 @@ class GStreamerPlayer(gobject.GObject):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_READY)
-		self._last_index = -1
+		#self._last_index = -1
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
+		self._do_stop_resume = True
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
 		self._play_pause_button.set_image(image)
@@ -369,12 +376,16 @@ class GStreamerPlayer(gobject.GObject):
 		self.emit('paused')
 			
 	def ff(self):
+		if self._pipeline.get_state() != gst.STATE_PLAYING:
+			return
 		new_pos = self._media_position+15000000000L #15 seconds I think
 		if new_pos > self._media_duration:
 			new_pos = self._media_duration
 		self.seek(new_pos)
 		
 	def rew(self):
+		if self._pipeline.get_state() != gst.STATE_PLAYING:
+			return
 		new_pos = self._media_position-5000000000L #5 seconds I think
 		if new_pos < 0:
 			new_pos = 0
@@ -393,6 +404,7 @@ class GStreamerPlayer(gobject.GObject):
 		
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
+		self._do_stop_resume = False
 		self.play()
 		
 	def prev(self):
@@ -406,6 +418,7 @@ class GStreamerPlayer(gobject.GObject):
 		selection.select_path((self._current_index,))
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
+		self._do_stop_resume = False
 		self.play()
 		
 	def finish(self):
