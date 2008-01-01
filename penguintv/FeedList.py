@@ -3,6 +3,7 @@ import glob
 import logging
 import random
 import traceback
+import time
 
 import gtk
 import gobject
@@ -95,7 +96,7 @@ class FeedList(gobject.GObject):
 		self._selecting_misfiltered=False
 		self._filter_unread = False
 		self._cancel_load = [False,False] #loading feeds, loading details
-		self._loading_details = False
+		self._loading_details = 0
 		self._state = S_DEFAULT
 		self._fancy = fancy
 		self.__widget_width = 0
@@ -281,7 +282,7 @@ class FeedList(gobject.GObject):
 			loadlist.append((not f[VISIBLE], i))
 		if subset == ALL:
 			loadlist.sort()
-	
+			
 		j=-1
 		for vis, i in loadlist:
 			feed_id,title,url = db_feedlist[i]
@@ -381,10 +382,11 @@ class FeedList(gobject.GObject):
 		# a nasty flicker when we click on feeds
 		self.resize_columns()
 		
+		gobject.timeout_add(500, self._load_details(visible_only=False).next)
 		
 		if not self._cancel_load[0]:
 			if self._fancy:
-				gobject.idle_add(self._load_visible_details().next)
+				gobject.idle_add(self._load_details().next)
 			#if selected:
 			#	self.set_selected(selected)
 			if callback is not None:
@@ -539,7 +541,6 @@ class FeedList(gobject.GObject):
 			 		need_filter = True	
 			
 		if need_filter and self._state != S_SEARCH:#not self._showing_search:
-			print "FILTERING"
 			self._filter_one(feed)
 			
 		if need_resize:
@@ -647,7 +648,7 @@ class FeedList(gobject.GObject):
 		self._feedlist.reorder(i_list)
 		self._feed_filter.refilter()
 		if self._fancy:
-			gobject.idle_add(self._load_visible_details().next)
+			gobject.idle_add(self._load_details().next)
 		self._va.set_value(0)
 		showing_feed = self.get_selected()
 		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
@@ -809,15 +810,30 @@ class FeedList(gobject.GObject):
 			feed[VISIBLE] = passed_filter #note, this seems to change the selection!
 		self._feed_filter.refilter()
 			
-	def _load_visible_details(self):
-		self._loading_details = True
+	def _load_details(self, visible_only=True):
+		if visible_only:
+			if self._loading_details == 1:
+				yield False
+			self._loading_details = 1
+		else:
+			if self._loading_details > 0:
+				yield False
+			self._loading_details = 2
+			
 		for row in self._feedlist:
-			#gtk.gdk.threads_enter()
 			if self._cancel_load[1]:
 				break
-			if row[VISIBLE] and not row[DETAILS_LOADED]:
+			if not visible_only and self._loading_details == 1:
+				break
+
+			if (row[VISIBLE] or not visible_only) and not row[DETAILS_LOADED]:
+				then = time.time()
 				try: row[FIRSTENTRYTITLE] = self._db.get_first_entry_title(row[FEEDID])
 				except: row[FIRSTENTRYTITLE] = ""
+				now = time.time()
+				if now - then > 2 and not visible_only:
+					#print "too slow, quit"
+					break
 				#row[PIXBUF] = self._get_pixbuf(row[FEEDID])
 				model, iter = self._widget.get_selection().get_selected()
 				row[DETAILS_LOADED] = True
@@ -829,13 +845,16 @@ class FeedList(gobject.GObject):
 																  row[TOTAL],
 																  row[FLAG], 
 																  row[FEEDID] == selected)
-				#gtk.gdk.threads_leave()
 				#self.resize_columns()
 				yield True
 		if self._cancel_load[1]:
 			self._cancel_load[1] = False
 
-		self._loading_details = False
+		self._loading_details = 0
+		if visible_only and len(self._feedlist) > 0:
+			#print "now loading everything else"
+			gobject.timeout_add(500, self._load_details(visible_only=False).next)
+				
 		yield False
 				
 	def filter_test_feed(self, feed_id):
@@ -887,7 +906,7 @@ class FeedList(gobject.GObject):
 			
 		self.filter_all(False)
 		if self._fancy:
-			gobject.idle_add(self._load_visible_details().next)
+			gobject.idle_add(self._load_details().next)
 		self._va.set_value(0)
 		self.resize_columns()
 		
@@ -923,7 +942,7 @@ class FeedList(gobject.GObject):
 		self._filter_unread = active
 		self.filter_all(False)
 		if self._fancy:
-			gobject.idle_add(self._load_visible_details().next)
+			gobject.idle_add(self._load_details().next)
 		self._va.set_value(0)	
 		
 	def clear_list(self):
