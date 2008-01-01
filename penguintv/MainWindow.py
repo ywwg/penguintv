@@ -1038,7 +1038,7 @@ class MainWindow(gobject.GObject):
 		self._sync_dialog.hide()
 		self._sync_dialog.on_sync_button_clicked(event)	
 				
-	def on_edit_favorite_tags(self):
+	def on_edit_favorite_tags(self, o=None):
 		#self._filters
 		#self._favorite_filters #ordered
 		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
