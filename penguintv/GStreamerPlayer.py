@@ -376,7 +376,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.emit('paused')
 			
 	def ff(self):
-		if self._pipeline.get_state() != gst.STATE_PLAYING:
+		if self._pipeline.get_state()[1] != gst.STATE_PLAYING:
 			return
 		new_pos = self._media_position+15000000000L #15 seconds I think
 		if new_pos > self._media_duration:
@@ -384,7 +384,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.seek(new_pos)
 		
 	def rew(self):
-		if self._pipeline.get_state() != gst.STATE_PLAYING:
+		if self._pipeline.get_state()[1] != gst.STATE_PLAYING:
 			return
 		new_pos = self._media_position-5000000000L #5 seconds I think
 		if new_pos < 0:
