@@ -122,8 +122,11 @@ VERSION="3.3"
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
 HAS_LUCENE = False
+#disable while still unstable
+HAS_XAPIAN = False
 if not HAS_XAPIAN:
 	HAS_SEARCH = False
+	
 # Pynotify is still broken, forget it
 HAS_PYNOTIFY = False
 #HAS_PYXML = False
