@@ -283,7 +283,7 @@ class EntryList(gobject.GObject):
 		 		entry[ICON] = self._get_icon(entry[FLAG])
 			
 	def show_search_results(self, entries, query):
-		"""Only show the first hundred LUCENE IS IN CHARGE OF THAT"""
+		"""Only show the first hundred SEARCHENGINE IS IN CHARGE OF THAT"""
 		self._search_query = query
 		if entries is None:
 			entries = []
@@ -294,7 +294,8 @@ class EntryList(gobject.GObject):
 			return
 		
 		i=-1
-		for entry_id,title, fakedate, readinfo, feed_id in entries:	
+
+		for entry_id,title, fakedate, feed_id in entries:	
 			i+=1
 			try:
 				entry = self._db.get_entry(entry_id)

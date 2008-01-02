@@ -116,7 +116,7 @@ class MainWindow(gobject.GObject):
 			self._disconnected_iconset.add_source(source)
 		
 		##other WINDOWS we open
-		if utils.HAS_LUCENE:
+		if utils.HAS_SEARCH:
 			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
 			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
@@ -293,7 +293,7 @@ class MainWindow(gobject.GObject):
 			self.window.connect('key_press_event', self.on_app_key_press_event)
 		else:   #if we are loading in a regular window...
 			self._load_app_window()
-			if not utils.HAS_LUCENE:
+			if not utils.HAS_SEARCH:
 				#remove UI elements that don't apply without search
 				self._widgetTree.get_widget('saved_searches').hide()
 				self._widgetTree.get_widget('separator11').hide()
@@ -304,7 +304,7 @@ class MainWindow(gobject.GObject):
 			self.window = self.app_window
 			
 		self._notebook.show_only(N_FEEDS)
-		if not utils.HAS_LUCENE:
+		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
 		if utils.RUNNING_HILDON:
 			self._filter_container.hide_all()
@@ -684,7 +684,7 @@ class MainWindow(gobject.GObject):
 				try:
 					filter_index = [row[F_NAME] for row in self._filters].index(val)
 					cur_filter = self._filters[filter_index]
-					if utils.HAS_LUCENE:
+					if utils.HAS_SEARCH:
 						if cur_filter[F_TYPE] == ptvDB.T_SEARCH or filter_index==FeedList.SEARCH:
 							self.set_active_filter(FeedList.ALL)
 						else:
@@ -961,8 +961,8 @@ class MainWindow(gobject.GObject):
 			selected = model[path[0]][FeedList.FEEDID]
 			is_filter = self._db.is_feed_filter(selected)  
 			
-			if is_filter and not utils.HAS_LUCENE:
-				item = gtk.MenuItem(_("Lucene required for feed filters"))
+			if is_filter and not utils.HAS_SEARCH:
+				item = gtk.MenuItem(_("Search required for feed filters"))
 				item.set_sensitive(False)
 				menu.append(item)
 				separator = gtk.SeparatorMenuItem()
@@ -970,19 +970,19 @@ class MainWindow(gobject.GObject):
 
 			item = gtk.ImageMenuItem('gtk-refresh')
 			item.connect('activate',self.on_refresh_activate)
-			if is_filter and not utils.HAS_LUCENE:
+			if is_filter and not utils.HAS_SEARCH:
 				item.set_sensitive(False)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("Mark as _Viewed"))
 			item.connect('activate',self.on_mark_feed_as_viewed_activate)
-			if is_filter and not utils.HAS_LUCENE:
+			if is_filter and not utils.HAS_SEARCH:
 				item.set_sensitive(False)
 			menu.append(item)
 			
 			item = gtk.MenuItem(_("_Delete All Media"))
 			item.connect('activate',self.on_delete_feed_media_activate)
-			if is_filter and not utils.HAS_LUCENE:
+			if is_filter and not utils.HAS_SEARCH:
 				item.set_sensitive(False)
 			menu.append(item)
 			
@@ -999,7 +999,7 @@ class MainWindow(gobject.GObject):
 			menu.append(separator)
 			
 			if not is_filter:
-				if utils.HAS_LUCENE:
+				if utils.HAS_SEARCH:
 					item = gtk.MenuItem(_("_Create Feed Filter"))
 					item.connect('activate',self.on_add_feed_filter_activate)
 					if self._state == S_MAJOR_DB_OPERATION:
@@ -1012,7 +1012,7 @@ class MainWindow(gobject.GObject):
 			else:
 				item = gtk.ImageMenuItem('gtk-properties')
 				item.connect('activate',self.on_feed_filter_properties_activate)
-				if not utils.HAS_LUCENE:
+				if not utils.HAS_SEARCH:
 					item.set_sensitive(False)
 				menu.append(item)
 				
@@ -1197,7 +1197,7 @@ class MainWindow(gobject.GObject):
 			
 	def _on_notebook_realized(self, widget):
 		self._notebook.show_page(N_FEEDS)
-		if not utils.HAS_LUCENE:
+		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
 		#if utils.RUNNING_SUGAR:
 		#	self._filter_container.hide_all()
@@ -1369,7 +1369,7 @@ class MainWindow(gobject.GObject):
 		else:
 			self._widgetTree.get_widget('entry_menu_item').show()
 		self._notebook.show_only(N_FEEDS)
-		if not utils.HAS_LUCENE:
+		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
 		#if utils.RUNNING_SUGAR:
 		#	self._filter_container.hide_all()			
@@ -1491,7 +1491,7 @@ class MainWindow(gobject.GObject):
 				
 		i=-1 #we only set i here so that searches and regular tags have incrementing ids
 		for builtin in FeedList.BUILTIN_TAGS:
-			if not utils.HAS_LUCENE and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
+			if not utils.HAS_SEARCH and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
 				continue
 			i+=1
 			if builtin == _("All Feeds"):
@@ -1507,7 +1507,7 @@ class MainWindow(gobject.GObject):
 				self._filter_tree.append(None, [builtin, builtin, 0])
 
 		has_search = False
-		if utils.HAS_LUCENE:	
+		if utils.HAS_SEARCH:	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				has_search = True

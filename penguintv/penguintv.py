@@ -293,7 +293,7 @@ class PenguinTVApp(gobject.GObject):
 		self._connect_signals()
 		
 		self.main_window.search_container.set_sensitive(False)
-		if utils.HAS_LUCENE:
+		if utils.HAS_SEARCH:
 			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
 				self.main_window.search_entry.set_text(_("Please wait..."))
 				self.main_window.display_status_message(_("Reindexing Feeds..."))
@@ -1375,7 +1375,7 @@ class PenguinTVApp(gobject.GObject):
 
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.get_active_filter()[1]
-		if utils.HAS_LUCENE and filter_id == FeedList.SEARCH:
+		if utils.HAS_SEARCH and filter_id == FeedList.SEARCH:
 			self._show_search(self._saved_search, self._search(self._saved_search))
 			if self._threaded_searcher:
 				if not self._waiting_for_search:

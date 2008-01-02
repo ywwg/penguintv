@@ -41,6 +41,8 @@ if RUNNING_SUGAR:
 	#I do this in case we're running in a python environment that has lucene
 	#and/or gconf but we want to pretend they aren't there
 	HAS_LUCENE = False
+	HAS_SEARCH = False
+	HAS_XAPIAN = False
 	HAS_GCONF = False
 	HAS_GNOMEVFS = False
 	HAS_PYXML = False
@@ -62,9 +64,18 @@ else:
 	except:
 		HAS_MOZILLA = False
 
+	HAS_SEARCH = False
+
+	try:
+		import xapian
+		HAS_XAPIAN = True
+		HAS_SEARCH = True
+	except:
+		HAS_XAPIAN = False
 	try:
 		import PyLucene
 		HAS_LUCENE = True
+		HAS_SEARCH = True
 	except:
 		HAS_LUCENE = False
 		
@@ -111,6 +122,8 @@ VERSION="3.3"
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
 HAS_LUCENE = False
+if not HAS_XAPIAN:
+	HAS_SEARCH = False
 # Pynotify is still broken, forget it
 HAS_PYNOTIFY = False
 #HAS_PYXML = False

@@ -41,6 +41,8 @@ import IconManager
 import utils
 if utils.HAS_LUCENE:
 	import Lucene
+if utils.HAS_XAPIAN:
+	import PTVXapian
 if utils.HAS_GCONF:
 	import gconf
 	import gobject
@@ -178,13 +180,15 @@ class ptvDB:
 		self._change_setting_cb = change_setting_cb
 			
 		self._blacklist = []
-		if utils.HAS_LUCENE:
-			self.searcher = Lucene.Lucene()
-			try:
-				if not self._new_db:
-					self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
-			except:
-				pass
+		if utils.HAS_SEARCH:
+			if utils.HAS_LUCENE:
+				self.searcher = Lucene.Lucene()
+			if utils.HAS_XAPIAN:
+				self.searcher = PTVXapian.PTVXapian()
+			else:
+				raise ProgrammingError("Have search, but no search engine?  Programming error!")
+			if not self._new_db:
+				self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
 			
 		if utils.HAS_GCONF:
 			self._conf = gconf.client_get_default()
@@ -215,7 +219,7 @@ class ptvDB:
 		if self._exiting:
 			return
 		self._exiting=True
-		if utils.HAS_LUCENE:
+		if utils.HAS_SEARCH:
 			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
 				logging.info("have leftover things to reindex, reindexing")
 				#don't do it threadedly or else we will interrupt it on the next line
@@ -2185,7 +2189,7 @@ class ptvDB:
 		feed_info = {}
 		
 		is_filter = False
-		if utils.HAS_LUCENE:
+		if utils.HAS_SEARCH:
 			is_filter = self.is_feed_filter(feed_id)
 		
 		if is_filter or self.cache_dirty:
@@ -2560,7 +2564,7 @@ class ptvDB:
 			yield (-1,0)
 				
 	def search(self, query, filter_feed=None, blacklist=None, since=0):
-		if not utils.HAS_LUCENE:
+		if not utils.HAS_SEARCH:
 			return ([],[])
 		if blacklist is None:
 			blacklist = self._blacklist
@@ -2569,12 +2573,12 @@ class ptvDB:
 		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):
-		if utils.HAS_LUCENE:
+		if utils.HAS_SEARCH:
 			self.searcher.Do_Index_Threaded(callback)
 		
 	def reindex(self, feed_list=[], entry_list=[], threaded=True):
 		"""reindex self._reindex_feed_list and self._reindex_entry_list as well as anything specified"""
-		if not utils.HAS_LUCENE:
+		if not utils.HAS_SEARCH:
 			return
 		self._reindex_feed_list += feed_list
 		self._reindex_entry_list += entry_list
