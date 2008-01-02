@@ -1202,14 +1202,15 @@ class PenguinTVApp(gobject.GObject):
 			return
 		
 		info = self.db.get_feed_info(feed)	
+		updater, db = self._get_updater()
+		
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
 			if info['lastpoll'] == 0 and success:
-				self._first_poll_marking(feed)
+				self._first_poll_marking(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
-		updater, db = self._get_updater()
 		
-		task_id = updater.queue(db.poll_feed_trap_errors,(feed,  _refresh_cb))
+		task_id = updater.queue(db.poll_feed_trap_errors,(feed, _refresh_cb))
 		
 	def _unset_state(self, authorize=False):
 		"""gets app ready to display new state by unloading current state.
@@ -1536,11 +1537,13 @@ class PenguinTVApp(gobject.GObject):
 		if success:
 			self._first_poll_marking(feed_id)
 		
-	def _first_poll_marking(self, feed_id): 
+	def _first_poll_marking(self, feed_id, db=None): 
 		"""mark all media read except first one.  called when we first add a feed"""
-		all_feeds_list = self.db.get_media_for_download()
+		if db is None:
+			db = self.db
+		all_feeds_list = db.get_media_for_download()
 		this_feed_list = [item[2] for item in all_feeds_list if item[3] == feed_id]
-		self.db.set_entrylist_read(this_feed_list[1:], True)
+		db.set_entrylist_read(this_feed_list[1:], True)
 		self.mark_entrylist_as_viewed(feed_id, this_feed_list[1:])
 		self.emit('entrylist-read', feed_id, this_feed_list[1:])
 		if self._auto_download:
@@ -1912,6 +1915,8 @@ class PenguinTVApp(gobject.GObject):
 			if self._update_thread.isAlive() and not self._update_thread.isDying():
 				updater = self._update_thread.get_updater()
 				updater_thread_db = self._update_thread.get_db()
+				if updater_thread_db is None:
+					logging.error("updater db is none: 1")
 				return (updater, updater_thread_db)
 			else:
 				del self._update_thread
@@ -1928,6 +1933,8 @@ class PenguinTVApp(gobject.GObject):
 				break
 			time.sleep(.05)
 
+		if updater_thread_db is None:
+			logging.error("updater db is none: 2")
 		return (updater, updater_thread_db)
 				
 	class DBUpdaterThread(threadclass):
@@ -1946,7 +1953,7 @@ class PenguinTVApp(gobject.GObject):
 				it, calling the callback if any.  """
 			
 			if self.db == None:
-				self.db = ptvDB.ptvDB(self.polling_callback)
+				self._start_db()
 			
 			born_t = time.time()
 			while self.__isDying == False:
@@ -1955,15 +1962,22 @@ class PenguinTVApp(gobject.GObject):
 						if isinstance(self.updater.exception, OperationalError):
 							logging.warning("detected a database lock error, restarting threaded db")
 							self.db._db.close()
-							self.db = ptvDB.ptvDB(self.polling_callback)
+							self._start_db()
 				if time.time() - born_t > self.threadDieTime:
 					self.__isDying = True
 				time.sleep(self.threadSleepTime)
 			
 			if self.db is not None:
 				self.db.finish(False)	
+				
+		def _start_db(self):
+			self.db = ptvDB.ptvDB(self.polling_callback)
 						
 		def get_db(self):
+			#doesn't work, not run in thread
+			#if self.db is None:
+			#	logging.warning("db not found, starting a new one")
+			#	self._start_db()
 			return self.db
 			
 		def get_updater(self):

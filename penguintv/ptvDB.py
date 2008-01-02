@@ -225,7 +225,7 @@ class ptvDB:
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
-		if randint(1,100) == 1 and closeok:
+		if randint(1,80) == 1 and closeok:
 			logging.info("compacting database")
 			self._c.execute('VACUUM')
 			self._c.close()
