@@ -77,6 +77,8 @@ class PlanetView(gobject.GObject):
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
 		self._custom_message = ""
+		self._search_query = None
+		self._filter_feed = None
 		
 		self._entrylist = []
 		self._entry_store = {}
@@ -177,16 +179,20 @@ class PlanetView(gobject.GObject):
 			t.start()
 			img_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()
 			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=img_url)
+			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, ajax_url=img_url)
 		else:
 			logging.info("not using ajax")
 			img_url = None
 			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True)
+			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, basic_progress=True)
 			
 		
 		#signals
 		self._handlers = []
 		if feed_list_view is not None:
 			h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+			self._handlers.append((feed_list_view.disconnect, h_id))
+			h_id = feed_list_view.connect('search-feed-selected', self.__feedlist_search_feed_selected_cb)
 			self._handlers.append((feed_list_view.disconnect, h_id))
 			h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
 			self._handlers.append((feed_list_view.disconnect, h_id))
@@ -212,9 +218,17 @@ class PlanetView(gobject.GObject):
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
+
+	def __feedlist_search_feed_selected_cb(self, o, feed_id):
+		self._filter_feed = feed_id
+		self._render_entries()
 		
 	def __feedlist_none_selected_cb(self, o):
-		self.clear_entries()
+		if self._state == S_SEARCH:
+			self._filter_feed = None
+			self._render_entries()
+		else:
+			self.clear_entries()
 		
 	def __feed_added_cb(self, app, feed_id, success):
 		if success:
@@ -253,7 +267,7 @@ class PlanetView(gobject.GObject):
 	def get_selected(self):
 		# just return the top one
 		if len(self._entrylist) > 0:
-			return self._entrylist[0]
+			return self._entrylist[0][0]
 		return None
 		
 	def get_selected_id(self):
@@ -305,7 +319,7 @@ class PlanetView(gobject.GObject):
 		self._feed_title = self._db.get_feed_title(feed_id)
 		self._entrylist = []
 		for e in db_entrylist:
-			self._entrylist.append(e[0])
+			self._entrylist.append((e[0], feed_id))
 			
 		self._convert_newlines = self._db.get_flags_for_feed(feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
 			
@@ -319,9 +333,10 @@ class PlanetView(gobject.GObject):
 			self._entry_store = {}
 			self.populate_entries()
 		else:
-			if entry_id not in self._entrylist: #not this feed
-				return
-			self._load_entry(entry_id, True)
+			for e,f in self._entrylist:
+				if e == entry_id:
+					self._load_entry(entry_id, True)
+					return
 			
 	def mark_as_viewed(self, entry_id=None):
 		logging.error("doesn't apply in planet view, right?")
@@ -330,10 +345,12 @@ class PlanetView(gobject.GObject):
 		if entries is None:
 			self.display_custom_entry(_("No entries match those search criteria"))
 			
-		self._entrylist = [e[0] for e in entries]
+		self._entrylist = [(e[0],e[3]) for e in entries]
 		self._convert_newlines = False
+		query = query.replace("*","")
+		self._search_query = query
 		try:
-			self._render_entries(query)
+			self._render_entries()
 		except ptvDB.NoEntry:
 			logging.warning("error displaying search")
 			self._render(_("There was an error displaying the search results.  Please reindex searches and try again"))
@@ -341,9 +358,9 @@ class PlanetView(gobject.GObject):
 	def unshow_search(self):
 		self._render("<html><body></body></html")
 		
-	def highlight_results(self, feed_id):
-		"""doesn't apply in planet mode"""
-		pass
+	#def highlight_results(self, feed_id):
+	#	"""doesn't apply in planet mode"""
+	#	pass
 		
 	def clear_entries(self):
 		self._current_feed_id = -1
@@ -356,6 +373,9 @@ class PlanetView(gobject.GObject):
 			self._update_server.clear_updates()
 		
 	def _unset_state(self):
+		if self._state == S_SEARCH:
+			self._search_query = None
+			self._filter_feed = None
 		self.clear_entries()
 	
 	def __state_changed_cb(self, app, newstate, data=None):
@@ -412,7 +432,7 @@ class PlanetView(gobject.GObject):
 			gtkmozembed.pop_startup()
 					
 	#protected functions
-	def _render_entries(self, highlight=None, mark_read=False, force=False):
+	def _render_entries(self, mark_read=False, force=False):
 		"""Takes a block on entry_ids and throws up a page."""
 
 		if self._first_entry < 0:
@@ -429,10 +449,16 @@ class PlanetView(gobject.GObject):
 		#unreads = []
 		
 		#preload the block of entries, which is nicer to the db
-		self._load_entry_block(self._entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
+		if self._filter_feed is not None:
+			assert self._state == S_SEARCH
+			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
+			self._load_entry_block(entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
+		else:
+			entrylist = self._entrylist
+			self._load_entry_block(self._entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
 
 		i=self._first_entry-1
-		for entry_id in self._entrylist[self._first_entry:self._last_entry]:
+		for entry_id, feed_id in entrylist[self._first_entry:self._last_entry]:
 			i+=1
 			entry_html, item = self._load_entry(entry_id)
 			if item.has_key('media'):
@@ -441,11 +467,10 @@ class PlanetView(gobject.GObject):
 			#	if item.has_key('new'):
 			#		if item['new'] and not item['keep']:
 			#			unreads.append(entry_id)
-			if highlight is not None:
+			if self._search_query is not None:
 				entry_html = entry_html.encode('utf-8')
 				try:
-					highlight = highlight.replace("*","")
-					p = HTMLHighlightParser(highlight)
+					p = EntryFormatter.HTMLHighlightParser(self._search_query)
 					p.feed(entry_html)
 					entry_html = p.new_data
 				except:
@@ -485,7 +510,7 @@ class PlanetView(gobject.GObject):
 		if self._first_entry > 0:
 			html.append('<a href="planet:up">Newer Entries</a>')
 		html.append('</td><td style="text-align: right;">')
-		if self._last_entry < len(self._entrylist):
+		if self._last_entry < len(entrylist):
 			html.append('<a href="planet:down">Older Entries</a>')
 		html.append("</td></tr></tbody></table></div>")
 		
@@ -501,7 +526,7 @@ class PlanetView(gobject.GObject):
 		if self._first_entry > 0:
 			html.append('<a href="planet:up">Newer Entries</a>')
 		html.append('</td><td style="text-align: right;">')
-		if self._last_entry < len(self._entrylist):
+		if self._last_entry < len(entrylist):
 			html.append('<a href="planet:down">Older Entries</a>')
 		html.append("</td></tr></tbody></table></div>")
 		html.append("</body></html>")
@@ -594,19 +619,20 @@ class PlanetView(gobject.GObject):
 			
 		return html
 		
-	def _load_entry_block(self, entry_id_list, mark_read=False, force=False):
+	def _load_entry_block(self, entry_list, mark_read=False, force=False):
 		#if not forcing, load what we can from cache
 		entries = []
 		if not force:
-			l = [entry for entry in entry_id_list if self._entry_store.has_key(entry)]
-			for entry in l:
-				entries.append(self._entry_store[entry][1])
-				entry_id_list.remove(entry)
+			l = [row for row in entry_list if self._entry_store.has_key(row[0])]
+			for row in l:
+				entries.append(self._entry_store[row[0]][1])
+				entry_list.remove(row)
 		
 		#load the rest from db
-		if len(entry_id_list) > 0:
-			db_entries = self._db.get_entry_block(entry_id_list)
-			media = self._db.get_entry_media_block(entry_id_list)
+		if len(entry_list) > 0:
+			e_id_list = [r[0] for r in entry_list]
+			db_entries = self._db.get_entry_block(e_id_list)
+			media = self._db.get_entry_media_block(e_id_list)
 		
 			for item in db_entries:
 				if media.has_key(item['entry_id']):
@@ -624,7 +650,7 @@ class PlanetView(gobject.GObject):
 				
 			if self._state == S_SEARCH:
 				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
+				self._entry_store[item['entry_id']] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
 			else:
 				self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 				
@@ -641,11 +667,11 @@ class PlanetView(gobject.GObject):
 		item['new'] = not item['read']
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
+			self._entry_store[entry_id] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
 		else:
 			self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 		
-		index = self._entrylist.index(entry_id)
+		index = self._entrylist.index((entry_id,item['feed_id']))
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
 			if self._USING_AJAX:
@@ -659,8 +685,15 @@ class PlanetView(gobject.GObject):
 		return self._entry_store[entry_id]
 		
 	def _update_entry(self, entry_id, item, show_change):
-		self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
-		index = self._entrylist.index(entry_id)
+		if self._state == S_SEARCH:
+			self._entry_store[entry_id] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
+		else:
+			self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
+		i=0			
+		for e,f in self._entrylist:
+			if e == entry_id:
+				index = i
+			i += 1
 		if not show_change:
 			return
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
@@ -695,7 +728,7 @@ class PlanetView(gobject.GObject):
 			keepers = []
 
 			self._load_entry_block(self._entrylist[self._first_entry:self._last_entry])
-			for entry_id in self._entrylist[self._first_entry:self._last_entry]:
+			for entry_id, feed_id in self._entrylist[self._first_entry:self._last_entry]:
 				item = self._entry_store[entry_id][1]
 				if not item['read'] and not item['keep'] and len(item['media']) == 0:
 					keepers.append(item)

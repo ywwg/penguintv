@@ -39,7 +39,7 @@ class EntryFormatter:
 
 		if self._with_feed_titles:
 			if item.has_key('title') and item.has_key('feed_title'):
-				ret.append('<div class="stitle">%s<br/>%s</div>' % (item['feed_title'],item['title']))
+				ret.append('<div class="stitle">%s:<br/>%s</div>' % (item['feed_title'],item['title']))
 		else:
 			if item.has_key('title'):
 				if self._indicate_new and item['new']:
@@ -57,7 +57,7 @@ class EntryFormatter:
 			cb_status = item['keep'] and "CHECKED" or "UNCHECKED"
 			cb_function = item['keep'] and "unkeep" or "keep"
 	
-			ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s:%i'" %s><a href="%s:%i">%s</a></form>''' % 
+			ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s:%i'" %s="yes"><a href="%s:%i">%s</a></form>''' % 
 			           (cb_function, item['entry_id'], cb_status, cb_function, item['entry_id'], _('Keep New')))
 
 		ret.append('</td></tr></table>')
@@ -263,7 +263,9 @@ class HTMLimgParser(htmllib.HTMLParser):
 class HTMLHighlightParser(HTMLParser.HTMLParser):
 	def __init__(self, highlight_terms):
 		HTMLParser.HTMLParser.__init__(self)
-		self.terms = [a.upper() for a in highlight_terms.split() if len(a)>3]
+		highlight_terms = highlight_terms.replace('"','')
+		highlight_terms = highlight_terms.replace("'",'')
+		self.terms = [a.upper() for a in highlight_terms.split() if len(a)>2]
 		self.new_data = ""
 		self.style_start="""<span style="background-color: #ffff00">"""
 		self.style_end  ="</span>"

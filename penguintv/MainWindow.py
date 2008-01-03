@@ -628,10 +628,15 @@ class MainWindow(gobject.GObject):
 		self._filter_container = components.get_widget('filter_container')
 		self._filter_unread_checkbox = components.get_widget('unread_filter')
 		self._filter_selector_combo = components.get_widget('filter_selector_combo')
-		self._filter_tree = gtk.TreeStore(str,     #filter displayable
+		self._filter_tree = gtk.TreeStore(str,      #filter displayable
 										  str,		#filter name
-										  int)     #seperator
-		self._filter_selector_combo.set_model(self._filter_tree)
+										  int,      #seperator
+										  bool)     #visible
+										  
+		filter_filter = self._filter_tree.filter_new()
+		filter_filter.set_visible_column(3)
+										  
+		self._filter_selector_combo.set_model(filter_filter)
 		self._filter_selector_combo.set_row_separator_func(lambda model,iter:model[iter][2]==1)
 		
 		self._filters = [] #text, text to display, type, tree path
@@ -1039,13 +1044,12 @@ class MainWindow(gobject.GObject):
 		self._sync_dialog.on_sync_button_clicked(event)	
 				
 	def on_edit_favorite_tags(self, o=None):
-		#self._filters
-		#self._favorite_filters #ordered
 		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
 		self._filter_selector_dialog.Show()	
 	
 	def on_filter_changed(self, widget):
 		model = widget.get_model()
+		
 		it = widget.get_active_iter()
 		if it is None:
 			return
@@ -1065,6 +1069,13 @@ class MainWindow(gobject.GObject):
 			self._active_filter_index = index
 			self._active_filter_path = model.get_path(it)
 			
+			if utils.HAS_SEARCH:
+				if index == FeedList.SEARCH:
+					self._filter_tree[FeedList.SEARCH][3] = True
+				else:
+					self._filter_tree[FeedList.SEARCH][3] = False
+				model.refilter()
+
 		self._activate_filter()
 		
 	def _find_path(self, index):
@@ -1077,8 +1088,15 @@ class MainWindow(gobject.GObject):
 		model.foreach(hunt_path)
 		
 	def set_active_filter(self, index):
-		self._find_path(index)
 		model = self._filter_selector_combo.get_model()
+		if utils.HAS_SEARCH:
+			if index == FeedList.SEARCH:
+				self._filter_tree[FeedList.SEARCH][3] = True
+			else:
+				self._filter_tree[FeedList.SEARCH][3] = False
+			model.refilter()
+
+		self._find_path(index)
 		it = model.get_iter(self._active_filter_path)
 		self._filter_selector_combo.set_active_iter(it)
 
@@ -1489,25 +1507,32 @@ class MainWindow(gobject.GObject):
 		completion_model = self.search_entry.get_completion().get_model()
 		completion_model.clear()
 				
-		i=-1 #we only set i here so that searches and regular tags have incrementing ids
-		for builtin in FeedList.BUILTIN_TAGS:
-			if not utils.HAS_SEARCH and builtin == FeedList.BUILTIN_TAGS[FeedList.SEARCH]:
-				continue
-			i+=1
-			if builtin == _("All Feeds"):
-				text = builtin+" ("+str(len(self._db.get_feedlist()))+")"
-				self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
-				self._filter_tree.append(None, [text, builtin, 0])
-			elif builtin == _("Notifying Feeds"):
-				text = builtin+" ("+str(len(self._db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)))+")"
-				self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
-				self._filter_tree.append(None, [text, builtin, 0])
-			else:
-				self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
-				self._filter_tree.append(None, [builtin, builtin, 0])
-
+		i=0 #we set i here so that searches and regular tags have incrementing ids
+		
+		builtin = _("All Feeds")
+		text = builtin+" ("+str(len(self._db.get_feedlist()))+")"
+		self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
+		self._filter_tree.append(None, [text, builtin, 0, True])
+		i += 1
+		
+		builtin = _("Downloaded Media")
+		self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
+		self._filter_tree.append(None, [builtin, builtin, 0, True])
+		i += 1
+		
+		builtin = _("Notifying Feeds")
+		text = builtin+" ("+str(len(self._db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)))+")"
+		self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
+		self._filter_tree.append(None, [text, builtin, 0, True])
+		i += 1
+		
 		has_search = False
 		if utils.HAS_SEARCH:	
+			builtin = _("Search Results")
+			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
+			self._search_iter = self._filter_tree.append(None, [builtin, builtin, 0, False])
+			i += 1
+	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				has_search = True
@@ -1520,7 +1545,7 @@ class MainWindow(gobject.GObject):
 		
 		tags = self._db.get_all_tags(ptvDB.T_TAG)
 		if tags:
-			self._filter_tree.append(None, ["", "", 1])
+			self._filter_tree.append(None, ["", "", 1, True])
 			for tag,favorite in tags:
 				i+=1
 				self._filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
@@ -1532,20 +1557,20 @@ class MainWindow(gobject.GObject):
 		self._favorite_filters = [f[1:] for f in self._favorite_filters]
 		
 		for fav in self._favorite_filters:
-			self._filter_tree.append(None, [fav[1], fav[0], 0])
+			self._filter_tree.append(None, [fav[1], fav[0], 0, True])
 			
 		if tags:
-			all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0])
+			all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0, True])
 			if has_search:
 				for f in self._filters:
 					if f[F_TYPE] == ptvDB.T_SEARCH:
-						self._filter_tree.append(all_tags_submenu, [f[F_DISPLAY], f[F_NAME], 0])
-				self._filter_tree.append(all_tags_submenu, ["", "", 1])
+						self._filter_tree.append(all_tags_submenu, [f[F_DISPLAY], f[F_NAME], 0, True])
+				self._filter_tree.append(all_tags_submenu, ["", "", 1, True])
 			for f in self._filters:
 				if f[F_TYPE] == ptvDB.T_TAG:
-					self._filter_tree.append(all_tags_submenu, [f[F_DISPLAY], f[F_NAME], 0])
+					self._filter_tree.append(all_tags_submenu, [f[F_DISPLAY], f[F_NAME], 0, True])
 			
-		self._filter_tree.append(None, [_('Edit Favorite Tags...'), _('Edit Favorite Tags...'), 2])
+		self._filter_tree.append(None, [_('Edit Favorite Tags...'), _('Edit Favorite Tags...'), 2, True])
 		
 		#get index for our previously selected tag
 		index = self.get_filter_index(current_filter)

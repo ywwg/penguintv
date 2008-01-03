@@ -13,6 +13,7 @@ INDEX         = 3
 ICON          = 4
 FLAG          = 5
 FEED          = 6
+VISIBLE       = 7
 
 S_DEFAULT = 0
 S_SEARCH  = 1
@@ -24,6 +25,9 @@ class EntryList(gobject.GObject):
         'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
+        'search-entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT, gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
        	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
@@ -44,7 +48,7 @@ class EntryList(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self._widget = widget_tree.get_widget("entrylistview")
 		self._main_window = main_window
-		self._entrylist = gtk.ListStore(str, str, int, int, str, int, int) #title, markeduptitle, entry_id, index, icon, flag, feed
+		self._entrylist = gtk.ListStore(str, str, int, int, str, int, int, bool) #title, markeduptitle, entry_id, index, icon, flag, feed, visible
 		self._db = db
 		self._feed_id=None
 		self._last_entry=None
@@ -56,7 +60,10 @@ class EntryList(gobject.GObject):
 		self.presently_selecting = False
 		
 		#build list view
-		self._widget.set_model(self._entrylist)
+		
+		self._entry_filter = self._entrylist.filter_new()
+		self._entry_filter.set_visible_column(VISIBLE)
+		self._widget.set_model(self._entry_filter)
 		
 		icon_renderer = gtk.CellRendererPixbuf()
 		renderer = gtk.CellRendererText()
@@ -86,6 +93,8 @@ class EntryList(gobject.GObject):
 		self._handlers = []
 		h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
 		self._handlers.append((feed_list_view.disconnect, h_id))
+		h_id = feed_list_view.connect('search-feed-selected', self.__feedlist_search_feed_selected_cb)
+		self._handlers.append((feed_list_view.disconnect, h_id))
 		h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
 		self._handlers.append((feed_list_view.disconnect, h_id))
 		h_id = app.connect('feed-polled', self.__feed_polled_cb)
@@ -112,8 +121,19 @@ class EntryList(gobject.GObject):
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
 		
+	def __feedlist_search_feed_selected_cb(self, o, feed_id):
+		for e in self._entrylist:
+			if e[FEED] == feed_id:
+				e[VISIBLE] = True
+			else:
+				e[VISIBLE] = False
+		
 	def __feedlist_none_selected_cb(self, o):
-		self.populate_entries(None)
+		if self._state == S_SEARCH:
+			for e in self._entrylist:
+				e[VISIBLE] = True
+		else:
+			self.populate_entries(None)
 		
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		if feed_id == self._feed_id:
@@ -143,7 +163,7 @@ class EntryList(gobject.GObject):
 			if len(self._search_results) > 0: 
 				if feed_id in [s[1] for s in self._search_results]:
 					self.show_search_results(self._search_results, self._search_query)
-					self.highlight_results(feed_id)
+					#self.highlight_results(feed_id)
 					return
 					
 		if self.__populating:
@@ -183,7 +203,7 @@ class EntryList(gobject.GObject):
 				flag = self._db.get_entry_flag(entry_id)
 				icon = self._get_icon(flag)
 				markeduptitle = self._get_markedup_title(title, flag)
-				self._entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id])
+				self._entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id, True])
 				if i % 100 == 99:
 					#gtk.gdk.threads_leave()
 					yield True
@@ -304,7 +324,7 @@ class EntryList(gobject.GObject):
 			flag = self._db.get_entry_flag(entry_id)
 			icon = self._get_icon(flag)
 			markeduptitle = self._get_markedup_title(entry['title'], flag)
-			self._entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id])
+			self._entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id, True])
 			
 		self._vadjustment.set_value(0)
 		self._hadjustment.set_value(0)
@@ -333,47 +353,6 @@ class EntryList(gobject.GObject):
 		self._unset_state()
 		self._state = newstate
 		
-	def highlight_results(self, feed_id):
-		selection = self._widget.get_selection()
-		selection.unselect_all()
-		i=-1
-		j=0
-		first=-1
-		first_in_range = -1
-		last_selected = -1
-		for e in self._entrylist:
-			i+=1
-			if e[FEED] == feed_id:
-				j+=1			
-				if first==-1:
-					first = i
-				if first_in_range == -1:
-					first_in_range = i
-					last_selected = i
-					continue
-				if last_selected == i-1:
-					last_selected = i
-				else:
-					if last_selected == first_in_range:
-						selection.select_path((last_selected,))
-					else:
-						selection.select_range((first_in_range,),(last_selected,))
-					last_selected = -1
-					first_in_range = -1
-
-		if first_in_range!=-1:
-			if last_selected == first_in_range:
-				selection.select_path((last_selected,))
-			else:
-				selection.select_range((first_in_range,),(last_selected,))			
-		
-		count = j
-		if count > 1:
-			self.emit('no-entry-selected')
-		if count > 0:
-			self._widget.scroll_to_cell(first)
-		return count
-			
 	def item_selection_changed(self, selection):
 		self.presently_selecting = True
 		try:
@@ -391,7 +370,10 @@ class EntryList(gobject.GObject):
 			#if self._showing_search:
 		
 			if selection.count_selected_rows()==1:
-				self.emit('entry-selected', selected['entry_id'], selected['feed_id'])
+				if self._state == S_SEARCH:
+					self.emit('search-entry-selected', selected['entry_id'], selected['feed_id'], self._search_query)
+				else:
+					self.emit('entry-selected', selected['entry_id'], selected['feed_id'])
 		self.presently_selecting = False
 			
 	def get_selected(self, selection=None):

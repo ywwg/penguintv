@@ -58,6 +58,9 @@ class FeedList(gobject.GObject):
 		'feed-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT])),
+		'search-feed-selected': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_INT])),                  
 		'no-feed-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            []),
@@ -652,10 +655,7 @@ class FeedList(gobject.GObject):
 		self._va.set_value(0)
 		showing_feed = self.get_selected()
 		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
-			highlight_count = self._app.highlight_entry_results(showing_feed)
-			if highlight_count == 0:
-				#self._app.display_feed(showing_feed)
-				self.emit('feed-selected', showing_feed)
+			self.emit('search-feed-selected', showing_feed)
 		
 	def _unset_state(self, data=True):
 		if self._state == S_SEARCH:
@@ -1053,6 +1053,13 @@ class FeedList(gobject.GObject):
 			return best_flag
 			
 	def _item_selection_changed(self, selection):
+		if self._fancy and self._last_feed is not None:
+			try: 
+				old_item = self._feedlist[self._last_feed]
+				old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
+			except:
+				pass
+				
 		s = selection.get_selected()
 		if s:
 			model, iter = s
@@ -1064,13 +1071,6 @@ class FeedList(gobject.GObject):
 		else:
 			self.emit('no-feed-selected') 
 			return
-		
-		if self._fancy and self._last_feed is not None:
-			try: 
-				old_item = self._feedlist[self._last_feed]
-				old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
-			except:
-				pass
 			
 		self._last_feed=unfiltered_iter
 		self._select_after_load=None
@@ -1092,18 +1092,12 @@ class FeedList(gobject.GObject):
 				return
 			self._last_selected = feed[FEEDID]
 			if not self._app.entrylist_selecting_right_now():
-				highlight_count = self._app.highlight_entry_results(feed[FEEDID])
-				if highlight_count == 0:
-					#self._app.display_feed(feed[FEEDID])
-					self.emit('feed-selected', feed[FEEDID])
+				self.emit('search-feed-selected', feed[FEEDID])
 			return
 		if feed[FEEDID] == self._last_selected:
-			#self._app.display_feed(feed[FEEDID])
 			self.emit('feed-selected', feed[FEEDID])
 		else:
 			self._last_selected = feed[FEEDID]
-			#print "wtf is this negative 2 shit (feedlistview)"
-			#self._app.display_feed(feed[FEEDID], -2)
 			self.emit('feed-selected', feed[FEEDID])
 			if self._selecting_misfiltered and feed[FEEDID]!=None:
 				self._selecting_misfiltered = False

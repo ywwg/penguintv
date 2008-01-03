@@ -137,7 +137,7 @@ class PenguinTVApp(gobject.GObject):
                            ([])),
 		'setting-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_PYOBJECT])),
-		'state-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+		'state-changed':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
 		'online-status-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_BOOLEAN]))
@@ -1360,9 +1360,6 @@ class PenguinTVApp(gobject.GObject):
 	def entrylist_selecting_right_now(self):
 		return self._entry_list_view.presently_selecting
 		
-	def highlight_entry_results(self, feed_id):
-		return self._entry_list_view.highlight_results(feed_id)
-		
 	def select_feed(self, feed_id):
 		self.feed_list_view.set_selected(feed_id)
 		
@@ -1409,6 +1406,7 @@ class PenguinTVApp(gobject.GObject):
 			
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
+			self.set_state(DEFAULT)
 			val = self.feed_list_view.get_selected()
 			if val is None: val = 0
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', val)

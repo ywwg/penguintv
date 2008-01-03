@@ -9,9 +9,7 @@ import xapian
 
 try:
 	import sqlite3 as sqlite
-	logging.debug("Using built-in sqlite3")
 except:
-	logging.debug("Using external pysqlite2")
 	from pysqlite2 import dbapi2 as sqlite
 
 

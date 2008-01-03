@@ -149,6 +149,7 @@ class EntryView(gobject.GObject):
 		#self.display_custom_entry("<html></html>")
 		
 		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm)
+		self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True)
 		#self._auto_mark_viewed = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
 		
 		#signals
@@ -158,6 +159,8 @@ class EntryView(gobject.GObject):
 		h_id = entry_list_view.connect('no-entry-selected', self.__entrylist_none_selected_cb)
 		self._handlers.append((entry_list_view.disconnect, h_id))
 		h_id = entry_list_view.connect('entry-selected', self.__entry_selected_cb)
+		self._handlers.append((entry_list_view.disconnect, h_id))
+		h_id = entry_list_view.connect('search-entry-selected', self.__search_entry_selected_cb)
 		self._handlers.append((entry_list_view.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
@@ -190,6 +193,15 @@ class EntryView(gobject.GObject):
 		#	if self._db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD:
 		#		item['read'] = 1
 		self.display_item(item)
+
+	def __search_entry_selected_cb(self, o, entry_id, feed_id, search_query):
+		item = self._db.get_entry(entry_id)
+		media = self._db.get_entry_media(entry_id)
+		if media:
+			item['media']=media
+		else:
+			item['media']=[]
+		self.display_item(item, search_query)
 		
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_if_selected(entry_id, feed_id)
@@ -406,6 +418,13 @@ class EntryView(gobject.GObject):
 				self._current_scroll_v = va.get_value()
 				self._current_scroll_h = ha.get_value()	
 	
+		if self._state == S_SEARCH:
+			formatter = self._search_formatter
+			if item is not None:
+				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+		else:
+			formatter = self._entry_formatter
+	
 		if self._renderer == EntryFormatter.MOZILLA:
 			if item is not None:
 				#no comments in css { } please!
@@ -422,7 +441,7 @@ class EntryView(gobject.GObject):
 	            														 self._moz_font, 
 	            														 self._moz_size, 
 	            														 self._css, 
-	            														 self._entry_formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
+	            														 formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
@@ -438,7 +457,7 @@ class EntryView(gobject.GObject):
 	            <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
 	            														 self._foreground_color,
 	            														 self._css,
-	            														 self._entry_formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
+	            														 formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
 			else:
 				html="""<html><style type="text/css">
 	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
@@ -448,7 +467,7 @@ class EntryView(gobject.GObject):
 		if len(highlight)>0:
 			try:
 				highlight = highlight.replace("*","")
-				p = HTMLHighlightParser(highlight)
+				p = EntryFormatter.HTMLHighlightParser(highlight)
 				p.feed(html)
 				html = p.new_data
 			except:

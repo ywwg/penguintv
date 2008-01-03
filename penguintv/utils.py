@@ -122,10 +122,18 @@ VERSION="3.3"
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
 HAS_LUCENE = False
-#disable while still unstable
-HAS_XAPIAN = False
+##disable while still unstable
+#HAS_XAPIAN = False
 if not HAS_XAPIAN:
 	HAS_SEARCH = False
+	
+if GTK_OK:
+	if HAS_XAPIAN:
+		logging.info("Using Xapian search engine")
+	elif HAS_LUCENE:
+		logging.info("Using Lucene search engine")
+	else:
+		logging.info("xapian or lucene not found, search disabled")
 	
 # Pynotify is still broken, forget it
 HAS_PYNOTIFY = False
