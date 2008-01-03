@@ -4,9 +4,9 @@
 import logging
 try:
 	import sqlite3 as sqlite
-	logging.debug("Using built-in sqlite3")
+	logging.info("Using built-in sqlite3")
 except:
-	logging.debug("Using external pysqlite2")
+	logging.info("Using external pysqlite2")
 	from pysqlite2 import dbapi2 as sqlite
 
 from math import floor,ceil
@@ -214,7 +214,7 @@ class ptvDB:
 	def __del__(self):
 		self.finish()
 		
-	def finish(self, closeok=True):
+	def finish(self, closeok=True, searchwait=False):
 		#allow multiple finishes
 		if self._exiting:
 			return
@@ -224,7 +224,7 @@ class ptvDB:
 				logging.info("have leftover things to reindex, reindexing")
 				#don't do it threadedly or else we will interrupt it on the next line
 				self.reindex(threaded=False) #it's usually not much...
-			self.searcher.finish(False)
+			self.searcher.finish(searchwait)
 		#FIXME: lame, but I'm being lazy
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
@@ -2587,8 +2587,8 @@ class ptvDB:
 				self.searcher.Re_Index_Threaded(self._reindex_feed_list, self._reindex_entry_list)
 			else:
 				self.searcher.Re_Index(self._reindex_feed_list, self._reindex_entry_list)
-		except:
-			logging.warning("reindex failure.  wait til next time I guess")
+		except Exception, e:
+			logging.warning("reindex failure.  wait til next time I guess: %s" % str(e))
 		self._reindex_feed_list = []
 		self._reindex_entry_list = []
 		

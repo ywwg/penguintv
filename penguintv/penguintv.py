@@ -925,7 +925,7 @@ class PenguinTVApp(gobject.GObject):
 		if len(download_list) > 0:
 			for d in download_list:
 				title = self.db.get_feed_title(d[3])
-				logging.debug("%s, %i: %i" % (title, d[2], d[1])) 
+				logging.info("%s, %i: %i" % (title, d[2], d[1])) 
 				
 		total_size=0
 		
@@ -1248,16 +1248,11 @@ class PenguinTVApp(gobject.GObject):
 		self._unset_state()
 			
 		if new_state == MANUAL_SEARCH:
-			pass
+			assert utils.HAS_SEARCH
 		elif new_state == TAG_SEARCH:
-			pass
+			assert utils.HAS_SEARCH
 		elif new_state == MAJOR_DB_OPERATION:
 			pass
-		
-		#self.main_window.set_state(new_state, data)	
-		#self._entry_view.set_state(new_state, data)
-		#self._entry_list_view.set_state(new_state, data)
-		#self.feed_list_view.set_state(new_state, data)
 		
 		if self._state == MANUAL_SEARCH and new_state == DEFAULT and data != True:
 			self._saved_search = self.main_window.search_entry.get_text()
@@ -1966,7 +1961,7 @@ class PenguinTVApp(gobject.GObject):
 				time.sleep(self.threadSleepTime)
 			
 			if self.db is not None:
-				self.db.finish(False)	
+				self.db.finish(False, True)	
 				
 		def _start_db(self):
 			self.db = ptvDB.ptvDB(self.polling_callback)
@@ -2074,12 +2069,13 @@ def do_quit(event, app):
         
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	if HAS_GNOME:
-		logging.debug("Have GNOME")
+		logging.info("Have GNOME")
 		gtk.gdk.threads_init()
 		gnome.init("PenguinTV", utils.VERSION)
 		try:
 			app = PenguinTVApp()    # Instancing of the GUI
 		except AlreadyRunning, e:
+			logging.info("PenguinTV is already running, executing command line only")
 			do_commandline(remote_app=e.remote_app)
 			sys.exit(0)
 		

@@ -57,12 +57,12 @@ class PTVXapian:
 		self._index_lock = Lock()
 		self._quitting = False
 		
-	def finish(self, needs_index=False):
-		if needs_index:
-			self._interrupt()
+	def finish(self, wait=False):
+		if wait:
+			self._index_lock.acquire()
+			self._index_lock.release()
 		self._quitting = True
 		
-
 	def _interrupt(self):
 		f = open(os.path.join(self._storeDir,"NEEDSREINDEX"),"w")
 		f.close()
@@ -180,14 +180,13 @@ class PTVXapian:
 			callback()
 		
 	def Re_Index_Threaded(self,feedlist=[], entrylist=[]):
-		PythonThread(target=self.Re_Index, args=(feedlist,entrylist)).start()
+		Thread(target=self.Re_Index, args=(feedlist,entrylist)).start()
 		
 	def Re_Index(self, feedlist=[], entrylist=[]):
 		if len(feedlist) == 0 and len(entrylist) == 0:
 			return
 			
 		def reindex_interrupt():
-			indexModifier.close()
 			self._index_lock.release()
 			self._interrupt()
 			return

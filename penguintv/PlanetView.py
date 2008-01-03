@@ -221,11 +221,13 @@ class PlanetView(gobject.GObject):
 
 	def __feedlist_search_feed_selected_cb(self, o, feed_id):
 		self._filter_feed = feed_id
+		self._current_feed_id = feed_id
 		self._render_entries()
 		
 	def __feedlist_none_selected_cb(self, o):
 		if self._state == S_SEARCH:
 			self._filter_feed = None
+			self._current_feed_id = -1
 			self._render_entries()
 		else:
 			self.clear_entries()
@@ -347,6 +349,7 @@ class PlanetView(gobject.GObject):
 			
 		self._entrylist = [(e[0],e[3]) for e in entries]
 		self._convert_newlines = False
+		self._current_feed_id = -1
 		query = query.replace("*","")
 		self._search_query = query
 		try:
@@ -438,10 +441,16 @@ class PlanetView(gobject.GObject):
 		if self._first_entry < 0:
 			self._first_entry = 0
 			
-		if len(self._entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
+		if self._filter_feed is not None:
+			assert self._state == S_SEARCH
+			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
+		else:
+			entrylist = self._entrylist
+			
+		if len(entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
 			self._last_entry = self._first_entry+ENTRIES_PER_PAGE
 		else:
-			self._last_entry = len(self._entrylist)
+			self._last_entry = len(entrylist)
 			
 		media_exists = False
 		entries = []
@@ -449,13 +458,7 @@ class PlanetView(gobject.GObject):
 		#unreads = []
 		
 		#preload the block of entries, which is nicer to the db
-		if self._filter_feed is not None:
-			assert self._state == S_SEARCH
-			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
-			self._load_entry_block(entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
-		else:
-			entrylist = self._entrylist
-			self._load_entry_block(self._entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
+		self._load_entry_block(entrylist[self._first_entry:self._last_entry], mark_read=mark_read, force=force)
 
 		i=self._first_entry-1
 		for entry_id, feed_id in entrylist[self._first_entry:self._last_entry]:
@@ -487,14 +490,7 @@ class PlanetView(gobject.GObject):
 			if self._USING_AJAX:
 				entries.append('</span>\n\n')
 			
-
-		#self.emit('entries-selected', self._current_feed_id, unreads)
 		gobject.timeout_add(2000, self._do_delayed_set_viewed, self._current_feed_id, self._first_entry, self._last_entry)
-		#for e in unreads:
-		#	try:
-		#		del self._entry_store[e] #need to regen because it's not new anymore
-		#	except:
-		#		logging.warning("can't remove non-existant entry from store")
 			
 		#######build HTML#######	
 		html = []
@@ -722,24 +718,36 @@ class PlanetView(gobject.GObject):
 			self._moz.close_stream()
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
-		#if entrylist == [self._current_item['entry_id']]:
-		if (feed_id, first_entry, last_entry) == \
+		if (feed_id, first_entry, last_entry) != \
 		   (self._current_feed_id, self._first_entry, self._last_entry):
-			keepers = []
-
-			self._load_entry_block(self._entrylist[self._first_entry:self._last_entry])
-			for entry_id, feed_id in self._entrylist[self._first_entry:self._last_entry]:
-				item = self._entry_store[entry_id][1]
-				if not item['read'] and not item['keep'] and len(item['media']) == 0:
-					keepers.append(item)
+			return False
 			
-			for item in keepers:
-				item['read'] = True
-				item['new'] = False
-				self._update_entry(item['entry_id'], item, show_change)
-					
-			if len(keepers) > 0:
-				self.emit('entries-viewed', feed_id, keepers)
+		keepers = []
+		
+		if self._filter_feed is not None:
+			assert self._state == S_SEARCH
+			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
+		else:
+			entrylist = self._entrylist
+
+		self._load_entry_block(entrylist[self._first_entry:self._last_entry])
+		for entry_id, f in entrylist[self._first_entry:self._last_entry]:
+			item = self._entry_store[entry_id][1]
+			if not item['read'] and not item['keep'] and len(item['media']) == 0:
+				keepers.append(item)
+		
+		for item in keepers:
+			item['read'] = True
+			item['new'] = False
+			self._update_entry(item['entry_id'], item, show_change)
+				
+		if len(keepers) > 0:
+			if self._state == S_SEARCH:
+				if feed_id == -1:
+					for item in keepers:
+						self.emit('entries-viewed', item['feed_id'], [item])
+					return False
+			self.emit('entries-viewed', feed_id, keepers)
 		return False
 
 	def _hulahop_prop_changed(self, obj, pspec):

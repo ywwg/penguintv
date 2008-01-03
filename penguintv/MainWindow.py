@@ -1531,7 +1531,6 @@ class MainWindow(gobject.GObject):
 			builtin = _("Search Results")
 			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
 			self._search_iter = self._filter_tree.append(None, [builtin, builtin, 0, False])
-			i += 1
 	
 			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
