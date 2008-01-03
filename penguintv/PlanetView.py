@@ -79,6 +79,7 @@ class PlanetView(gobject.GObject):
 		self._custom_message = ""
 		self._search_query = None
 		self._filter_feed = None
+		self._show_kept = False
 		
 		self._entrylist = []
 		self._entry_store = {}
@@ -307,6 +308,7 @@ class PlanetView(gobject.GObject):
 		new_feed = False
 		if feed_id != self._current_feed_id:
 			new_feed = True
+			self._show_kept = False
 			self._current_feed_id = feed_id
 			self._first_entry = 0
 			self._entry_store={}
@@ -350,6 +352,7 @@ class PlanetView(gobject.GObject):
 		self._entrylist = [(e[0],e[3]) for e in entries]
 		self._convert_newlines = False
 		self._current_feed_id = -1
+		self._show_kept = False
 		query = query.replace("*","")
 		self._search_query = query
 		try:
@@ -446,6 +449,14 @@ class PlanetView(gobject.GObject):
 			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
 		else:
 			entrylist = self._entrylist
+			if self._show_kept:
+				newlist = []
+				kept = self._db.get_kept_entries(self._current_feed_id)
+				for e,f in entrylist:
+					if e in kept:
+						newlist.append((e,f))
+				entrylist = newlist
+				print "after  pruning:", entrylist
 			
 		if len(entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
 			self._last_entry = self._first_entry+ENTRIES_PER_PAGE
@@ -493,6 +504,9 @@ class PlanetView(gobject.GObject):
 		gobject.timeout_add(2000, self._do_delayed_set_viewed, self._current_feed_id, self._first_entry, self._last_entry)
 			
 		#######build HTML#######	
+		cb_status = self._show_kept and "CHECKED" or "UNCHECKED"
+		cb_function = self._show_kept and "showkept:0" or "showkept:1"
+		
 		html = []
 		html.append(self._build_header(media_exists))
 		
@@ -504,10 +518,18 @@ class PlanetView(gobject.GObject):
 					<tbody>
 					<tr><td>""")
 		if self._first_entry > 0:
-			html.append('<a href="planet:up">Newer Entries</a>')
+			html.append(_('<a href="planet:up">Newer Entries</a>'))
+		elif not self._state == S_SEARCH:
+			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
+				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
-			html.append('<a href="planet:down">Older Entries</a>')
+			html.append(_('<a href="planet:down">Older Entries</a>'))
+			
+		if self._first_entry > 0 and not self._state == S_SEARCH:
+			html.append('</td></tr><tr><td><form id="showkept">')
+			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
+				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append("</td></tr></tbody></table></div>")
 		
 		if self._state != S_SEARCH:
@@ -520,10 +542,18 @@ class PlanetView(gobject.GObject):
 					<tbody>
 					<tr><td>""")
 		if self._first_entry > 0:
-			html.append('<a href="planet:up">Newer Entries</a>')
+			html.append(_('<a href="planet:up">Newer Entries</a>'))
+		elif not self._state == S_SEARCH:
+			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
+				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
-			html.append('<a href="planet:down">Older Entries</a>')
+			html.append(_('<a href="planet:down">Older Entries</a>'))
+			
+		if self._first_entry > 0 and not self._state == S_SEARCH:
+			html.append('</td></tr><tr><td><form id="showkept">')
+			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
+				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append("</td></tr></tbody></table></div>")
 		html.append("</body></html>")
 		
@@ -756,12 +786,21 @@ class PlanetView(gobject.GObject):
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
+		print link
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE
 			self._render_entries(mark_read=True)
 		elif link == "planet:down":
 			self._first_entry += ENTRIES_PER_PAGE
 			self._render_entries(mark_read=True)
+		elif link == "showkept:1":
+			self._show_kept = True
+			self._first_entry = 0
+			self._render_entries()
+		elif link == "showkept:0":
+			self._show_kept = False
+			self._first_entry = 0
+			self._render_entries()
 		else:
 			self.emit('link-activated', link)
 			

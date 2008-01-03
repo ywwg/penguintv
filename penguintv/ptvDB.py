@@ -1764,6 +1764,14 @@ class ptvDB:
 			retval.append(entry_dic)
 		return retval
 		
+	def get_kept_entries(self, feed_id):
+		self._db_execute(self._c, u'SELECT rowid FROM entries WHERE keep=1 AND feed_id=?', (feed_id,))
+		result = self._c.fetchall()
+		if result is None:
+			return []
+		else:
+			return [r[0] for r in result]
+		
 	def get_entrylist(self, feed_index):
 		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_index,))
 		result = self._c.fetchone()
