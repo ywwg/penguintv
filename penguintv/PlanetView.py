@@ -456,7 +456,6 @@ class PlanetView(gobject.GObject):
 					if e in kept:
 						newlist.append((e,f))
 				entrylist = newlist
-				print "after  pruning:", entrylist
 			
 		if len(entrylist)-self._first_entry >= ENTRIES_PER_PAGE:
 			self._last_entry = self._first_entry+ENTRIES_PER_PAGE
@@ -543,17 +542,9 @@ class PlanetView(gobject.GObject):
 					<tr><td>""")
 		if self._first_entry > 0:
 			html.append(_('<a href="planet:up">Newer Entries</a>'))
-		elif not self._state == S_SEARCH:
-			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
-				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
 			html.append(_('<a href="planet:down">Older Entries</a>'))
-			
-		if self._first_entry > 0 and not self._state == S_SEARCH:
-			html.append('</td></tr><tr><td><form id="showkept">')
-			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
-				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append("</td></tr></tbody></table></div>")
 		html.append("</body></html>")
 		
@@ -786,7 +777,6 @@ class PlanetView(gobject.GObject):
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
-		print link
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE
 			self._render_entries(mark_read=True)

@@ -25,6 +25,8 @@ ENTRY_ID = 2
 ENTRY_TITLE = 3
 
 class PTVXapian:
+	_index_lock = Lock()
+
 	def __init__(self):
 		self.home = utils.get_home()
 		try:
@@ -54,7 +56,6 @@ class PTVXapian:
 			os.mkdir(self._storeDir)
 			self.needs_index = True
 			
-		self._index_lock = Lock()
 		self._quitting = False
 		
 	def finish(self, wait=False):
@@ -84,13 +85,12 @@ class PTVXapian:
 		"""loop through all feeds and entries and feed them to the beast"""
 		
 		def index_interrupt():
-			writer.close()
 			self._index_lock.release()
 			if callback is not None:
 				callback()
 			self._interrupt()
 			return
-			
+
 		if not self._index_lock.acquire(False):
 			logging.info("already indexing, not trying to reindex again")
 			return
@@ -132,14 +132,16 @@ class PTVXapian:
 					indexer.set_document(doc)
 					indexer.index_text(forindex)
 					
-					database.add_document(doc)
+					#database.add_document(doc)
+					yield doc
 				except Exception, e:
 					logging.error("Failed in indexDocs, feeds: %s" % str(e))
 				#sleep(0)   #http://twistedmatrix.com/pipermail/twisted-python/2005-July/011052.html           
-				yield None
 		
-		for i in feed_index_generator(feeds):
+		for doc in feed_index_generator(feeds):
+			database.add_document(doc)
 			if self._quitting:
+				del database
 				return index_interrupt()
 
 		logging.info("indexing entries")
@@ -165,16 +167,19 @@ class PTVXapian:
 					indexer.set_document(doc)
 					indexer.index_text(forindex)
 					
-					database.add_document(doc)
+					#database.add_document(doc)
+					yield doc
 				except Exception, e:
 					logging.error("Failed in indexDocs, entries:" + str(e))
 				#sleep(.005)
-				yield None
 				
-		for i in entry_index_generator(entries):
+		for doc in entry_index_generator(entries):
+			database.add_document(doc)
 			if self._quitting:
+				del database
 				return index_interrupt()
 				
+		del database
 		self._index_lock.release()
 		if callback is not None:
 			callback()
@@ -208,6 +213,7 @@ class PTVXapian:
 	
 		for feed_id in feedlist:
 			if self._quitting:
+				del database
 				return reindex_interrupt()
 			try:
 				c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
@@ -218,6 +224,7 @@ class PTVXapian:
 
 		for entry_id in entrylist:
 			if self._quitting:
+				del database
 				return reindex_interrupt()
 			try:
 				c.execute(u"""SELECT feed_id, title, description, fakedate FROM entries WHERE id=?""",(entry_id,))
@@ -232,6 +239,7 @@ class PTVXapian:
 		entry_addition = utils.uniquer(entry_addition)
 				
 		if self._quitting:
+			del database
 			return reindex_interrupt()
 		#first delete anything deleted or changed
 		for feed_id in feedlist:
@@ -250,6 +258,7 @@ class PTVXapian:
 		#print [f[0] for f in feed_addition]
 		for feed_id, title, description in feed_addition:
 			if self._quitting:
+				del database
 				return reindex_interrupt()
 			try:
 				doc = xapian.Document() 
@@ -271,6 +280,7 @@ class PTVXapian:
 		#print [(e[0],e[1]) for e in entry_addition]
 		for entry_id, feed_id, title, description, fakedate in entry_addition:
 			if self._quitting:
+				del database
 				return reindex_interrupt()
 			try:
 				doc = xapian.Document()
@@ -295,6 +305,7 @@ class PTVXapian:
 			except Exception, e:
 				logging.error("Failed adding entry: %s" % str(e))
 				
+		del database
 		self._index_lock.release()
 						
 	def Search(self, command, blacklist=[], include=['feeds','entries'], since=0):

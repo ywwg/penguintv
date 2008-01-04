@@ -749,6 +749,8 @@ class MainWindow(gobject.GObject):
 			self.window.window.set_cursor(cursor)
 		if self._gstreamer_player:
 			self._gstreamer_player.toggle_controls(True)
+		if utils.HAS_SEARCH:
+			self.search_container.hide_all()
 			
 		#elif self._notebook.get_current_page() == N_FEEDS:
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
@@ -779,6 +781,9 @@ class MainWindow(gobject.GObject):
 		self.window.window.set_cursor(None)
 		if self._gstreamer_player is not None:
 			self._gstreamer_player.toggle_controls(False)
+			
+		if utils.HAS_SEARCH:
+			self.search_container.show_all()
 			
 		#elif self._notebook.get_current_page() == N_FEEDS:
 		if self.layout == 'planet':
