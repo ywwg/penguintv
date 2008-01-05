@@ -438,19 +438,26 @@ class EntryList(gobject.GObject):
 				   'flag': self._entrylist[index][FLAG]}
 		menu = gtk.Menu()   
 		if selected['flag'] & ptvDB.F_MEDIA:
-			item = gtk.ImageMenuItem(_("_Download"))
-			img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
-			item.set_image(img)
-			item.connect('activate',self._main_window.on_download_entry_activate)
-			menu.append(item)
+			if selected['flag'] & ptvDB.F_DOWNLOADED == 0:
+				item = gtk.ImageMenuItem(_("_Download"))
+				img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
+				item.set_image(img)
+				item.connect('activate',self._main_window.on_download_entry_activate)
+				menu.append(item)
+			else:
+				item = gtk.ImageMenuItem(_("_Re-Download"))
+				img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
+				item.set_image(img)
+				item.connect('activate',self._main_window.on_download_entry_activate)
+				menu.append(item)
+				
+				item = gtk.ImageMenuItem('gtk-media-play')
+				item.connect('activate',self._main_window.on_play_entry_activate)
+				menu.append(item)
 			
-			item = gtk.ImageMenuItem('gtk-media-play')
-			item.connect('activate',self._main_window.on_play_entry_activate)
-			menu.append(item)
-			
-			item = gtk.MenuItem(_("Delete"))
-			item.connect('activate',self._main_window.on_delete_entry_media_activate)
-			menu.append(item)
+				item = gtk.MenuItem(_("Delete"))
+				item.connect('activate',self._main_window.on_delete_entry_media_activate)
+				menu.append(item)
 			
 		if selected['flag'] & ptvDB.F_UNVIEWED:
 			item = gtk.MenuItem(_("Mark as _Viewed"))

@@ -515,8 +515,10 @@ class MainWindow(gobject.GObject):
 
 		if self.layout == "planet":
 			self._widgetTree.get_widget('entry_menu_item').hide()
+			self._widgetTree.get_widget('showkept_cb').show()
 		else:
 			self._widgetTree.get_widget('entry_menu_item').show()
+			self._widgetTree.get_widget('showkept_cb').hide()
 			
 		self.app_window.show_all()
 			
@@ -1044,6 +1046,21 @@ class MainWindow(gobject.GObject):
 		self._app.poll_feeds()
 		self.set_wait_cursor(False)
 		
+	def set_show_kept_menuitem(self, state):
+		self._widgetTree.get_widget('showkept_cb').set_active(state)
+		
+	def set_show_kept_visibility(self, state):
+		assert self.layout == "planet"
+	
+		if state:
+			self._widgetTree.get_widget('showkept_cb').show()
+		else:
+			self._widgetTree.get_widget('showkept_cb').hide()
+		
+	def on_showkept_cb_toggled(self, event):
+		assert self.layout == "planet"
+		self.entry_list_view.set_show_kept(self._widgetTree.get_widget('showkept_cb').get_active())
+		
 	def on_synchronize_button_clicked(self,event):
 		self._sync_dialog.hide()
 		self._sync_dialog.on_sync_button_clicked(event)	
@@ -1389,8 +1406,10 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.add(self.load_layout())
 		if self.layout == "planet":
 			self._widgetTree.get_widget('entry_menu_item').hide()
+			self._widgetTree.get_widget('showkept_cb').show()
 		else:
 			self._widgetTree.get_widget('entry_menu_item').show()
+			self._widgetTree.get_widget('showkept_cb').hide()
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()

@@ -29,11 +29,11 @@ class EntryFormatter:
 		#ret.append('<div class="heading">')
 		if self._indicate_new:
 			if item['new']:
-				ret.append('<div class="entry_new">')
+				ret.append("""<div class="entry_new" oncontextmenu="javascript:parent.location='rightclick:%i'">""" % item['entry_id'])
 			else:
-				ret.append('<div class="entry_old">')
+				ret.append("""<div class="entry_old" oncontextmenu="javascript:parent.location='rightclick:%i'">""" % item['entry_id'])
 		else:
-			ret.append('<div class="entry">')
+			ret.append("""<div class="entry" oncontextmenu="javascript:parent.location='rightclick:%i'">""" % item['entry_id'])
 
 		ret.append('''<table style="text-align: left; width: 100%;" border="0" cellpadding="0" cellspacing="0"><tr><td>''')
 

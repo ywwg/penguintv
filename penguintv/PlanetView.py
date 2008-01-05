@@ -62,8 +62,9 @@ class PlanetView(gobject.GObject):
 		self.presently_selecting = False
 		
 		#protected
-		if app is not None:
-			self._mm = app.mediamanager
+		self._app = app
+		if self._app is not None:
+			self._mm = self._app.mediamanager
 		else:
 			self._mm = None
 		
@@ -80,6 +81,7 @@ class PlanetView(gobject.GObject):
 		self._search_query = None
 		self._filter_feed = None
 		self._show_kept = False
+		self._ignore_next_event = False
 		
 		self._entrylist = []
 		self._entry_store = {}
@@ -197,19 +199,19 @@ class PlanetView(gobject.GObject):
 			self._handlers.append((feed_list_view.disconnect, h_id))
 			h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
 			self._handlers.append((feed_list_view.disconnect, h_id))
-		if app is not None:
-			h_id = app.connect('feed-added',self.__feed_added_cb)
-			self._handlers.append((app.disconnect, h_id))
-			h_id = app.connect('feed-removed', self.__feed_removed_cb)
-			self._handlers.append((app.disconnect, h_id))
-			h_id = app.connect('feed-polled', self.__feed_polled_cb)
-			self._handlers.append((app.disconnect, h_id))
-			h_id = app.connect('entry-updated', self.__entry_updated_cb)
-			self._handlers.append((app.disconnect, h_id))
-			h_id = app.connect('render-ops-updated', self.__render_ops_updated_cb)
-			self._handlers.append((app.disconnect, h_id))
-			h_id = app.connect('state-changed', self.__state_changed_cb)
-			self._handlers.append((app.disconnect, h_id))
+		if self._app is not None:
+			h_id = self._app.connect('feed-added',self.__feed_added_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('state-changed', self.__state_changed_cb)
+			self._handlers.append((self._app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -309,6 +311,8 @@ class PlanetView(gobject.GObject):
 		if feed_id != self._current_feed_id:
 			new_feed = True
 			self._show_kept = False
+			self._main_window.set_show_kept_menuitem(self._show_kept)
+			self._main_window.set_show_kept_visibility(True)
 			self._current_feed_id = feed_id
 			self._first_entry = 0
 			self._entry_store={}
@@ -353,6 +357,8 @@ class PlanetView(gobject.GObject):
 		self._convert_newlines = False
 		self._current_feed_id = -1
 		self._show_kept = False
+		self._main_window.set_show_kept_menuitem(self._show_kept)
+		self._main_window.set_show_kept_visibility(False)
 		query = query.replace("*","")
 		self._search_query = query
 		try:
@@ -518,17 +524,11 @@ class PlanetView(gobject.GObject):
 					<tr><td>""")
 		if self._first_entry > 0:
 			html.append(_('<a href="planet:up">Newer Entries</a>'))
-		elif not self._state == S_SEARCH:
-			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
-				(cb_function, cb_status, cb_function, _('Show Kept')))
+		
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
 			html.append(_('<a href="planet:down">Older Entries</a>'))
 			
-		if self._first_entry > 0 and not self._state == S_SEARCH:
-			html.append('</td></tr><tr><td><form id="showkept">')
-			html.append("""<input type="checkbox" id="kept" name="kept" class="radio" onclick="parent.location='%s'" %s="yes"><a href="%s">%s</a></form>""" %
-				(cb_function, cb_status, cb_function, _('Show Kept')))
 		html.append("</td></tr></tbody></table></div>")
 		
 		if self._state != S_SEARCH:
@@ -628,10 +628,12 @@ class PlanetView(gobject.GObject):
 	  				timerObj = setTimeout("refresh_entries(1)",1000);
 				}
 				refresh_entries(1)""")
-			html.append("""document.oncontextmenu = function(){
-							  parent.location="rightclick:0"
-							  return false;
-							};""")
+			html.append("""
+				document.oncontextmenu = function()
+					{
+						parent.location="rightclick:0"
+						return false;
+					};""")
 			
 			html.append("--> </script>")
 			html.append("""</head><body><span id="errorMsg"></span><br>""")
@@ -776,6 +778,77 @@ class PlanetView(gobject.GObject):
 	def _hulahop_prop_changed(self, obj, pspec):
 		if pspec.name == 'status':
 			self._main_window.display_status_message(self._moz.get_property('status'))
+			
+	def _do_context_menu(self, entry_id):
+		"""pops up a context menu for the designated item"""
+		
+		# When we right click on an item, we also get an event for the whole
+		# document, so ignore that one.
+		
+		if entry_id == 0:
+			if self._ignore_next_event:
+				self._ignore_next_event = False
+				return
+		else:
+			self._ignore_next_event = True
+		
+		menu = gtk.Menu()
+		
+		if entry_id == 0 and self._state == S_SEARCH:
+			return
+		
+		if entry_id > 0:
+			entry = self._load_entry(entry_id)[1]
+			entry['flag'] = self._db.get_entry_flag(entry_id)
+			
+			if entry['flag'] & ptvDB.F_MEDIA:
+				if entry['flag'] & ptvDB.F_DOWNLOADED == 0:
+					item = gtk.ImageMenuItem(_("_Download"))
+					img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
+					item.set_image(img)
+					item.connect('activate', lambda e,i: self._app.download_entry(i), entry_id)
+					menu.append(item)
+				else:
+					item = gtk.ImageMenuItem(_("_Re-Download"))
+					img = gtk.image_new_from_stock('gtk-go-down',gtk.ICON_SIZE_MENU)
+					item.set_image(img)
+					item.connect('activate', lambda e,i: self._app.download_entry(i), entry_id)
+					menu.append(item)
+
+					item = gtk.ImageMenuItem('gtk-media-play')
+					item.connect('activate', lambda e,i: self._app.play_entry(i), entry_id)
+					menu.append(item)
+				
+					item = gtk.MenuItem(_("Delete"))
+					item.connect('activate', lambda e,i: self._app.delete_entry_media(i), entry_id)
+					menu.append(item)
+			
+			keep = self._db.get_entry_keep(entry['entry_id'])
+			if keep:
+				item = gtk.MenuItem(_("_Don't Keep New"))
+				item.connect('activate', lambda e,i: self._app.activate_link("unkeep:%i" % (i,)), entry_id)
+				menu.append(item)
+			else:
+				item = gtk.MenuItem(_("_Keep New"))
+				item.connect('activate', lambda e,i: self._app.activate_link("keep:%i" % (i,)), entry_id)
+				menu.append(item)
+			
+			if self._state != S_SEARCH:
+				separator = gtk.SeparatorMenuItem()
+				menu.append(separator)
+				
+		if self._state != S_SEARCH:
+			if self._show_kept:
+				item = gtk.MenuItem(_("_Show All"))
+				item.connect('activate', self._toggle_show_kept)
+				menu.append(item)
+			else:
+				item = gtk.MenuItem(_("_Show Kept Entries"))
+				item.connect('activate', self._toggle_show_kept)
+				menu.append(item)
+			
+		menu.show_all()
+		menu.popup(None,None,None, 3, 0)
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
@@ -785,18 +858,27 @@ class PlanetView(gobject.GObject):
 		elif link == "planet:down":
 			self._first_entry += ENTRIES_PER_PAGE
 			self._render_entries(mark_read=True)
-		elif link == "showkept:1":
-			self._show_kept = True
-			self._first_entry = 0
-			self._render_entries()
-		elif link == "showkept:0":
-			self._show_kept = False
-			self._first_entry = 0
-			self._render_entries()
+		elif link.startswith("rightclick"):
+			self._do_context_menu(int(link.split(':')[1]))
 		else:
 			self.emit('link-activated', link)
 			
 		return True #don't load url please
+		
+	def set_show_kept(self, state):
+		if state == self._show_kept:
+			return
+				
+		self._toggle_show_kept()
+		
+	def _toggle_show_kept(self, e=None):
+		if self._show_kept:
+			self._show_kept = False
+		else:
+			self._show_kept = True
+		self._main_window.set_show_kept_menuitem(self._show_kept)
+		self._first_entry = 0
+		self._render_entries()
 		
 	def _moz_new_window(self, mozembed, retval, chromemask):
 		# hack to try to properly load links that want a new window
