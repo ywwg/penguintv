@@ -1272,6 +1272,7 @@ class PenguinTVApp(gobject.GObject):
 		try:
 			query = query.replace("!","")
 			result = self.db.search(query, blacklist=blacklist)
+			logging.debug("search results: %i, %i" % (len(result[0]), len(result[1])))
 		except Exception, e:
 			logging.warning("Error with that search term: " + str(query) + str(e))
 			result=([],[])

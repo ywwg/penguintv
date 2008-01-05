@@ -549,27 +549,25 @@ class PlanetView(gobject.GObject):
 		html.append("</body></html>")
 		
 		html = "".join(html)
-		
 		self._render(html)
 	
 	def _build_header(self, media_exists):
 		if self._renderer == EntryFormatter.MOZILLA:
-			html = (
-            """<html><head>
-            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-			<style type="text/css">
-            body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
-            %s
-            </style>
-            <title>title</title>""") % (self._background_color,
-									   self._foreground_color,
-									   self._moz_font, 
-									   self._moz_size, 
-									   self._css)
+			html = ["""<html><head>
+				    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+					<style type="text/css">
+				    body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
+				    %s
+				    </style>
+				    <title>title</title>""" % (self._background_color,
+											   self._foreground_color,
+											   self._moz_font, 
+											   self._moz_size, 
+											   self._css)] 
+			html.append("""<script type="text/javascript"><!--""")
 			if self._USING_AJAX:
-				html += """
-	            <script type="text/javascript">
-	            <!--
+				html.append("""
+	            
 	            var xmlHttp
 
 				function refresh_entries(timed)
@@ -629,12 +627,16 @@ class PlanetView(gobject.GObject):
 				{
 	  				timerObj = setTimeout("refresh_entries(1)",1000);
 				}
-				refresh_entries(1)
-				-->
-	            </script>"""
-			html += """</head><body><span id="errorMsg"></span><br>"""
+				refresh_entries(1)""")
+			html.append("""document.oncontextmenu = function(){
+							  parent.location="rightclick:0"
+							  return false;
+							};""")
 			
-		return html
+			html.append("--> </script>")
+			html.append("""</head><body><span id="errorMsg"></span><br>""")
+			
+		return "\n".join(html)
 		
 	def _load_entry_block(self, entry_list, mark_read=False, force=False):
 		#if not forcing, load what we can from cache
