@@ -78,7 +78,8 @@ class MainWindow(gobject.GObject):
 		self._mm = self._app.mediamanager
 		self._db = self._app.db #this and app are always in the same thread
 		self._glade_prefix = glade_prefix
-		self._widgetTree   = None
+		self._widgetTree = None
+		self._menu_widgettree = None
 		self.window_maximized = False
 		self.changing_layout=False
 		self.layout='standard'
@@ -175,10 +176,9 @@ class MainWindow(gobject.GObject):
 		
 	def __setting_changed_cb(self, app, typ, datum, value):
 		if datum == '/apps/penguintv/show_notifications':
-			if not utils.RUNNING_HILDON:
-				show_notifs_item = self._widgetTree.get_widget('show_notifications')
-				if show_notifs_item.get_active() != value:
-					show_notifs_item.set_active(value)
+			show_notifs_item = self._menu_widgettree.get_widget('show_notifications')
+			if show_notifs_item.get_active() != value:
+				show_notifs_item.set_active(value)
 				
 	def __tags_changed_cb(self, app, val):
 		self.update_filters()
@@ -280,13 +280,16 @@ class MainWindow(gobject.GObject):
 			self.window.add_toolbar(self.toolbar)
 			self._h_app.add_window(self.window)
 			
-			self.window.set_menu(self._build_hildon_menu())
+			self._menu_widgettree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'hildon_menu','penguintv')
+			menu = self._build_hildon_menu(self._menu_widgettree)
+			self.window.set_menu(menu)
 			
 			self.window.show_all()
 			
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
+					self._menu_widgettree.signal_connect(key, getattr(self, key))
 					
 			self.window.connect('destroy', self.on_app_destroy_event)
 			self.window.connect('delete-event', self.on_app_delete_event)
@@ -319,22 +322,36 @@ class MainWindow(gobject.GObject):
 			
 		return False
 		
-	def _build_hildon_menu(self):
+	def _build_hildon_menu(self, widgets):
 		menu = gtk.Menu()  
-			
-		filemenu = gtk.MenuItem('File')
-		submenu = gtk.Menu()	
-			
-		item = gtk.MenuItem('Import Subscriptions')
-		item.connect('activate', self.on_import_opml_activate)
-		submenu.append(item)
-			
-		item = gtk.MenuItem('Export Subscriptions')
-		item.connect('activate', self.on_export_opml_activate)
-		submenu.append(item)
 		
-		filemenu.set_submenu(submenu)
-		menu.append(filemenu)
+		menuitem = widgets.get_widget('file_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('edit_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('view_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('go_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('feed_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('entry_menu_item')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('help_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
 		
 		separator = gtk.SeparatorMenuItem()
 		menu.append(separator)
@@ -464,14 +481,15 @@ class MainWindow(gobject.GObject):
 			
 	def _load_app_window(self):
 		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv')
+		self._menu_widgettree = self._widgetTree
 		
 		notebook_dock = self._widgetTree.get_widget('layout_dock')
 		self.app_window = self._widgetTree.get_widget('app')
 		
-		fancy_feedlist_item = self._widgetTree.get_widget('fancy_feed_display')
+		fancy_feedlist_item = self._menu_widgettree.get_widget('fancy_feed_display')
 		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, 
 		                               '/apps/penguintv/fancy_feedlist', True))
-		show_notifs_item = self._widgetTree.get_widget('show_notifications')
+		show_notifs_item = self._menu_widgettree.get_widget('show_notifications')
 		show_notifs_item.set_active(self._db.get_setting(ptvDB.BOOL, 
 		                           '/apps/penguintv/show_notifications', True))
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
@@ -514,11 +532,11 @@ class MainWindow(gobject.GObject):
 			self.app_window.resize(w,h)
 
 		if self.layout == "planet":
-			self._widgetTree.get_widget('entry_menu_item').hide()
-			self._widgetTree.get_widget('showkept_cb').show()
+			self._menu_widgettree.get_widget('entry_menu_item').hide()
+			self._menu_widgettree.get_widget('showkept_cb').show()
 		else:
-			self._widgetTree.get_widget('entry_menu_item').show()
-			self._widgetTree.get_widget('showkept_cb').hide()
+			self._menu_widgettree.get_widget('entry_menu_item').show()
+			self._menu_widgettree.get_widget('showkept_cb').hide()
 			
 		self.app_window.show_all()
 			
@@ -1047,22 +1065,19 @@ class MainWindow(gobject.GObject):
 		self.set_wait_cursor(False)
 		
 	def set_show_kept_menuitem(self, state):
-		if not utils.RUNNING_HILDON:
-			self._widgetTree.get_widget('showkept_cb').set_active(state)
+		self._menu_widgettree.get_widget('showkept_cb').set_active(state)
 		
 	def set_show_kept_visibility(self, state):
 		assert self.layout == "planet"
 	
-		if not utils.RUNNING_HILDON:
-			if state:
-				self._widgetTree.get_widget('showkept_cb').show()
-			else:
-				self._widgetTree.get_widget('showkept_cb').hide()
+		if state:
+			self._menu_widgettree.get_widget('showkept_cb').show()
+		else:
+			self._menu_widgettree.get_widget('showkept_cb').hide()
 		
 	def on_showkept_cb_toggled(self, event):
 		assert self.layout == "planet"
-		if not utils.RUNNING_HILDON:
-			self.entry_list_view.set_show_kept(self._widgetTree.get_widget('showkept_cb').get_active())
+		self.entry_list_view.set_show_kept(self._menu_widgettree.get_widget('showkept_cb').get_active())
 		
 	def on_synchronize_button_clicked(self,event):
 		self._sync_dialog.hide()
@@ -1408,11 +1423,11 @@ class MainWindow(gobject.GObject):
 		
 		self._layout_dock.add(self.load_layout())
 		if self.layout == "planet":
-			self._widgetTree.get_widget('entry_menu_item').hide()
-			self._widgetTree.get_widget('showkept_cb').show()
+			self._menu_widgettree.get_widget('entry_menu_item').hide()
+			self._menu_widgettree.get_widget('showkept_cb').show()
 		else:
-			self._widgetTree.get_widget('entry_menu_item').show()
-			self._widgetTree.get_widget('showkept_cb').hide()
+			self._menu_widgettree.get_widget('entry_menu_item').show()
+			self._menu_widgettree.get_widget('showkept_cb').hide()
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
@@ -1483,12 +1498,13 @@ class MainWindow(gobject.GObject):
 		if self._state == S_MAJOR_DB_OPERATION:
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(True)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(True)
-			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
+			if not utils.RUNNING_SUGAR:
 				#these are menu items
-				self._widgetTree.get_widget("add_feed").set_sensitive(True)
-				self._widgetTree.get_widget("add_feed_filter").set_sensitive(True)
-				self._widgetTree.get_widget("remove_feed").set_sensitive(True)
-				self._widgetTree.get_widget("properties").set_sensitive(True)
+				self._menu_widgettree.get_widget("add_feed").set_sensitive(True)
+				self._menu_widgettree.get_widget("remove_feed").set_sensitive(True)
+				self._menu_widgettree.get_widget("properties").set_sensitive(True)
+			elif not utils.RUNNING_HILDON:
+				self._menu_widgettree.get_widget("add_feed_filter").set_sensitive(True)
 			
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
@@ -1515,12 +1531,13 @@ class MainWindow(gobject.GObject):
 			self._widgetTree.get_widget("feed_add_button").set_sensitive(False)
 			self._widgetTree.get_widget("feed_remove").set_sensitive(False)
 
-			if not utils.RUNNING_HILDON and not utils.RUNNING_SUGAR:
+			if not utils.RUNNING_SUGAR:
 				#these are menu items
-				self._widgetTree.get_widget("add_feed").set_sensitive(False)
-				self._widgetTree.get_widget("add_feed_filter").set_sensitive(False)
-				self._widgetTree.get_widget("remove_feed").set_sensitive(False)
-				self._widgetTree.get_widget("properties").set_sensitive(False)
+				self._menu_widgettree.get_widget("add_feed").set_sensitive(False)
+				self._menu_widgettree.get_widget("remove_feed").set_sensitive(False)
+				self._menu_widgettree.get_widget("properties").set_sensitive(False)
+			elif not utils.RUNNING_HILDON:
+				self._menu_widgettree.get_widget("add_feed_filter").set_sensitive(False)
 			
 		self._state = new_state
 
