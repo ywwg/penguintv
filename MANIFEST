@@ -42,6 +42,7 @@ penguintv/EntryList.py
 penguintv/EntryFormatter.py
 penguintv/Downloader.py
 penguintv/FeedList.py
+penguintv/HildonListener.py
 penguintv/__init__.py
 penguintv/OPML.py
 penguintv/ThreadPool.py
@@ -89,6 +90,7 @@ share/penguintvicon.png
 share/gtkhtml.css
 share/mozilla.css
 share/mozilla-planet.css
+share/mozilla-planet-hildon.css
 share/pixmaps/ev_online.png
 share/pixmaps/ev_offline.png
 share/pixmaps/throbber.gif

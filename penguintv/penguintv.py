@@ -19,7 +19,10 @@ DONE_MAJOR_DB_OPERATION = 5
 ##from sizer import formatting
 
 #import urlparse loaded as needed
-from pysqlite2.dbapi2 import OperationalError as OperationalError
+try:
+	from sqlite3 import OperationalError as OperationalError
+except:
+	from pysqlite2.dbapi2 import OperationalError as OperationalError
 import threading
 import sys, os, os.path
 import gc
@@ -193,7 +196,7 @@ class PenguinTVApp(gobject.GObject):
 			
 		self.glade_prefix = utils.get_glade_prefix()
 		if self.glade_prefix is None:
-			logging.error("error finding glade file.")
+			logging.error("Error finding glade file.  Have you run python setup.py build?")
 			sys.exit()
 						
 		logging.info("penguintv " + utils.VERSION + " startup")

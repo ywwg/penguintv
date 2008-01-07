@@ -829,7 +829,7 @@ def do_quit(self, widget, player):
 def items_removed(player):
 	print player.get_queue_count()
 	
-def item_not_supported(player, filename, name):
+def item_not_supported(app, player, filename, name):
 	print filename,name, "not supported"
 	
 fullscreen = False

@@ -141,6 +141,8 @@ def correct_url(url, glade_prefix):
 						
 				if len(url_choices) > 1:
 					newurl, title = _choose_url(url_choices)
+					if newurl is None:
+						raise BadFeedURL, "User canceled operation"
 				elif len(url_choices) == 1:
 					newurl, title = url_choices[0]
 				if newurl == "":
@@ -176,7 +178,7 @@ def _choose_url(url_list):
 	dialog.vbox.pack_start(list_widget)
 	
 	for url, title in url_list:
-		model.append([url, title])
+		model.append((url, title))
 	
 	dialog.show_all()
 	response = dialog.run()
@@ -186,9 +188,9 @@ def _choose_url(url_list):
 		selection = list_widget.get_selection()
 		s_iter = selection.get_selected()[1]
 		if s_iter is None:
-			return None
+			return (None, None)
 		return list(model[s_iter])
-	return None
+	return (None, None)
 
 class AltParser(HTMLParser.HTMLParser):
 	def __init__(self):

@@ -1047,19 +1047,22 @@ class MainWindow(gobject.GObject):
 		self.set_wait_cursor(False)
 		
 	def set_show_kept_menuitem(self, state):
-		self._widgetTree.get_widget('showkept_cb').set_active(state)
+		if not utils.RUNNING_HILDON:
+			self._widgetTree.get_widget('showkept_cb').set_active(state)
 		
 	def set_show_kept_visibility(self, state):
 		assert self.layout == "planet"
 	
-		if state:
-			self._widgetTree.get_widget('showkept_cb').show()
-		else:
-			self._widgetTree.get_widget('showkept_cb').hide()
+		if not utils.RUNNING_HILDON:
+			if state:
+				self._widgetTree.get_widget('showkept_cb').show()
+			else:
+				self._widgetTree.get_widget('showkept_cb').hide()
 		
 	def on_showkept_cb_toggled(self, event):
 		assert self.layout == "planet"
-		self.entry_list_view.set_show_kept(self._widgetTree.get_widget('showkept_cb').get_active())
+		if not utils.RUNNING_HILDON:
+			self.entry_list_view.set_show_kept(self._widgetTree.get_widget('showkept_cb').get_active())
 		
 	def on_synchronize_button_clicked(self,event):
 		self._sync_dialog.hide()

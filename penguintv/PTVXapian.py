@@ -194,7 +194,10 @@ class PTVXapian:
 		def reindex_interrupt():
 			self._index_lock.release()
 			self._interrupt()
+			logging.debug("Reindex interrupted")
 			return
+			
+		logging.debug("Xapian reindexing: %i, %i" % (len(feedlist), len(entrylist)))
 			
 		self._index_lock.acquire()
 		db = self._get_db()
@@ -307,6 +310,7 @@ class PTVXapian:
 				
 		del database
 		self._index_lock.release()
+		logging.debug("Reindex complete")
 						
 	def Search(self, command, blacklist=[], include=['feeds','entries'], since=0):
 		"""returns two lists, one of search results in feeds, and one for results in entries.  It

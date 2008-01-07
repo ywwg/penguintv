@@ -385,7 +385,8 @@ class FeedList(gobject.GObject):
 		# a nasty flicker when we click on feeds
 		self.resize_columns()
 		
-		gobject.timeout_add(500, self._load_details(visible_only=False).next)
+		if self._fancy:
+			gobject.timeout_add(500, self._load_details(visible_only=False).next)
 		
 		if not self._cancel_load[0]:
 			if self._fancy:
@@ -851,7 +852,7 @@ class FeedList(gobject.GObject):
 			self._cancel_load[1] = False
 
 		self._loading_details = 0
-		if visible_only and len(self._feedlist) > 0:
+		if visible_only and len(self._feedlist) > 0 and self._fancy:
 			#print "now loading everything else"
 			gobject.timeout_add(500, self._load_details(visible_only=False).next)
 				
