@@ -89,6 +89,7 @@ class EntryList(gobject.GObject):
 		#signals
 		self._widget.get_selection().connect("changed", self.item_selection_changed)
 		self._widget.connect("row-activated", self.on_row_activated)
+		self._widget.connect("button-press-event", self._on_button_press_event)
 		
 		self._handlers = []
 		h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
@@ -352,6 +353,10 @@ class EntryList(gobject.GObject):
 			
 		self._unset_state()
 		self._state = newstate
+		
+	def _on_button_press_event(self, widget, event):
+		if event.button==3: #right click
+			self.do_context_menu(event)
 		
 	def item_selection_changed(self, selection):
 		self.presently_selecting = True

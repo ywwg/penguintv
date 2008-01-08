@@ -329,10 +329,6 @@ class MainWindow(gobject.GObject):
 		menuitem.unparent()
 		menu.append(menuitem)
 		
-		menuitem = widgets.get_widget('edit_menu')
-		menuitem.unparent()
-		menu.append(menuitem)
-		
 		menuitem = widgets.get_widget('view_menu')
 		menuitem.unparent()
 		menu.append(menuitem)
@@ -342,10 +338,6 @@ class MainWindow(gobject.GObject):
 		menu.append(menuitem)
 		
 		menuitem = widgets.get_widget('feed_menu')
-		menuitem.unparent()
-		menu.append(menuitem)
-		
-		menuitem = widgets.get_widget('entry_menu_item')
 		menuitem.unparent()
 		menu.append(menuitem)
 		
@@ -980,85 +972,6 @@ class MainWindow(gobject.GObject):
 				url = url[url.find(':')+1:]
 			self._app.add_feed(url, url)
 			
-	def on_feedlistview_button_press_event(self, widget, event):          
-		if event.button==3: #right click     
-			menu = gtk.Menu()   
-			
-			path = widget.get_path_at_pos(int(event.x),int(event.y))
-			model = widget.get_model()
-			if path is None: #nothing selected
-				return
-			selected = model[path[0]][FeedList.FEEDID]
-			is_filter = self._db.is_feed_filter(selected)  
-			
-			if is_filter and not utils.HAS_SEARCH:
-				item = gtk.MenuItem(_("Search required for feed filters"))
-				item.set_sensitive(False)
-				menu.append(item)
-				separator = gtk.SeparatorMenuItem()
-				menu.append(separator)
-
-			item = gtk.ImageMenuItem('gtk-refresh')
-			item.connect('activate',self.on_refresh_activate)
-			if is_filter and not utils.HAS_SEARCH:
-				item.set_sensitive(False)
-			menu.append(item)
-			
-			item = gtk.MenuItem(_("Mark as _Viewed"))
-			item.connect('activate',self.on_mark_feed_as_viewed_activate)
-			if is_filter and not utils.HAS_SEARCH:
-				item.set_sensitive(False)
-			menu.append(item)
-			
-			item = gtk.MenuItem(_("_Delete All Media"))
-			item.connect('activate',self.on_delete_feed_media_activate)
-			if is_filter and not utils.HAS_SEARCH:
-				item.set_sensitive(False)
-			menu.append(item)
-			
-			item = gtk.ImageMenuItem(_("_Remove Feed"))
-			img = gtk.image_new_from_stock('gtk-remove',gtk.ICON_SIZE_MENU)
-			item.set_image(img)
-			item.connect('activate',self.on_remove_feed_activate)
-			if self._state == S_MAJOR_DB_OPERATION:
-				item.set_sensitive(False)
-			menu.append(item)
-
-			
-			separator = gtk.SeparatorMenuItem()
-			menu.append(separator)
-			
-			if not is_filter:
-				if utils.HAS_SEARCH:
-					item = gtk.MenuItem(_("_Create Feed Filter"))
-					item.connect('activate',self.on_add_feed_filter_activate)
-					if self._state == S_MAJOR_DB_OPERATION:
-						item.set_sensitive(False)
-					menu.append(item)
-				
-				item = gtk.ImageMenuItem('gtk-properties')
-				item.connect('activate',self.on_feed_properties_activate)
-				menu.append(item)
-			else:
-				item = gtk.ImageMenuItem('gtk-properties')
-				item.connect('activate',self.on_feed_filter_properties_activate)
-				if not utils.HAS_SEARCH:
-					item.set_sensitive(False)
-				menu.append(item)
-				
-			menu.show_all()
-			menu.popup(None,None,None, event.button,event.time)
-	
-	def on_feedlistview_popup_menu(self, event):
-		pass
-		
-	def on_entrylistview_button_press_event(self, widget, event):          
-		if event.button==3: #right click     
-			self.entry_list_view.do_context_menu(event)       
-	
-	def on_entrylistview_popup_menu(self, event):
-		self.entry_list_view.do_context_menu(event)
-	
 	def on_feeds_poll_clicked(self,event):
 		self.set_wait_cursor()
 		self._app.poll_feeds()

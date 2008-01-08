@@ -346,7 +346,7 @@ class PTVXapian:
 		entry_results=[]
 		
 		query = qp.parse_query(command)
-		enquire.set_query(query)		
+		enquire.set_query(query)
 		matches = enquire.get_mset(0, 100)
 		for m in matches:
 			doc = m.document
