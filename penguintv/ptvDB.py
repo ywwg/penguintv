@@ -1805,7 +1805,7 @@ class ptvDB:
 			raise NoFeed, feed_index
 		return result
 		
-	def get_first_entry_title(self, feed_id):
+	def get_first_entry_title(self, feed_id, strip_newlines=False):
 		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_id,))
 		result = self._c.fetchone()
 
@@ -1827,6 +1827,9 @@ class ptvDB:
 
 		if result=="":
 			raise NoFeed, feed_id
+			
+		if strip_newlines:
+			return result[0].replace("\n"," ")
 		return result[0]
 		
 	def get_entry_count(self, feed_id):
