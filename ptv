@@ -1,0 +1,11 @@
+#!/bin/bash
+
+export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
+export LD_LIBRARY_PATH="/usr/lib/microb-engine"
+
+run-standalone.sh python2.5 -c "import sys; \
+sys.path.insert(0, \"/usr/lib/python2.5/site-packages/penguintv\");
+import penguintv;
+import utils;
+
+penguintv.main()"

@@ -101,10 +101,12 @@ po/sv.po
 po/make_pot.sh
 po/install-po.sh
 PenguinTV
+ptv
 LICENSE
 MANIFEST
 setup.py
 README
 penguintv.desktop
+penguintv-hildon.desktop
 CONTRIBUTORS
 ptv_profile.py

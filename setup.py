@@ -54,19 +54,22 @@ except:
 	missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
 
 try:
-	from pysqlite2 import dbapi2 as sqlite
+	import sqlite3
 except:
-	missing_something.append("Need pysqlite version 2 or higher (http://pysqlite.org/)")
+	try:
+		from pysqlite2 import dbapi2 as sqlite
+	except:
+		missing_something.append("Need pysqlite version 2 or higher (http://pysqlite.org/)")
 	
 try:
 	import pycurl
 except:
 	missing_something.append("Need pycurl (http://pycurl.sourceforge.net/)")
 	
-try:
-	import gnome
-except:
-	missing_something.append("Need gnome python bindings")
+#try:
+#	import gnome
+#except:
+#	missing_something.append("Need gnome python bindings")
 	
 try:
 	from xml.sax import saxutils
@@ -99,6 +102,19 @@ if "build" in sys.argv or "install" in sys.argv:
 			print "There was an error building the MO file for locale "+this_locale
 			sys.exit(1)
 
+data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
+					('share/pixmaps',		['share/penguintvicon.png']),
+					('share/penguintv/pixmaps', ['share/pixmaps/ev_online.png', 'share/pixmaps/ev_offline.png'])]
+data_files += locales
+					
+if utils.RUNNING_HILDON:
+	data_files += [('share/themes/default/images/', ['share/penguintvicon.png']),
+					  ('share/applications/hildon/',['penguintv-hildon.desktop'])]
+	scripts = ['ptv']
+else:
+	data_files.append(('share/applications',	['penguintv.desktop']))
+	scripts = ['PenguinTV']
+
 setup(name = "PenguinTV", 
 version = utils.VERSION,
 description      = 'GNOME-compatible podcast and videoblog reader',
@@ -106,10 +122,8 @@ author           = 'Owen Williams',
 author_email     = 'owen-penguintv@ywwg.com',
 url              = 'http://penguintv.sourceforge.net',
 license          = 'GPL',
-scripts          = ['PenguinTV'],
-data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css','share/mozilla-planet.css']),
-					('share/pixmaps',		['share/penguintvicon.png', 'share/pixmaps/ev_online.png', 'share/pixmaps/ev_offline.png']),
-					('share/applications',	['penguintv.desktop'])]+locales,
+scripts          = scripts,
+data_files = data_files,
 packages = ["penguintv", 
 			"penguintv/ptvbittorrent", 
 			"penguintv/trayicon",
@@ -153,3 +167,11 @@ except:
 if something_disabled:
 	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
 	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
+	
+#if utils.RUNNING_HILDON:
+#	sp = my_subProcess.subProcess('''maemo-select-menu-location penguintv-hildon.desktop Internet''')
+#	if sp.read() != 0:
+#		print sp.outdata
+#		print "There was an error setting the category"
+#		sys.exit(1)
+	

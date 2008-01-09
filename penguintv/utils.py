@@ -177,7 +177,8 @@ def get_glade_prefix():
 		  os.path.join(GetPrefix(),"share"),
 		  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
 		  os.path.join(GetPrefix(),"share","sugar","activities","ptv","share"),
-		  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
+		  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share'),
+		  "/usr/share/penguintv"):
 		try:
 			os.stat(os.path.join(p,"penguintv.glade"))
 			logging.debug("glade prefix found: %s" % (p,))
@@ -188,24 +189,18 @@ def get_glade_prefix():
 	return None
 	
 def get_image_path(filename):
-	try:
-		icon_file = os.path.join(GetPrefix(), 'share', 'pixmaps', filename)
-		os.stat(icon_file)
-	except:
+	for p in (os.path.join(GetPrefix(), 'share', 'pixmaps'),
+			  os.path.join(GetPrefix(), 'share'), #in case the install is still in the source dirs
+			  get_glade_prefix(),
+			  os.path.join(get_glade_prefix(), 'pixmaps')):
 		try:
-			icon_file = os.path.join(GetPrefix(), 'share', filename) #in case the install is still in the source dirs
+			icon_file = os.path.join(p, filename)
 			os.stat(icon_file)
-		except:
-			try:
-				icon_file = os.path.join(get_glade_prefix(), filename)
-				os.stat(icon_file)
-			except:
-				try:
-					icon_file = os.path.join(get_glade_prefix(), 'pixmaps', filename)
-					os.stat(icon_file)
-				except Exception, e:
-					logging.error("icon not found:" + filename)
-					raise e
+			return icon_file
+		except Exception, e:
+			continue
+		logging.error("icon not found:" + filename)
+		raise e
 	return icon_file		
 
 def hours(n):  #this func copyright Bram Cohen
