@@ -254,7 +254,7 @@ class MainWindow(gobject.GObject):
 			logging.debug("Hildon: setting up UI")
 			self._h_app = hildon.Program()
 			self.window = hildon.Window()
-			self.window.set_title("PenguinTV "+utils.VERSION)
+			#self.window.set_title("PenguinTV "+utils.VERSION)
 			try:
 				gtk.set_application_name("PenguinTV "+utils.VERSION)
 			except:
