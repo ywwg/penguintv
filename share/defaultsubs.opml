@@ -6,19 +6,24 @@
 	         description="The world's premiere Linux and Free Software radio show" 
 	         title="LugRadio episodes (ogg)">
 	 </outline>
-	 <outline xmlUrl="http://www.quietamerican.org/vacation.xml" 
-	          text="One-Minute Vacation" 
-	          description="One-minute vacations are unedited recordings of somewhere, somewhen. Sixty seconds of something else. Sixty seconds to be someone else." 
-	          title="One-Minute Vacation">
+	 <outline xmlUrl="http://rss.news.yahoo.com/rss/mostemailed" 
+	 		  text="Yahoo! News: Most Emailed" 
+	 		  description="Most Emailed" 
+	 		  title="Yahoo! News: Most Emailed">
+	 </outline>
+	 <outline xmlUrl="http://www.xkcd.com/rss.xml" 
+	 		  text="xkcd Comic" 
+	 		  description="xkcd.com: A webcomic of romance and math humor." 
+	 		  title="xkcd Comic">
 	 </outline>
 	 <outline xmlUrl="http://ywwg.com/wordpress/wp-rss2.php" 
 	          text="Owen's Photolog" 
 	          description="Just another WordPress weblog with the ugly default template." 
 	          title="Owen's Photolog">
 	 </outline>
-	 <outline xmlUrl="http://www.gnomefiles.org/files/gnomefiles2.xml" 
-	          text="GnomeFiles.org" 
-	          description="GNOME/GTK+ Software Repository" 
-	          title="GnomeFiles.org">
+	 <outline xmlUrl="http://planet.gnome.org/rss20.xml" 
+	 		  text="Planet GNOME" 
+	 		  description="Planet GNOME - http://planet.gnome.org/" 
+	 		  title="Planet GNOME">
 	 </outline>
 </body></opml>
