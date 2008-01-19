@@ -255,7 +255,10 @@ class MainWindow(gobject.GObject):
 			self._h_app = hildon.Program()
 			self.window = hildon.Window()
 			self.window.set_title("PenguinTV "+utils.VERSION)
-			gtk.set_application_name("PenguinTV "+utils.VERSION)
+			try:
+				gtk.set_application_name("PenguinTV "+utils.VERSION)
+			except:
+				logging.warning("set application name failed, old pymaemo?")
 			self.window.set_icon_from_file(utils.get_image_path('penguintvicon.png'))
 			
 			self._status_view = None
