@@ -239,9 +239,7 @@ class FeedList(gobject.GObject):
 			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title,url in db_feedlist:
-				if utils.RUNNING_HILDON:
-					title_m = '<span size="xx-small">%s</span>' % title
-				elif self._fancy:
+				if self._fancy:
 					title_m = title+"\n"
 				else:
 					title_m = title
@@ -1062,8 +1060,6 @@ class FeedList(gobject.GObject):
 			return _("Please wait...")
 		if utils.RUNNING_SUGAR:
 			title='<span size="x-small">'+title+'</span>'
-		elif utils.RUNNING_HILDON:
-			title='<span size="xx-small">'+title+'</span>'
 		try:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					title="<b>"+utils.my_quote(title)+"</b>"

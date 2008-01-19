@@ -107,37 +107,37 @@ class PenguinTVApp(gobject.GObject):
 
 	__gsignals__ = {
 		'feed-polled': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
-        'feed-added': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_BOOLEAN])),
-        'feed-removed': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT])),
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
+		'feed-added': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT, gobject.TYPE_BOOLEAN])),
+		'feed-removed': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT])),
 		'entry-updated': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT, gobject.TYPE_INT])),
 		'entrylist-read': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
-        'render-ops-updated': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([])),
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
+		'render-ops-updated': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([])),
 		'notify-tags-changed': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([])),
+						   gobject.TYPE_NONE, 
+						   ([])),
 		# the integer here is really just so I can avoid a circular codepath
 		# in tag editor ng
 		'tags-changed': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT])),                        
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT])),                        
 		'download-finished': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_PYOBJECT])),
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_PYOBJECT])),
 		'app-loaded': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([])),
+						   gobject.TYPE_NONE, 
+						   ([])),
 		'setting-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_PYOBJECT])),
 		'state-changed':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
@@ -245,9 +245,16 @@ class PenguinTVApp(gobject.GObject):
 		#some signals
 		self.connect('feed-added', self.__feed_added_cb)
 		
+	def _handle_db_exception(self):
+		logging.debug("Got db exception, reconnecting to database")
+		self.db._db.close()
+		del self.db
+		self.db = ptvDB.ptvDB(self._polling_callback, self._emit_change_setting)
+	
+	@utils.db_except()
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
-	
+
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -336,7 +343,8 @@ class PenguinTVApp(gobject.GObject):
 		for path in (os.path.join(utils.GetPrefix(), "share" ,"penguintv"),
 					 os.path.join(utils.GetPrefix(), "share"),
 					 os.path.join(utils.GetPrefix(),"share","sugar","activities","ptv","share"),
-					 os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share')):
+					 os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share'),
+					 "/usr/share/penguintv"):
 			try:
 				if utils.HAS_PYXML:
 					subs_name = "defaultsubs.opml"
@@ -382,6 +390,7 @@ class PenguinTVApp(gobject.GObject):
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
 		
+	@utils.db_except()
 	def __online_status_changed(self, o, connected):
 		self._net_connected = connected
 		if not self._net_connected:
@@ -392,6 +401,7 @@ class PenguinTVApp(gobject.GObject):
 			if self.db:
 				self.db.interrupt_poll_multiple()
 		
+	@utils.db_except()
 	def _load_settings(self):
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 60)
 		self.polling_frequency = val*60*1000
@@ -451,6 +461,7 @@ class PenguinTVApp(gobject.GObject):
 		self._auto_download_limit = val
 		self.window_preferences.set_auto_download_limit(val)
 			
+	@utils.db_except()
 	def save_settings(self):
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.main_window.feed_pane.get_position())
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.main_window.entry_pane.get_position())
@@ -494,12 +505,14 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', val)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
+	@utils.db_except()
 	def resume_resumable(self):
 		list = self.db.get_resumable_media()
 		if list:
 			gobject.idle_add(self._resumer_generator(list).next)
 		return False #to cancel idler
 		
+	@utils.db_except()
 	def _resumer_generator(self, list):
 		for medium in list:
 			#gtk.gdk.threads_enter()
@@ -602,6 +615,7 @@ class PenguinTVApp(gobject.GObject):
 			return True
 		return False
 	
+	@utils.db_except()
 	def _auto_download_unviewed(self):
 	
 		"""Automatically download any unviewed media.  Runs every five minutes 
@@ -628,7 +642,8 @@ class PenguinTVApp(gobject.GObject):
 			logging.error("we were unable to free up enough space.")
 			#print download_list
 		self.update_disk_usage()
-			
+		
+	@utils.db_except()	
 	def _free_media_space(self, size_needed):
 		
 		"""deletes media so that we have at least 'size_needed' bytes of free space.
@@ -699,6 +714,7 @@ class PenguinTVApp(gobject.GObject):
 				logging.warning("Couldn't remove %s: %s" % (filename, str(e)))
 		return False
 		
+	@utils.db_except()
 	def add_search_tag(self, query, tag_name):
 		self.db.add_search_tag(query, tag_name)
 		#could raise ptvDB.TagAlreadyExists, let it go
@@ -712,13 +728,15 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window.set_active_filter(index)
 		else:
 			logging.warning("we just added a search tag but it's not in the list")
-			
+		
+	@utils.db_except()	
 	def remove_search_tag(self, tag_name):
 		self.db.remove_tag(tag_name)
 		self.emit('tags-changed', 0)
 		while gtk.events_pending():
 			gtk.main_iteration()
 			
+	@utils.db_except()
 	def change_search_tag(self, current_tag, new_tag=None, new_query=None):
 		if new_tag is not None:
 			self.db.rename_tag(current_tag, new_tag)
@@ -731,7 +749,8 @@ class PenguinTVApp(gobject.GObject):
 			if self.main_window.get_active_filter()[0] == current_tag:
 				self.set_state(TAG_SEARCH) #redundant, but good practice
 				self._show_search(new_query, self._search(new_query))
-				
+		
+	@utils.db_except()		
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
 		old_set = sets.Set(old_tags)
@@ -791,6 +810,7 @@ class PenguinTVApp(gobject.GObject):
 		"""Used by other classes so they don't need to know about EntryView"""
 		self._entry_view.undisplay_custom_entry()
 	
+	@utils.db_except()
 	def activate_link(self, link):
 		"""links can be basic hrefs, or they might be custom penguintv commands"""
 		import urlparse
@@ -915,12 +935,14 @@ class PenguinTVApp(gobject.GObject):
 			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			if HAS_GNOME:
 				gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
-			
+		
+	@utils.db_except()	
 	def download_entry(self, entry_id):
 		self.mediamanager.download_entry(entry_id)
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.emit('entry-updated', entry_id, feed_id)
 
+	@utils.db_except()
 	def download_unviewed(self):
 		self.mediamanager.unpause_downloads()
 		download_list=self.db.get_media_for_download()
@@ -968,6 +990,7 @@ class PenguinTVApp(gobject.GObject):
 			dialog.hide()
 			del dialog
 
+	@utils.db_except()
 	def _downloader_generator(self, download_list):
 		for d in download_list:
 			#gtk.gdk.threads_enter()
@@ -984,7 +1007,7 @@ class PenguinTVApp(gobject.GObject):
 			dialog = hildon.FileChooserDialog(self.main_window.window, action=gtk.FILE_CHOOSER_ACTION_SAVE)
 		else:
 			dialog = gtk.FileChooserDialog(_('Select OPML...'),None, action=gtk.FILE_CHOOSER_ACTION_SAVE,
-                                  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
+								  buttons=(gtk.STOCK_CANCEL,gtk.RESPONSE_CANCEL,gtk.STOCK_SAVE,gtk.RESPONSE_OK))
 			dialog.set_default_response(gtk.RESPONSE_OK)
 
 		filter = gtk.FileFilter()
@@ -999,7 +1022,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		dialog.set_current_name('mySubscriptions.opml')
 		dialog.set_transient_for(self.main_window.get_parent())              
-    		
+			
 		response = dialog.run()
 		if response == gtk.RESPONSE_OK:
 			try:
@@ -1015,6 +1038,7 @@ class PenguinTVApp(gobject.GObject):
 			pass
 		dialog.destroy()
 
+	@utils.db_except()
 	def remove_feed(self, feed):		
 		#select entries and get all the media ids, and tell them all to cancel
 		#in case they are downloading
@@ -1035,6 +1059,7 @@ class PenguinTVApp(gobject.GObject):
 			args = args | ptvDB.A_AUTOTUNE
 		self.do_poll_multiple(None, args)
 			
+	@utils.db_except()
 	def import_subscriptions(self, f, opml=True):
 		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
 			self._for_import.append((1, f))
@@ -1103,6 +1128,7 @@ class PenguinTVApp(gobject.GObject):
 		self.feed_list_view.resize_columns()
 		selected = self.feed_list_view.get_selected()
 
+	@utils.db_except()
 	def mark_entry_as_viewed(self,entry, feed_id): #, update_entrylist=True):
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
@@ -1111,6 +1137,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_entry_read(entry['entry_id'],True)
 			self.emit('entry-updated', entry['entry_id'], feed_id)
 		
+	@utils.db_except()
 	def mark_entrylist_as_viewed(self, feed_id, entrylist): #, update_entrylist=True):
 		if len(entrylist) == 0:
 			return
@@ -1121,6 +1148,7 @@ class PenguinTVApp(gobject.GObject):
 		self.db.set_entrylist_read(entrylist, True)
 		#self.emit('entrylist-read', feed_id, entrylist)
 			
+	@utils.db_except()
 	def mark_entry_as_unviewed(self,entry):
 		media = self.db.get_entry_media(entry)
 		self.db.set_entry_read(entry, 0)
@@ -1135,11 +1163,13 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('entry-updated', entry, e['feed_id'])
 		#self.feed_list_view.mark_entries_read(-1)
 		
+	@utils.db_except()
 	def mark_feed_as_viewed(self,feed):
 		self.db.mark_feed_as_viewed(feed)
 		self._entry_list_view.populate_if_selected(feed)
 		self.feed_list_view.update_feed_list(feed, ['readinfo'])
 		
+	@utils.db_except()
 	def mark_all_viewed(self):
 		feedlist = self.db.get_feedlist()
 		feedlist = [f[0] for f in feedlist]
@@ -1161,6 +1191,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		gobject.idle_add(_mark_viewed_gen(feedlist).next)
 		
+	@utils.db_except()
 	def play_entry(self,entry_id):
 		media = self.db.get_entry_media(entry_id)
 		entry = self.db.get_entry(entry_id)
@@ -1176,6 +1207,7 @@ class PenguinTVApp(gobject.GObject):
 		self.player.play_list(filelist)
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
+	@utils.db_except()
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
@@ -1200,6 +1232,7 @@ class PenguinTVApp(gobject.GObject):
 		dialog.destroy()
 		gtk.gdk.threads_leave()
 
+	@utils.db_except()
 	def refresh_feed(self, feed):
 		if not self._net_connected:
 			return
@@ -1240,6 +1273,7 @@ class PenguinTVApp(gobject.GObject):
 	def set_state(self, new_state, data=None):
 		self.emit('state-changed', new_state, data)
 	
+	@utils.db_except()
 	def _state_changed_cb(self, app, new_state, data):	
 		if self._state == new_state:
 			return	
@@ -1271,6 +1305,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		self._state = new_state
 		
+	@utils.db_except()
 	def _search(self, query, blacklist=None):
 		try:
 			query = query.replace("!","")
@@ -1281,6 +1316,7 @@ class PenguinTVApp(gobject.GObject):
 			result=([],[])
 		return result
 	
+	@utils.db_except()
 	def _show_search(self, query, result):
 		if self._state != MANUAL_SEARCH and self._state != TAG_SEARCH:
 			logging.warning("incorrect state, aborting" + str(self._state))
@@ -1362,6 +1398,7 @@ class PenguinTVApp(gobject.GObject):
 	def select_feed(self, feed_id):
 		self.feed_list_view.set_selected(feed_id)
 		
+	@utils.db_except()
 	def select_entry(self, entry_id):
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.select_feed(feed_id)
@@ -1369,6 +1406,7 @@ class PenguinTVApp(gobject.GObject):
 		self.display_entry(entry_id)
 		self.main_window.notebook_select_page(0)
 
+	@utils.db_except()
 	def change_filter(self, current_filter, tag_type):
 		filter_id = self.main_window.get_active_filter()[1]
 		if utils.HAS_SEARCH and filter_id == FeedList.SEARCH:
@@ -1389,6 +1427,7 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager.generate_playlist()
 		self.mediamanager.show_downloads()
 		
+	@utils.db_except()
 	def stop_downloads(self):
 		"""stops downloading everything -- really just pauses them.  Just sets a flag, really.
 		progress_callback does the actual work"""
@@ -1397,12 +1436,14 @@ class PenguinTVApp(gobject.GObject):
 			download_stopper_thread.start() #this isn't gonna block any more!
 			self.db.pause_all_downloads() #blocks, but prevents race conditions
 
+	@utils.db_except()
 	def pause_downloads(self):
 		if self.mediamanager.pause_state == MediaManager.RUNNING:
 			download_pauser_thread = threading.Thread(None, self.mediamanager.pause_all_downloads)
 			download_pauser_thread.start() #this isn't gonna block any more!
 			self.db.pause_all_downloads() #blocks, but prevents race conditions
-			
+	
+	@utils.db_except()		
 	def change_layout(self, layout):
 		if self.main_window.layout != layout:
 			self.set_state(DEFAULT)
@@ -1479,10 +1520,12 @@ class PenguinTVApp(gobject.GObject):
 	def get_feed_refresh_method(self):
 		return self.feed_refresh_method
 		
+	@utils.db_except()
 	def _gconf_set_feed_refresh_method(self, client, *args, **kwargs):
 		refresh = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'auto')
 		self.set_feed_refresh_method(refresh, client)
 		
+	@utils.db_except()
 	def set_feed_refresh_method(self, refresh, client=None):
 		if refresh == 'auto':
 			self.feed_refresh_method=REFRESH_AUTO
@@ -1494,7 +1537,8 @@ class PenguinTVApp(gobject.GObject):
 				self._gconf_set_polling_frequency(client,None,None)
 			else:
 				self.set_polling_frequency(self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 5))
-				
+			
+	@utils.db_except()	
 	def add_feed(self, url, title, tags=[]):
 		"""Inserts the url and starts the polling process"""
 		
@@ -1534,6 +1578,7 @@ class PenguinTVApp(gobject.GObject):
 		if success:
 			self._first_poll_marking(feed_id)
 		
+	@utils.db_except()
 	def _first_poll_marking(self, feed_id, db=None): 
 		"""mark all media read except first one.  called when we first add a feed"""
 		if db is None:
@@ -1546,6 +1591,7 @@ class PenguinTVApp(gobject.GObject):
 		if self._auto_download:
 			self._auto_download_unviewed()
 	
+	@utils.db_except()
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
 		try:
 			feed_id = self.db.add_feed_filter(pointed_feed_id, filter_name, query)
@@ -1555,10 +1601,12 @@ class PenguinTVApp(gobject.GObject):
 		self.feed_list_view.add_feed(feed_id)
 		self.main_window.select_feed(feed_id)
 		
+	@utils.db_except()
 	def set_feed_filter(self, pointer_feed_id, filter_name, query):
 		self.db.set_feed_filter(pointer_feed_id, filter_name, query)
 		self.display_feed(pointer_feed_id)
 			
+	@utils.db_except()
 	def delete_entry_media(self, entry_id):
 		"""Delete all media for an entry"""
 		medialist = self.db.get_entry_media(entry_id)
@@ -1570,6 +1618,7 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('entry-updated', entry_id, feed_id)
 		self.update_disk_usage()
 		
+	@utils.db_except()
 	def delete_media(self, media_id, update_ui=True):
 		"""Deletes specific media id"""
 		self.db.delete_media(media_id)
@@ -1585,6 +1634,7 @@ class PenguinTVApp(gobject.GObject):
 		"""Deletes media for an entire feed.  Calls generator _delete_media_generator"""
 		gobject.idle_add(self._delete_media_generator(feed_id).next)
 		
+	@utils.db_except()
 	def _delete_media_generator(self, feed_id):
 		entrylist = self.db.get_entrylist(feed_id)
 		if entrylist:
@@ -1609,6 +1659,7 @@ class PenguinTVApp(gobject.GObject):
 		#gtk.gdk.threads_leave()
 		yield False
 		
+	@utils.db_except()
 	def do_cancel_download(self, item):
 		"""cancels a download and cleans up.  Right now there's redundancy because we call this twice
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
@@ -1640,12 +1691,14 @@ class PenguinTVApp(gobject.GObject):
 		if d is not None:
 			self.emit('download-finished', d)
 		
+	@utils.db_except()
 	def do_pause_download(self, media_id):
 		self.mediamanager.get_downloader(media_id).pause()
 		self.db.set_media_download_status(media_id,ptvDB.D_RESUMABLE)
 		self.db.set_media_viewed(media_id,0)
 		self.db.set_entry_read(media_id,0)
 		
+	@utils.db_except()
 	def do_resume_download(self, media_id):
 		self.mediamanager.unpause_downloads()
 		self.mediamanager.download(media_id, False, True) #resume please
@@ -1654,12 +1707,14 @@ class PenguinTVApp(gobject.GObject):
 		feed_id = self.db.get_entry(entry_id)['feed_id']
 		self.emit('entry-updated', entry_id, feed_id)
 		
+	@utils.db_except()
 	def _download_finished(self, d):
 		"""Process the data from a callback for a downloaded file"""
 		
 		self.update_disk_usage()
 		if d.status==Downloader.FAILURE: 
-			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR) 
+			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR)
+			self.main_window.update_download_progress() 
 		elif d.status==Downloader.STOPPED or d.status==Downloader.PAUSED:
 			self.main_window.update_download_progress()
 		elif d.status==Downloader.FINISHED or d.status==Downloader.FINISHED_AND_PLAY:
@@ -1702,6 +1757,7 @@ class PenguinTVApp(gobject.GObject):
 			logging.warning("some other error")
 		self.feed_list_view.filter_all() #to remove active downloads from the list
 			
+	@utils.db_except()
 	def rename_feed(self, feed_id, name):
 		if len(name)==0:
 			self.db.set_feed_name(feed_id, None) #gets the title the feed came with
@@ -1766,6 +1822,7 @@ class PenguinTVApp(gobject.GObject):
 	def set_auto_download_limit(self, auto_download_limit):
 		self._auto_download_limit = auto_download_limit
 		
+	@utils.db_except()
 	def _gconf_set_app_window_layout(self, client, *args, **kwargs):
 		layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout', 'standard')
 		self.set_app_window_layout(layout)
@@ -1943,6 +2000,7 @@ class PenguinTVApp(gobject.GObject):
 			self.threadSleepTime = 1.0
 			self.threadDieTime = 30.0
 			self.polling_callback = polling_callback
+			self._db_lock = threading.Lock()
 			
 		def run(self):
 	
@@ -1957,9 +2015,12 @@ class PenguinTVApp(gobject.GObject):
 				while self.updater.updater_gen().next():
 					if self.updater.exception is not None:
 						if isinstance(self.updater.exception, OperationalError):
+							self._db_lock.acquire()
 							logging.warning("detected a database lock error, restarting threaded db")
 							self.db._db.close()
+							del self.db
 							self._start_db()
+							self._db_lock.release()
 				if time.time() - born_t > self.threadDieTime:
 					self.__isDying = True
 				time.sleep(self.threadSleepTime)
@@ -1975,6 +2036,8 @@ class PenguinTVApp(gobject.GObject):
 			#if self.db is None:
 			#	logging.warning("db not found, starting a new one")
 			#	self._start_db()
+			self._db_lock.acquire()
+			self._db_lock.release()
 			return self.db
 			
 		def get_updater(self):
@@ -2014,7 +2077,7 @@ def do_commandline(remote_app=None, local_app=None):
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help"])
 	except getopt.GetoptError:
-        # print help information and exit:
+		# print help information and exit:
 		usage()
 		sys.exit(2)
 		
@@ -2070,7 +2133,7 @@ def main():
 
 def do_quit(event, app):
 	app.do_quit()
-        
+		
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	if HAS_GNOME:
 		logging.info("Have GNOME")
@@ -2124,4 +2187,3 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 		window.connect('delete-event', do_quit, app)
 	do_commandline(local_app=app)
 	gtk.main()
-

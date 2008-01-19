@@ -158,6 +158,9 @@ class ptvDB:
 			self._db=sqlite.connect(os.path.join(self.home,"penguintv4.db"), timeout=30.0, isolation_level="IMMEDIATE")
 		except:
 			raise DBError,"error connecting to database"
+			
+		self._exiting = False
+		self._cancel_poll_multiple = False
 		
 		self._c = self._db.cursor()
 		self._c.execute('PRAGMA synchronous="NORMAL"')
@@ -168,9 +171,6 @@ class ptvDB:
 				self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty", True)
 		except:
 			pass
-			
-		self._exiting = False
-		self._cancel_poll_multiple = False
 			
 		if polling_callback is None:
 			self.polling_callback=self._polling_callback
@@ -2018,6 +2018,8 @@ class ptvDB:
 		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE download_status<1',(D_NOT_DOWNLOADED,))
 		self._db.commit()
 		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE download_status=1',(D_RESUMABLE,))
+		self._db.commit()
+		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE download_status=? AND file is NULL',(D_NOT_DOWNLOADED, D_DOWNLOADED))
 		self._db.commit()
 		
 	def get_entryid_for_media(self, media_id):

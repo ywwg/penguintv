@@ -1,6 +1,8 @@
 import os, os.path
 import htmllib, HTMLParser
 import time
+import logging
+import traceback
 
 import gtk
 

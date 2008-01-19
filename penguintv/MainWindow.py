@@ -255,6 +255,8 @@ class MainWindow(gobject.GObject):
 			self._h_app = hildon.Program()
 			self.window = hildon.Window()
 			self.window.set_title("PenguinTV "+utils.VERSION)
+			gtk.set_application_name("PenguinTV "+utils.VERSION)
+			self.window.set_icon_from_file(utils.get_image_path('penguintvicon.png'))
 			
 			self._status_view = None
 			self._disk_usage_widget = None
@@ -772,7 +774,7 @@ class MainWindow(gobject.GObject):
 		else:
 			self.feed_pane.set_position(0)
 
-		self._notebook.set_show_tabs(False)
+		self._notebook.set_keep_hidden(True)
 		self._widgetTree.get_widget('toolbar1').hide()
 		if utils.RUNNING_SUGAR:
 			self._status_view.hide()
@@ -805,7 +807,7 @@ class MainWindow(gobject.GObject):
 			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
 			self.feed_pane.set_position(val)
 			
-		self._notebook.set_show_tabs_if_multi()
+		self._notebook.set_keep_hidden(False)
 		self._widgetTree.get_widget('toolbar1').show_all()
 		
 		def _unfullscreen_finish():
@@ -1662,8 +1664,11 @@ class NotebookManager(gtk.Notebook):
 	tab open, and selects a different tab if the one we are closing is selected"""
 	def __init__(self):
 		gtk.Notebook.__init__(self)
+		# pages_showing refers to tabs that would be visible.
+		# It is overriden by keep_hidden
 		self._pages_showing = {}
 		self._default_page = 0
+		self._keep_hidden = False
 		
 	def append_page(self, widget, label):
 		self._pages_showing[len(self._pages_showing)] = False
@@ -1678,7 +1683,7 @@ class NotebookManager(gtk.Notebook):
 		for key in self._pages_showing.keys():
 			if self._pages_showing[key]:
 				showing_count+=1
-		if showing_count > 1:
+		if showing_count > 1 and not self._keep_hidden:
 			self.set_show_tabs(True)
 					
 	def hide_page(self, n):
@@ -1710,14 +1715,20 @@ class NotebookManager(gtk.Notebook):
 		self.set_current_page(n)
 		self.set_show_tabs(False)
 		
-	def set_show_tabs_if_multi(self):
-		"""Show tabs if more than one should be showing (for un-fullscreen)"""
-		showing_count = 0
-		for key in self._pages_showing.keys():
-			if self._pages_showing[key]:
-				showing_count+=1
-		if showing_count > 1:
-			self.set_show_tabs(True)
+	def set_keep_hidden(self, hide):
+		"""For fullscreen mode, we never want to show tabs"""
+		
+		if hide:
+			self.set_show_tabs(False)
+			self._keep_hidden = True
+		else:
+			self._keep_hidden = False
+			showing_count = 0
+			for key in self._pages_showing.keys():
+				if self._pages_showing[key]:
+					showing_count+=1
+			if showing_count > 1:
+				self.set_show_tabs(True)
 			
 	def is_showing(self, n):
 		try:

@@ -15,6 +15,11 @@ import shutil
 import logging
 
 try:
+	from sqlite3 import OperationalError as OperationalError
+except:
+	from pysqlite2.dbapi2 import OperationalError as OperationalError
+
+try:
 	import gtk
 	GTK_OK = True
 except:
@@ -117,7 +122,7 @@ else:
 	except:
 		HAS_GSTREAMER = False
 	
-VERSION="3.3"
+VERSION="3.31"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
@@ -741,6 +746,18 @@ def get_pynotify_ok():
 
 	logging.info("Using pynotify notifications")
 	return True
+
+def db_except(default_retval=None):
+	def annotate(func):
+		def _exec_cb(self, *args, **kwargs):
+			try:
+				return func(self, *args, **kwargs)
+			except OperationalError:
+				logging.debug("DB Exception")
+				self._handle_db_exception()
+				return _exec_cb(self, *args, **kwargs)
+		return _exec_cb
+	return annotate	
 	
 if is_kde():
 	import kio

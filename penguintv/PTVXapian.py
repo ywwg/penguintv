@@ -208,22 +208,22 @@ class PTVXapian:
 		stemmer = xapian.Stem("english")
 		indexer.set_stemmer(stemmer)
 		
-		feedlist = utils.uniquer(feedlist)
+		#feedlist = utils.uniquer(feedlist)
 		entrylist = utils.uniquer(entrylist)
 		
-		feed_addition = []
+		#feed_addition = []
 		entry_addition = []
 	
-		for feed_id in feedlist:
-			if self._quitting:
-				del database
-				return reindex_interrupt()
-			try:
-				c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
-				title, description = c.fetchone()
-				feed_addition.append((feed_id, title, description))
-			except TypeError:
-				pass #it won't be readded.  Assumption is we have deleted this feed
+		#for feed_id in feedlist:
+		#	if self._quitting:
+		#		del database
+		#		return reindex_interrupt()
+		#	try:
+		#		c.execute(u"""SELECT title, description FROM feeds WHERE id=?""",(feed_id,))
+		#		title, description = c.fetchone()
+		#		feed_addition.append((feed_id, title, description))
+		#	except TypeError:
+		#		pass #it won't be readded.  Assumption is we have deleted this feed
 
 		for entry_id in entrylist:
 			if self._quitting:
@@ -245,11 +245,11 @@ class PTVXapian:
 			del database
 			return reindex_interrupt()
 		#first delete anything deleted or changed
-		for feed_id in feedlist:
-			try:
-				database.delete_document("f"+str(feed_id))
-			except Exception, e:
-				logging.error("Failed deleting feed: %s" % str(e))
+		#for feed_id in feedlist:
+		#	try:
+		#		database.delete_document("f"+str(feed_id))
+		#	except Exception, e:
+		#		logging.error("Failed deleting feed: %s" % str(e))
 				
 		for entry_id in entrylist:
 			try:
@@ -259,26 +259,26 @@ class PTVXapian:
 			
 		#now add back the changes
 		#print [f[0] for f in feed_addition]
-		for feed_id, title, description in feed_addition:
-			if self._quitting:
-				del database
-				return reindex_interrupt()
-			try:
-				doc = xapian.Document() 
-					
-				forindex = title+" "+description
-				
-				doc.add_term("f"+str(feed_id))
-				doc.add_value(FEED_ID, str(feed_id))
-				doc.add_value(DATE, "")
-				
-				doc.set_data(forindex)
-				indexer.set_document(doc)
-				indexer.index_text(forindex)
-				
-				database.add_document(doc)
-			except Exception, e:
-				logging.error("Failed adding feed: %s" % str(e))
+		#for feed_id, title, description in feed_addition:
+		#	if self._quitting:
+		#		del database
+		#		return reindex_interrupt()
+		#	try:
+		#		doc = xapian.Document() 
+		#			
+		#		forindex = title+" "+description
+		#		
+		#		doc.add_term("f"+str(feed_id))
+		#		doc.add_value(FEED_ID, str(feed_id))
+		#		doc.add_value(DATE, "")
+		#		
+		#		doc.set_data(forindex)
+		#		indexer.set_document(doc)
+		#		indexer.index_text(forindex)
+		#		
+		#		database.add_document(doc)
+		#	except Exception, e:
+		#		logging.error("Failed adding feed: %s" % str(e))
 		
 		#print [(e[0],e[1]) for e in entry_addition]
 		for entry_id, feed_id, title, description, fakedate in entry_addition:

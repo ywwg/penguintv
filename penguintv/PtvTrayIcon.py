@@ -254,13 +254,11 @@ class PtvTrayIcon:
 		self._player_showing = False
 		
 	def __gst_playing_cb(self, obj):
-		logging.debug("got playing event")
 		play, pause = self._get_playpause_menuitems()
 		play.hide()
 		pause.show()
 	
 	def __gst_paused_cb(self, obj):
-		logging.debug("got paused event")
 		play, pause = self._get_playpause_menuitems()
 		play.show()
 		pause.hide()

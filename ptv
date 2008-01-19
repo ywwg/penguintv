@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
 export LD_LIBRARY_PATH="/usr/lib/microb-engine"
@@ -9,3 +9,4 @@ import penguintv;
 import utils;
 
 penguintv.main()"
+

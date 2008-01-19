@@ -128,7 +128,7 @@ class DownloadView:
 		removed   = list(oldset.difference(newset))
 		added     = list(newset.difference(oldset))
 		unchanged = list(oldset.intersection(newset))
-
+		
 		#slower but works better, because the list is changing all over the place
 		for item in removed:
 			i=-1
