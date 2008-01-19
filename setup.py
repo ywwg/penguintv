@@ -108,8 +108,7 @@ data_files       = [('share/penguintv',		['share/penguintv.glade','share/default
 data_files += locales
 					
 if utils.RUNNING_HILDON:
-	data_files += [('share/themes/default/images/', ['share/penguintvicon.png']),
-					  ('share/applications/hildon/',['penguintv-hildon.desktop'])]
+	data_files += [('share/applications/hildon/',['penguintv-hildon.desktop'])]
 	scripts = ['ptv']
 else:
 	data_files.append(('share/applications',	['penguintv.desktop']))
