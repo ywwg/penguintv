@@ -97,7 +97,6 @@ class EntryFormatter:
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
 				if self._ajax_url is None:
-					logging.debug('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
 					ret.append('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')

@@ -154,7 +154,10 @@ def correct_url(url, glade_prefix):
 			for s in traceback.format_exception(exc_type, exc_value, exc_traceback):
 				error_msg += s
 			#sometimes this is actually the feed (pogue's posts @ nytimes.com)
-			p = feedparser.parse(url)
+			try:
+				p = feedparser.parse(url)
+			except Exception, e:
+				raise BadFeedURL, "feedparser error: %s" % str(e)
 			if len(p['channel']) == 0 or len(p['items']) == 0: #ok there really is a problem here
 				raise BadFeedURL, "htmlparser error: %s" % error_msg
 	else:
