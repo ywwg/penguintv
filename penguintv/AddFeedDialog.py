@@ -44,6 +44,9 @@ class AddFeedDialog:
 			self._feed_url_widget = combo.child
 			combo.connect('changed', self.on_sugar_combo_changed)
 			self._edit_tags_widget = None
+			
+		if utils.RUNNING_HILDON:
+			self._hildon_inited = False
 		
 	def extract_content(self):
 		box = self._xml.get_widget('add_feed_box')
@@ -54,6 +57,31 @@ class AddFeedDialog:
 		return box
 				
 	def show(self, autolocation=True):
+		if utils.RUNNING_HILDON:
+			if not self._hildon_inited:
+				#put in a scrolled viewport so the user can see all the prefs
+				parent = self._xml.get_widget('tab1_container')
+				contents = self._xml.get_widget('tab1_contents')
+				scrolled = gtk.ScrolledWindow()
+				scrolled.set_size_request(650, 200)
+				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+				viewport = gtk.Viewport()
+				contents.reparent(viewport)
+				scrolled.add(viewport)
+				parent.add(scrolled)
+				
+				parent = self._xml.get_widget('tab2_container')
+				contents = self._xml.get_widget('tab2_contents')
+				scrolled = gtk.ScrolledWindow()
+				scrolled.set_size_request(650, 200)
+				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+				viewport = gtk.Viewport()
+				contents.reparent(viewport)
+				scrolled.add(viewport)
+				parent.add(scrolled)
+				self._hildon_inited = True
+			self._window.show_all()
+	
 		self._feed_url_widget.grab_focus()
 		if self._window:
 			self._window.show()
@@ -61,12 +89,11 @@ class AddFeedDialog:
 		if autolocation:
 			self.set_location_automatically()
 		
-		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
-			self._edit_tags_widget.set_text("")
-		if utils.RUNNING_HILDON:
-			l = self._xml.get_widget("add_feed_label")
-			l.set_text(_("Please enter the URL of the feed you would like to add:"))
-			self._xml.get_widget("tag_hbox").hide()
+		self._edit_tags_widget.set_text("")
+		#if not utils.USE_TAGGING:
+		#	l = self._xml.get_widget("add_feed_label")
+		#	l.set_text(_("Please enter the URL of the feed you would like to add:"))
+		#	self._xml.get_widget("tag_hbox").hide()
 			
 		if not utils.HAS_SEARCH:
 			self._xml.get_widget('b_search').hide()
@@ -134,10 +161,10 @@ class AddFeedDialog:
 				flags += FF_MARKASREAD
 	
 		tags=[]
-		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
-			if len(self._edit_tags_widget.get_text()) > 0:
-				for tag in self._edit_tags_widget.get_text().split(','):
-					tags.append(tag.strip())
+		#if not utils.USE_TAGGING:
+		#	if len(self._edit_tags_widget.get_text()) > 0:
+		#		for tag in self._edit_tags_widget.get_text().split(','):
+		#			tags.append(tag.strip())
 		url = self._feed_url_widget.get_text()
 		if self._window:
 			self._window.set_sensitive(False)
@@ -150,8 +177,7 @@ class AddFeedDialog:
 					self._window.set_sensitive(True)
 				return
 			feed_id = self._app.add_feed(url, title, tags)
-			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
-				self._app.db.set_flags_for_feed(feed_id, flags)
+			self._app.db.set_flags_for_feed(feed_id, flags)
 		except AddFeedUtils.AuthorizationFailed:
 			dialog = gtk.Dialog(title=_("Authorization Required"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("You must specify a valid username and password in order to add this feed."))

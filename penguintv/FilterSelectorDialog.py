@@ -5,6 +5,8 @@ import gtk
 import pango
 from ptvDB import T_BUILTIN
 
+import utils
+
 F_NAME     = 0
 F_DISPLAY  = 1
 F_INDEX    = 2
@@ -66,6 +68,9 @@ class FilterSelectorDialog:
 				
 		self._pane_position = 0
 		
+		if utils.RUNNING_HILDON:
+			self._hildon_inited = False
+		
 	def set_taglists(self, all_tags, favorite_tags):
 		self._all_tags_model.clear()
 		self._favorites_model.clear()
@@ -92,6 +97,21 @@ class FilterSelectorDialog:
 		return self._widget.get_property('visible')
 		
 	def Show(self):
+		if utils.RUNNING_HILDON:
+			if not self._hildon_inited:
+				#put in a scrolled viewport so the user can see all the prefs
+				parent = self._xml.get_widget('container')
+				contents = self._xml.get_widget('contents')
+				scrolled = gtk.ScrolledWindow()
+				scrolled.set_size_request(650, 200)
+				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+				viewport = gtk.Viewport()
+				contents.reparent(viewport)
+				scrolled.add(viewport)
+				parent.add(scrolled)
+				self._hildon_inited = True
+			self._all_tags_treeview.set_property('height-request', 150)
+	
 		context = self._widget.create_pango_context()
 		style = self._widget.get_style().copy()
 		font_desc = style.font_desc
@@ -122,6 +142,11 @@ class FilterSelectorDialog:
 		self._widget.set_transient_for(self._main_window.get_parent())
 		
 		self._widget.show_all()
+		
+		if utils.RUNNING_HILDON:
+			self._xml.get_widget('info_icon').hide()
+			self._pane_position = 250
+			self._pane.set_position(self._pane_position)
 		
 	def Hide(self):
 		self._do_unselect()

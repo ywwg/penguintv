@@ -220,7 +220,7 @@ class MainWindow(gobject.GObject):
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
 		#sys.stderr.write("show,"+str(dock_widget))
-		if not utils.HAS_MOZILLA and self.layout == "planet":
+		if not utils.HAS_MOZILLA and self.layout.endswith("planet"):
 			logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
 			self.layout = "standard"
 		if utils.RUNNING_SUGAR:  #if we are in OLPC mode and just have to supply a widget...
@@ -290,6 +290,7 @@ class MainWindow(gobject.GObject):
 			self.window.set_menu(menu)
 			
 			self.window.show_all()
+			self.feed_list_view._articles_column.set_visible(False)
 			
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
@@ -315,7 +316,10 @@ class MainWindow(gobject.GObject):
 		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
 		if utils.RUNNING_HILDON:
-			self._filter_container.hide_all()
+			self._layout_components.get_widget('filter_label').hide()
+			self._filter_unread_checkbox.hide()
+		#if not utils.USE_TAGGING:
+		#	self._filter_container.hide_all()
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
@@ -331,6 +335,10 @@ class MainWindow(gobject.GObject):
 		menu = gtk.Menu()  
 		
 		menuitem = widgets.get_widget('file_menu')
+		menuitem.unparent()
+		menu.append(menuitem)
+		
+		menuitem = widgets.get_widget('edit_menu')
 		menuitem.unparent()
 		menu.append(menuitem)
 		
@@ -528,7 +536,7 @@ class MainWindow(gobject.GObject):
 		else:
 			self.app_window.resize(w,h)
 
-		if self.layout == "planet":
+		if self.layout.endswith("planet"):
 			self._menu_widgettree.get_widget('entry_menu_item').hide()
 			self._menu_widgettree.get_widget('showkept_cb').show()
 		else:
@@ -585,6 +593,7 @@ class MainWindow(gobject.GObject):
 	def load_layout(self):
 		components = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 
 		                           self.layout+'_layout_container','penguintv') #MAGIC
+		self._layout_components = components
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
 		
@@ -599,11 +608,11 @@ class MainWindow(gobject.GObject):
 			logging.warning("gtkmozembed not found, falling back on gtkhtml. PlanetView disabled")
 			renderer = EntryFormatter.GTKHTML
 		
-		if self.layout == "planet" and renderer != EntryFormatter.MOZILLA:
+		if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
 			self.layout = "standard"
 			return self.load_layout()	
 		
-		if self.layout != "planet":
+		if not self.layout.endswith("planet"):
 			self.entry_list_view = EntryList.EntryList(components, self._app, 
 			                                           self.feed_list_view, self, self._db)
 			self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
@@ -627,7 +636,7 @@ class MainWindow(gobject.GObject):
 		#some more signals
 		self.feed_list_view.connect('link-activated', self.__link_activated_cb)
 
-		if self.layout != "planet":
+		if not self.layout.endswith("planet"):
 			self.entry_list_view.connect('entrylist-resized', self.__entrylistview_list_resized_cb)
 			#if we connected this in planetview, we'd activate links twice
 			self.entry_list_view.connect('link-activated', self.__link_activated_cb)
@@ -637,7 +646,7 @@ class MainWindow(gobject.GObject):
 		#major WIDGETS
 		self.feed_pane = components.get_widget('feed_pane')
 		self._feedlist = components.get_widget('feedlistview')
-		if self.layout == "planet":
+		if self.layout.endswith("planet"):
 			self.entry_pane = self.feed_pane #cheat
 		else:
 			self.entry_pane = components.get_widget('entry_pane')
@@ -685,7 +694,7 @@ class MainWindow(gobject.GObject):
 									 ('text/plain',0,self._TARGET_TYPE_TEXT)]
 		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 
-		if self.layout != "planet":		
+		if not self.layout.endswith("planet"):
 			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
 			if val < 10: val = 50
 			self.entry_pane.set_position(val)
@@ -733,7 +742,7 @@ class MainWindow(gobject.GObject):
 		#some widgets
 		del self.feed_pane
 		del self._feedlist
-		if self.layout != "planet":
+		if not self.layout.endswith("planet"):
 			del self.entry_pane
 		del self.app_window
 		del self._status_view
@@ -773,7 +782,7 @@ class MainWindow(gobject.GObject):
 		#elif self._notebook.get_current_page() == N_FEEDS:
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
-		if self.layout == 'planet':
+		if self.layout.endswith('planet'):
 			self.entry_pane.set_position(0)
 		else:
 			self.feed_pane.set_position(0)
@@ -805,7 +814,7 @@ class MainWindow(gobject.GObject):
 			self.search_container.show_all()
 			
 		#elif self._notebook.get_current_page() == N_FEEDS:
-		if self.layout == 'planet':
+		if self.layout.endswith('planet'):
 			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
 			self.entry_pane.set_position(val)
 		else:
@@ -988,7 +997,7 @@ class MainWindow(gobject.GObject):
 		self._menu_widgettree.get_widget('showkept_cb').set_active(state)
 		
 	def set_show_kept_visibility(self, state):
-		assert self.layout == "planet"
+		assert self.layout.endswith("planet")
 	
 		if state:
 			self._menu_widgettree.get_widget('showkept_cb').show()
@@ -996,7 +1005,7 @@ class MainWindow(gobject.GObject):
 			self._menu_widgettree.get_widget('showkept_cb').hide()
 		
 	def on_showkept_cb_toggled(self, event):
-		assert self.layout == "planet"
+		assert self.layout.endswith("planet")
 		self.entry_list_view.set_show_kept(self._menu_widgettree.get_widget('showkept_cb').get_active())
 		
 	def on_synchronize_button_clicked(self,event):
@@ -1018,6 +1027,9 @@ class MainWindow(gobject.GObject):
 			if model[it][2] == 2:
 				self.on_edit_favorite_tags()
 				self._filter_selector_combo.set_active_iter(model.get_iter(self._active_filter_path))
+				return
+				
+			if model[it][1] == _('All Tags'):
 				return
 		
 			names = [f[F_NAME] for f in self._filters]
@@ -1342,16 +1354,20 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.remove(self._layout_container)
 		
 		self._layout_dock.add(self.load_layout())
-		if self.layout == "planet":
+		if self.layout.endswith("planet"):
 			self._menu_widgettree.get_widget('entry_menu_item').hide()
 			self._menu_widgettree.get_widget('showkept_cb').show()
 		else:
 			self._menu_widgettree.get_widget('entry_menu_item').show()
 			self._menu_widgettree.get_widget('showkept_cb').hide()
+
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
-		#if utils.RUNNING_SUGAR:
+		if utils.RUNNING_HILDON:
+			self._layout_components.get_widget('filter_label').hide()
+			self._filter_unread_checkbox.hide()
+		#if not utils.USE_TAGGING:
 		#	self._filter_container.hide_all()			
 		if self._use_internal_player:
 			if self._gstreamer_player.get_queue_count() > 0:
@@ -1423,8 +1439,8 @@ class MainWindow(gobject.GObject):
 				self._menu_widgettree.get_widget("add_feed").set_sensitive(True)
 				self._menu_widgettree.get_widget("remove_feed").set_sensitive(True)
 				self._menu_widgettree.get_widget("properties").set_sensitive(True)
-			elif not utils.RUNNING_HILDON:
-				self._menu_widgettree.get_widget("add_feed_filter").set_sensitive(True)
+			#elif not utils.USE_TAGGING:
+			#	self._menu_widgettree.get_widget("add_feed_filter").set_sensitive(True)
 			
 			self.display_status_message("")	
 			self.update_progress_bar(-1,U_LOADING)
@@ -1456,8 +1472,8 @@ class MainWindow(gobject.GObject):
 				self._menu_widgettree.get_widget("add_feed").set_sensitive(False)
 				self._menu_widgettree.get_widget("remove_feed").set_sensitive(False)
 				self._menu_widgettree.get_widget("properties").set_sensitive(False)
-			elif not utils.RUNNING_HILDON:
-				self._menu_widgettree.get_widget("add_feed_filter").set_sensitive(False)
+			#elif not utils.USE_TAGGING:
+			#	self._menu_widgettree.get_widget("add_feed_filter").set_sensitive(False)
 			
 		self._state = new_state
 
@@ -1518,12 +1534,15 @@ class MainWindow(gobject.GObject):
 				
 		self._favorite_filters.sort()
 		self._favorite_filters = [f[1:] for f in self._favorite_filters]
-		
+	
 		for fav in self._favorite_filters:
 			self._filter_tree.append(None, [fav[1], fav[0], 0, True])
 			
 		if tags:
-			all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0, True])
+			if utils.RUNNING_HILDON:
+				all_tags_submenu = None
+			else:
+				all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0, True])
 			if has_search:
 				for f in self._filters:
 					if f[F_TYPE] == ptvDB.T_SEARCH:
@@ -1532,8 +1551,9 @@ class MainWindow(gobject.GObject):
 			for f in self._filters:
 				if f[F_TYPE] == ptvDB.T_TAG:
 					self._filter_tree.append(all_tags_submenu, [f[F_DISPLAY], f[F_NAME], 0, True])
-			
-		self._filter_tree.append(None, [_('Edit Favorite Tags...'), _('Edit Favorite Tags...'), 2, True])
+		
+		if not utils.RUNNING_HILDON:	
+			self._filter_tree.append(None, [_('Edit Favorite Tags...'), _('Edit Favorite Tags...'), 2, True])
 		
 		#get index for our previously selected tag
 		index = self.get_filter_index(current_filter)

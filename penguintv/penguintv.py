@@ -225,7 +225,10 @@ class PenguinTVApp(gobject.GObject):
 		self._state = DEFAULT
 				
 		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout', 'planet')
-		if utils.RUNNING_SUGAR: window_layout='planet' #always use planet on sugar platform
+		if utils.RUNNING_SUGAR: 
+			window_layout='planet' #always use planet on sugar platform
+		if utils.RUNNING_HILDON:
+			window_layout='hildon_planet'
 		
 		#stupid gconf will default to false if the key doesn't exist.  And of course the schema usually
 		#doesn't work until they re-login...
