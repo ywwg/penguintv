@@ -764,8 +764,9 @@ class MainWindow(gobject.GObject):
 			color = gtk.gdk.Color()
 			cursor = gtk.gdk.Cursor(pixmap, pixmap, color, color, 0, 0)
 			self.window.window.set_cursor(cursor)
-		if self._gstreamer_player:
-			self._gstreamer_player.toggle_controls(True)
+		if self._use_internal_player:
+			if self._gstreamer_player:
+				self._gstreamer_player.toggle_controls(True)
 		if utils.HAS_SEARCH:
 			self.search_container.hide_all()
 			
@@ -796,8 +797,9 @@ class MainWindow(gobject.GObject):
 		self._fullscreen_lock = True
 		#if self._notebook.get_current_page() == N_PLAYER:
 		self.window.window.set_cursor(None)
-		if self._gstreamer_player is not None:
-			self._gstreamer_player.toggle_controls(False)
+		if self._use_internal_player:
+			if self._gstreamer_player is not None:
+				self._gstreamer_player.toggle_controls(False)
 			
 		if utils.HAS_SEARCH:
 			self.search_container.show_all()
@@ -1141,7 +1143,7 @@ class MainWindow(gobject.GObject):
 				#comes back -- stop it
 				widget.stop_emission("key-press-event")
 			else:
-				if self._gstreamer_player and self._notebook.get_current_page() == N_PLAYER:
+				if self._use_internal_player and self._notebook.get_current_page() == N_PLAYER:
 					#if gstreamer can do something with this key, stop further
 					#emission
 					if self._gstreamer_player.handle_key(keyname):
