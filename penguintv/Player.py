@@ -5,6 +5,7 @@ import subProcess
 import utils
 import os, os.path
 import urllib
+import logging
 from types import *
 
 class Player:
@@ -55,10 +56,10 @@ class Player:
 		assert self.using_internal_player()
 		return self._gst_player.get_queue()
 		
-	def play(self, f, title=None, userdata=None, force_external=False):
-		self.play_list([[f,title,userdata]], force_external)
+	def play(self, f, title=None, userdata=None, force_external=False, context=None):
+		self.play_list([[f,title,userdata]], force_external, context)
 	
-	def play_list(self, files, force_external = False):
+	def play_list(self, files, force_external = False, context=None):
 		cmdline = self.cmdline
 		try:
 			playlist = open(os.path.join(self.media_dir,"recovery_playlist.m3u") , "a")
@@ -99,6 +100,13 @@ class Player:
 			for f,t,u in files:
 				self._gst_player.queue_file(f,t,u)
 		else:
+			if utils.RUNNING_HILDON:
+				import osso.rpc
+				rpc_handler = osso.rpc.Rpc(context)
+				for filename,t,u in files:
+					uri = str("file://" + filename)
+					logging.debug("Trying to launch media player: %s" % uri)
+					rpc_handler.rpc_run_with_defaults('mediaplayer', 'mime_open', (uri,))
 			for player in players.keys():
 				cmdline=player+" "
 				for filename in players[player]:

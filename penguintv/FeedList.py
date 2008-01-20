@@ -345,7 +345,8 @@ class FeedList(gobject.GObject):
 						m_details_loaded = True
 					else:
 						m_details_loaded = False
-				m_pixbuf = self._get_pixbuf(feed_id)
+				m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id, 
+								    MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 				model, iter = selection.get_selected()
 				try: sel = model[iter][FEEDID]
 				except: sel = -1
@@ -474,7 +475,8 @@ class FeedList(gobject.GObject):
 			flag = self._pick_important_flag(feed_id, update_data['flag_list'])				
 
 		if 'image' in update_what and self._fancy:
-			feed[PIXBUF] = self._get_pixbuf(feed_id)
+			feed[PIXBUF] = self._icon_manager.get_icon_pixbuf(feed_id, 
+							MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 			
 		if 'readinfo' in update_what:
 			#db_unread_count = self._db.get_unread_count(feed_id) #need it always for FIXME below
@@ -1070,35 +1072,6 @@ class FeedList(gobject.GObject):
 		except:
 			return title
 		return title
-		
-	def _get_pixbuf(self, feed_id):
-		filename = self._icon_manager.get_icon(feed_id)
-		if filename is None:
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
-			p.fill(0xffffff00)
-			return p
-	
-		try:
-			p = gtk.gdk.pixbuf_new_from_file(filename)
-		except:
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
-			p.fill(0xffffff00)
-			return p
-		height = p.get_height()
-		width = p.get_width()
-		if height > MAX_HEIGHT:
-			height = MAX_HEIGHT
-			width = p.get_width() * height / p.get_height()
-		if width > MAX_WIDTH:
-			width = MAX_WIDTH
-			height = p.get_height() * width / p.get_width()
-		if width < MIN_SIZE and height < MIN_SIZE:
-			height = MIN_SIZE
-			width = p.get_width() * height / p.get_height()
-		if height != p.get_height() or width != p.get_width():
-			del p
-			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
-		return p
 		
 	def _get_fancy_markedup_title(self, title, first_entry_title, unread, total, flag, selected):
 		if not title:

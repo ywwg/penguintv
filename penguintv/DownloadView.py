@@ -206,7 +206,8 @@ class DownloadView:
 				size_markup = size
 				status_markup = ""
 
-			pixbuf     = self._get_pixbuf(entry['feed_id'])
+			pixbuf = self._icon_manager.get_icon_pixbuf(entry['feed_id'], 
+					   MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 			self._downloads_liststore.append([media_id, 
 											  description, 
 											  description_markup,
@@ -221,35 +222,6 @@ class DownloadView:
 		id_list = [row[D_MEDIA_ID] for row in self._downloads_liststore]
 		self._downloads.sort(lambda x,y: id_list.index(x.media['media_id']) - id_list.index(y.media['media_id']))
 			
-	def _get_pixbuf(self, feed_id):
-		filename = self._icon_manager.get_icon(feed_id)
-		if filename is None:
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
-			p.fill(0xffffff00)
-			return p
-	
-		try:
-			p = gtk.gdk.pixbuf_new_from_file(filename)
-		except:
-			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, MIN_SIZE, MIN_SIZE)
-			p.fill(0xffffff00)
-			return p
-		height = p.get_height()
-		width = p.get_width()
-		if height > MAX_HEIGHT:
-			height = MAX_HEIGHT
-			width = p.get_width() * height / p.get_height()
-		if width > MAX_WIDTH:
-			width = MAX_WIDTH
-			height = p.get_height() * width / p.get_width()
-		if width < MIN_SIZE and height < MIN_SIZE:
-			height = MIN_SIZE
-			width = p.get_width() * height / p.get_height()
-		if height != p.get_height() or width != p.get_width():
-			del p
-			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
-		return p
-		
 	def on_stop_toolbutton_clicked(self, widget):
 		selection = self._downloads_listview.get_selection()
 		tree,selected = selection.get_selected_rows()

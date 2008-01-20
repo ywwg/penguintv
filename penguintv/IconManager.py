@@ -24,7 +24,46 @@ class IconManager:
 		result = glob.glob(filename)
 		if len(result) == 0:
 			return None
-		return result[0]	
+		return result[0]
+	
+	def get_icon_pixbuf(self, feed_id, max_width=None, max_height=None, min_width=None, min_height=None):
+		import gtk
+		filename = self.get_icon(feed_id)
+		if filename is None:
+			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, min_width, min_height)
+			p.fill(0xffffff00)
+			return p
+	
+		try:
+			p = gtk.gdk.pixbuf_new_from_file(filename)
+		except:
+			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, min_width, min_height)
+			p.fill(0xffffff00)
+			return p
+		height = p.get_height()
+		width = p.get_width()
+		if max_height is not None:
+			if height > max_height:
+				height = max_height
+				width = p.get_width() * height / p.get_height()
+		if max_width is not None:
+			if width > max_width:
+				width = max_width
+				height = p.get_height() * width / p.get_width()
+		if min_height is not None:
+			if height < min_height:
+				height = min_height
+				width = p.get_width() * height / p.get_height()
+		
+		if min_width is not None:
+			if width < min_width:
+				width = min_width
+				height = p.get_height() * width / p.get_width()
+		
+		if height != p.get_height() or width != p.get_width():
+			del p
+			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
+		return p
 		
 	def download_icon(self, feed_id, feedparser_data):
 		url_list = []

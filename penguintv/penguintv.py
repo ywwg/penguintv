@@ -89,6 +89,7 @@ if utils.RUNNING_HILDON:
 	#FIXME: should do something
 	import hildon
 	import HildonListener
+	import osso
 #	HAS_DBUS = False
 
 CANCEL=0
@@ -97,7 +98,7 @@ PAUSE=1
 REFRESH_SPECIFIED=0
 REFRESH_AUTO=1
 
-if utils.RUNNING_SUGAR:
+if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 	AUTO_REFRESH_FREQUENCY=30*60*1000
 else:
 	AUTO_REFRESH_FREQUENCY=5*60*1000
@@ -232,6 +233,9 @@ class PenguinTVApp(gobject.GObject):
 			use_internal_player = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', True)
 		else:
 			use_internal_player = True
+			
+		if utils.RUNNING_HILDON:
+			self._hildon_context = osso.Context("PenguinTV", utils.VERSION, False)
 			
 		self._status_icon = None
 
@@ -859,7 +863,7 @@ class PenguinTVApp(gobject.GObject):
 			entry = self.db.get_entry(media['entry_id'])
 			feed_title = self.db.get_feed_title(entry['feed_id'])
 			if utils.is_known_media(media['file']):
-				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'])
+				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'], context=self._hildon_context)
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
@@ -925,12 +929,17 @@ class PenguinTVApp(gobject.GObject):
 			quoted_url = urllib.quote(parsed_url[1]+parsed_url[2])
 			#however don't quote * (yahoo news don't like it quoted)
 			quoted_url = string.replace(quoted_url,"%2A","*")
+			uri = parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor
 			if HAS_GNOME:
-				gnome.url_show(parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor)
+				gnome.url_show(uri)
 			elif utils.RUNNING_SUGAR:
 				from sugar.activity import activityfactory
-				uri=parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor
 				activityfactory.create_with_uri('org.laptop.WebActivity', uri)
+			elif utils.RUNNING_HILDON:
+				import osso.rpc
+				rpc_handler = osso.rpc.Rpc(self._hildon_context)
+				logging.debug("Trying to launch maemo browser")
+				rpc_handler.rpc_run_with_defaults('osso_browser', 'open_new_window', (uri,))
 		elif action=="file":
 			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			if HAS_GNOME:
@@ -1204,14 +1213,14 @@ class PenguinTVApp(gobject.GObject):
 				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title'], medium['media_id']])
 				if not entry['keep']:
 					self.db.set_media_viewed(medium['media_id'],True)
-		self.player.play_list(filelist)
+		self.player.play_list(filelist, context=self._hildon_context)
 		self.emit('entry-updated', entry_id, entry['feed_id'])
 		
 	@utils.db_except()
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
-		self.player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist])
+		self.player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist], context=self._hildon_context)
 		for row in playlist:
 			self.feed_list_view.update_feed_list(row[2],['readinfo'])
 			
@@ -1227,7 +1236,7 @@ class PenguinTVApp(gobject.GObject):
 		dialog.hide()
 
 		if response == gtk.RESPONSE_ACCEPT:		
-			self.player.play(filename, name, userdata, force_external=True) #retry, force external player
+			self.player.play(filename, name, userdata, force_external=True, context=self._hildon_context) #retry, force external player
 
 		dialog.destroy()
 		gtk.gdk.threads_leave()
@@ -1732,7 +1741,7 @@ class PenguinTVApp(gobject.GObject):
 						self.db.set_media_viewed(d.media['media_id'], True)
 					entry = self.db.get_entry(d.media['entry_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
-					self.player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'])
+					self.player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'], context=self._hildon_context)
 				else:
 					entry = self.db.get_entry(d.media['entry_id'])
 					if not entry['keep']:

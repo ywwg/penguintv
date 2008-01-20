@@ -67,6 +67,11 @@ class AddFeedDialog:
 			l = self._xml.get_widget("add_feed_label")
 			l.set_text(_("Please enter the URL of the feed you would like to add:"))
 			self._xml.get_widget("tag_hbox").hide()
+			
+		if not utils.HAS_SEARCH:
+			self._xml.get_widget('b_search').hide()
+		if utils.RUNNING_SUGAR:
+			self._xml.get_widget('b_notifyupdates').hide()
 	
 	#ripped from straw
 	def set_location_automatically(self):

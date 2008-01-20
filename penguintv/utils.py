@@ -121,6 +121,9 @@ else:
 		HAS_GSTREAMER = True
 	except:
 		HAS_GSTREAMER = False
+
+if RUNNING_HILDON:
+	HAS_GSTREAMER = False
 	
 VERSION="3.31"
 #DEBUG

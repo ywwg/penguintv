@@ -97,6 +97,7 @@ class EntryFormatter:
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
 				if self._ajax_url is None:
+					logging.debug('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
 					ret.append('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
@@ -206,6 +207,9 @@ class EntryFormatter:
 			'clear:': (_("Cancel"), "gtk-cancel"),
 			'stop:': (_("Stop"), "gtk-stop"),
 			'tryresume:': (("Try Resume"),	"gtk-go-down")}
+			
+	if utils.RUNNING_HILDON:
+		commands['play:'] = (_("Open with Media Player"), "gtk-media-play-ltr")
 	
 	def _html_command(self, command,arg):
 		"""returns something like '<a href="play:%s">Open</a>' for all the commands I have.
