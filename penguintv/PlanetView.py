@@ -111,11 +111,7 @@ class PlanetView(gobject.GObject):
                 style.base[gtk.STATE_INSENSITIVE].blue / 256,
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
-		if self._renderer == EntryFormatter.GTKHTML:
-			logging.error("gtkhtml and planetview not supported")
-			return
-			#self._USING_AJAX = False
-		elif self._renderer == EntryFormatter.MOZILLA:
+		if self._renderer == EntryFormatter.MOZILLA:
 			if utils.RUNNING_SUGAR:
 				self._USING_AJAX = False
 				f = open(os.path.join(glade_path, "mozilla-planet-olpc.css"))

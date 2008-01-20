@@ -87,7 +87,6 @@ share/penguintv.schema.in
 share/defaultsubs.opml
 share/penguintv.glade
 share/penguintvicon.png
-share/gtkhtml.css
 share/mozilla.css
 share/mozilla-planet.css
 share/mozilla-planet-hildon.css

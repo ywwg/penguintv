@@ -44,7 +44,7 @@ class EntryView(gobject.GObject):
     }	
 
 	def __init__(self, widget_tree, feed_list_view, entry_list_view, 
-				 app, main_window, renderer=EntryFormatter.GTKHTML):
+				 app, main_window, renderer=EntryFormatter.MOZILLA):
 		gobject.GObject.__init__(self)
 		self._app = app
 		self._db = self._app.db
@@ -61,17 +61,6 @@ class EntryView(gobject.GObject):
 		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		
-		if self._renderer == EntryFormatter.GTKHTML:
-			import SimpleImageCache
-			import gtkhtml2
-			#scrolled_window = gtk.ScrolledWindow()
-			#html_dock.add(scrolled_window)
-			#scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
-			#scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
-			self._current_scroll_v = scrolled_window.get_vadjustment().get_value()
-			self._current_scroll_h = scrolled_window.get_hadjustment().get_value()
-			self._scrolled_window = scrolled_window
-				
 		#thanks to straw, again
 		style = html_dock.get_style().copy()
 		self._currently_blank=True
@@ -102,28 +91,7 @@ class EntryView(gobject.GObject):
         #const found in __init__   
         
 		self._css = ""
-		if self._renderer==EntryFormatter.GTKHTML:
-			f = open (os.path.join(self._app.glade_prefix,"gtkhtml.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
-			htmlview = gtkhtml2.View()
-			self._document = gtkhtml2.Document()
-			self._document.connect("link-clicked", self._link_clicked)
-			htmlview.connect("on_url", self.on_url)
-			self._document.connect("request-url", self._request_url)
-			htmlview.get_vadjustment().set_value(0)
-			htmlview.get_hadjustment().set_value(0)
-			scrolled_window.set_hadjustment(htmlview.get_hadjustment())
-			scrolled_window.set_vadjustment(htmlview.get_vadjustment())
-			
-			self._document.clear()
-			htmlview.set_document(self._document)		
-			scrolled_window.add(htmlview)
-			self._htmlview = htmlview
-			self._document_lock = threading.Lock()
-			self._image_cache = SimpleImageCache.SimpleImageCache()
-		elif self._renderer==EntryFormatter.MOZILLA:
+		if self._renderer==EntryFormatter.MOZILLA:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
@@ -321,15 +289,7 @@ class EntryView(gobject.GObject):
 		self.display_item(item)
 		
 	def display_custom_entry(self, message):
-		if self._renderer==EntryFormatter.GTKHTML:
-			self._document_lock.acquire()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %s; }</style><body>%s</body></html>""" % (self._background_color,message))
-			self._document.close_stream()
-			self._document_lock.release()
-		elif self._renderer==EntryFormatter.MOZILLA:
+		if self._renderer==EntryFormatter.MOZILLA:
 			if self._moz_realized:
 				self._moz.open_stream("http://ywwg.com","text/html")
 				while len(message)>60000:
@@ -345,14 +305,7 @@ class EntryView(gobject.GObject):
 	def undisplay_custom_entry(self):
 		if self._custom_entry:
 			message = "<html></html>"
-			if self._renderer==EntryFormatter.GTKHTML:
-				self._document_lock.acquire()
-				self._document.clear()
-				self._document.open_stream("text/html")
-				self._document.write_stream(message)
-				self._document.close_stream()
-				self._document_lock.release()
-			elif self._renderer==EntryFormatter.MOZILLA:
+			if self._renderer==EntryFormatter.MOZILLA:
 				if self._moz_realized:
 					self._moz.open_stream("http://ywwg.com","text/html")
 					self._moz.append_data(message, long(len(message)))
@@ -384,21 +337,7 @@ class EntryView(gobject.GObject):
 		#entry is the same id as before the blank, we restore those old values.
 		#we have a bool to figure out if the current page is blank, in which case we shouldn't
 		#save its scroll values.
-		if self._renderer == EntryFormatter.GTKHTML:
-			va = self._scrolled_window.get_vadjustment()
-			ha = self._scrolled_window.get_hadjustment()
-			rescroll=0
-			
 		if item:
-			if self._renderer == EntryFormatter.GTKHTML:
-				try:
-					if item['entry_id'] == self._current_entry['entry_id']:
-						if not self._currently_blank:
-							self._current_scroll_v = va.get_value()
-							self._current_scroll_h = ha.get_value()
-						rescroll=1
-				except:
-					pass
 			self._current_entry = item	
 			self._currently_blank = False
 			if self._convert_newlines[0] != item['feed_id']:
@@ -414,9 +353,6 @@ class EntryView(gobject.GObject):
 		else:
 			self._convert_newlines = (-1, False)
 			self._currently_blank = True
-			if self._renderer == EntryFormatter.GTKHTML:
-				self._current_scroll_v = va.get_value()
-				self._current_scroll_h = ha.get_value()	
 	
 		if self._state == S_SEARCH:
 			formatter = self._search_formatter
@@ -483,37 +419,7 @@ class EntryView(gobject.GObject):
 				
 		#print html
 			
-		if self._renderer == EntryFormatter.GTKHTML:
-			p = HTMLimgParser()
-			p.feed(html)
-			uncached=0
-			for url in p.images:
-				if self._image_cache.is_cached(url)==False:
-					uncached+=1
-			if uncached>0:
-				self._document.clear()
-				self._document.open_stream("text/html")
-				d = { 	"background_color": self._background_color,
-						"loading": _("Loading images...")}
-				self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
-				self._document.close_stream()
-				image_loader_thread = threading.Thread(None, self._do_download_images, None, (self._current_entry['entry_id'], html, p.images))
-				image_loader_thread.start()
-				return #so we don't bother rescrolling, below
-			else:
-				self._document.clear()
-				self._document.open_stream("text/html")
-				self._document.write_stream(html)
-				self._document.close_stream()
-				
-			if rescroll==1:
-				va.set_value(self._current_scroll_v)
-				ha.set_value(self._current_scroll_h)
-			else:
-				va.set_value(va.lower)
-				ha.set_value(ha.lower)
-		elif self._renderer == EntryFormatter.MOZILLA:	
+		if self._renderer == EntryFormatter.MOZILLA:	
 			if self._moz_realized:
 				self._moz.open_stream("file:///","text/html") #that's a base uri for local links.  should be current dir
 				while len(html)>60000:
@@ -571,15 +477,7 @@ class EntryView(gobject.GObject):
 			disconnector(h_id)
 	
 		#just make it gray for quitting
-		if self._renderer==EntryFormatter.GTKHTML:
-			self._document_lock.acquire()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %s; }</style><body></body></html>""" % (self._insensitive_color,))
-			self._document.close_stream()
-			self._document_lock.release()
-		elif self._renderer==EntryFormatter.MOZILLA:
+		if self._renderer==EntryFormatter.MOZILLA:
 			#FIXME: this doesn't work, we quit before it renders
 			message = """<html><head><style type="text/css">
             body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)

@@ -602,11 +602,8 @@ class MainWindow(gobject.GObject):
 			fancy = False
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
-		if utils.HAS_MOZILLA:
-			renderer = EntryFormatter.MOZILLA
-		else:
-			logging.warning("gtkmozembed not found, falling back on gtkhtml. PlanetView disabled")
-			renderer = EntryFormatter.GTKHTML
+		assert utils.HAS_MOZILLA:
+		renderer = EntryFormatter.MOZILLA
 		
 		if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
 			self.layout = "standard"
@@ -626,9 +623,6 @@ class MainWindow(gobject.GObject):
 													renderer)
 			self.entry_list_view = self.entry_view
 		
-		if renderer == EntryFormatter.GTKHTML:
-			self._widgetTree.get_widget('planet_layout').hide()	
-			
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				components.signal_connect(key, getattr(self, key))

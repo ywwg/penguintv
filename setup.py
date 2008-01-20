@@ -33,8 +33,6 @@ if sp.read() != 0:
 	print "There was an error symlinking the glade file"
 	sys.exit(1)
 
-BUILD_MOZ=False
-
 from distutils.core import setup
 from distutils.extension import Extension
 
@@ -102,7 +100,7 @@ if "build" in sys.argv or "install" in sys.argv:
 			print "There was an error building the MO file for locale "+this_locale
 			sys.exit(1)
 
-data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/gtkhtml.css','share/mozilla.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
+data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
 					('share/pixmaps',		['share/penguintvicon.png']),
 					('share/penguintv/pixmaps', ['share/pixmaps/ev_online.png', 'share/pixmaps/ev_offline.png', 'share/pixmaps/throbber.gif'])]
 data_files += locales
