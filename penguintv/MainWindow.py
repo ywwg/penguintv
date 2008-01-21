@@ -1535,6 +1535,7 @@ class MainWindow(gobject.GObject):
 		if tags:
 			if utils.RUNNING_HILDON:
 				all_tags_submenu = None
+				self._filter_tree.append(None, ["", "", 1, True])
 			else:
 				all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0, True])
 			if has_search:
