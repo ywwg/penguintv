@@ -101,7 +101,6 @@ po/sv.po
 po/make_pot.sh
 po/install-po.sh
 PenguinTV
-ptv
 LICENSE
 MANIFEST
 setup.py
