@@ -107,10 +107,8 @@ data_files += locales
 					
 if utils.RUNNING_HILDON:
 	data_files += [('share/applications/hildon/',['penguintv-hildon.desktop'])]
-	scripts = ['ptv']
 else:
 	data_files.append(('share/applications',	['penguintv.desktop']))
-	scripts = ['PenguinTV']
 
 setup(name = "PenguinTV", 
 version = utils.VERSION,
@@ -119,7 +117,7 @@ author           = 'Owen Williams',
 author_email     = 'owen-penguintv@ywwg.com',
 url              = 'http://penguintv.sourceforge.net',
 license          = 'GPL',
-scripts          = scripts,
+scripts          = 'PenguinTV',
 data_files = data_files,
 packages = ["penguintv", 
 			"penguintv/ptvbittorrent", 
@@ -127,15 +125,6 @@ packages = ["penguintv",
 			"penguintv/ajax"])
 
 if "install" in sys.argv:
-	#print "checking for mozilla linking problems..."
-	#sp = my_subProcess.subProcess('''./postinst''')
-	#if sp.read() != 0:
-	#	print sp.outdata
-	#	print "There was an error fixing mozilla linking problems"
-	#	sys.exit(1)
-	#else:
-	#	print sp.outdata
-
 	sp = my_subProcess.subProcess('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''')
 	if sp.read() != 0:
 		print sp.outdata
