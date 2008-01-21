@@ -602,7 +602,7 @@ class MainWindow(gobject.GObject):
 			fancy = False
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
-		assert utils.HAS_MOZILLA:
+		assert utils.HAS_MOZILLA
 		renderer = EntryFormatter.MOZILLA
 		
 		if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
