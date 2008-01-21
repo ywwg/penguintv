@@ -2146,7 +2146,11 @@ def main():
 def do_quit(event, app):
 	app.do_quit()
 		
-if __name__ == '__main__': # Here starts the dynamic part of the program 
+if __name__ == '__main__': # Here starts the dynamic part of the program
+	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
+		print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 
+to prevent crashes."""
+		sys.exit(1)
 	if HAS_GNOME:
 		logging.info("Have GNOME")
 		gtk.gdk.threads_init()

@@ -559,22 +559,24 @@ def init_gtkmozembed():
 
 	assert HAS_MOZILLA
 	os.chdir(os.getenv('HOME'))
-	#logging.debug("TTTTTTEEEEEEEEEEMMMMMMMMPPPPPPPPPPPP")
-	#gtkmozembed.set_comp_path("/usr/lib/firefox")
-	#return True
-	cmd = "ldd " + gtkmozembed.__file__ + "  | grep xpcom.so"
+	
+	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
+		return False
+	moz_path = os.environ['MOZILLA_FIVE_HOME']
+	cmd = "ldd " + moz_path + '/libxpcom.so  | grep "not found"'
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
 	stderr = p.stderr.read()
-	if len(stderr) > 1 or retval != 0:
+	if len(stderr) > 1 or retval == 0:
+		print """***ERROR initializing mozilla.  PenguinTV may crash shortly.  
+You may need to export LD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
+"""
 		return False
-	ldd_output = p.stdout.read()
-	comp_path = os.path.split(ldd_output.split()[2])[0]
-	
+
 	_init_mozilla_proxy()
 	
-	logging.info("initializing mozilla in " + str(comp_path))
-	gtkmozembed.set_comp_path(comp_path)
+	logging.info("initializing mozilla in " + str(moz_path))
+	gtkmozembed.set_comp_path(moz_path)
 	
 	return True
 	

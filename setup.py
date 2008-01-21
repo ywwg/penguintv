@@ -127,14 +127,14 @@ packages = ["penguintv",
 			"penguintv/ajax"])
 
 if "install" in sys.argv:
-	print "checking for mozilla linking problems..."
-	sp = my_subProcess.subProcess('''./postinst''')
-	if sp.read() != 0:
-		print sp.outdata
-		print "There was an error fixing mozilla linking problems"
-		sys.exit(1)
-	else:
-		print sp.outdata
+	#print "checking for mozilla linking problems..."
+	#sp = my_subProcess.subProcess('''./postinst''')
+	#if sp.read() != 0:
+	#	print sp.outdata
+	#	print "There was an error fixing mozilla linking problems"
+	#	sys.exit(1)
+	#else:
+	#	print sp.outdata
 
 	sp = my_subProcess.subProcess('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''')
 	if sp.read() != 0:
