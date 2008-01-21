@@ -248,8 +248,12 @@ class ptvDB:
 			#db_ver = self._c.fetchone()
 			#db_ver = db_ver[0]
 			logging.debug("getting db version")
-			db_ver = self.get_setting(INT, "db_ver")
-			#print "current database version is",db_ver
+			self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
+			try:
+				db_ver = int(self._c.fetchone()[0])
+			except:
+				db_ver = None
+			print "current database version is",db_ver
 			if db_ver is None:
 				self._migrate_database_one_two()
 			if db_ver < 2:
@@ -489,7 +493,7 @@ class ptvDB:
 		   (only called by migration function and with no user-programmable
 		   arguments)"""
 		   
-		logging.info("updating" + table + "...")
+		logging.info("updating %s ..." % table)
 		
 		self._c.execute(u"CREATE TEMPORARY TABLE t_backup(" + new_schema + ")")
 		self._c.execute(u"INSERT INTO t_backup SELECT "+new_columns+" FROM " + table)
