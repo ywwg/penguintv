@@ -247,13 +247,12 @@ class ptvDB:
 			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
 			#db_ver = self._c.fetchone()
 			#db_ver = db_ver[0]
-			logging.debug("getting db version")
 			self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
 			try:
 				db_ver = int(self._c.fetchone()[0])
 			except:
 				db_ver = None
-			print "current database version is",db_ver
+			logging.debug("current database version is " + str(db_ver))
 			if db_ver is None:
 				self._migrate_database_one_two()
 			if db_ver < 2:
