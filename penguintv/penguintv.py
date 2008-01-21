@@ -237,6 +237,7 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			use_internal_player = True
 			
+		self._hildon_context = None
 		if utils.RUNNING_HILDON:
 			self._hildon_context = osso.Context("PenguinTV", utils.VERSION, False)
 			
