@@ -295,6 +295,23 @@ class GStreamerPlayer(gobject.GObject):
 		self.current = Discoverer(filename)
 		self.current.connect('discovered', self._on_type_discovered, filename, name, userdata)
 		self.current.discover()	
+		
+	def relocate_media(self, old_dir, new_dir):
+		if old_dir[-1] == '/' or old_dir[-1] == '\\':
+			old_dir = old_dir[:-1]
+			
+		if new_dir[-1] == '/' or new_dir[-1] == '\\':
+			new_dir = new_dir[:-1]
+	
+		model = self._queue_listview.get_model()
+		if len(model) == 0:
+			return
+			
+		self.stop()
+			
+		for row in model:
+			if row[0].startswith("file://" + old_dir):
+				row[0] = row[0].replace(old_dir, new_dir)
 			
 	def get_queue_count(self):
 		return len(self._queue_listview.get_model())

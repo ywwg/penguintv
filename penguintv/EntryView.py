@@ -91,28 +91,7 @@ class EntryView(gobject.GObject):
         #const found in __init__   
         
 		self._css = ""
-		if self._renderer==EntryFormatter.MOZILLA:
-			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			utils.init_gtkmozembed()
-			gtkmozembed.set_profile_path(self._db.home, 'gecko')
-			self._moz = gtkmozembed.MozEmbed()
-			self._moz.connect("open-uri", self._moz_link_clicked)
-			self._moz.connect("link-message", self._moz_link_message)
-			self._moz.connect("realize", self._moz_realize, True)
-			self._moz.connect("unrealize", self._moz_realize, False)
-			self._moz.load_url("about:blank")
-			#html_dock.add(self._moz)
-			scrolled_window.add_with_viewport(self._moz)
-			self._moz.show()
-			if utils.HAS_GCONF:
-				import gconf
-				self._conf = gconf.client_get_default()
-				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self._reset_moz_font()
-			
-		html_dock.show_all()
+		
 		#self.display_custom_entry("<html></html>")
 		
 		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm)
@@ -142,6 +121,31 @@ class EntryView(gobject.GObject):
 		
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
+		
+	def post_show_init(self):
+		html_dock = widget_tree.get_widget('html_dock')
+		if self._renderer==EntryFormatter.MOZILLA:
+			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
+			for l in f.readlines(): self._css += l
+			f.close()
+			utils.init_gtkmozembed()
+			gtkmozembed.set_profile_path(self._db.home, 'gecko')
+			self._moz = gtkmozembed.MozEmbed()
+			self._moz.connect("open-uri", self._moz_link_clicked)
+			self._moz.connect("link-message", self._moz_link_message)
+			self._moz.connect("realize", self._moz_realize, True)
+			self._moz.connect("unrealize", self._moz_realize, False)
+			self._moz.load_url("about:blank")
+			#html_dock.add(self._moz)
+			scrolled_window.add_with_viewport(self._moz)
+			self._moz.show()
+			if utils.HAS_GCONF:
+				import gconf
+				self._conf = gconf.client_get_default()
+				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			self._reset_moz_font()
+			
+		html_dock.show_all()
 		
 	def __feedlist_none_selected_cb(self, o):
 		self.display_item()

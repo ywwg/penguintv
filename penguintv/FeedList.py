@@ -345,8 +345,8 @@ class FeedList(gobject.GObject):
 						m_details_loaded = True
 					else:
 						m_details_loaded = False
-				m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id, 
-								    MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
+				m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id) #, 
+								    #MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 				model, iter = selection.get_selected()
 				try: sel = model[iter][FEEDID]
 				except: sel = -1
@@ -475,8 +475,8 @@ class FeedList(gobject.GObject):
 			flag = self._pick_important_flag(feed_id, update_data['flag_list'])				
 
 		if 'image' in update_what and self._fancy:
-			feed[PIXBUF] = self._icon_manager.get_icon_pixbuf(feed_id, 
-							MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
+			feed[PIXBUF] = self._icon_manager.get_icon_pixbuf(feed_id) #, 
+							#MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 			
 		if 'readinfo' in update_what:
 			#db_unread_count = self._db.get_unread_count(feed_id) #need it always for FIXME below

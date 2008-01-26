@@ -219,7 +219,6 @@ class MainWindow(gobject.GObject):
 	def Show(self, dock_widget = None):
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
-		#sys.stderr.write("show,"+str(dock_widget))
 		if not utils.HAS_MOZILLA and self.layout.endswith("planet"):
 			logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
 			self.layout = "standard"

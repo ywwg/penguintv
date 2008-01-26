@@ -343,7 +343,19 @@
 	<long>If enabled, PenguinTV will notify the user when feeds tagged with 'notify' are updated, as well as when downloads complete.  Default True</long>
      </locale>
    </schema>
-
+	<schema>
+     <key>/schemas/apps/penguintv/media_storage_location</key>
+     <applyto>/apps/penguintv/media_storage_location</applyto>
+     <owner>penguintv</owner>
+     <type>string</type>
+     <default>"~/.penguintv/media"</default>
+     <locale name="C">
+	<short>Media Storage Location</short>
+	<long>Sets where media for podcasts and vidcasts will be downloaded.  
+	Defaults to ~/.penguintv/media
+	</long>
+     </locale>
+   </schema>
 
    
  </schemalist>

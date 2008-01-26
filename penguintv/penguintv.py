@@ -167,29 +167,7 @@ class PenguinTVApp(gobject.GObject):
 			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 			ptv_dbus = ptvDbus.ptvDbus(self, name)
 			
-			sys_bus = dbus.SystemBus()
 			
-			try:
-				sys_bus.add_signal_receiver(self._nm_device_no_longer_active,
-											'DeviceNoLongerActive',
-											'org.freedesktop.NetworkManager',
-											'org.freedesktop.NetworkManager',
-											'/org/freedesktop/NetworkManager')
-	
-				sys_bus.add_signal_receiver(self._nm_device_now_active,
-											'DeviceNowActive',
-											'org.freedesktop.NetworkManager',
-											'org.freedesktop.NetworkManager',
-											'/org/freedesktop/NetworkManager')
-											
-				nm_ob = sys_bus.get_object("org.freedesktop.NetworkManager", 
-										   "/org/freedesktop/NetworkManager")
-										   
-				self._nm_interface = dbus.Interface(nm_ob, 
-											  "org.freedesktop.NetworkManager")
-				logging.info("Listening to NetworkManager")
-			except:
-				self._nm_interface = None
 			
 		self._net_connected = True
 		self.connect('online-status-changed', self.__online_status_changed)
@@ -206,8 +184,8 @@ class PenguinTVApp(gobject.GObject):
 		
 		self._firstrun = self.db.maybe_initialize_db()
 
-		self.db.clean_media_status()
-		self.mediamanager = MediaManager.MediaManager(self, self._progress_callback, self._finished_callback)
+		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
+		self.mediamanager = MediaManager.MediaManager(self, media_dir, self._progress_callback, self._finished_callback)
 		self._polled=0      #Used for updating the polling progress bar
 		self._polling_taskinfo = -1 # the taskid we can use to waitfor a polling operation,
 									# and the time of last polling
@@ -264,7 +242,6 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
-
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -300,14 +277,39 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/show_notification_always',self._gconf_set_show_notification_always)
 			conf.notify_add('/apps/penguintv/auto_download_limiter',self._gconf_set_auto_download_limiter)
 			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
+			conf.notify_add('/apps/penguintv/media_storage_location',self._gconf_set_media_storage_location)
 
 		self._load_settings()
+		
+		#more DBUS
+		sys_bus = dbus.SystemBus()
+		try:
+			sys_bus.add_signal_receiver(self._nm_device_no_longer_active,
+										'DeviceNoLongerActive',
+										'org.freedesktop.NetworkManager',
+										'org.freedesktop.NetworkManager',
+										'/org/freedesktop/NetworkManager')
+
+			sys_bus.add_signal_receiver(self._nm_device_now_active,
+										'DeviceNowActive',
+										'org.freedesktop.NetworkManager',
+										'org.freedesktop.NetworkManager',
+										'/org/freedesktop/NetworkManager')
+										
+			nm_ob = sys_bus.get_object("org.freedesktop.NetworkManager", 
+									   "/org/freedesktop/NetworkManager")
+									   
+			self._nm_interface = dbus.Interface(nm_ob, 
+										  "org.freedesktop.NetworkManager")
+			logging.info("Listening to NetworkManager")
+		except:
+			self._nm_interface = None
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
 		self._entry_view = self.main_window.entry_view
 		
-		self._entry_view.display_item()
+		self._entry_view.post_show_init()
 		
 		self._connect_signals()
 		
@@ -469,6 +471,10 @@ class PenguinTVApp(gobject.GObject):
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit', default_max)
 		self._auto_download_limit = val
 		self.window_preferences.set_auto_download_limit(val)
+		
+		val = self.mediamanager.get_media_dir()
+		print val
+		self.window_preferences.set_media_storage_location(val)
 			
 	@utils.db_except()
 	def save_settings(self):
@@ -552,9 +558,10 @@ class PenguinTVApp(gobject.GObject):
 		self.stop_downloads()
 		logging.info('saving settings')
 		self.save_settings()
+		self.db.clean_media_status()
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
-		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4]] for c in self.feed_list_view.get_feed_cache()]
-		self.db.set_feed_cache(adjusted_cache)
+		#adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4]] for c in self.feed_list_view.get_feed_cache()]
+		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
 		logging.info('stopping db')
 		self.db.finish()	
 		logging.info('stopping mediamanager')
@@ -664,7 +671,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		
 		#adjust actual free space so we never fill up the drive
-		if utils.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 			free_buffer = 300000000 # 300 meg
 		else:
 			free_buffer =  10000000 # 10 meg
@@ -1531,6 +1538,25 @@ class PenguinTVApp(gobject.GObject):
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
 			self.window_preferences.set_feed_refresh_frequency(freq)
 			
+	def _gconf_set_media_storage_location(self, client, *args, **kwargs):
+		val = client.get_string('/apps/penguintv/media_storage_location')
+		self.set_media_storage_location(val)
+		
+	def set_media_storage_location(self, location):
+		#try:
+		old_dir, remap_dir = self.mediamanager.set_media_dir(location)
+		#except:
+		#	self.window_preferences.alert_bad_storage_location(location)
+		#	return
+
+		if remap_dir is not None:
+			self.db.relocate_media(old_dir, remap_dir)
+			gst_player = self.main_window.get_gst_player()
+			if gst_player is not None:
+				gst_player.relocate_media(old_dir, remap_dir)
+		self.window_preferences.set_media_storage_location(location)
+		
+			
 	def get_feed_refresh_method(self):
 		return self.feed_refresh_method
 		
@@ -2126,7 +2152,10 @@ def main():
 	except AlreadyRunning, e:
 		do_commandline(remote_app=e.remote_app)
 		sys.exit(0)
+	
 	app.main_window.Show() 
+	## load-time testing
+	#sys.exit(0)
 	if utils.is_kde():
 		try:
 			from kdecore import KApplication, KCmdLineArgs, KAboutData

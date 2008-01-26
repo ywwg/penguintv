@@ -237,7 +237,7 @@ class ptvDB:
 
 	def maybe_initialize_db(self):
 		try:
-			self._db_execute(self._c, u'SELECT * FROM feeds')
+			self._db_execute(self._c, u'SELECT rowid FROM feeds LIMIT 1')
 		except:
 			logging.info("initializing database")
 			self._init_database()
@@ -663,6 +663,26 @@ class ptvDB:
 				elif len(files) == 0:
 					logging.info("deleting "+root)
 					utils.deltree(root)
+					
+	def relocate_media(self, old_dir, new_dir):
+		"""rewrite db so that media files point to a new place.  Lots of
+		checking involved"""
+		
+		if old_dir[-1] == '/' or old_dir[-1] == '\\':
+			old_dir = old_dir[:-1]
+			
+		assert os.access(new_dir, os.F_OK & os.R_OK & os.W_OK & os.X_OK)
+		assert os.access(old_dir, os.F_OK & os.R_OK & os.W_OK & os.X_OK)
+	
+		self._db_execute(self._c, u'SELECT rowid, file FROM media WHERE file IS NOT NULL')
+		rows = self._c.fetchall()
+		for rowid, filename in rows:
+			assert filename.startswith(old_dir)
+			
+		for rowid, filename in rows:
+			new_filename = os.path.join(new_dir, filename[len(old_dir) + 1:])
+			self._db_execute(self._c, u'UPDATE media SET file=? WHERE rowid=?', (new_filename, rowid))
+		self._db.commit()
 					
 	def get_setting(self, type, datum, default=None):
 		if utils.HAS_GCONF and self._new_db:

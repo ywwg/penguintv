@@ -82,5 +82,8 @@ sys.path.insert(0, \"$ptv_home\");
 import penguintv;
 import utils;
 
+#import cProfile;
+#cProfile.run('penguintv.main()', '/tmp/penguintv-prof');
+#sys.exit(0);
 penguintv.main()"
 

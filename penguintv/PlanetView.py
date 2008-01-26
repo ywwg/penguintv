@@ -95,6 +95,7 @@ class PlanetView(gobject.GObject):
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_flags(self._scrolled_window.flags() & gtk.CAN_FOCUS) 
+
 		style = self._html_dock.get_style().copy()
 		self._background_color = "#%.2x%.2x%.2x;" % (
                 style.base[gtk.STATE_NORMAL].red / 256,
@@ -113,11 +114,47 @@ class PlanetView(gobject.GObject):
 		
 		if self._renderer == EntryFormatter.MOZILLA:
 			if utils.RUNNING_SUGAR:
-				self._USING_AJAX = False
 				f = open(os.path.join(glade_path, "mozilla-planet-olpc.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
+			else:
+				if utils.RUNNING_HILDON:
+					f = open(os.path.join(glade_path, "mozilla-planet-hildon.css"))
+				else:
+					f = open(os.path.join(glade_path, "mozilla-planet.css"))
+				for l in f.readlines(): self._css += l
+				f.close()
 				
+		#signals
+		self._handlers = []
+		if feed_list_view is not None:
+			h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
+			self._handlers.append((feed_list_view.disconnect, h_id))
+			h_id = feed_list_view.connect('search-feed-selected', self.__feedlist_search_feed_selected_cb)
+			self._handlers.append((feed_list_view.disconnect, h_id))
+			h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
+			self._handlers.append((feed_list_view.disconnect, h_id))
+		if self._app is not None:
+			h_id = self._app.connect('feed-added',self.__feed_added_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('state-changed', self.__state_changed_cb)
+			self._handlers.append((self._app.disconnect, h_id))
+		screen = gtk.gdk.screen_get_default()
+		h_id = screen.connect('size-changed', self.__size_changed_cb)
+		self._handlers.append((screen.disconnect, h_id))
+		
+	def post_show_init(self):
+		if self._renderer == EntryFormatter.MOZILLA:
+			if utils.RUNNING_SUGAR:
+				self._USING_AJAX = False
 				hulahop.startup(os.path.join(self._db.home, 'gecko'))
 				import OLPCBrowser
 				self._moz = OLPCBrowser.Browser()
@@ -127,12 +164,8 @@ class PlanetView(gobject.GObject):
 				if utils.RUNNING_HILDON:
 					logging.debug("Hildon: Not using ajax view")
 					self._USING_AJAX = False
-					f = open(os.path.join(glade_path, "mozilla-planet-hildon.css"))
 				else:
 					self._USING_AJAX = True
-					f = open(os.path.join(glade_path, "mozilla-planet.css"))
-				for l in f.readlines(): self._css += l
-				f.close()
 				utils.init_gtkmozembed()
 				gtkmozembed.set_profile_path(self._db.home, 'gecko')
 				gtkmozembed.push_startup()
@@ -183,33 +216,6 @@ class PlanetView(gobject.GObject):
 			img_url = None
 			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True)
 			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, basic_progress=True)
-			
-		
-		#signals
-		self._handlers = []
-		if feed_list_view is not None:
-			h_id = feed_list_view.connect('feed-selected', self.__feedlist_feed_selected_cb)
-			self._handlers.append((feed_list_view.disconnect, h_id))
-			h_id = feed_list_view.connect('search-feed-selected', self.__feedlist_search_feed_selected_cb)
-			self._handlers.append((feed_list_view.disconnect, h_id))
-			h_id = feed_list_view.connect('no-feed-selected', self.__feedlist_none_selected_cb)
-			self._handlers.append((feed_list_view.disconnect, h_id))
-		if self._app is not None:
-			h_id = self._app.connect('feed-added',self.__feed_added_cb)
-			self._handlers.append((self._app.disconnect, h_id))
-			h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
-			self._handlers.append((self._app.disconnect, h_id))
-			h_id = self._app.connect('feed-polled', self.__feed_polled_cb)
-			self._handlers.append((self._app.disconnect, h_id))
-			h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
-			self._handlers.append((self._app.disconnect, h_id))
-			h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
-			self._handlers.append((self._app.disconnect, h_id))
-			h_id = self._app.connect('state-changed', self.__state_changed_cb)
-			self._handlers.append((self._app.disconnect, h_id))
-		screen = gtk.gdk.screen_get_default()
-		h_id = screen.connect('size-changed', self.__size_changed_cb)
-		self._handlers.append((screen.disconnect, h_id))
 		
 	def set_entry_view(self, entry_view):
 		pass

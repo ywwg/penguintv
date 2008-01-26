@@ -37,6 +37,10 @@ class IconManager:
 	
 	def get_icon_pixbuf(self, feed_id, max_width=None, max_height=None, min_width=None, min_height=None):
 		import gtk
+		if min_width is None:
+			min_width = 8
+		if min_height is None:
+			min_height = 8
 		filename = self.get_icon(feed_id)
 		if filename is None:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, min_width, min_height)

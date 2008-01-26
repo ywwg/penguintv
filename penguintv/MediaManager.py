@@ -8,6 +8,8 @@ import time
 import os,os.path
 import copy
 import logging
+import shutil
+import re
 
 import Downloader
 #import BTDownloader  loaded when needed
@@ -44,7 +46,7 @@ PAUSED  = 2
 #              where status is the enum above
 
 class MediaManager:
-	def __init__(self, app, progress_callback=None, finished_callback=None):
+	def __init__(self, app, media_dir, progress_callback=None, finished_callback=None):
 		self.index=0
 		#should this be lucene compatible?
 		self.pool = ThreadPool.ThreadPool(5,"MediaManager")
@@ -66,14 +68,18 @@ class MediaManager:
 		else:
 			self.app_callback_progress = self._basic_progress_callback	
 		home=self.db.home
+		
+		if media_dir[0] == '~':
+			media_dir = os.getenv('HOME') + media_dir[1:]
+		
 		try:	
-			os.stat(os.path.join(home,'media'))
+			os.stat(media_dir)
 		except:
 			try:
-				os.mkdir(os.path.join(home, 'media'))
+				os.mkdir(media_dir)
 			except:
-				raise NoDir, "error creating " +home+'/media'
-		self.media_dir = os.path.join(home, 'media')
+				raise NoDir, "error creating " +media_dir
+		self._media_dir = media_dir
 		
 		app.connect('online-status-changed', self.__online_status_changed)
 	
@@ -87,6 +93,71 @@ class MediaManager:
 		
 	def __del__(self):
 		self.finish()
+		
+	def set_media_dir(self, new_dir):
+		"""sets new media dir.  returns None, None on success, and returns new dir name
+		if db and player need to be remapped to new dirs"""
+		old_dir = self._media_dir
+		if new_dir == old_dir:
+			return None, None
+		std_loc = os.path.join(utils.get_home(), 'media')
+			
+		#stat new folder
+		if not os.access(new_dir, os.F_OK & os.R_OK & os.W_OK & os.X_OK):
+			raise NoDir, "insufficient permissions to access %s" % new_dir
+			
+		try:
+			os.symlink
+			HAVE_SYMLINK = True
+		except:
+			HAVE_SYMLINK = False	
+			
+		if HAVE_SYMLINK:
+			if old_dir == std_loc:
+				self._move_contents(std_loc, new_dir)
+				self._media_dir = new_dir
+				if os.path.islink(std_loc):
+					os.remove(std_loc)
+					os.symlink(new_dir, std_loc)
+				else:
+					os.rmdir(std_loc)
+					os.symlink(new_dir, std_loc)
+					return old_dir, std_loc
+			elif new_dir == std_loc:
+				self._media_dir = std_loc
+				if os.path.islink(std_loc):
+					os.remove(std_loc)
+					self._move_contents(old_dir, std_loc)
+				else:
+					os.rmdir(std_loc)
+					os.mkdir(std_loc)
+					self._move_contents(old_dir, std_loc)
+					return old_dir, std_loc
+			else:
+				self._move_contents(old_dir, new_dir)
+				self._media_dir = new_dir
+				if os.path.islink(std_loc):
+					os.remove(std_loc)
+					os.symlink(new_dir, std_loc)
+				else:
+					os.rmdir(std_loc)
+					os.symlink(new_dir, std_loc)
+					return old_dir, std_loc
+		else:
+			self._move_contents(old_dir, new_dir)
+			self._media_dir = new_dir
+			return old_dir, new_dir
+				
+		return None, None
+			
+	def _move_contents(self, src, dst):
+		p = re.compile("\d{4}-\d{2}-\d{2}$")
+		for f in os.listdir(src):
+			if p.search(f) is not None or f.upper().endswith('M3U'):
+				shutil.move(os.path.join(src, f), os.path.join(dst, f))
+			
+	def get_media_dir(self):
+		return self._media_dir
 		
 	def __online_status_changed(self, app, connected):
 		if not connected:
@@ -114,7 +185,7 @@ class MediaManager:
 		
 	def show_downloads(self):
 		if HAS_GNOME:
-			gnome.url_show("file://"+self.media_dir+"/"+utils.get_dated_dir())
+			gnome.url_show("file://"+self._media_dir+"/"+utils.get_dated_dir())
 		
 	def download_entry(self, entry_id, queue=False, resume=False):
 		"""queues a download
@@ -142,18 +213,18 @@ class MediaManager:
 			filename = os.path.basename(media['url'])
 			filen, ext = os.path.splitext(filename)
 			ext = ext.split('?')[0] #grrr lugradio...
-			media['file']=os.path.join(self.media_dir, utils.get_dated_dir(), filen+ext)
+			media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+ext)
 			dated_dir = os.path.split(os.path.split(media['file'])[0])[1]
 			try: #make sure
-				os.stat(os.path.join(self.media_dir, dated_dir))
+				os.stat(os.path.join(self._media_dir, dated_dir))
 			except:
-				os.mkdir(os.path.join(self.media_dir, dated_dir))
+				os.mkdir(os.path.join(self._media_dir, dated_dir))
 			if self.db.media_exists(media['file']): #if the filename is in the db, rename
-				media['file']=os.path.join(self.media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext)
+				media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext)
 			else:
 				try:
 					os.stat(media['file'])  #if this raises exception, the file doesn't exist and we're ok
-					media['file']=os.path.join(self.media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext) #if not, get new name
+					media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext) #if not, get new name
 				except:
 					pass #we're ok
 			
@@ -170,7 +241,7 @@ class MediaManager:
 				'--max_upload_rate', str(self.bt_settings['ul_limit'])]
 				
 			import BTDownloader
-			downloader = BTDownloader.BTDownloader(media, self.media_dir, params,True, queue, self.callback_progress,self.callback_finished)
+			downloader = BTDownloader.BTDownloader(media, self._media_dir, params,True, queue, self.callback_progress,self.callback_finished)
 			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
 		else: #http regular download
@@ -185,7 +256,7 @@ class MediaManager:
 				except:
 					print "ERROR couldn't guess mimetype, leaving filename alone"
 			import HTTPDownloader
-			downloader = HTTPDownloader.HTTPDownloader(media, self.media_dir, None, resume, queue, self.callback_progress, self.callback_finished)
+			downloader = HTTPDownloader.HTTPDownloader(media, self._media_dir, None, resume, queue, self.callback_progress, self.callback_finished)
 			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
 			
@@ -278,8 +349,8 @@ class MediaManager:
 	def get_disk_usage(self):
 		size = 0
 		try:
-			#filelist = glob.glob(self.media_dir+"/*")
-			for f in utils.GlobDirectoryWalker(os.path.join(self.media_dir, "")):
+			#filelist = glob.glob(self._media_dir+"/*")
+			for f in utils.GlobDirectoryWalker(os.path.join(self._media_dir, "")):
 				size = size+os.stat(f)[6]
 		except:
 			pass
@@ -291,13 +362,13 @@ class MediaManager:
 		import glob
 		dated_dir = utils.get_dated_dir()
 		try:
-			os.stat(os.path.join(self.media_dir, dated_dir))
+			os.stat(os.path.join(self._media_dir, dated_dir))
 		except:
-			os.mkdir(os.path.join(self.media_dir, dated_dir))
-		f = open(os.path.join(self.media_dir, dated_dir, "playlist.m3u"),'w')
+			os.mkdir(os.path.join(self._media_dir, dated_dir))
+		f = open(os.path.join(self._media_dir, dated_dir, "playlist.m3u"),'w')
 		f.write('#EXTM3U\n')
 		
-		for item in glob.glob(os.path.join(self.media_dir, dated_dir, "*")):
+		for item in glob.glob(os.path.join(self._media_dir, dated_dir, "*")):
 			filename = os.path.split(item)[1]
 			if filename != "playlist.m3u":
 				f.write(filename+"\n")
@@ -317,10 +388,10 @@ class MediaManager:
 		dated_dir = os.path.split(os.path.split(media['file'])[0])[1]
 			
 		try:
-			os.stat(os.path.join(self.media_dir, dated_dir, "playlist.m3u"))
-			f = open(os.path.join(self.media_dir, dated_dir, "playlist.m3u"),'a')
+			os.stat(os.path.join(self._media_dir, dated_dir, "playlist.m3u"))
+			f = open(os.path.join(self._media_dir, dated_dir, "playlist.m3u"),'a')
 		except:
-			f = open(os.path.join(self.media_dir, dated_dir, "playlist.m3u"),'w')
+			f = open(os.path.join(self._media_dir, dated_dir, "playlist.m3u"),'w')
 			f.write('#EXTM3U\n')
 		
 		f.write(os.path.split(media['file'])[1]+"\n")

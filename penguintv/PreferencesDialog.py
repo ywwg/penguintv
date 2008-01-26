@@ -123,6 +123,9 @@ class PreferencesDialog:
 	def set_auto_download_limit(self, limit):
 		self.auto_download_limit_widget.set_text(str(limit/1024))
 #		print "set text to: "+str(limit/1024)
+
+	def set_media_storage_location(self, location):
+		self.xml.get_widget("media_storage_chooser").set_current_folder(location)
 					
 	def on_button_close_clicked(self,event):
 		self.hide()
@@ -214,4 +217,10 @@ class PreferencesDialog:
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit',val)
 		if not utils.HAS_GCONF:
 			self._app.set_bt_ullimit(val)
+			
+	def on_media_storage_chooser_file_set(self, widget):
+		val = widget.get_filename()
+		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
+		if not utils.HAS_GCONF:
+			self._app.set_media_storage_location(val)
 	
