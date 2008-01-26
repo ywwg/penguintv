@@ -200,7 +200,7 @@ class FeedList(gobject.GObject):
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		if update_data.has_key('no_changes'):
 			if update_data['no_changes']:
-				self.update_feed_list(feed_id, ['icon'], update_data)
+				self.update_feed_list(feed_id, ['icon','image'], update_data)
 				return
 		self.update_feed_list(feed_id, ['readinfo','icon','title','image'], update_data)
 		
@@ -618,8 +618,9 @@ class FeedList(gobject.GObject):
 			print "not in search state, returning"
 			return
 			
-		old_item = self._feedlist[self._last_feed]
-		old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
+		if self._last_feed is not None:
+			old_item = self._feedlist[self._last_feed]
+			old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
 			
 		if results is None:
 			results = []
@@ -967,6 +968,8 @@ class FeedList(gobject.GObject):
 		
 	def remove_feed(self, feed_id):
 		try:
+			if feed_id == self._feedlist[self._last_feed][FEEDID]:
+				self._last_feed = None
 			self._feedlist.remove(self._feedlist.get_iter((self.find_index_of_item(feed_id),)))
 		except:
 			print "Error: feed not in list"

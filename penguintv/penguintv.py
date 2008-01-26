@@ -223,6 +223,7 @@ class PenguinTVApp(gobject.GObject):
 		self._threaded_searcher = None
 		self._waiting_for_search = False
 		self._state = DEFAULT
+		self._update_thread = None
 				
 		window_layout = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout', 'planet')
 		if utils.RUNNING_SUGAR: 
@@ -258,6 +259,7 @@ class PenguinTVApp(gobject.GObject):
 		self.db._db.close()
 		del self.db
 		self.db = ptvDB.ptvDB(self._polling_callback, self._emit_change_setting)
+		logging.debug("have new db, right? %s $s" % (str(self.db), str(self.db._c)))
 	
 	@utils.db_except()
 	def post_show_init(self):
@@ -268,7 +270,6 @@ class PenguinTVApp(gobject.GObject):
 		if gst_player is not None:
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
-		self._update_thread = None
 		
 		if utils.RUNNING_HILDON:
 			hildon_listener = HildonListener.HildonListener(self, self.main_window.window)

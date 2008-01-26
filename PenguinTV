@@ -47,17 +47,18 @@ else
 	fi
 fi
 
+rundir=`dirname $0`
+
 
 ptv_home=`/usr/bin/env python -c "import os, sys; 
 if os.environ.has_key('PENGUINTV_LIB'): 
     print os.environ['PENGUINTV_LIB'];  
     sys.exit(0); 
-for d in sys.path: 
+for d in [\"$rundir\"] + sys.path:
+    if d[0] == '.':
+        d = os.path.join(os.getcwd(), d);
     sd = os.path.join(d, 'penguintv'); 
     if os.path.isdir(sd):
-        if d == '':
-    	    print os.path.join(os.getcwd(), 'penguintv');
-    	    sys.exit(0);
         print sd; 
         sys.exit(0); 
 h, t = os.path.split(os.path.split(os.path.abspath(sys.argv[0]))[0]); 
@@ -74,10 +75,10 @@ if [ $? -gt 0 ] ; then
 	exit 1
 fi
 
-echo "Using penguintv found in $ptv_home"
-
-/usr/bin/env python -c "import sys; \
+/usr/bin/env python -c "import os, sys;
+os.chdir(\"$ptv_home\");
 sys.path.insert(0, \"$ptv_home\");
+
 import penguintv;
 import utils;
 

@@ -3471,7 +3471,6 @@ j@v2v.cc
                     <child>
                       <widget class="GtkImage" id="info_icon">
                         <property name="visible">True</property>
-                        <property name="stock">gtk-missing-image</property>
                         <property name="icon_size">6</property>
                         <property name="icon_name">stock_dialog-info</property>
                       </widget>
@@ -3501,6 +3500,9 @@ j@v2v.cc
               </widget>
             </child>
           </widget>
+          <packing>
+            <property name="position">2</property>
+          </packing>
         </child>
         <child internal-child="action_area">
           <widget class="GtkHButtonBox" id="dialog-action_area3">

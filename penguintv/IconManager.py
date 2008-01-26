@@ -1,6 +1,15 @@
 import os, os.path
 import glob
 import urllib
+import logging
+
+ICONSIZE = 48, 48
+
+try:
+	import Image
+	HAS_PIL = True
+except:
+	HAS_PIL = False
 
 class IconManager:
 
@@ -73,13 +82,30 @@ class IconManager:
 		try: url_list.append(feedparser_data['feed']['link'] + '/favicon.ico')
 		except: pass
 		
+		found=False
 		for url in url_list:
 			try:
 				filename = os.path.join(self._home, 'icons', str(feed_id) + '.' + url.split('.')[-1])
 				urllib.urlretrieve(url, filename)
-				return url
+				found = True
+				break
 			except:
 				pass
+	
+		if found:
+			if HAS_PIL:
+				try:
+					im = Image.open(filename)
+					if im.size[0] > ICONSIZE[0] or im.size[1] > ICONSIZE[1]:
+						im.thumbnail(ICONSIZE, Image.ANTIALIAS)
+						im.save(filename+".thumb", "PNG")
+						os.remove(filename)
+						newname = ".".join(filename.split('.')[:-1]) + ".png"
+						os.rename(filename+".thumb", newname)
+				except Exception, e:
+					logging.warning("Feed %i: Couldn't resize feed icon: %s" % (feed_id, str(e)))
+			return url
+			
 		f = open(os.path.join(self._home, 'icons', str(feed_id)+'.none'), 'w')
 		f.write("")
 		f.close()
