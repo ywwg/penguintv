@@ -687,12 +687,20 @@ class PlanetView(gobject.GObject):
 		else:
 			item['media'] = []
 		item['new'] = not item['read']
+		
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-			self._entry_store[entry_id] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
+			new_format = self._search_formatter.htmlify_item(item, self._convert_newlines)
+			if new_format == self._entry_store[entry_id][0]:
+				self._entry_store[entry_id] = (new_format, item)
+				return self._entry_store[entry_id]
+			self._entry_store[entry_id] = (new_format, item)
 		else:
-			self._entry_store[entry_id] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
-		
+			new_format = self._entry_formatter.htmlify_item(item, self._convert_newlines)
+			if new_format == self._entry_store[entry_id][0]:
+				self._entry_store[entry_id] = (new_format, item)
+				return self._entry_store[entry_id]
+			self._entry_store[entry_id] = (new_format, item)
 		index = self._entrylist.index((entry_id,item['feed_id']))
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
@@ -702,6 +710,8 @@ class PlanetView(gobject.GObject):
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
 				self._update_server.push_update(ret)
+			else:
+				self._render_entries()
 			gobject.timeout_add(2000, self._do_delayed_set_viewed, self._current_feed_id, self._first_entry, self._last_entry, True)
 		
 		return self._entry_store[entry_id]

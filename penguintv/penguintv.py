@@ -249,7 +249,7 @@ class PenguinTVApp(gobject.GObject):
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
 		
 		if utils.RUNNING_HILDON:
-			hildon_listener = HildonListener.HildonListener(self, self.main_window.window)
+			hildon_listener = HildonListener.HildonListener(self, self.main_window.window, self._hildon_context)
 
 		#WINDOWS
 		self.window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self) #MAGIC
@@ -473,7 +473,6 @@ class PenguinTVApp(gobject.GObject):
 		self.window_preferences.set_auto_download_limit(val)
 		
 		val = self.mediamanager.get_media_dir()
-		print val
 		self.window_preferences.set_media_storage_location(val)
 			
 	@utils.db_except()
@@ -530,13 +529,10 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def _resumer_generator(self, list):
 		for medium in list:
-			#gtk.gdk.threads_enter()
 			self.mediamanager.download(medium['media_id'], False, True) #resume please
 			self.db.set_entry_read(medium['entry_id'],False)
 			self.feed_list_view.update_feed_list(medium['feed_id'],['icon'])
-			#gtk.gdk.threads_leave()
 			yield True
-		#gtk.gdk.threads_leave()
 		yield False
 		
 	def do_quit(self):
@@ -555,13 +551,14 @@ class PenguinTVApp(gobject.GObject):
 				self._update_thread.goAway()
 		self.main_window.finish()
 		logging.info('stopping downloads')
+		
 		self.stop_downloads()
 		logging.info('saving settings')
 		self.save_settings()
 		self.db.clean_media_status()
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
-		#adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4]] for c in self.feed_list_view.get_feed_cache()]
-		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
+		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4]] for c in self.feed_list_view.get_feed_cache()]
+		self.db.set_feed_cache(adjusted_cache)
 		logging.info('stopping db')
 		self.db.finish()	
 		logging.info('stopping mediamanager')
@@ -570,7 +567,6 @@ class PenguinTVApp(gobject.GObject):
 		#	print threading.enumerate()
 		#	print str(threading.activeCount())+" threads active..."
 		#	time.sleep(1)
-			
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			gtk.main_quit()
 			
@@ -1042,7 +1038,7 @@ class PenguinTVApp(gobject.GObject):
 		dialog.add_filter(filter)        
 		
 		dialog.set_current_name('mySubscriptions.opml')
-		dialog.set_transient_for(self.main_window.get_parent())              
+		dialog.set_transient_for(self.main_window.get_parent())
 			
 		response = dialog.run()
 		if response == gtk.RESPONSE_OK:
@@ -1543,6 +1539,7 @@ class PenguinTVApp(gobject.GObject):
 		self.set_media_storage_location(val)
 		
 	def set_media_storage_location(self, location):
+		logging.debug("look a new setting for location")
 		#try:
 		old_dir, remap_dir = self.mediamanager.set_media_dir(location)
 		#except:
@@ -1916,23 +1913,26 @@ class PenguinTVApp(gobject.GObject):
 	def _nm_device_now_active(self, *args):
 		if self._nm_interface is not None:
 			state = self._nm_interface.state()
-			if state == 3 and not self._net_connected:
-				self.emit('online-status-changed', True)
-			elif state != 3 and self._net_connected:
-				self.emit('online-status-changed', False)
+			if state == 3:
+				self.maybe_change_online_status(True)
+			else:
+				self.maybe_change_online_status(False)
 	
 	def _nm_device_no_longer_active(self, *args):
 		if self._nm_interface is not None:
 			state = self._nm_interface.state()
-			if state == 3 and not self._net_connected:
-				self.emit('online-status-changed', True)
-			elif state != 3 and self._net_connected:
-				self.emit('online-status-changed', False)
+			if state == 3:
+				self.maybe_change_online_status(True)
+			else:
+				self.maybe_change_online_status(False)
+				
+	def maybe_change_online_status(self, new_status):
+		if new_status != self._net_connected:
+			self.emit('online-status-changed', new_status)
 			
 	def _progress_callback(self,d):
 		"""Callback for downloads.  Not in main thread, so shouldn't generate gtk calls"""
 		if self._exiting == 1:
-			self._gui_updater.queue(self.do_cancel_download,d.media, None, True, 1)
 			return 1 #returning one is what interrupts the download
 		
 		if d.media.has_key('size_adjustment'):

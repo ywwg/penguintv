@@ -7,6 +7,9 @@ import penguintv
 import ptvDB
 import utils
 
+if utils.RUNNING_HILDON:
+	import hildon
+
 class PreferencesDialog:
 	def __init__(self,xml,app):
 		self.xml = xml
@@ -42,22 +45,14 @@ class PreferencesDialog:
 		
 		if utils.RUNNING_HILDON:
 			self._hildon_inited = False
-				
-	def extract_content(self):
-		vbox = self.xml.get_widget('prefs_vbox')
-		vbox.unparent()
-		vbox.show_all()
-		self._window = None
-		if utils.RUNNING_SUGAR:
-			self.auto_download_limiter_widget.hide()
-			self.auto_download_limit_widget.hide()
-			self.limiter_hbox_widget.hide()
-			self.show_notification_always.hide()
-			self.xml.get_widget("button_close").hide()
-		#if utils.RUNNING_HILDON:
-		#	self.show_notification_always.hide()
-		return vbox
-		
+			self._hildon_chooser_button = gtk.Button("")
+			self._hildon_chooser_button.connect('clicked', self.hildon_choose_folder)
+			container = self.xml.get_widget("media_storage_container")
+			old_chooser = self.xml.get_widget("media_storage_chooser")
+			container.remove(old_chooser)
+			container.add(self._hildon_chooser_button)
+			del old_chooser
+
 	def show(self):
 		if utils.RUNNING_HILDON:
 			if not self._hildon_inited:
@@ -82,6 +77,41 @@ class PreferencesDialog:
 		elif self._window:
 			self._window.show_all()
 		        
+	def extract_content(self):
+		vbox = self.xml.get_widget('prefs_vbox')
+		vbox.unparent()
+		vbox.show_all()
+		self._window = None
+		if utils.RUNNING_SUGAR:
+			self.auto_download_limiter_widget.hide()
+			self.auto_download_limit_widget.hide()
+			self.limiter_hbox_widget.hide()
+			self.show_notification_always.hide()
+			self.xml.get_widget("button_close").hide()
+		#if utils.RUNNING_HILDON:
+		#	self.show_notification_always.hide()
+		return vbox
+		
+	def hildon_choose_folder(self, widget):
+		new_chooser = hildon.FileChooserDialog(self._app.main_window.window, action=gtk.FILE_CHOOSER_ACTION_SELECT_FOLDER)
+		new_chooser.set_default_response(gtk.RESPONSE_OK)
+		new_chooser.set_current_folder(self._hildon_chooser_button.get_label())		
+		response = new_chooser.run()
+		if response == gtk.RESPONSE_OK:
+			try:
+				logging.debug("look it changed hildon")
+				val = new_chooser.get_filename()
+				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
+				if not utils.HAS_GCONF:
+					logging.debug("telling the app about the new setting")
+					self._app.set_media_storage_location(val)
+			except:
+				pass
+		elif response == gtk.RESPONSE_CANCEL:
+			#print 'Closed, no files selected'
+			pass
+		new_chooser.destroy()
+				
 	def hide(self):
 		if self._window:
 			self._window.hide()	
@@ -125,7 +155,10 @@ class PreferencesDialog:
 #		print "set text to: "+str(limit/1024)
 
 	def set_media_storage_location(self, location):
-		self.xml.get_widget("media_storage_chooser").set_current_folder(location)
+		if utils.RUNNING_HILDON:
+			self._hildon_chooser_button.set_label(location)
+		else:
+			self.xml.get_widget("media_storage_chooser").set_current_folder(location)
 					
 	def on_button_close_clicked(self,event):
 		self.hide()
@@ -219,8 +252,10 @@ class PreferencesDialog:
 			self._app.set_bt_ullimit(val)
 			
 	def on_media_storage_chooser_file_set(self, widget):
+		logging.debug("look it changed")
 		val = widget.get_filename()
 		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
 		if not utils.HAS_GCONF:
+			logging.debug("telling the app about the new setting")
 			self._app.set_media_storage_location(val)
 	

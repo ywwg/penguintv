@@ -240,7 +240,7 @@ class FeedList(gobject.GObject):
 			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title,url in db_feedlist:
 				if utils.RUNNING_HILDON:
-					title_m = '<span size="xx-small">%s</span>' % title 	 
+					title_m = '<span size="x-small">%s</span>' % title 	 
 				elif self._fancy:
 					title_m = title+"\n"
 				else:
@@ -1068,7 +1068,7 @@ class FeedList(gobject.GObject):
 		if utils.RUNNING_SUGAR:
 			title='<span size="x-small">'+title+'</span>'
 		elif utils.RUNNING_HILDON:
-			title='<span size="xx-small">'+title+'</span>'
+			title='<span size="x-small">'+title+'</span>'
 		try:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					title="<b>"+utils.my_quote(title)+"</b>"
