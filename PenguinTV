@@ -5,17 +5,12 @@
 # GNU General Public License, version 2 or later
 #
 
-if [ -f "/usr/lib/libgtkembedmoz.so" -a -d "/usr/lib/microb-engine" ]; then
+HILDON=0
+if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
+	HILDON=1
 	echo "Launching Hildon version"
 	export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
 	export LD_LIBRARY_PATH="/usr/lib/microb-engine"
-	run-standalone.sh python2.5 -c "import sys; \
-sys.path.insert(0, \"/usr/lib/python2.5/site-packages/penguintv\");
-import penguintv;
-import utils;
-
-penguintv.main()"
-	exit 0
 else
 	have_home=0
 	if [ x$MOZILLA_FIVE_HOME != "x" ] ; then
@@ -28,11 +23,11 @@ else
 		fi
 	fi
 	
-	if [ $have_home = 0 ] ; then
+	if [ $have_home -eq 0 ] ; then
 		for moz in "xulrunner-gtkmozembed" "firefox-gtkmozembed" "mozilla-gtkmozembed"; do
 			home=`pkg-config --silence-errors --libs-only-L $moz | sed 's/ //g'`
-			if [ x"$home" != "x" ] ; then
-				home=${home:2}
+			if [ "x"$home != "x" ] ; then
+				home=`echo $home | sed -e 's/-L//;'`
 				if [ ! -d $home ] ; then
 					echo "Thought mozilla was in $home, but path doesn't exist"
 					echo "Error finding MOZILLA_FIVE_HOME, please set it yourself"
@@ -75,7 +70,15 @@ if [ $? -gt 0 ] ; then
 	exit 1
 fi
 
-/usr/bin/env python -c "import os, sys;
+if [ $HILDON -eq 1 ] ; then
+	run-standalone.sh python2.5 -c "import sys; \
+sys.path.insert(0, \"/usr/lib/python2.5/site-packages/penguintv\");
+import penguintv;
+import utils;
+
+penguintv.main()"
+else
+	/usr/bin/env python -c "import os, sys;
 os.chdir(\"$ptv_home\");
 sys.path.insert(0, \"$ptv_home\");
 
@@ -86,4 +89,4 @@ import utils;
 #cProfile.run('penguintv.main()', '/tmp/penguintv-prof');
 #sys.exit(0);
 penguintv.main()"
-
+fi
