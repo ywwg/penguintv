@@ -661,9 +661,9 @@ class PenguinTVApp(gobject.GObject):
 		"""deletes media so that we have at least 'size_needed' bytes of free space.
 		Returns True if successful, returns False if not (ie, too big)"""
 		
-		disk_total = utils.get_disk_total(self.mediamanager.media_dir)
+		disk_total = utils.get_disk_total(self.mediamanager.get_media_dir())
 		disk_usage = self.mediamanager.get_disk_usage()
-		disk_free = utils.get_disk_free(self.mediamanager.media_dir)
+		disk_free = utils.get_disk_free(self.mediamanager.get_media_dir())
 		
 		
 		#adjust actual free space so we never fill up the drive
@@ -705,8 +705,8 @@ class PenguinTVApp(gobject.GObject):
 					if self._auto_download_limit*1024 - disk_usage < size_needed:
 						logging.error("didn't free up the space like we thought1")
 						return False
-				if utils.get_disk_free(self.mediamanager.media_dir) < size_needed + free_buffer:
-					logging.error("didn't free up the space like we thought2" + str(utils.get_disk_free(self.mediamanager.media_dir)))
+				if utils.get_disk_free(self.mediamanager.get_media_dir()) < size_needed + free_buffer:
+					logging.error("didn't free up the space like we thought2" + str(utils.get_disk_free(self.mediamanager.get_media_dir())))
 					return False
 				return True
 				
@@ -2041,6 +2041,7 @@ class PenguinTVApp(gobject.GObject):
 			self.threadDieTime = 30.0
 			self.polling_callback = polling_callback
 			self._db_lock = threading.Lock()
+			self._restart_db = False
 			
 		def run(self):
 	
@@ -2048,11 +2049,22 @@ class PenguinTVApp(gobject.GObject):
 				it, calling the callback if any.  """
 			
 			if self.db == None:
+				self._db_lock.acquire()
 				self._start_db()
+				self._db_lock.release()
 			
 			born_t = time.time()
 			while self.__isDying == False:
+				if self._restart_db:
+					logging.debug("We were told to restart the database")
+					if self.db is not None:
+						logging.debug("and yet db is not none.  what gives?")
+					self._restart_db = False
+					self._db_lock.acquire()
+					self._start_db()
+					self._db_lock.release()
 				while self.updater.updater_gen().next():
+					#do we also need to check for db restarting here?
 					if self.updater.exception is not None:
 						if isinstance(self.updater.exception, OperationalError):
 							self._db_lock.acquire()
@@ -2073,11 +2085,23 @@ class PenguinTVApp(gobject.GObject):
 						
 		def get_db(self):
 			#doesn't work, not run in thread
-			#if self.db is None:
-			#	logging.warning("db not found, starting a new one")
-			#	self._start_db()
 			self._db_lock.acquire()
 			self._db_lock.release()
+			if self.db is None:
+				for i in range(1,10):
+					if self.db is not None:
+						return self.db
+					time.sleep(0.2)
+				logging.warning("db not found, starting a new one")
+				self._restart_db = True
+				for i in range(1,15):
+					if self.db is not None:
+						break
+					time.sleep(0.2)
+				if self.db is None:
+					logging.error("problem restarting the database")
+				else:
+					logging.warning("DB restarted successfully")
 			return self.db
 			
 		def get_updater(self):

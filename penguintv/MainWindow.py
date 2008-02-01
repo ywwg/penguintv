@@ -289,7 +289,6 @@ class MainWindow(gobject.GObject):
 			self.window.set_menu(menu)
 			
 			self.window.show_all()
-			self.feed_list_view._articles_column.set_visible(False)
 			
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':

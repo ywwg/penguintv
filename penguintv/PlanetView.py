@@ -691,15 +691,17 @@ class PlanetView(gobject.GObject):
 		if self._state == S_SEARCH:
 			item['feed_title'] = self._db.get_feed_title(item['feed_id'])
 			new_format = self._search_formatter.htmlify_item(item, self._convert_newlines)
-			if new_format == self._entry_store[entry_id][0]:
-				self._entry_store[entry_id] = (new_format, item)
-				return self._entry_store[entry_id]
+			if self._entry_store.has_key(entry_id):
+				if new_format == self._entry_store[entry_id][0]:
+					self._entry_store[entry_id] = (new_format, item)
+					return self._entry_store[entry_id]
 			self._entry_store[entry_id] = (new_format, item)
 		else:
 			new_format = self._entry_formatter.htmlify_item(item, self._convert_newlines)
-			if new_format == self._entry_store[entry_id][0]:
-				self._entry_store[entry_id] = (new_format, item)
-				return self._entry_store[entry_id]
+			if self._entry_store.has_key(entry_id):
+				if new_format == self._entry_store[entry_id][0]:
+					self._entry_store[entry_id] = (new_format, item)
+					return self._entry_store[entry_id]
 			self._entry_store[entry_id] = (new_format, item)
 		index = self._entrylist.index((entry_id,item['feed_id']))
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:

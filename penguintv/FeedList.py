@@ -233,6 +233,8 @@ class FeedList(gobject.GObject):
 	def populate_feeds(self,callback=None, subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
 		#DON'T gtk.iteration in this func! Causes endless loops!
+		if utils.RUNNING_HILDON:
+			self._articles_column.set_visible(False)
 		if len(self._feedlist)==0:
 			#first fill out rough feedlist
 			db_feedlist = self._db.get_feedlist()
@@ -353,8 +355,11 @@ class FeedList(gobject.GObject):
 				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, feed_id == sel) 
 				m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
 			else:
-				m_title = self._get_markedup_title(title,flag) 
-				m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
+				m_title = self._get_markedup_title(title,flag)
+				if utils.RUNNING_HILDON:
+					m_readinfo = self._get_markedup_title("(%d)" % (unviewed), flag)
+				else:
+					m_readinfo = self._get_markedup_title("(%d/%d)" % (unviewed,entry_count), flag)
 				m_pixbuf = blank_pixbuf
 				m_first_entry_title = ""
 				m_details_loaded = False
@@ -491,7 +496,10 @@ class FeedList(gobject.GObject):
 			feed[UNREAD]   = update_data['unread_count']
 			feed[TOTAL]    = len(update_data['flag_list'])
 
-			readinfo_string = "("+str(update_data['unread_count'])+"/"+str(len(update_data['flag_list']))+")"			
+			if utils.RUNNING_HILDON:
+				readinfo_string = "(%d)" % (update_data['unread_count'],)
+			else:
+				readinfo_string = "(%d/%d)" % (update_data['unread_count'], len(update_data['flag_list']))
 			if self._fancy:
 				readinfo_string += "\n"
 			if readinfo_string != feed[READINFO]:
@@ -592,7 +600,10 @@ class FeedList(gobject.GObject):
 		if feed[UNREAD] > 0 and feed[FLAG] & ptvDB.F_UNVIEWED == 0:
 			feed[FLAG] += ptvDB.F_UNVIEWED
 		
-		readinfo_string = "("+str(feed[UNREAD])+"/"+str(feed[TOTAL])+")"
+		if utils.RUNNING_HILDON:
+			readinfo_string = "(%d)" % (feed[UNREAD],)
+		else:
+			readinfo_string = "(%d/%d)" % (feed[UNREAD], feed[TOTAL])
 		
 		if self._fancy:
 			readinfo_string += "\n"
