@@ -50,13 +50,13 @@ if os.environ.has_key('PENGUINTV_LIB'):
     print os.environ['PENGUINTV_LIB'];  
     sys.exit(0); 
 for d in [\"$rundir\"] + sys.path:
-	if len(d) > 0:
-    	if d[0] == '.':
-        	d = os.path.join(os.getcwd(), d);
-	    sd = os.path.join(d, 'penguintv'); 
-	    if os.path.isdir(sd):
-	        print sd; 
-	        sys.exit(0); 
+    if len(d) > 0:
+        if d[0] == '.':
+            d = os.path.join(os.getcwd(), d);
+        sd = os.path.join(d, 'penguintv'); 
+        if os.path.isdir(sd):
+            print sd; 
+            sys.exit(0); 
 h, t = os.path.split(os.path.split(os.path.abspath(sys.argv[0]))[0]); 
 if t == 'bin': 
     libdir = os.path.join(h, 'lib'); 
