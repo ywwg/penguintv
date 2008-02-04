@@ -894,7 +894,10 @@ class ptvDB:
 			else:
 				self.polling_callback((-1, [], 0), False)
 				return
-		pool = ThreadPool.ThreadPool(5,"ptvDB", lucene_compat = utils.HAS_LUCENE)
+		threadcount = 5
+		if utils.RUNNING_HILDON or utils.RUNNING_SUGAR:
+			threadcount = 2
+		pool = ThreadPool.ThreadPool(threadcount,"ptvDB", lucene_compat = utils.HAS_LUCENE)
 		self._parse_list = []
 		for feed in feeds:
 			if self._cancel_poll_multiple or self._exiting:

@@ -774,10 +774,11 @@ class MainWindow(gobject.GObject):
 		#elif self._notebook.get_current_page() == N_FEEDS:
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
 		self._db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
-		if self.layout.endswith('planet'):
-			self.entry_pane.set_position(0)
-		else:
-			self.feed_pane.set_position(0)
+		if not utils.RUNNING_HILDON:
+			if self.layout.endswith('planet'):
+				self.entry_pane.set_position(0)
+			else:
+				self.feed_pane.set_position(0)
 
 		self._notebook.set_keep_hidden(True)
 		self._widgetTree.get_widget('toolbar1').hide()
@@ -807,12 +808,13 @@ class MainWindow(gobject.GObject):
 			self.search_container.show_all()
 			
 		#elif self._notebook.get_current_page() == N_FEEDS:
-		if self.layout.endswith('planet'):
-			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
-			self.entry_pane.set_position(val)
-		else:
-			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
-			self.feed_pane.set_position(val)
+		if not utils.RUNNING_HILDON:
+			if self.layout.endswith('planet'):
+				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
+				self.entry_pane.set_position(val)
+			else:
+				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
+				self.feed_pane.set_position(val)
 			
 		self._notebook.set_keep_hidden(False)
 		self._widgetTree.get_widget('toolbar1').show_all()
