@@ -10,4 +10,4 @@ Categories=Internet
 Icon=penguintvicon
 X-Osso-Service=com.ywwg.PenguinTV
 X-Osso-Type=application/x-executable
-
+StartupWMClass=penguintv
