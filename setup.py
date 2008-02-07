@@ -34,9 +34,9 @@ if HAS_SUGAR:
 elif HAS_HILDON:
 	print "Building hildon version"
 	sp = my_subProcess.subProcess("cp -f share/penguintv.glade.hildon share/penguintv.glade")
-		if sp.read() != 0:
-			print "There was an error copying the glade file"
-			sys.exit(1)
+	if sp.read() != 0:
+		print "There was an error copying the glade file"
+		sys.exit(1)
 else:
 	print "Building desktop version"
 
