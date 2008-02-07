@@ -207,8 +207,8 @@ class EntryFormatter:
 			'stop:': (_("Stop"), "gtk-stop"),
 			'tryresume:': (("Try Resume"),	"gtk-go-down")}
 			
-	if utils.RUNNING_HILDON:
-		commands['play:'] = (_("Open with Media Player"), "gtk-media-play-ltr")
+	#if utils.RUNNING_HILDON:
+	#	commands['play:'] = (_("Open with Media Player"), "gtk-media-play-ltr")
 	
 	def _html_command(self, command,arg):
 		"""returns something like '<a href="play:%s">Open</a>' for all the commands I have.

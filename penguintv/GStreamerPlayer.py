@@ -20,6 +20,8 @@ import gobject
 
 import locale
 import gettext
+import logging
+logging.basicConfig(level=logging.DEBUG)
 
 locale.setlocale(locale.LC_ALL, '')
 _=gettext.gettext
@@ -203,9 +205,9 @@ class GStreamerPlayer(gobject.GObject):
 		#use default audio sink, but get our own video sink
 		self._v_sink = self._get_video_sink()
 		self._pipeline.set_property('video-sink',self._v_sink)
-		if RUNNING_HILDON:
-			asink = gst.element_factory_make('dsppcmsink', 'asink')
-			self._pipeline.set_property('audio-sink', asink)
+		#if RUNNING_HILDON:
+		#	self._mp3_sink = gst.element_factory_make('dspmp3sink', 'mp3sink')
+		#	self._pcm_sink = gst.element_factory_make('dsppcmsink', 'pcmsink')
 			
 		bus = self._pipeline.get_bus()
 		bus.add_signal_watch()
@@ -304,7 +306,6 @@ class GStreamerPlayer(gobject.GObject):
 			except:
 				pass
 				
-			print ext, known_good, ext in known_good
 			self._on_type_discovered(None, ext in known_good, filename, name, userdata)
 		else:
 			#thanks gstfile.py
@@ -400,12 +401,14 @@ class GStreamerPlayer(gobject.GObject):
 		image = gtk.Image()
 		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
 		self._play_pause_button.set_image(image)
+	
 		if 'gstxvimagesink' in str(type(self._v_sink)).lower():
 			#release the xv port
 			self._pipeline.unlink(self._v_sink)
 			self._v_sink.set_state(gst.STATE_NULL)
-			self._v_sink = self._get_video_sink(True)
-			self._pipeline.set_property('video-sink',self._v_sink)
+			if not RUNNING_HILDON:
+				self._v_sink = self._get_video_sink(True)
+				self._pipeline.set_property('video-sink',self._v_sink)
 		self.emit('paused')
 			
 	def ff(self):
@@ -582,8 +585,6 @@ class GStreamerPlayer(gobject.GObject):
 	def _on_drawing_area_exposed(self, widget, event):
 		if self._x_overlay is None:
 			self._x_overlay = self._pipeline.get_by_interface(gst.interfaces.XOverlay)
-		#if self._x_overlay is not None:
-		#	self._x_overlay.expose()
 		self._v_sink.expose()
 		if not self.__is_exposed:
 			model = self._queue_listview.get_model()
@@ -594,6 +595,20 @@ class GStreamerPlayer(gobject.GObject):
 				
 	###utility functions###
 	def _get_video_sink(self, compat=False):
+		if RUNNING_HILDON:
+			try:
+				v_sink = self._pipeline.get_by_name('videosink')
+				if v_sink is None:
+					v_sink = gst.element_factory_make("xvimagesink", "v_sink")
+					bus = self._pipeline.get_bus()
+					v_sink.set_bus(bus)
+					return v_sink
+				else:
+					return v_sink
+			except:
+				logging.error("didn't get videosink :(")
+				return None
+				
 		if compat:
 			sinks = ["ximagesink"]
 		else:
@@ -611,6 +626,14 @@ class GStreamerPlayer(gobject.GObject):
 
 	def _ready_new_uri(self, uri):
 		"""load a new uri into the pipeline and prepare the pipeline for playing"""
+		#if RUNNING_HILDON:
+		#	ext = os.path.splitext(uri)[1]
+		#	#if ext == '.mp3':
+		#	#	logging.debug("readying for mp3")
+		#	#	self._pipeline.set_property('audio-sink', self._mp3_sink)
+		#	#else:
+		#	#	logging.debug("readying for pcm")
+		#	#	self._pipeline.set_property('audio-sink', self._pcm_sink)
 		self._pipeline.set_state(gst.STATE_READY)
 		self._pipeline.set_property('uri',uri)
 		self._x_overlay = None #reset so we grab again when we start playing
@@ -628,7 +651,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._pipeline.set_property('video-sink',self._v_sink)
 			
 		self._v_sink.set_state(gst.STATE_READY)	
-		#	
+			
 		change_return, state, pending = self._v_sink.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			if 'gstximagesink' in str(type(self._v_sink)).lower():
@@ -641,6 +664,7 @@ class GStreamerPlayer(gobject.GObject):
 			return
 				
 		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
+		self._v_sink.set_property('sync', True)
 		self._v_sink.set_property('force-aspect-ratio', True)
 		self._resized_pane = False
 		
@@ -657,13 +681,14 @@ class GStreamerPlayer(gobject.GObject):
 		
 		pad = self._v_sink.get_pad('sink')
 		if pad is None:
-			print "didn't get pad for resize info"
+			logging.debug("didn't get video sink pad")
 			return
 		
 		self._resized_pane = True	
 			
  		caps = pad.get_negotiated_caps()
  		if caps is None: #no big deal, this might be audio only
+ 			logging.debug("no video size, audio-only stream?")
  			self._hpaned.set_position(max_width / 2)
  			return
  		
@@ -693,7 +718,8 @@ class GStreamerPlayer(gobject.GObject):
 			else: row[2] = ""
 		#save, because they may get overwritten when we play and pause
 		pos, dur = self._media_position, self._media_duration
-		volume = self._pipeline.get_property('volume')
+		if not RUNNING_HILDON:
+			volume = self._pipeline.get_property('volume')
 		#temporarily mute to avoid little bloops during this hack
 		self._pipeline.set_property('volume',0)
 
@@ -711,7 +737,10 @@ class GStreamerPlayer(gobject.GObject):
 		self._resize_pane()
 		self._seek_scale.set_range(0,self._media_duration)
 		self._seek_scale.set_value(self._media_position)
-		self._pipeline.set_property('volume',volume)
+		if not RUNNING_HILDON:
+			self._pipeline.set_property('volume',volume)
+		else:
+			self._pipeline.set_property('volume', 10)
 		self._update_time_label()
 		
 	def _tick(self):
@@ -764,8 +793,9 @@ class GStreamerPlayer(gobject.GObject):
 				self.stop()
 		elif message.type == gst.MESSAGE_ERROR:
 			gerror, debug = message.parse_error()
-			print "GSTREAMER ERROR:",debug
-			self._error_dialog.show_error(debug)
+			logging.error("GSTREAMER ERROR: %s" % debug)
+			if not RUNNING_HILDON:
+				self._error_dialog.show_error(debug)
 			
 	###drag and drop###
 		
@@ -869,7 +899,7 @@ fullscreen = False
 def on_app_key_press_event(widget, event, player, window):
 	global fullscreen
 	keyname = gtk.gdk.keyval_name(event.keyval)
-	if keyname == 'f':
+	if keyname == 'f' or (RUNNING_HILDON and keyname == 'F6'):
 		fullscreen = not fullscreen
 		player.toggle_controls(fullscreen)
 		if fullscreen:
