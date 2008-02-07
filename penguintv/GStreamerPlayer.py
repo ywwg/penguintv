@@ -45,14 +45,26 @@ class GStreamerPlayer(gobject.GObject):
                            ([])),
 		'paused': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([]))
+                           ([])),
+		'tick': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),
+        'item-queued': (gobject.SIGNAL_RUN_LAST, 
+        				gobject.TYPE_NONE, 
+        				[str, str, gobject.TYPE_PYOBJECT]),
+        'item-not-supported': (gobject.SIGNAL_RUN_LAST, 
+        					   gobject.TYPE_NONE, 
+        					   [str, str, gobject.TYPE_PYOBJECT]),
+        'items-removed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 	}
 
-	def __init__(self, layout_dock):
+	def __init__(self, layout_dock, tick_interval=1):
 		gobject.GObject.__init__(self)
 		self._layout_dock = layout_dock
 		self._media_duration = 0
 		self._media_position = 0
+		self._last_tick = 0
+		self._tick_interval = tick_interval * gst.SECOND
 		self._last_index = -1
 		self._current_index = 0 #index to tree model
 		self._resized_pane = False
@@ -61,12 +73,9 @@ class GStreamerPlayer(gobject.GObject):
 		self._x_overlay = None
 		self._prepare_save = False
 		self._do_stop_resume = False
+		self._has_video = False
 		
 		self._error_dialog = GStreamerErrorDialog()
-		
-		gobject.signal_new('item-queued', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str, str, gobject.TYPE_PYOBJECT])
-		gobject.signal_new('item-not-supported', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [str, str, gobject.TYPE_PYOBJECT])
-		gobject.signal_new('items-removed', GStreamerPlayer, gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 		
 		gobject.timeout_add(300000, self._periodic_save_cb)
 		
@@ -220,6 +229,9 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def is_exposed(self):
 		return self.__is_exposed
+		
+	def has_video(self):
+		return self._has_video
 		
 	def detach(self):
 		"""video window can detach.  queue stays embedded"""
@@ -414,7 +426,7 @@ class GStreamerPlayer(gobject.GObject):
 	def ff(self):
 		if self._pipeline.get_state()[1] != gst.STATE_PLAYING:
 			return
-		new_pos = self._media_position+15000000000L #15 seconds I think
+		new_pos = self._media_position + 15 * gst.SECOND
 		if new_pos > self._media_duration:
 			new_pos = self._media_duration
 		self.seek(new_pos)
@@ -422,7 +434,7 @@ class GStreamerPlayer(gobject.GObject):
 	def rew(self):
 		if self._pipeline.get_state()[1] != gst.STATE_PLAYING:
 			return
-		new_pos = self._media_position-5000000000L #5 seconds I think
+		new_pos = self._media_position - 5 * gst.SECOND
 		if new_pos < 0:
 			new_pos = 0
 		self.seek(new_pos)
@@ -690,7 +702,10 @@ class GStreamerPlayer(gobject.GObject):
  		if caps is None: #no big deal, this might be audio only
  			logging.debug("no video size, audio-only stream?")
  			self._hpaned.set_position(max_width / 2)
+ 			self._has_video = False
  			return
+ 		
+ 		self._has_video = True
  		
  		#unbreakme: without this option the video doesn't redraw correctly when exposed
 		self._drawing_area.unset_flags(gtk.DOUBLE_BUFFERED)	
@@ -745,6 +760,10 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def _tick(self):
 		self.__no_seek = True
+		now = self._pipeline.query_position(gst.FORMAT_TIME)[0]
+		if now - self._last_tick > self._tick_interval:
+			self._last_tick = now
+			self.emit('tick')
 		self._update_seek_bar()
 		self._update_time_label()
 		if self._prepare_save:
@@ -771,7 +790,7 @@ class GStreamerPlayer(gobject.GObject):
 			
 	def _update_time_label(self):
 		def nano_to_string(long_val):
-			seconds = long_val/1000000000
+			seconds = long_val / gst.SECOND
 			minutes = seconds / 60
 			seconds = seconds % 60
 			return "%i:%.2i" % (minutes,seconds)

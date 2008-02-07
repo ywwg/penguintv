@@ -247,6 +247,7 @@ class PenguinTVApp(gobject.GObject):
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
+			gst_player.connect('tick', self._on_gst_tick)
 		self._gui_updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.GOBJECT, "gui updater")
 		
 		if utils.RUNNING_HILDON:
@@ -1253,6 +1254,15 @@ class PenguinTVApp(gobject.GObject):
 
 		dialog.destroy()
 		gtk.gdk.threads_leave()
+		
+	def _on_gst_tick(self, player):
+		if utils.RUNNING_HILDON:
+			gst_player = self.main_window.get_gst_player()
+			if gst_player.has_video():
+				logging.debug("have video, pinging screen")
+				osso.DeviceState(self._hildon_context).display_state_on()
+			else:
+				logging.debug("no video, not pinging screen")
 
 	@utils.db_except()
 	def refresh_feed(self, feed):

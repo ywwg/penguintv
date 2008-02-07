@@ -557,7 +557,7 @@ class MainWindow(gobject.GObject):
 		
 		p_vbox = gtk.VBox()
 		if self._use_internal_player:
-			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox)
+			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, tick_interval=10)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()

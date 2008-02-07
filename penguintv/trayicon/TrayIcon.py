@@ -73,7 +73,7 @@ class StatusTrayIcon(gtk.StatusIcon):
 		self.set_visible(True)
 		self._notifications.append([title, message, icon, userdata])
 		if self._updater_id == -1:
-			self._updater_id = gobject.timeout_add(500, self._display_notification_handler)
+			self._updater_id = gobject.timeout_add(1000, self._display_notification_handler)
 			
 	def clear_notifications(self):
 		self._notifications = []
@@ -95,6 +95,7 @@ class StatusTrayIcon(gtk.StatusIcon):
 		return True
 	
 	def _display_hildonnotification(self, title, message, icon=None, userdata=None):
+		self._notification_displaying = True
 		if self._parent is None:
 			logging.info("not showing notification, no parent widget")
 		logging.debug("showing notification: %s %s" % (title, message))
@@ -106,6 +107,10 @@ class StatusTrayIcon(gtk.StatusIcon):
 		if icon is not None:
 			b.set_icon_from_file(icon)
 		b.set_timeout(5000)
+		def done_showing():
+			self._notification_displaying = False
+			return False
+		gobject.timeout_add(5000, done_showing)
 			
 	def _display_pynotification(self, title, message, icon=None, userdata=None):
 		self._notification_displaying = True
