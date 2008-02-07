@@ -1,0 +1,4 @@
+[D-BUS Service]
+Name=com.ywwg.PenguinTV
+Exec=/usr/bin/PenguinTV
+
