@@ -187,6 +187,7 @@ class PenguinTVApp(gobject.GObject):
 		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
 		self.mediamanager = MediaManager.MediaManager(self, media_dir, self._progress_callback, self._finished_callback)
 		self._polled=0      #Used for updating the polling progress bar
+		self._poll_message = ""
 		self._polling_taskinfo = -1 # the taskid we can use to waitfor a polling operation,
 									# and the time of last polling
 		self.polling_frequency=12*60*60*1000
@@ -573,7 +574,7 @@ class PenguinTVApp(gobject.GObject):
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
 		
-	def do_poll_multiple(self, was_setup=None, arguments=0, feeds=None):
+	def do_poll_multiple(self, was_setup=None, arguments=0, feeds=None, message=None):
 		""""was_setup":  So do_poll_multiple is going to get called by timers 
 			and manually, and we needed some way of saying "I've got a new 
 			frequency, stop the old timer and start the new one."  so it 
@@ -603,10 +604,14 @@ class PenguinTVApp(gobject.GObject):
 				self._polling_taskinfo = -1
 			else:
 				return True
-		#gtk.gdk.threads_enter()
+		
+		if message is None:
+			self._poll_message = _("Polling Feeds...")
+		else:
+			self._poll_message = message
 
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
-		self.main_window.display_status_message(_("Polling Feeds..."), MainWindow.U_POLL)
+		self.main_window.display_status_message(self._poll_message, MainWindow.U_POLL)
 		updater, db = self._get_updater()			
 		task_id = updater.queue(db.poll_multiple, (arguments,feeds))
 		if arguments & ptvDB.A_ALL_FEEDS==0:
@@ -1956,6 +1961,7 @@ class PenguinTVApp(gobject.GObject):
 					db.interrupt_poll_multiple()
 					self._polled = 0
 					self._polling_taskinfo = -1
+					self._poll_message = ""
 					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 					self.main_window.display_status_message(_("Trouble connecting to the internet"),MainWindow.U_POLL)
 					gobject.timeout_add(2000, self.main_window.display_status_message,"")
@@ -1978,6 +1984,7 @@ class PenguinTVApp(gobject.GObject):
 		if self._polled >= total or cancelled:
 			self._polled = 0
 			self._polling_taskinfo = -1
+			self._poll_message = ""
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
 			gobject.timeout_add(2000, self.main_window.display_status_message,"")
@@ -1985,7 +1992,8 @@ class PenguinTVApp(gobject.GObject):
 			d = { 'polled':self._polled,
 				  'total':total}
 			self.main_window.update_progress_bar(float(self._polled)/float(total),MainWindow.U_POLL)
-			self.main_window.display_status_message(_("Polling Feeds... (%(polled)d/%(total)d)" % d),MainWindow.U_POLL)
+			self.main_window.display_status_message(self._poll_message + 
+				" (%(polled)d/%(total)d)" % d,MainWindow.U_POLL)
 			
 	def _entry_image_download_callback(self, entry_id, html):
 		self._gui_updater.queue(self._entry_view._images_loaded,(entry_id, html))

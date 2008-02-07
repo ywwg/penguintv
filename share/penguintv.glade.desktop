@@ -875,53 +875,14 @@ j@v2v.cc
                         <property name="column_spacing">6</property>
                         <property name="row_spacing">6</property>
                         <child>
-                          <widget class="GtkLabel" id="pointed_feed_label">
+                          <widget class="GtkLabel" id="label67">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">unknown</property>
+                            <property name="label" translatable="yes">Search Terms:</property>
                           </widget>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label69">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Original Feed Name: </property>
-                          </widget>
-                          <packing>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="filter_name_entry">
-                            <property name="width_request">200</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <signal name="activate" handler="on_filter_name_entry_activate"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label68">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Filtered Feed Name:</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -942,14 +903,53 @@ j@v2v.cc
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkLabel" id="label67">
+                          <widget class="GtkLabel" id="label68">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Search Terms:</property>
+                            <property name="label" translatable="yes">Filtered Feed Name:</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="filter_name_entry">
+                            <property name="width_request">200</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <signal name="activate" handler="on_filter_name_entry_activate"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label69">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Original Feed Name: </property>
+                          </widget>
+                          <packing>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="pointed_feed_label">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">unknown</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -1825,146 +1825,29 @@ j@v2v.cc
                         <property name="column_spacing">12</property>
                         <property name="row_spacing">6</property>
                         <child>
-                          <widget class="GtkLabel" id="label74">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Title</property>
-                          </widget>
-                          <packing>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label75">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">RSS Feed</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label76">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Homepage</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="title_entry">
+                          <widget class="GtkEntry" id="edit_tags_widget">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
+                            <property name="invisible_char">*</property>
                             <signal name="activate" handler="on_save_values_activate"/>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
                             <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkEntry" id="rss_entry">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <signal name="activate" handler="on_save_values_activate"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="link_entry">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <signal name="activate" handler="on_save_values_activate"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label87">
+                          <widget class="GtkLabel" id="label111">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Next Poll</property>
+                            <property name="label" translatable="yes">Tags: </property>
                           </widget>
                           <packing>
-                            <property name="top_attach">6</property>
-                            <property name="bottom_attach">7</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="next_poll_label">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">6</property>
-                            <property name="bottom_attach">7</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label86">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Last Poll</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">5</property>
-                            <property name="bottom_attach">6</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="last_poll_label">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">5</property>
-                            <property name="bottom_attach">6</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label77">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="ypad">6</property>
-                            <property name="label" translatable="yes">Description</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">4</property>
-                            <property name="bottom_attach">5</property>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -1985,30 +1868,147 @@ j@v2v.cc
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkLabel" id="label111">
+                          <widget class="GtkLabel" id="label77">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Tags: </property>
+                            <property name="ypad">6</property>
+                            <property name="label" translatable="yes">Description</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
+                            <property name="top_attach">4</property>
+                            <property name="bottom_attach">5</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkEntry" id="edit_tags_widget">
+                          <widget class="GtkLabel" id="last_poll_label">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">5</property>
+                            <property name="bottom_attach">6</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label86">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Last Poll</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">5</property>
+                            <property name="bottom_attach">6</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="next_poll_label">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label87">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Next Poll</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">6</property>
+                            <property name="bottom_attach">7</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="link_entry">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">*</property>
                             <signal name="activate" handler="on_save_values_activate"/>
                           </widget>
                           <packing>
                             <property name="left_attach">1</property>
                             <property name="right_attach">2</property>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="rss_entry">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <signal name="activate" handler="on_save_values_activate"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="title_entry">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <signal name="activate" handler="on_save_values_activate"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label76">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Homepage</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label75">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">RSS Feed</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label74">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Title</property>
+                          </widget>
+                          <packing>
+                            <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
                         </child>
@@ -2253,81 +2253,14 @@ j@v2v.cc
                         <property name="column_spacing">6</property>
                         <property name="row_spacing">6</property>
                         <child>
-                          <widget class="GtkEntry" id="edit_tags_widget">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="invisible_char">*</property>
-                            <signal name="activate" handler="on_save_values_activate"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label112">
+                          <widget class="GtkLabel" id="label80">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Tags: </property>
+                            <property name="label" translatable="yes">Search Terms:</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">3</property>
-                            <property name="bottom_attach">4</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="pointed_feed_label">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">unknown</property>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label82">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Original Feed Name: </property>
-                          </widget>
-                          <packing>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="filter_name_entry">
-                            <property name="width_request">200</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <signal name="activate" handler="on_save_values_activate"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label81">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Filtered Feed Name:</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -2348,15 +2281,82 @@ j@v2v.cc
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkLabel" id="label80">
+                          <widget class="GtkLabel" id="label81">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Search Terms:</property>
+                            <property name="label" translatable="yes">Filtered Feed Name:</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="filter_name_entry">
+                            <property name="width_request">200</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <signal name="activate" handler="on_save_values_activate"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label82">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Original Feed Name: </property>
+                          </widget>
+                          <packing>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="pointed_feed_label">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">unknown</property>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label112">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Tags: </property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="edit_tags_widget">
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="invisible_char">*</property>
+                            <signal name="activate" handler="on_save_values_activate"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">3</property>
+                            <property name="bottom_attach">4</property>
                             <property name="y_options"></property>
                           </packing>
                         </child>
@@ -4507,126 +4507,6 @@ Tagged feeds will appear at the top of the list.</property>
       </widget>
     </child>
   </widget>
-  <widget class="GtkWindow" id="hildon_toolbar_holder">
-    <property name="title" translatable="yes">window1</property>
-    <child>
-      <widget class="GtkToolbar" id="toolbar1">
-        <property name="visible">True</property>
-        <property name="toolbar_style">GTK_TOOLBAR_BOTH_HORIZ</property>
-        <child>
-          <widget class="GtkToolButton" id="feed_add_button">
-            <property name="visible">True</property>
-            <property name="tooltip" translatable="yes">Add Feed</property>
-            <property name="stock_id">gtk-add</property>
-            <signal name="clicked" handler="on_feed_add_clicked"/>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolButton" id="feed_remove">
-            <property name="visible">True</property>
-            <property name="tooltip" translatable="yes">Remove Feed</property>
-            <property name="stock_id">gtk-remove</property>
-            <signal name="clicked" handler="on_remove_feed_activate"/>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolButton" id="feeds_poll">
-            <property name="visible">True</property>
-            <property name="tooltip" translatable="yes">Refresh Feeds</property>
-            <property name="stock_id">gtk-refresh</property>
-            <signal name="clicked" handler="on_feeds_poll_clicked"/>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolButton" id="download_unviewed">
-            <property name="visible">True</property>
-            <property name="tooltip" translatable="yes">Download Unviewed Media</property>
-            <property name="stock_id">gtk-go-down</property>
-            <signal name="clicked" handler="on_download_unviewed_clicked"/>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkSeparatorToolItem" id="vseparator5">
-            <property name="visible">True</property>
-            <property name="sensitive">False</property>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolButton" id="preferences_toolbutton">
-            <property name="visible">True</property>
-            <property name="tooltip" translatable="yes">Preferences</property>
-            <property name="stock_id">gtk-preferences</property>
-            <signal name="clicked" handler="on_preferences_activate"/>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolItem" id="toolitem1">
-            <property name="visible">True</property>
-            <child>
-              <widget class="GtkSeparatorToolItem" id="vseparator1">
-              </widget>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolItem" id="toolitem5">
-            <property name="visible">True</property>
-            <child>
-              <widget class="GtkLabel" id="using_label2">
-                <property name="visible">True</property>
-                <property name="xalign">1</property>
-                <property name="label" translatable="yes">Using: </property>
-                <property name="justify">GTK_JUSTIFY_RIGHT</property>
-              </widget>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkToolItem" id="toolitem6">
-            <property name="visible">True</property>
-            <child>
-              <widget class="GtkLabel" id="disk_usage">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">0 bytes</property>
-                <property name="justify">GTK_JUSTIFY_RIGHT</property>
-              </widget>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="homogeneous">False</property>
-          </packing>
-        </child>
-      </widget>
-    </child>
-  </widget>
   <widget class="GtkDialog" id="window_preferences">
     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
     <property name="border_width">5</property>
@@ -4848,16 +4728,28 @@ Tagged feeds will appear at the top of the list.</property>
                         <property name="n_rows">2</property>
                         <property name="n_columns">3</property>
                         <child>
-                          <widget class="GtkRadioButton" id="refresh_specified">
+                          <widget class="GtkLabel" id="label6">
                             <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="label" translatable="yes">Refresh every </property>
-                            <property name="use_underline">True</property>
-                            <property name="response_id">0</property>
-                            <property name="draw_indicator">True</property>
-                            <property name="group">refresh_auto</property>
+                            <property name="label" translatable="yes"> minutes</property>
                           </widget>
                           <packing>
+                            <property name="left_attach">2</property>
+                            <property name="right_attach">3</property>
+                            <property name="x_options">GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="feed_refresh">
+                            <property name="width_request">58</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="invisible_char">*</property>
+                            <signal name="changed" handler="on_feed_refresh_changed"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -4880,28 +4772,16 @@ Tagged feeds will appear at the top of the list.</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkEntry" id="feed_refresh">
-                            <property name="width_request">58</property>
+                          <widget class="GtkRadioButton" id="refresh_specified">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
-                            <property name="invisible_char">*</property>
-                            <signal name="changed" handler="on_feed_refresh_changed"/>
+                            <property name="label" translatable="yes">Refresh every </property>
+                            <property name="use_underline">True</property>
+                            <property name="response_id">0</property>
+                            <property name="draw_indicator">True</property>
+                            <property name="group">refresh_auto</property>
                           </widget>
                           <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="x_options">GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label6">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes"> minutes</property>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">2</property>
-                            <property name="right_attach">3</property>
                             <property name="x_options">GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -4943,12 +4823,59 @@ Tagged feeds will appear at the top of the list.</property>
                         <property name="n_rows">3</property>
                         <property name="n_columns">2</property>
                         <child>
-                          <widget class="GtkLabel" id="label17">
+                          <widget class="GtkEntry" id="max_port_entry">
+                            <property name="width_request">70</property>
                             <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Minimum port</property>
+                            <property name="can_focus">True</property>
+                            <property name="invisible_char">*</property>
+                            <signal name="changed" handler="on_max_port_entry_changed"/>
                           </widget>
                           <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options">GTK_EXPAND</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkEntry" id="min_port_entry">
+                            <property name="width_request">70</property>
+                            <property name="visible">True</property>
+                            <property name="can_focus">True</property>
+                            <property name="invisible_char">*</property>
+                            <signal name="changed" handler="on_min_port_entry_changed"/>
+                          </widget>
+                          <packing>
+                            <property name="left_attach">1</property>
+                            <property name="right_attach">2</property>
+                            <property name="x_options"></property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label18">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Maximum port</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">1</property>
+                            <property name="bottom_attach">2</property>
+                            <property name="x_options">GTK_SHRINK | GTK_FILL</property>
+                            <property name="y_options"></property>
+                          </packing>
+                        </child>
+                        <child>
+                          <widget class="GtkLabel" id="label19">
+                            <property name="visible">True</property>
+                            <property name="xalign">0</property>
+                            <property name="label" translatable="yes">Upload rate limit</property>
+                          </widget>
+                          <packing>
+                            <property name="top_attach">2</property>
+                            <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_SHRINK | GTK_FILL</property>
                             <property name="y_options"></property>
                           </packing>
@@ -4971,60 +4898,13 @@ Tagged feeds will appear at the top of the list.</property>
                           </packing>
                         </child>
                         <child>
-                          <widget class="GtkLabel" id="label19">
+                          <widget class="GtkLabel" id="label17">
                             <property name="visible">True</property>
                             <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Upload rate limit</property>
+                            <property name="label" translatable="yes">Minimum port</property>
                           </widget>
                           <packing>
-                            <property name="top_attach">2</property>
-                            <property name="bottom_attach">3</property>
                             <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label18">
-                            <property name="visible">True</property>
-                            <property name="xalign">0</property>
-                            <property name="label" translatable="yes">Maximum port</property>
-                          </widget>
-                          <packing>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="x_options">GTK_SHRINK | GTK_FILL</property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="min_port_entry">
-                            <property name="width_request">70</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="invisible_char">*</property>
-                            <signal name="changed" handler="on_min_port_entry_changed"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="x_options"></property>
-                            <property name="y_options"></property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkEntry" id="max_port_entry">
-                            <property name="width_request">70</property>
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="invisible_char">*</property>
-                            <signal name="changed" handler="on_max_port_entry_changed"/>
-                          </widget>
-                          <packing>
-                            <property name="left_attach">1</property>
-                            <property name="right_attach">2</property>
-                            <property name="top_attach">1</property>
-                            <property name="bottom_attach">2</property>
-                            <property name="x_options">GTK_EXPAND</property>
                             <property name="y_options"></property>
                           </packing>
                         </child>
@@ -5081,536 +4961,6 @@ Tagged feeds will appear at the top of the list.</property>
           <packing>
             <property name="expand">False</property>
             <property name="pack_type">GTK_PACK_END</property>
-          </packing>
-        </child>
-      </widget>
-    </child>
-  </widget>
-  <widget class="GtkWindow" id="hildon_menu">
-    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-    <child>
-      <widget class="GtkMenuBar" id="hildon_menubar">
-        <property name="visible">True</property>
-        <child>
-          <widget class="GtkMenuItem" id="file_menu">
-            <property name="visible">True</property>
-            <property name="label" translatable="yes">_File</property>
-            <property name="use_underline">True</property>
-            <child>
-              <widget class="GtkMenu" id="file2_menu">
-                <child>
-                  <widget class="GtkMenuItem" id="import_opml">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Import Subscriptions...</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_import_opml_activate"/>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="export_opml">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Export Subscriptions...</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_export_opml_activate"/>
-                  </widget>
-                </child>
-              </widget>
-            </child>
-          </widget>
-        </child>
-        <child>
-          <widget class="GtkMenuItem" id="edit_menu">
-            <property name="visible">True</property>
-            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-            <property name="label" translatable="yes">_Edit</property>
-            <property name="use_underline">True</property>
-            <child>
-              <widget class="GtkMenu" id="menu1">
-                <property name="visible">True</property>
-                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                <child>
-                  <widget class="GtkMenuItem" id="favorite_tags">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Favorite Tags...</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_edit_favorite_tags"/>
-                  </widget>
-                </child>
-              </widget>
-            </child>
-          </widget>
-        </child>
-        <child>
-          <widget class="GtkMenuItem" id="view_menu">
-            <property name="visible">True</property>
-            <property name="label" translatable="yes">_View</property>
-            <property name="use_underline">True</property>
-            <signal name="activate" handler="on_view1_activate"/>
-            <child>
-              <widget class="GtkMenu" id="view1_menu">
-                <child>
-                  <widget class="GtkCheckMenuItem" id="showkept_cb">
-                    <property name="visible">True</property>
-                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <property name="tooltip" translatable="yes">Shows only entries that have been marked "keep new"</property>
-                    <property name="label" translatable="yes">Show Kept Entries</property>
-                    <property name="use_underline">True</property>
-                    <signal name="toggled" handler="on_showkept_cb_toggled"/>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkCheckMenuItem" id="show_notifications">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Show _Notifications</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_show_notifications_activate"/>
-                  </widget>
-                </child>
-              </widget>
-            </child>
-          </widget>
-        </child>
-        <child>
-          <widget class="GtkMenuItem" id="go_menu">
-            <property name="visible">True</property>
-            <property name="label" translatable="yes">_Go</property>
-            <property name="use_underline">True</property>
-            <child>
-              <widget class="GtkMenu" id="go1_menu">
-                <child>
-                  <widget class="GtkImageMenuItem" id="refresh_feeds">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Refresh Feeds</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_refresh_feeds_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image376">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-refresh</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkImageMenuItem" id="refresh_feeds_with_errors">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Refresh Feeds with _Errors</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_refresh_feeds_with_errors_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image377">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-refresh</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkImageMenuItem" id="refresh_visible_feeds">
-                    <property name="visible">True</property>
-                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <property name="tooltip" translatable="yes">Refreshes feeds with the current tag</property>
-                    <property name="label" translatable="yes">Refresh _Visible Feeds</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_refresh_visible_feeds_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="menu-item-image19">
-                        <property name="visible">True</property>
-                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                        <property name="stock">gtk-refresh</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="mark_all_viewed">
-                    <property name="visible">True</property>
-                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <property name="tooltip" translatable="yes">Mark all entries and media as viewed</property>
-                    <property name="label" translatable="yes">_Mark Everything as Viewed</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_mark_all_viewed_activate"/>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkSeparatorMenuItem" id="separator7">
-                    <property name="visible">True</property>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="resume_all">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Resume _All</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_resume_all_activate"/>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkImageMenuItem" id="download_unviewed">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Download _Unviewed Media</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_download_unviewed_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image378">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-go-down</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-              </widget>
-            </child>
-          </widget>
-        </child>
-        <child>
-          <widget class="GtkMenuItem" id="feed_menu">
-            <property name="visible">True</property>
-            <property name="label" translatable="yes">Fee_d</property>
-            <property name="use_underline">True</property>
-            <signal name="activate" handler="on_go1_activate"/>
-            <child>
-              <widget class="GtkMenu" id="go1_menu">
-                <child>
-                  <widget class="GtkImageMenuItem" id="add_feed">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Add Feed...</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_add_feed_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image380">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-add</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkImageMenuItem" id="remove_feed">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Remove Feed</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_remove_feed_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image381">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-remove</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkImageMenuItem" id="refresh">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Re_fresh</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_refresh_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image382">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-refresh</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkSeparatorMenuItem" id="separator10">
-                    <property name="visible">True</property>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="mark_feed_as_viewed">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Mark As Viewed</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_mark_feed_as_viewed_activate"/>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkMenuItem" id="delete_feed_media">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Delete All Media</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_delete_feed_media_activate"/>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkSeparatorMenuItem" id="separator13">
-                    <property name="visible">True</property>
-                  </widget>
-                </child>
-                <child>
-                  <widget class="GtkImageMenuItem" id="properties">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">_Properties</property>
-                    <property name="use_underline">True</property>
-                    <signal name="activate" handler="on_feed_properties_activate"/>
-                    <child internal-child="image">
-                      <widget class="GtkImage" id="image383">
-                        <property name="visible">True</property>
-                        <property name="stock">gtk-properties</property>
-                        <property name="icon_size">1</property>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-              </widget>
-            </child>
-          </widget>
-        </child>
-        <child>
-          <widget class="GtkMenuItem" id="help_menu">
-            <property name="visible">True</property>
-            <property name="label" translatable="yes">_Help</property>
-            <property name="use_underline">True</property>
-            <child>
-              <widget class="GtkMenu" id="help2_menu">
-                <child>
-                  <widget class="GtkImageMenuItem" id="about">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">gtk-about</property>
-                    <property name="use_underline">True</property>
-                    <property name="use_stock">True</property>
-                    <signal name="activate" handler="on_about_activate"/>
-                  </widget>
-                </child>
-              </widget>
-            </child>
-          </widget>
-        </child>
-      </widget>
-    </child>
-  </widget>
-  <widget class="GtkWindow" id="hildon_planet_layout">
-    <property name="visible">True</property>
-    <property name="title" translatable="yes">window3</property>
-    <child>
-      <widget class="GtkVBox" id="hildon_planet_layout_container">
-        <property name="visible">True</property>
-        <child>
-          <widget class="GtkHBox" id="search_container">
-            <property name="visible">True</property>
-            <property name="sensitive">False</property>
-            <child>
-              <widget class="GtkEntry" id="search_entry">
-                <property name="width_request">400</property>
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="tooltip" translatable="yes">Search Feeds and Entries</property>
-                <signal name="changed" handler="on_search_entry_changed"/>
-                <signal name="activate" handler="on_search_entry_activate"/>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkButton" id="search_button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="tooltip" translatable="yes">Search Feeds and Entries</property>
-                <property name="response_id">0</property>
-                <signal name="clicked" handler="on_search_entry_activate"/>
-                <child>
-                  <widget class="GtkImage" id="image272">
-                    <property name="visible">True</property>
-                    <property name="stock">gtk-find</property>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkButton" id="clear_search_button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="tooltip" translatable="yes">Clear Search</property>
-                <property name="response_id">0</property>
-                <signal name="clicked" handler="on_search_clear_clicked"/>
-                <child>
-                  <widget class="GtkImage" id="image273">
-                    <property name="visible">True</property>
-                    <property name="stock">gtk-clear</property>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkButton" id="save_search_button">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="response_id">0</property>
-                <signal name="clicked" handler="on_save_search_clicked"/>
-                <child>
-                  <widget class="GtkAlignment" id="alignment29">
-                    <property name="visible">True</property>
-                    <property name="xscale">0</property>
-                    <property name="yscale">0</property>
-                    <child>
-                      <widget class="GtkHBox" id="hbox47">
-                        <property name="visible">True</property>
-                        <property name="spacing">2</property>
-                        <child>
-                          <widget class="GtkImage" id="image274">
-                            <property name="visible">True</property>
-                            <property name="stock">gtk-save</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label96">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">Save Search...</property>
-                            <property name="use_underline">True</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </widget>
-                    </child>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="position">3</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkLabel" id="label97">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes"> </property>
-              </widget>
-              <packing>
-                <property name="position">4</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="fill">False</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkHBox" id="filter_container">
-            <property name="visible">True</property>
-            <property name="spacing">3</property>
-            <child>
-              <widget class="GtkLabel" id="filter_label">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Show:</property>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkEventBox" id="filter_selector_eventbox">
-                <property name="visible">True</property>
-                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                <property name="tooltip" translatable="yes">Show only feeds with this property or tag</property>
-                <child>
-                  <widget class="GtkComboBox" id="filter_selector_combo">
-                    <property name="visible">True</property>
-                    <property name="items" translatable="yes">All Feeds</property>
-                    <signal name="changed" handler="on_filter_changed"/>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkCheckButton" id="unread_filter">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="border_width">5</property>
-                <property name="label" translatable="yes">Hide Viewed</property>
-                <property name="use_underline">True</property>
-                <property name="response_id">0</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="on_unread_filter_toggled"/>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="padding">6</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
-          <widget class="GtkHPaned" id="feed_pane">
-            <property name="visible">True</property>
-            <property name="can_focus">True</property>
-            <child>
-              <widget class="GtkScrolledWindow" id="feed_scrolled_window">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="shadow_type">GTK_SHADOW_IN</property>
-                <child>
-                  <widget class="GtkTreeView" id="feedlistview">
-                    <property name="visible">True</property>
-                    <property name="can_focus">True</property>
-                    <property name="headers_visible">False</property>
-                    <signal name="popup_menu" handler="on_feedlistview_popup_menu"/>
-                    <signal name="drag_data_received" handler="on_feedlistview_drag_data_received"/>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="resize">False</property>
-                <property name="shrink">True</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkVBox" id="html_dock">
-                <property name="visible">True</property>
-                <child>
-                  <placeholder/>
-                </child>
-              </widget>
-              <packing>
-                <property name="resize">True</property>
-                <property name="shrink">True</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="position">2</property>
           </packing>
         </child>
       </widget>

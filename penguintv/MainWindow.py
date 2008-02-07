@@ -1252,8 +1252,8 @@ class MainWindow(gobject.GObject):
 		
 	def on_refresh_visible_feeds_activate(self, event):
 		feeds = self._db.get_feeds_for_tag(self._active_filter_name)
-		print feeds
-		self._app.do_poll_multiple(None, ptvDB.A_IGNORE_ETAG, feeds)
+		self._app.do_poll_multiple(None, ptvDB.A_IGNORE_ETAG, feeds, 
+								   message=_("Refreshing %s..." % self._active_filter_name))
 		
 	def on_reindex_searches_activate(self, event):
 		self.search_container.set_sensitive(False)
