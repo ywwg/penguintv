@@ -557,7 +557,7 @@ class MainWindow(gobject.GObject):
 		
 		p_vbox = gtk.VBox()
 		if self._use_internal_player:
-			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, tick_interval=10)
+			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, tick_interval=7)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()
@@ -1142,6 +1142,12 @@ class MainWindow(gobject.GObject):
 				self.entry_view.grab_focus()
 			elif keyname == 'F6':
 				self.toggle_fullscreen()
+			elif keyname == 'F7':
+				if self._gstreamer_player is not None:
+					self._gstreamer_player.vol_up()
+			elif keyname == 'F8':
+				if self._gstreamer_player is not None:
+					self._gstreamer_player.vol_down()
 		else: #regular desktop version..
 			if keyname == 'F11':
 				self.toggle_fullscreen()

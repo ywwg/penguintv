@@ -217,10 +217,6 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			use_internal_player = True
 			
-		self._hildon_context = None
-		if utils.RUNNING_HILDON:
-			self._hildon_context = osso.Context("PenguinTV", utils.VERSION, False)
-			
 		self._status_icon = None
 
 		if utils.HAS_STATUS_ICON:
@@ -229,6 +225,10 @@ class PenguinTVApp(gobject.GObject):
 
 		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window, status_icon=self._status_icon) 
 		self.main_window.layout=window_layout
+		
+		self._hildon_context = None
+		if utils.RUNNING_HILDON:
+			self._hildon_context = osso.Context("PenguinTV", utils.VERSION, False)
 
 		#some signals
 		self.connect('feed-added', self.__feed_added_cb)
@@ -243,6 +243,7 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
+		
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -1258,11 +1259,12 @@ class PenguinTVApp(gobject.GObject):
 	def _on_gst_tick(self, player):
 		if utils.RUNNING_HILDON:
 			gst_player = self.main_window.get_gst_player()
-			if gst_player.has_video():
-				logging.debug("have video, pinging screen")
-				osso.DeviceState(self._hildon_context).display_state_on()
-			else:
-				logging.debug("no video, not pinging screen")
+			if gst_player is not None:
+				if gst_player.has_video():
+					logging.debug("have video, pinging screen")
+					osso.DeviceState(self._hildon_context).display_state_on()
+				else:
+					logging.debug("no video, not pinging screen")
 
 	@utils.db_except()
 	def refresh_feed(self, feed):
@@ -2187,6 +2189,7 @@ def do_commandline(remote_app=None, local_app=None):
 
 def main():
 	gtk.gdk.threads_init()
+	gtk.window_set_auto_startup_notification(True)
 	if HAS_GNOME:
 		gnome.init("PenguinTV", utils.VERSION)
 	try:
@@ -2206,7 +2209,7 @@ def main():
 			version     = "1.0"
 			aboutData   = KAboutData ("", "",\
 			    version, description, KAboutData.License_GPL,\
-			    "(C) 2007 Owen Williams")
+			    "(C) 2004-2008 Owen Williams")
 			KCmdLineArgs.init (sys.argv, aboutData)
 			app = KApplication ()
 			
@@ -2227,6 +2230,7 @@ to prevent crashes."""
 	if HAS_GNOME:
 		logging.info("Have GNOME")
 		gtk.gdk.threads_init()
+		gtk.window_set_auto_startup_notification(True)
 		gnome.init("PenguinTV", utils.VERSION)
 		try:
 			app = PenguinTVApp()    # Instancing of the GUI
@@ -2255,7 +2259,7 @@ to prevent crashes."""
 				version     = "1.0"
 				aboutData   = KAboutData ("", "",\
 				    version, description, KAboutData.License_GPL,\
-				    "(C) 2007 Owen Williams")
+				    "(C) 2004-2008 Owen Williams")
 				KCmdLineArgs.init (sys.argv, aboutData)
 				app = KApplication ()
 				
@@ -2265,6 +2269,7 @@ to prevent crashes."""
 	elif utils.RUNNING_HILDON: #no gnome, no gnomeapp
 		logging.debug("Starting Hildon version")
 		gtk.gdk.threads_init()
+		gtk.window_set_auto_startup_notification(True)
 		app = PenguinTVApp()
 		app.main_window.Show()
 	else:

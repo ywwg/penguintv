@@ -7,6 +7,7 @@
 import sys,os,os.path
 import pickle
 import urllib
+from math import ceil, floor
 
 import pygst
 pygst.require("0.10")
@@ -478,6 +479,20 @@ class GStreamerPlayer(gobject.GObject):
 							gst.SEEK_FLAG_FLUSH | gst.SEEK_FLAG_ACCURATE,
 							gst.SEEK_TYPE_SET, time,
 							gst.SEEK_TYPE_NONE, 0)
+							
+	def vol_up(self):
+		old_vol = floor(self._pipeline.get_property('volume'))
+		logging.debug("old vol: %s" % str(old_vol))
+		if old_vol < 10:
+			logging.debug("raising")
+			self._pipeline.set_property('volume', old_vol + 1)
+		
+	def vol_down(self):
+		old_vol = ceil(self._pipeline.get_property('volume'))
+		logging.debug("old vol: %s" % str(old_vol))
+		if old_vol > 0: 
+			logging.debug("lowering")
+			self._pipeline.set_property('volume', old_vol - 1)
 							
 	###handlers###
 		
