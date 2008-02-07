@@ -233,8 +233,8 @@ class FeedList(gobject.GObject):
 	def populate_feeds(self,callback=None, subset=ALL):
 		"""With 100 feeds, this is starting to get slow (2-3 seconds).  Speed helped with cache"""
 		#DON'T gtk.iteration in this func! Causes endless loops!
-		if utils.RUNNING_HILDON:
-			self._articles_column.set_visible(False)
+		#if utils.RUNNING_HILDON:
+		#	self._articles_column.set_visible(False)
 		if len(self._feedlist)==0:
 			#first fill out rough feedlist
 			db_feedlist = self._db.get_feedlist()

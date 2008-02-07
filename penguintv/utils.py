@@ -122,8 +122,8 @@ else:
 	except:
 		HAS_GSTREAMER = False
 
-if RUNNING_HILDON:
-	HAS_GSTREAMER = False
+#if RUNNING_HILDON:
+#	HAS_GSTREAMER = False
 	
 VERSION="3.45"
 #DEBUG

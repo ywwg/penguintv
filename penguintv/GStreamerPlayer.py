@@ -203,6 +203,10 @@ class GStreamerPlayer(gobject.GObject):
 		#use default audio sink, but get our own video sink
 		self._v_sink = self._get_video_sink()
 		self._pipeline.set_property('video-sink',self._v_sink)
+		if RUNNING_HILDON:
+			asink = gst.element_factory_make('dsppcmsink', 'asink')
+			self._pipeline.set_property('audio-sink', asink)
+			
 		bus = self._pipeline.get_bus()
 		bus.add_signal_watch()
 		bus.connect('message', self._on_gst_message)

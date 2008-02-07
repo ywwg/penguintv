@@ -786,7 +786,6 @@ class MainWindow(gobject.GObject):
 			self._status_view.hide()
 		elif utils.RUNNING_HILDON:
 			self.window.fullscreen()
-			self._filter_container.hide_all()
 		else:
 			self._widgetTree.get_widget('menubar2').hide()
 			self._widgetTree.get_widget('status_hbox').hide()
@@ -829,7 +828,6 @@ class MainWindow(gobject.GObject):
 			self._fullscreen_lock = False
 		elif utils.RUNNING_HILDON:
 			self.window.unfullscreen()
-			self._filter_container.show_all()
 			self._fullscreen_lock = False
 		else:
 			self._widgetTree.get_widget('menubar2').show_all()
