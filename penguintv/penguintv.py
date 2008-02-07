@@ -588,10 +588,12 @@ class PenguinTVApp(gobject.GObject):
 			if self.feed_refresh_method==REFRESH_AUTO:
 				if was_setup==0: #initial poll
 					arguments = arguments | ptvDB.A_ALL_FEEDS
-				arguments = arguments | ptvDB.A_AUTOTUNE 
 			else:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
+					
+		if self.feed_refresh_method==REFRESH_AUTO:
+			arguments = arguments | ptvDB.A_AUTOTUNE
 					
 		if not self._net_connected:
 			return True
@@ -1072,8 +1074,6 @@ class PenguinTVApp(gobject.GObject):
 	
 	def poll_feeds(self, args=0):
 		args = args | ptvDB.A_ALL_FEEDS
-		if self.feed_refresh_method==REFRESH_AUTO:
-			args = args | ptvDB.A_AUTOTUNE
 		self.do_poll_multiple(None, args)
 			
 	@utils.db_except()

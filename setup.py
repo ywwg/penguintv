@@ -11,6 +11,12 @@ try:
 except:
 	HAS_SUGAR = False
 	
+try:
+	import hildon
+	HAS_HILDON = True
+except:
+	HAS_HILDON = False
+	
 if HAS_SUGAR:
 	try:
 		print "Building OLPC version"
@@ -25,13 +31,19 @@ if HAS_SUGAR:
 		print "problem building for OLPC:", e
 		sys.exit(1)
 	sys.exit(0)
-	
-print "Building desktop version"
+elif HAS_HILDON:
+	print "Building hildon version"
+	sp = my_subProcess.subProcess("cp -f share/penguintv.glade.hildon share/penguintv.glade")
+		if sp.read() != 0:
+			print "There was an error copying the glade file"
+			sys.exit(1)
+else:
+	print "Building desktop version"
 
-sp = my_subProcess.subProcess("cp -f share/penguintv.glade.desktop share/penguintv.glade")
-if sp.read() != 0:
-	print "There was an error symlinking the glade file"
-	sys.exit(1)
+	sp = my_subProcess.subProcess("cp -f share/penguintv.glade.desktop share/penguintv.glade")
+	if sp.read() != 0:
+		print "There was an error copying the glade file"
+		sys.exit(1)
 
 from distutils.core import setup
 from distutils.extension import Extension

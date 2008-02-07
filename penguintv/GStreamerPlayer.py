@@ -295,10 +295,22 @@ class GStreamerPlayer(gobject.GObject):
 		if name is None:
 			name = os.path.split(filename)[1]
 		
-		#thanks gstfile.py
-		self.current = Discoverer(filename)
-		self.current.connect('discovered', self._on_type_discovered, filename, name, userdata)
-		self.current.discover()	
+		if RUNNING_HILDON:
+			ext = os.path.splitext(filename)[1][1:]
+			known_good = ['mp3', 'wav', 'm4a', 'wma', 'mpg', 'avi', '3gp', 'rm', 'asf', 'mp4']
+			try:
+				gst.element_factory_make("oggdemux", "test")
+				known_good += ['ogg']
+			except:
+				pass
+				
+			print ext, known_good, ext in known_good
+			self._on_type_discovered(None, ext in known_good, filename, name, userdata)
+		else:
+			#thanks gstfile.py
+			self.current = Discoverer(filename)
+			self.current.connect('discovered', self._on_type_discovered, filename, name, userdata)
+			self.current.discover()	
 		
 	def relocate_media(self, old_dir, new_dir):
 		if old_dir[-1] == '/' or old_dir[-1] == '\\':

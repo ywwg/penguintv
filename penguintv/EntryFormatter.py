@@ -225,7 +225,9 @@ class EntryFormatter:
 				icon_markup = ""
 				if iconinfo is not None:
 					icon_filename = iconinfo.get_filename()
+					logging.debug("found icon file: %s" % icon_filename)
 					return '<img src="file://' + icon_filename + '"/>'
+				logging.debug("didn't find icon file for %s" % icon_name)
 				return ""
 	
 		#a couple special cases
