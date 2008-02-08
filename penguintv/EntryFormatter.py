@@ -220,14 +220,14 @@ class EntryFormatter:
 		def _get_img_html(icon_name, ajax_url=None):
 			if self._ajax_url is not None:
 				return '<img src="' + self._ajax_url + "/icon/" + icon_name + '"/>'
-			else:
+			elif not utils.RUNNING_HILDON:
 				iconinfo = theme.lookup_icon(icon_name, 16, gtk.ICON_LOOKUP_NO_SVG)
 				icon_markup = ""
 				if iconinfo is not None:
 					icon_filename = iconinfo.get_filename()
-					logging.debug("found icon file: %s" % icon_filename)
 					return '<img src="file://' + icon_filename + '"/>'
-				logging.debug("didn't find icon file for %s" % icon_name)
+				return ""
+			else:
 				return ""
 	
 		#a couple special cases

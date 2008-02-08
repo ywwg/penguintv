@@ -753,12 +753,23 @@ class MainWindow(gobject.GObject):
 			assert self._gstreamer_player is not None
 		#if self._notebook.get_current_page() == N_DOWNLOADS:
 		#	return
+
+		#maemo throws X Window System errors when doing this -- ignore them
+		#http://labs.morpheuz.eng.br/blog/14/08/2007/xv-and-mplayer-on-maemo/
+		if RUNNING_HILDON:
+			gtk.gdk.error_trap_push()
 			
 		self._fullscreen = not self._fullscreen
 		if self._fullscreen:
 			self._do_fullscreen()
 		else:
 			self._do_unfullscreen()
+
+		if RUNNING_HILDON:
+			while gtk.events_pending():
+				gtk.main_iteration()
+			gtk.gdk.flush()
+			gtk.gdk.error_trap_pop()
 
 	def _do_fullscreen(self):
 		if self._notebook.get_current_page() == N_PLAYER:

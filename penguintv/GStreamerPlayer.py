@@ -151,56 +151,83 @@ class GStreamerPlayer(gobject.GObject):
 		
 		self._controls_hbox = gtk.HBox()
 		self._controls_hbox.set_spacing(6)
-		button_box = gtk.HButtonBox()
-		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
 		
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-previous",gtk.ICON_SIZE_BUTTON)
-		button = gtk.Button("")
-		button.set_image(image)
+		if RUNNING_HILDON:
+			button_box = gtk.HBox()
+		else:
+			gtk.HButtonBox()
+			button_box.set_homogeneous(False)
+			button_box.set_property('layout-style', gtk.BUTTONBOX_START)
+
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-previous",gtk.ICON_SIZE_BUTTON)
+			button = gtk.Button("")
+			button.set_image(image)
+		else:
+			button = gtk.Button()
+			label = gtk.Label(_("Prev"))
+			label.set_use_markup(True)
+			button.add(label)
+			label.show()
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_prev_clicked)
-		button_box.add(button)
+		button_box.pack_start(button)
 		
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-rewind",gtk.ICON_SIZE_BUTTON)
-		button = gtk.Button("")
-		button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-rewind",gtk.ICON_SIZE_BUTTON)
+			button = gtk.Button("")
+			button.set_image(image)
+		else:
+			button = gtk.Button(_("Rew"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_rewind_clicked)
-		button_box.add(button)
+		button_box.pack_start(button)
 		
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
-		self._play_pause_button = gtk.Button("")
-		self._play_pause_button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+			self._play_pause_button = gtk.Button("")
+			self._play_pause_button.set_image(image)
+		else:
+			self._play_pause_button = gtk.Button(_("Play"))
 		self._play_pause_button.set_property('can-focus', False)
 		self._play_pause_button.connect("clicked", self._on_play_pause_toggle_clicked)
-		button_box.add(self._play_pause_button)
+		button_box.pack_start(self._play_pause_button)
 	
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-stop",gtk.ICON_SIZE_BUTTON)
-		button = gtk.Button("")
-		button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-stop",gtk.ICON_SIZE_BUTTON)
+			button = gtk.Button("")
+			button.set_image(image)
+		else:
+			button = gtk.Button(_("Stop"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_stop_clicked)
-		button_box.add(button)
+		button_box.pack_start(button)
 		
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-forward",gtk.ICON_SIZE_BUTTON)
-		button = gtk.Button("")
-		button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-forward",gtk.ICON_SIZE_BUTTON)
+			button = gtk.Button("")
+			button.set_image(image)
+		else:
+			button = gtk.Button(_("FF"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_forward_clicked)
-		button_box.add(button)
+		button_box.pack_start(button)
 		
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-next",gtk.ICON_SIZE_BUTTON)
-		button = gtk.Button("")
-		button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-next",gtk.ICON_SIZE_BUTTON)
+			button = gtk.Button("")
+			button.set_image(image)
+		else:
+			button = gtk.Button(_("Next"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_next_clicked)
-		button_box.add(button)
+		button_box.pack_start(button)
 		
 		self._controls_hbox.pack_start(button_box, False)
 		self._time_label = gtk.Label("")
@@ -222,6 +249,7 @@ class GStreamerPlayer(gobject.GObject):
 		bus = self._pipeline.get_bus()
 		bus.add_signal_watch()
 		bus.connect('message', self._on_gst_message)
+		#bus.connect('sync-message::element', self._on_sync_message)
 
 		self._layout_dock.show_all()
 		
@@ -381,9 +409,12 @@ class GStreamerPlayer(gobject.GObject):
 				self._prepare_display()
 				self._seek_to_saved_position()
 		self._pipeline.set_state(gst.STATE_PLAYING)
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
-		self._play_pause_button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-pause",gtk.ICON_SIZE_BUTTON)
+			self._play_pause_button.set_image(image)
+		else:
+			self._play_pause_button.set_label(_("Pause"))
 		self._media_duration = -1
 		if not notick:
 			gobject.timeout_add(500, self._tick)
@@ -394,9 +425,12 @@ class GStreamerPlayer(gobject.GObject):
 		try: self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
 		except: pass
 		self._pipeline.set_state(gst.STATE_PAUSED)
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
-		self._play_pause_button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+			self._play_pause_button.set_image(image)
+		else:
+			self._play_pause_button.set_label(_("Play"))
 		self.emit('paused')
 		
 	def stop(self):
@@ -411,9 +445,12 @@ class GStreamerPlayer(gobject.GObject):
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		self._do_stop_resume = True
-		image = gtk.Image()
-		image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
-		self._play_pause_button.set_image(image)
+		if not RUNNING_HILDON:
+			image = gtk.Image()
+			image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
+			self._play_pause_button.set_image(image)
+		else:
+			self._play_pause_button.set_label(_("Play"))
 	
 		if 'gstxvimagesink' in str(type(self._v_sink)).lower():
 			#release the xv port
@@ -482,16 +519,12 @@ class GStreamerPlayer(gobject.GObject):
 							
 	def vol_up(self):
 		old_vol = floor(self._pipeline.get_property('volume'))
-		logging.debug("old vol: %s" % str(old_vol))
 		if old_vol < 10:
-			logging.debug("raising")
 			self._pipeline.set_property('volume', old_vol + 1)
 		
 	def vol_down(self):
 		old_vol = ceil(self._pipeline.get_property('volume'))
-		logging.debug("old vol: %s" % str(old_vol))
 		if old_vol > 0: 
-			logging.debug("lowering")
 			self._pipeline.set_property('volume', old_vol - 1)
 							
 	###handlers###
@@ -670,6 +703,7 @@ class GStreamerPlayer(gobject.GObject):
 		#if type(self._v_sink) != GstXVImageSink and not compat:
 		#do this right at some point: if we are using a substandard sink
 		#and we're not being specifically told to use it, try the better one
+		
 		if 'gstximagesink' in str(type(self._v_sink)).lower() and not compat:
 			self._v_sink = self._get_video_sink()
 			self._pipeline.set_property('video-sink',self._v_sink)
@@ -678,7 +712,6 @@ class GStreamerPlayer(gobject.GObject):
 			self._pipeline.set_property('video-sink',self._v_sink)
 			
 		self._v_sink.set_state(gst.STATE_READY)	
-			
 		change_return, state, pending = self._v_sink.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			if 'gstximagesink' in str(type(self._v_sink)).lower():
@@ -689,17 +722,28 @@ class GStreamerPlayer(gobject.GObject):
 			self._pipeline.set_property('video-sink',self._v_sink)
 			self._prepare_display(True)
 			return
+ 		#maemo throws X Window System errors when doing this -- ignore them
+		#http://labs.morpheuz.eng.br/blog/14/08/2007/xv-and-mplayer-on-maemo/
+		if RUNNING_HILDON:
+			gtk.gdk.error_trap_push()
 				
 		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
 		self._v_sink.set_property('sync', True)
 		self._v_sink.set_property('force-aspect-ratio', True)
 		self._resized_pane = False
 		
+		while gtk.events_pending():
+			gtk.main_iteration()
+  		if RUNNING_HILDON:
+			while gtk.events_pending():
+				gtk.main_iteration()
+			gtk.gdk.flush()
+			gtk.gdk.error_trap_pop()
+		
 	def _resize_pane(self):
 		#get video width and height so we can resize the pane
 		#see totem
 		#if (!(caps = gst_pad_get_negotiated_caps (pad)))
-		
 		#unbreakme: if there's no video, it doesn't draw right here either
 		self._drawing_area.set_flags(gtk.DOUBLE_BUFFERED)
 		
@@ -715,11 +759,15 @@ class GStreamerPlayer(gobject.GObject):
 			
  		caps = pad.get_negotiated_caps()
  		if caps is None: #no big deal, this might be audio only
- 			logging.debug("no video size, audio-only stream?")
  			self._hpaned.set_position(max_width / 2)
  			self._has_video = False
  			return
  		
+ 		#maemo throws X Window System errors when doing this -- ignore them
+		#http://labs.morpheuz.eng.br/blog/14/08/2007/xv-and-mplayer-on-maemo/
+		if RUNNING_HILDON:
+			gtk.gdk.error_trap_push()
+
  		self._has_video = True
  		
  		#unbreakme: without this option the video doesn't redraw correctly when exposed
@@ -737,6 +785,12 @@ class GStreamerPlayer(gobject.GObject):
   		else:
   			self._hpaned.set_position(int(new_display_width))
   		
+  		if RUNNING_HILDON:
+			while gtk.events_pending():
+				gtk.main_iteration()
+			gtk.gdk.flush()
+			gtk.gdk.error_trap_pop()
+
 	def _seek_to_saved_position(self):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
 		play, wait for it to play, pause, wait for it to pause, and then seek"""
@@ -752,6 +806,11 @@ class GStreamerPlayer(gobject.GObject):
 			volume = self._pipeline.get_property('volume')
 		#temporarily mute to avoid little bloops during this hack
 		self._pipeline.set_property('volume',0)
+		
+		#maemo throws X Window System errors when doing this -- ignore them
+		#http://labs.morpheuz.eng.br/blog/14/08/2007/xv-and-mplayer-on-maemo/
+		if RUNNING_HILDON:
+			gtk.gdk.error_trap_push()
 
 		self.play(True)
 		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
@@ -772,6 +831,13 @@ class GStreamerPlayer(gobject.GObject):
 		else:
 			self._pipeline.set_property('volume', 10)
 		self._update_time_label()
+		
+  		if RUNNING_HILDON:
+			while gtk.events_pending():
+				gtk.main_iteration()
+			gtk.gdk.flush()
+			gtk.gdk.error_trap_pop()
+
 		
 	def _tick(self):
 		self.__no_seek = True
@@ -830,7 +896,13 @@ class GStreamerPlayer(gobject.GObject):
 			logging.error("GSTREAMER ERROR: %s" % debug)
 			if not RUNNING_HILDON:
 				self._error_dialog.show_error(debug)
-			
+		
+	#def _on_sync_message(self, bus, message):
+	#	if message.structure is None:
+	#		return
+	#	if message.structure.get_name() == 'prepare-xwindow-id':
+	#		logging.debug("forcing aspect to true")
+	#		message.src.set_property('force-aspect-ratio', True)
 	###drag and drop###
 		
 	def _on_queue_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
@@ -934,12 +1006,21 @@ def on_app_key_press_event(widget, event, player, window):
 	global fullscreen
 	keyname = gtk.gdk.keyval_name(event.keyval)
 	if keyname == 'f' or (RUNNING_HILDON and keyname == 'F6'):
+		#maemo throws X Window System errors when doing this -- ignore them
+		#http://labs.morpheuz.eng.br/blog/14/08/2007/xv-and-mplayer-on-maemo/
+		if RUNNING_HILDON:
+			gtk.gdk.error_trap_push()
 		fullscreen = not fullscreen
 		player.toggle_controls(fullscreen)
 		if fullscreen:
 			window.window.fullscreen()
 		else:
 			window.window.unfullscreen()
+		if RUNNING_HILDON:
+			while gtk.events_pending():
+				gtk.main_iteration()
+			gtk.gdk.flush()
+			gtk.gdk.error_trap_pop()
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	window = gtk.Window()
