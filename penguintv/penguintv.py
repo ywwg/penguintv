@@ -1261,10 +1261,7 @@ class PenguinTVApp(gobject.GObject):
 			gst_player = self.main_window.get_gst_player()
 			if gst_player is not None:
 				if gst_player.has_video():
-					logging.debug("have video, pinging screen")
 					osso.DeviceState(self._hildon_context).display_state_on()
-				else:
-					logging.debug("no video, not pinging screen")
 
 	@utils.db_except()
 	def refresh_feed(self, feed):

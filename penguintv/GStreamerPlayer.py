@@ -138,12 +138,18 @@ class GStreamerPlayer(gobject.GObject):
 		
 		s_w.add(self._queue_listview)
 		self._sidepane_vbox.pack_start(s_w, True)
-		button_box = gtk.HButtonBox()
-		button_box.set_property('layout-style', gtk.BUTTONBOX_END)
+		
 		button = gtk.Button(stock='gtk-remove')
 		button.connect("clicked", self._on_remove_clicked)
-		button_box.add(button)
-		self._sidepane_vbox.pack_start(button_box, False)
+		if not RUNNING_HILDON:
+			button_box = gtk.HButtonBox()
+			button_box.set_property('layout-style', gtk.BUTTONBOX_END)
+			button_box.add(button)
+			self._sidepane_vbox.pack_start(button_box, False)
+		else:
+			list_bottom_hbox = gtk.HBox(False)
+			list_bottom_hbox.pack_start(button, False)
+			self._sidepane_vbox.pack_start(list_bottom_hbox, False)
 		
 		self._hpaned.add2(self._sidepane_vbox)
 		
@@ -152,12 +158,9 @@ class GStreamerPlayer(gobject.GObject):
 		self._controls_hbox = gtk.HBox()
 		self._controls_hbox.set_spacing(6)
 		
-		if RUNNING_HILDON:
-			button_box = gtk.HBox()
-		else:
-			button_box = gtk.HButtonBox()
-			button_box.set_homogeneous(False)
-			button_box.set_property('layout-style', gtk.BUTTONBOX_START)
+		button_box = gtk.HButtonBox()
+		button_box.set_homogeneous(False)
+		button_box.set_property('layout-style', gtk.BUTTONBOX_START)
 
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -172,7 +175,7 @@ class GStreamerPlayer(gobject.GObject):
 			label.show()
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_prev_clicked)
-		button_box.pack_start(button)
+		button_box.pack_start(button, True, True)
 		
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -183,7 +186,7 @@ class GStreamerPlayer(gobject.GObject):
 			button = gtk.Button(_("Rew"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_rewind_clicked)
-		button_box.pack_start(button)
+		button_box.pack_start(button, True, True)
 		
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -194,7 +197,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._play_pause_button = gtk.Button(_("Play"))
 		self._play_pause_button.set_property('can-focus', False)
 		self._play_pause_button.connect("clicked", self._on_play_pause_toggle_clicked)
-		button_box.pack_start(self._play_pause_button)
+		button_box.pack_start(self._play_pause_button, True, True)
 	
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -205,7 +208,7 @@ class GStreamerPlayer(gobject.GObject):
 			button = gtk.Button(_("Stop"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_stop_clicked)
-		button_box.pack_start(button)
+		button_box.pack_start(button, True, True)
 		
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -216,7 +219,7 @@ class GStreamerPlayer(gobject.GObject):
 			button = gtk.Button(_("FF"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_forward_clicked)
-		button_box.pack_start(button)
+		button_box.pack_start(button, True, True)
 		
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -227,12 +230,18 @@ class GStreamerPlayer(gobject.GObject):
 			button = gtk.Button(_("Next"))
 		button.set_property('can-focus', False)
 		button.connect("clicked", self._on_next_clicked)
-		button_box.pack_start(button)
+		button_box.pack_start(button, True, True)
 		
 		self._controls_hbox.pack_start(button_box, False)
+		
 		self._time_label = gtk.Label("")
 		self._time_label.set_alignment(0.0,0.5)
-		self._controls_hbox.pack_start(self._time_label, True)
+		
+		if not RUNNING_HILDON:
+			self._controls_hbox.pack_start(self._time_label, True)
+		else:
+			list_bottom_hbox.pack_start(self._time_label, True)
+			list_bottom_hbox.reorder_child(self._time_label, 0)
 		
 		main_vbox.pack_start(self._controls_hbox, False)
 		self._layout_dock.add(main_vbox)

@@ -575,6 +575,7 @@ class MainWindow(gobject.GObject):
 		#self._notebook.set_show_tabs(False)
 		self._notebook.set_property('show-border', False)
 		self._notebook.connect('realize', self._on_notebook_realized)
+		self._notebook.connect('switch-page', self._on_notebook_page_selected)
 		
 		self._notebook.show_all()
 		return vbox
@@ -1209,6 +1210,13 @@ class MainWindow(gobject.GObject):
 			if self._gstreamer_player.get_queue_count() > 0:
 				self._notebook.show_page(N_PLAYER)
 				self.emit('player-show')
+				
+	def _on_notebook_page_selected(self, widget, page, pagenum):
+		if utils.RUNNING_HILDON:
+			if pagenum == N_PLAYER:
+				self.toolbar.hide()
+			else:
+				self.toolbar.show()
 		
 	#def _on_gst_player_realized(self, widget):
 	#	print "seek seek seek"
