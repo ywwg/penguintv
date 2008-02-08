@@ -756,7 +756,7 @@ class MainWindow(gobject.GObject):
 
 		#maemo throws X Window System errors when doing this -- ignore them
 		#http://labs.morpheuz.eng.br/blog/14/08/2007/xv-and-mplayer-on-maemo/
-		if RUNNING_HILDON:
+		if utils.RUNNING_HILDON:
 			gtk.gdk.error_trap_push()
 			
 		self._fullscreen = not self._fullscreen
@@ -765,7 +765,7 @@ class MainWindow(gobject.GObject):
 		else:
 			self._do_unfullscreen()
 
-		if RUNNING_HILDON:
+		if utils.RUNNING_HILDON:
 			while gtk.events_pending():
 				gtk.main_iteration()
 			gtk.gdk.flush()
