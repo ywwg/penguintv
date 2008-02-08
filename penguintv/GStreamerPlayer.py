@@ -155,7 +155,7 @@ class GStreamerPlayer(gobject.GObject):
 		if RUNNING_HILDON:
 			button_box = gtk.HBox()
 		else:
-			gtk.HButtonBox()
+			button_box = gtk.HButtonBox()
 			button_box.set_homogeneous(False)
 			button_box.set_property('layout-style', gtk.BUTTONBOX_START)
 
