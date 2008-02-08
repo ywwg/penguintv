@@ -737,7 +737,8 @@ class GStreamerPlayer(gobject.GObject):
 			gtk.gdk.error_trap_push()
 				
 		self._v_sink.set_xwindow_id(self._drawing_area.window.xid)
-		self._v_sink.set_property('sync', True)
+		#causes expose problems
+		#self._v_sink.set_property('sync', True)
 		self._v_sink.set_property('force-aspect-ratio', True)
 		self._resized_pane = False
 		
