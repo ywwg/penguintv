@@ -665,6 +665,8 @@ class GStreamerPlayer(gobject.GObject):
 	###utility functions###
 	def _get_video_sink(self, compat=False):
 		if RUNNING_HILDON:
+			if compat:
+				return none
 			try:
 				v_sink = self._pipeline.get_by_name('videosink')
 				if v_sink is None:
@@ -851,10 +853,14 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def _tick(self):
 		self.__no_seek = True
-		now = self._pipeline.query_position(gst.FORMAT_TIME)[0]
-		if now - self._last_tick > self._tick_interval:
-			self._last_tick = now
-			self.emit('tick')
+		try:
+			now = self._pipeline.query_position(gst.FORMAT_TIME)[0]
+			if now - self._last_tick > self._tick_interval:
+				self._last_tick = now
+				self.emit('tick')
+		except:
+			pass
+		
 		self._update_seek_bar()
 		self._update_time_label()
 		if self._prepare_save:
@@ -868,9 +874,12 @@ class GStreamerPlayer(gobject.GObject):
 		return True
 
 	def _update_seek_bar(self):
+		#for some reason when paused, hildon tells us the position is 0. Ignore it
+		if RUNNING_HILDON and self._pipeline.get_state()[1] == gst.STATE_PAUSED:
+			return
 		try:
 			self._media_position = self._pipeline.query_position(gst.FORMAT_TIME)[0]
-			#print self._media_duration
+			#print self._media_position, self._media_duration
 			if self._media_position > self._media_duration:
 				self._media_duration = self._pipeline.query_duration(gst.FORMAT_TIME)[0]
 				self._seek_scale.set_range(0,self._media_duration)
