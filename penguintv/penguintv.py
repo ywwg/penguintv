@@ -97,6 +97,7 @@ PAUSE=1
 
 REFRESH_SPECIFIED=0
 REFRESH_AUTO=1
+REFRESH_NEVER=2
 
 if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 	AUTO_REFRESH_FREQUENCY=30*60*1000
@@ -427,14 +428,18 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			if val == 'auto':
 				self.feed_refresh_method=REFRESH_AUTO
-			else:
+			elif val == 'specified':
 				self.feed_refresh_method=REFRESH_SPECIFIED
+			elif val == 'never':
+				self.feed_refresh_method=REFRESH_NEVER
+			else:
+				self.feed_refresh_method=REFRESH_AUTO
 		self.window_preferences.set_feed_refresh_method(self.feed_refresh_method)
 		
 		
 		if self.feed_refresh_method == REFRESH_AUTO:
 			gobject.timeout_add(AUTO_REFRESH_FREQUENCY,self.do_poll_multiple, AUTO_REFRESH_FREQUENCY)
-		else:
+		elif self.feed_refresh_method == REFRESH_SPECIFIED:
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
 				
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/bt_min_port', 6881)
@@ -498,9 +503,11 @@ class PenguinTVApp(gobject.GObject):
 		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/app_window_layout',self.main_window.layout)
 		if self.feed_refresh_method==REFRESH_AUTO:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','auto')
-		else:
+		elif self.feed_refresh_method == REFRESH_SPECIFIED:
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency',self.polling_frequency/(60*1000))
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','specified')	
+		else:
+			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','never')
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_max_port',self._bt_settings['max_port'])
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_min_port',self._bt_settings['min_port'])
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit',self._bt_settings['ul_limit'])
@@ -588,12 +595,14 @@ class PenguinTVApp(gobject.GObject):
 			return True
 		
 		if was_setup is not None:
-			if self.feed_refresh_method==REFRESH_AUTO:
+			if self.feed_refresh_method == REFRESH_AUTO:
 				if was_setup==0: #initial poll
 					arguments = arguments | ptvDB.A_ALL_FEEDS
-			else:
+			elif self.feed_refresh_method == REFRESH_SPECIFIED:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
+			else:
+				return False
 					
 		if self.feed_refresh_method==REFRESH_AUTO:
 			arguments = arguments | ptvDB.A_AUTOTUNE
@@ -1582,12 +1591,14 @@ class PenguinTVApp(gobject.GObject):
 			self.feed_refresh_method=REFRESH_AUTO
 			self.polling_frequency = AUTO_REFRESH_FREQUENCY	
 			gobject.timeout_add(self.polling_frequency,self.do_poll_multiple, self.polling_frequency)
-		else:
+		elif refresh == 'specified':
 			self.feed_refresh_method=REFRESH_SPECIFIED
 			if utils.HAS_GCONF:
 				self._gconf_set_polling_frequency(client,None,None)
 			else:
 				self.set_polling_frequency(self.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency', 5))
+		else:
+			self.feed_refresh_method=REFRESH_NEVER
 			
 	@utils.db_except()	
 	def add_feed(self, url, title, tags=[]):

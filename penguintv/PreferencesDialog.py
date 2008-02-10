@@ -29,6 +29,8 @@ class PreferencesDialog:
 		self.radio_refresh_spec.connect("toggled", self.select_refresh, penguintv.REFRESH_SPECIFIED)
 		self.radio_refresh_auto = self.xml.get_widget("refresh_auto")
 		self.radio_refresh_auto.connect("toggled", self.select_refresh, penguintv.REFRESH_AUTO)
+		self.radio_refresh_never = self.xml.get_widget("refresh_never")
+		self.radio_refresh_never.connect("toggled", self.select_refresh, penguintv.REFRESH_NEVER)
 		
 		self.min_port_widget = self.xml.get_widget("min_port_entry")
 		self.max_port_widget = self.xml.get_widget("max_port_entry")
@@ -121,10 +123,12 @@ class PreferencesDialog:
 			return self._window.hide_on_delete()
 			
 	def set_feed_refresh_method(self, method):
-		if method==penguintv.REFRESH_AUTO:
+		if method == penguintv.REFRESH_AUTO:
 			self.radio_refresh_auto.set_active(True)
-		else:
+		elif method == penguintv.REFRESH_SPECIFIED:
 			self.radio_refresh_spec.set_active(True)
+		else:
+			self.radio_refresh_never.set_active(True)
 
 	def set_feed_refresh_frequency(self, freq):
 		self.feed_refresh_widget.set_text(str(freq))
@@ -167,14 +171,18 @@ class PreferencesDialog:
 	
 	def select_refresh(self, radiobutton, new_val):
 		try:
-			if new_val==penguintv.REFRESH_AUTO:
-				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','auto')
+			if new_val == penguintv.REFRESH_AUTO:
+				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'auto')
 				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('auto')
-			else:
-				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method','specified')
+			elif new_val == penguintv.REFRESH_SPECIFIED:
+				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'specified')
 				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('specified')
+			else:
+				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'never')
+				if not utils.HAS_GCONF:
+					self._app.set_feed_refresh_method('never')
 		except AttributeError:
 			pass #this fails on startup, which is good because we haven't loaded the proper value in the app yet
 	
