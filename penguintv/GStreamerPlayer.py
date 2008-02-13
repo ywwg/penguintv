@@ -744,13 +744,13 @@ class GStreamerPlayer(gobject.GObject):
 		self._v_sink.set_property('force-aspect-ratio', True)
 		self._resized_pane = False
 		
-		while gtk.events_pending():
-			gtk.main_iteration()
   		if RUNNING_HILDON:
-			while gtk.events_pending():
-				gtk.main_iteration()
-			gtk.gdk.flush()
-			gtk.gdk.error_trap_pop()
+  			def pop_trap():
+				gtk.gdk.flush()
+				gtk.gdk.error_trap_pop()
+				return False
+				
+			gobject.idle_add(pop_trap)
 		
 	def _resize_pane(self):
 		#get video width and height so we can resize the pane
