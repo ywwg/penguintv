@@ -309,10 +309,10 @@ class FeedList(gobject.GObject):
 			
 			if feed_cache is not None:
 				cached     = feed_cache[i]
-				unviewed   = cached[2]
 				flag       = cached[1]
-				pollfail   = cached[4]
+				unviewed   = cached[2]
 				entry_count= cached[3]
+				pollfail   = cached[4]
 				m_first_entry_title = cached[5]
 			else:
 				feed_info   = self._db.get_feed_verbose(feed_id)
@@ -383,7 +383,7 @@ class FeedList(gobject.GObject):
 								 visible, 
 								 pollfail, 
 								 m_first_entry_title]
-			self._filter_one(self._feedlist[i])
+			#self._filter_one(self._feedlist[i])
 
 			self._app.main_window.update_progress_bar(float(j)/len(db_feedlist),MainWindow.U_LOADING)
 			yield True
@@ -727,6 +727,9 @@ class FeedList(gobject.GObject):
 		#gtk.gdk.threads_enter()
 		selected = self.get_selected()
 		index = self.find_index_of_item(selected)
+		
+		if self.filter_setting > SEARCH:
+			feeds_with_tag = self._db.get_feeds_for_tag(self.filter_name)
 			
 		i=-1
 		for feed in self._feedlist:
@@ -744,10 +747,12 @@ class FeedList(gobject.GObject):
 			elif self.filter_setting == ALL:
 				passed_filter = True
 			else:
-				tags = self._db.get_tags_for_feed(feed[FEEDID])
-				if tags:
-					if self.filter_name in tags:
-						passed_filter = True
+				#tags = self._db.get_tags_for_feed(feed[FEEDID])
+				#if tags:
+				#	if self.filter_name in tags:
+				#		passed_filter = True
+				if feed[FEEDID] in feeds_with_tag:
+					passed_filter = True
 			#so now we know if we passed the main filter, but we need to test for special cases where we keep it anyway
 			#also, we still need to test for unviewed
 			if i == index and selected is not None:  #if it's the selected feed, we have to be careful
@@ -1224,7 +1229,7 @@ class FeedList(gobject.GObject):
 			return None
 			
 	def get_feed_cache(self):
-		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL],f[FIRSTENTRYTITLE]] for f in self._feedlist]
+		return [[f[FEEDID],f[FLAG],f[UNREAD],f[TOTAL],f[POLLFAIL],f[FIRSTENTRYTITLE]] for f in self._feedlist]
 		
 	def interrupt(self):
 		self._cancel_load = [True,True]

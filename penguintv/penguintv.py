@@ -567,7 +567,7 @@ class PenguinTVApp(gobject.GObject):
 		self.save_settings()
 		self.db.clean_media_status()
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
-		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4]] for c in self.feed_list_view.get_feed_cache()]
+		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4],c[5]] for c in self.feed_list_view.get_feed_cache()]
 		self.db.set_feed_cache(adjusted_cache)
 		logging.info('stopping db')
 		self.db.finish()	
