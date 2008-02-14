@@ -215,26 +215,34 @@ class ptvDB:
 	def __del__(self):
 		self.finish()
 		
-	def finish(self, closeok=True, searchwait=False):
+	def finish(self, vacuumok=True, searchwait=False):
 		#allow multiple finishes
 		if self._exiting:
 			return
 		self._exiting=True
+		self._cancel_poll_multiple = True
 		if utils.HAS_SEARCH:
-			if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
-				logging.info("have leftover things to reindex, reindexing")
-				#don't do it threadedly or else we will interrupt it on the next line
-				self.reindex(threaded=False) #it's usually not much...
-			self.searcher.finish(searchwait)
+			if not self.searcher.is_indexing():
+				if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
+					logging.info("have leftover things to reindex, reindexing")
+					#don't do it threadedly or else we will interrupt it on the next line
+					self.reindex(threaded=False) #it's usually not much...
+				logging.debug("shutting down search indexer")
+				self.searcher.finish(searchwait)
+			else:
+				logging.debug("not waiting for reindex")
+				self.searcher.finish(False)
 		#FIXME: lame, but I'm being lazy
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
-		if randint(1,80) == 1 and closeok:
+		if randint(1,80) == 1 and vacuumok:
 			logging.info("compacting database")
 			self._c.execute('VACUUM')
-			self._c.close()
-			self._db.close()
+		logging.debug("closing db")
+		self._c.close()
+		self._db.close()
+		logging.debug("db closed")
 
 	def maybe_initialize_db(self):
 		try:
@@ -945,8 +953,9 @@ class ptvDB:
 			else:
 				self.polling_callback((-1, [], 0), False)
 				return
-				
-		os.nice(5)		
+		
+		if not utils.RUNNING_HILDON:
+			os.nice(2)
 				
 		threadcount = 5
 		if utils.RUNNING_HILDON or utils.RUNNING_SUGAR:
@@ -992,7 +1001,8 @@ class ptvDB:
 					del pool
 					self._c.close()
 					self._db.close()
-					os.nice(-5)
+					if not utils.RUNNING_HILDON:
+						os.nice(-2)
 					return
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
@@ -1000,7 +1010,8 @@ class ptvDB:
 		self.reindex()
 		self._cancel_poll_multiple = False
 		gc.collect()
-		os.nice(-5)
+		if not utils.RUNNING_HILDON:
+			os.nice(-2)
 		
 	def interrupt_poll_multiple(self):
 		self._cancel_poll_multiple = True
@@ -1614,22 +1625,16 @@ class ptvDB:
 					self._db_execute(self._c, """SELECT rowid FROM entries WHERE keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""",
 						(feed_id, all_entries - MAX_ARTICLES))
 					ditchables = self._c.fetchall()
-				print "ditchables", ditchables
 				if ditchables is not None:
 					if len(ditchables) > 0:
 						ditchables = tuple([r[0] for r in ditchables])
-						print ditchables
 						qmarks = "?,"*(len(ditchables)-1)+"?"
 						self._db_execute(self._c, """DELETE FROM entries WHERE rowid IN (%s)""" % qmarks, ditchables)
-					else:
-						print "not none, but zero length!"
-		
-		
+			
 		#delete pre-poll entry
-		self._db_execute(self._c, "DELETE FROM entries WHERE fakedate=0 AND feed_id=?",(feed_id,))
+		if feed['last_time'] == 0:
+			self._db_execute(self._c, "DELETE FROM entries WHERE fakedate=0 AND feed_id=?",(feed_id,))
 
-		#self.update_entry_flags(feed_id,db)
-		#self.update_feed_flag(feed_id,db)
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
 			result = self._set_new_update_freq(feed, new_items)
 			feed_updates.update(result)

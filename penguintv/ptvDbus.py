@@ -30,3 +30,18 @@ class ptvDbus(dbus.service.Object):
 		except e:
 			print "Error importing subscriptions:", e
 		return
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface", in_signature='vb')
+	def PollingCallback(self, pyobject_str, cancelled=False):
+		args = eval(pyobject_str)
+		self._app.polling_callback(args, cancelled)
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def FinishedCallback(self):
+		self._app.poll_finished_cb()
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def Ping(self):
+		if self._app.is_exiting():
+			return False
+		return True

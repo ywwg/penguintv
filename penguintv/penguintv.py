@@ -28,6 +28,7 @@ import sys, os, os.path
 import gc
 #gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_SAVEALL)
 import logging
+import traceback
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -41,6 +42,7 @@ except:
 import time
 import sets
 import string
+import subprocess
 #socket.setdefaulttimeout(30.0)
 
 import pygtk
@@ -152,6 +154,9 @@ class PenguinTVApp(gobject.GObject):
 		gobject.GObject.__init__(self)
 		self._for_import = []
 		self._app_loaded = False
+		self._remote_poller = None
+		self._remote_poller_pid = 0
+		self._exiting=0
 		
 		if HAS_DBUS:
 			#if we can get a dbus object, and it's using
@@ -167,8 +172,9 @@ class PenguinTVApp(gobject.GObject):
 			#initialize dbus object
 			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 			ptv_dbus = ptvDbus.ptvDbus(self, name)
-			
-			
+				
+			p = threading.Thread(None, self._get_poller)
+			p.start()
 			
 		self._net_connected = True
 		self.connect('online-status-changed', self.__online_status_changed)
@@ -181,7 +187,7 @@ class PenguinTVApp(gobject.GObject):
 						
 		logging.info("penguintv " + utils.VERSION + " startup")
 			
-		self.db = ptvDB.ptvDB(self._polling_callback, self._emit_change_setting)
+		self.db = ptvDB.ptvDB(self.polling_callback, self._emit_change_setting)
 		
 		self._firstrun = self.db.maybe_initialize_db()
 
@@ -193,7 +199,6 @@ class PenguinTVApp(gobject.GObject):
 									# and the time of last polling
 		self.polling_frequency=12*60*60*1000
 		self._bt_settings = {}
-		self._exiting=0
 		self._auto_download = False
 		self._auto_download_limiter = False
 		self._auto_download_limit=50*1024
@@ -238,7 +243,7 @@ class PenguinTVApp(gobject.GObject):
 		logging.debug("Got db exception, reconnecting to database")
 		self.db._db.close()
 		del self.db
-		self.db = ptvDB.ptvDB(self._polling_callback, self._emit_change_setting)
+		self.db = ptvDB.ptvDB(self.polling_callback, self._emit_change_setting)
 		logging.debug("have new db, right? %s $s" % (str(self.db), str(self.db._c)))
 	
 	@utils.db_except()
@@ -335,7 +340,10 @@ class PenguinTVApp(gobject.GObject):
 		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
 		if val > 0:
 			#self._entry_list_view.set_selected(val)
-			self.select_entry(val)
+			try:
+				self.select_entry(val)
+			except:
+				pass
 		#crash protection: if we crash, we'll have resetted selected_feed to 0
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
@@ -353,6 +361,68 @@ class PenguinTVApp(gobject.GObject):
 		self._app_loaded = True
 		return False #for idler	
 		
+	def _get_poller(self):
+		gtk.gdk.threads_enter()
+		bus = dbus.SessionBus()
+		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
+		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
+		gtk.gdk.threads_leave()
+		#if utils.RUNNING_HILDON:
+		rundir = os.path.split(utils.__file__)[0]
+		subprocess.Popen(['/usr/bin/env', 'python2.5', 
+						  os.path.join(rundir, 'Poller.py')])
+		
+		wait_time = 10
+		sleep_time = 0.3
+		if utils.RUNNING_HILDON:
+			wait_time = 30
+			sleep_time = 1
+		for i in range(0, wait_time):
+			if self._exiting:
+				break
+			gtk.gdk.threads_enter()
+			logging.debug("waiting for poller")
+			if dubus_methods.NameHasOwner('com.ywwg.PenguinTVPoller'):
+				o = bus.get_object("com.ywwg.PenguinTVPoller", "/PtvPoller")
+				self._remote_poller = dbus.Interface(o, "com.ywwg.PenguinTVPoller.PollInterface")
+				if self._remote_poller.is_quitting():
+					self._remote_poller = None
+				else:
+					self._remote_poller_pid = self._remote_poller.get_pid()
+					gobject.timeout_add(20000, self._check_poller)
+				gtk.gdk.threads_leave()
+				break
+			gtk.gdk.threads_leave()
+			time.sleep(sleep_time)
+		if self._remote_poller is None:
+			logging.error("Unable to start remote poller.  Polling will be done in-process")	
+		else:
+			logging.debug("Got poller")
+			
+	def _check_poller(self):
+		logging.debug("checking for poller")
+		if self._remote_poller is None:
+			logging.debug("We don't have one any more anyway")
+			return False
+		
+		try:
+			#is the process still running?
+			os.kill(self._remote_poller_pid, 0)
+			logging.debug("Poller is alive and well")
+		except:
+			logging.error("We lost the poller")
+			if self._polling_taskinfo != -1:
+				self._polled = 0
+				self._polling_taskinfo = -1
+				self._poll_message = ""
+				self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
+				self.main_window.display_status_message(_("Polling Error"),MainWindow.U_POLL)
+				gobject.timeout_add(2000, self.main_window.display_status_message,"")
+			self._remote_poller = None
+			self._remote_poller_pid = 0
+			return False
+		return True
+			
 	def _import_default_feeds(self):
 		found_subs = False
 		for path in (os.path.join(utils.GetPrefix(), "share" ,"penguintv"),
@@ -545,6 +615,9 @@ class PenguinTVApp(gobject.GObject):
 			yield True
 		yield False
 		
+	def is_exiting(self):
+		return self._exiting
+		
 	def do_quit(self):
 		"""save and shut down all our threads"""
 		
@@ -623,27 +696,45 @@ class PenguinTVApp(gobject.GObject):
 
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(self._poll_message, MainWindow.U_POLL)
-		updater, db = self._get_updater()			
-		task_id = updater.queue(db.poll_multiple, (arguments,feeds))
-		if arguments & ptvDB.A_ALL_FEEDS==0:
-			self._gui_updater.queue(self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
-			#insane: queueing a timeout
-			self._gui_updater.queue(gobject.timeout_add, 
-									(2000, self.main_window.display_status_message, ""), 
-								    task_id, 
-									False)
-		self._polling_taskinfo = self._gui_updater.queue(self.update_disk_usage, 
-													   None, 
-													   task_id, 
-													   False) #because this is also waiting
-		if self._auto_download == True:
-			self._polling_taskinfo = self._gui_updater.queue(self._auto_download_unviewed, 
+		
+		if self._remote_poller is not None:
+			logging.debug("Using remote poller")
+			if feeds is None:
+				self._remote_poller.poll_all(arguments, "FinishedCallback")
+			else:
+				self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
+			self._polling_taskinfo = int(time.time())
+		else:	
+			updater, db = self._get_updater()
+			task_id = updater.queue(db.poll_multiple, (arguments,feeds))
+			if arguments & ptvDB.A_ALL_FEEDS==0:
+				self._gui_updater.queue(self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
+				#insane: queueing a timeout
+				self._gui_updater.queue(gobject.timeout_add, 
+										(2000, self.main_window.display_status_message, ""), 
+									    task_id, 
+										False)
+			self._polling_taskinfo = self._gui_updater.queue(self.update_disk_usage, 
 														   None, 
-														   task_id)
+														   task_id, 
+														   False) #because this is also waiting
+			if self._auto_download == True:
+				self._polling_taskinfo = self._gui_updater.queue(self._auto_download_unviewed, 
+															   None, 
+															   task_id)
 		#gtk.gdk.threads_leave()
 		if was_setup!=0:
 			return True
 		return False
+		
+	def poll_finished_cb(self):
+		print "got poll finished callback"
+		self.main_window.display_status_message(_("Feeds Updated"))
+		gobject.timeout_add(2000, self.main_window.display_status_message, "")
+		self.update_disk_usage()
+		if self._auto_download == True:
+			self._auto_download_unviewed()
+		self._gui_updater.set_completed(self._polling_taskinfo)
 	
 	@utils.db_except()
 	def _auto_download_unviewed(self):
@@ -1971,7 +2062,7 @@ class PenguinTVApp(gobject.GObject):
 	def _finished_callback(self,downloader):
 		self._gui_updater.queue(self._download_finished, downloader)
 		
-	def _polling_callback(self, args, cancelled=False):
+	def polling_callback(self, args, cancelled=False):
 		if not self._exiting:
 			feed_id, update_data, total = args
 			if len(update_data)>0:
@@ -2043,7 +2134,7 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				del self._update_thread
 
-		self._update_thread = self.DBUpdaterThread(self._polling_callback)
+		self._update_thread = self.DBUpdaterThread(self.polling_callback)
 		self._update_thread.start()
 		updater_thread_db = None
 		updater = None
@@ -2109,6 +2200,7 @@ class PenguinTVApp(gobject.GObject):
 				self.db.finish(False, True)	
 				
 		def _start_db(self):
+			traceback.print_stack()
 			self.db = ptvDB.ptvDB(self.polling_callback)
 						
 		def get_db(self):

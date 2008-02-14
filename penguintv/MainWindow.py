@@ -1061,10 +1061,10 @@ class MainWindow(gobject.GObject):
 		model = self._filter_selector_combo.get_model()
 		name = self._filters[index][F_NAME]
 		self._active_filter_path = None
-		def hunt_path(model, p, it):
-			if model[it][1] == name:
-				self._active_filter_path = p
-		model.foreach(hunt_path)
+		for row in model:
+			if row[1] == name:
+				self._active_filter_path = row.path
+				break
 		
 	def set_active_filter(self, index):
 		model = self._filter_selector_combo.get_model()

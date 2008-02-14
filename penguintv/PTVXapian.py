@@ -57,6 +57,13 @@ class PTVXapian:
 			self.needs_index = True
 			
 		self._quitting = False
+	
+	def is_indexing(self):
+		if self._index_lock.acquire(False):
+			self._index_lock.release()
+			return False
+		else:
+			return True
 		
 	def finish(self, wait=False):
 		if wait:

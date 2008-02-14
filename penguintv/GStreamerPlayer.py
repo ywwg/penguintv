@@ -798,10 +798,12 @@ class GStreamerPlayer(gobject.GObject):
   			self._hpaned.set_position(int(new_display_width))
   		
   		if RUNNING_HILDON:
-			while gtk.events_pending():
-				gtk.main_iteration()
-			gtk.gdk.flush()
-			gtk.gdk.error_trap_pop()
+			def pop_trap():
+				gtk.gdk.flush()
+				gtk.gdk.error_trap_pop()
+				return False
+				
+			gobject.idle_add(pop_trap)
 
 	def _seek_to_saved_position(self):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
@@ -845,11 +847,12 @@ class GStreamerPlayer(gobject.GObject):
 		self._update_time_label()
 		
   		if RUNNING_HILDON:
-			while gtk.events_pending():
-				gtk.main_iteration()
-			gtk.gdk.flush()
-			gtk.gdk.error_trap_pop()
-
+			def pop_trap():
+				gtk.gdk.flush()
+				gtk.gdk.error_trap_pop()
+				return False
+				
+			gobject.idle_add(pop_trap)
 		
 	def _tick(self):
 		self.__no_seek = True
@@ -1036,10 +1039,12 @@ def on_app_key_press_event(widget, event, player, window):
 		else:
 			window.window.unfullscreen()
 		if RUNNING_HILDON:
-			while gtk.events_pending():
-				gtk.main_iteration()
-			gtk.gdk.flush()
-			gtk.gdk.error_trap_pop()
+			def pop_trap():
+				gtk.gdk.flush()
+				gtk.gdk.error_trap_pop()
+				return False
+				
+			gobject.idle_add(pop_trap)
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	window = gtk.Window()
