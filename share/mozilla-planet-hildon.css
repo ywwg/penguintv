@@ -1,7 +1,7 @@
 body {
         margin-left: 2px;
         margin-right: 2px;
-       // background-color: #fffe92;
+        font-size: medium;
 }
 
 .heading { 
@@ -11,11 +11,6 @@ body {
 	padding:6px; 
 	margin:6px; 
 }
-
-//#nav_bar {
-    // border-width: 2px;
-     //border-style: solid;
-//}
 
 .feed_title {
         font-size: x-large;
@@ -47,7 +42,6 @@ body {
 .stitle {
 	font-size: large; 
 	font-weight:bold; 
-//	font-family: Sans-Serif; 
 	padding-bottom:20px;
 }
 

@@ -1277,9 +1277,12 @@ class MainWindow(gobject.GObject):
 		self.set_wait_cursor(False)
 		
 	def on_refresh_visible_feeds_activate(self, event):
-		feeds = self._db.get_feeds_for_tag(self._active_filter_name)
-		self._app.do_poll_multiple(None, ptvDB.A_IGNORE_ETAG, feeds, 
-								   message=_("Refreshing %s..." % self._active_filter_name))
+		if self._active_filter_index > FeedList.SEARCH:
+			feeds = self._db.get_feeds_for_tag(self._active_filter_name)
+			self._app.do_poll_multiple(None, ptvDB.A_IGNORE_ETAG, feeds, 
+					message=_("Refreshing %s..." % self._active_filter_name))
+		elif utils.RUNNING_HILDON:
+			self._app.do_poll_multiple(None, ptvDB.A_IGNORE_ETAG)
 		
 	def on_reindex_searches_activate(self, event):
 		self.search_container.set_sensitive(False)

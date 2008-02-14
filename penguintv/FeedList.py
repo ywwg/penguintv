@@ -276,8 +276,12 @@ class FeedList(gobject.GObject):
 		blank_pixbuf.fill(0xffffff00)
 		
 		# While populating, allow articles column to autosize
-		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		#self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._articles_column.set_min_width(50)
+		
+		self._feed_column.set_resizable(False)
+		self._feed_column.set_expand(False)
+		self._feed_column.set_min_width(self._feed_column.get_width())
 		
 		# create a sorted list of feedids with the visible ones first
 		# if not ALL, then we don't sort and it's all fine
@@ -300,7 +304,7 @@ class FeedList(gobject.GObject):
 				flag = self._feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADED==0 and flag & ptvDB.F_PAUSED==0:
 					continue
-			elif subset==VISIBLE: 
+			elif subset==VISIBLE:
 				if not self._feedlist[i][VISIBLE]:
 					continue
 			elif subset==NOTVISIBLE:
@@ -421,6 +425,9 @@ class FeedList(gobject.GObject):
 			
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._articles_column.set_min_width(50)
+		self._feed_column.set_resizable(True)
+		self._feed_column.set_expand(True)
+		self._feed_column.set_min_width(0)
 		self._widget.columns_autosize()
 		
 		def _finish_resize():

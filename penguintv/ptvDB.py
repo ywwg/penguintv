@@ -945,6 +945,9 @@ class ptvDB:
 			else:
 				self.polling_callback((-1, [], 0), False)
 				return
+				
+		os.nice(5)		
+				
 		threadcount = 5
 		if utils.RUNNING_HILDON or utils.RUNNING_SUGAR:
 			threadcount = 2
@@ -989,6 +992,7 @@ class ptvDB:
 					del pool
 					self._c.close()
 					self._db.close()
+					os.nice(-5)
 					return
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
@@ -996,6 +1000,7 @@ class ptvDB:
 		self.reindex()
 		self._cancel_poll_multiple = False
 		gc.collect()
+		os.nice(-5)
 		
 	def interrupt_poll_multiple(self):
 		self._cancel_poll_multiple = True
@@ -1158,9 +1163,9 @@ class ptvDB:
 		feed['title'] = result[4]
 		feed['link'] = result[5]
 		feed['flags'] = result[6]
-		feed['lastpoll'] = result[7]
+		feed['last_time'] = result[7]
 		feed['netatlast'] = result[8]
-		feed['pollfreq'] = result[9]
+		feed['old_poll_freq'] = result[9]
 		
 
 		if preparsed is None:
@@ -1384,7 +1389,7 @@ class ptvDB:
 		new_items = 0
 		
 		flag_list = []
-		not_old = []
+		no_delete = []
 		
 		default_read = int(feed['flags'] & FF_MARKASREAD == FF_MARKASREAD)
 		
@@ -1517,9 +1522,9 @@ class ptvDB:
 						media.setdefault('type', 'application/octet-stream')
 						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 				self._reindex_entry_list.append(entry_id)
-				not_old.append(entry_id)
+				no_delete.append(entry_id)
 			elif status[0]==EXISTS:
-				not_old.append(status[1])
+				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
@@ -1556,7 +1561,7 @@ class ptvDB:
 								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?', (status[1],))
 				self._reindex_entry_list.append(status[1])
-				not_old.append(status[1])
+				no_delete.append(status[1])
 			i+=1
 
 		#don't call anything old that has media...
@@ -1564,11 +1569,11 @@ class ptvDB:
 		result = self._c.fetchall()
 		if result:
 			#combine with EXISTing entries
-			not_old + [r[0] for r in result]
-		#if len(not_old) > 0:
-		#	qmarks = "?,"*(len(not_old)-1)+"?"
+			no_delete + [r[0] for r in result]
+		#if len(no_delete) > 0:
+		#	qmarks = "?,"*(len(no_delete)-1)+"?"
 		#	self._db_execute(self._c, """UPDATE entries SET old=0 WHERE rowid in (""" +
-		#					 qmarks + ')', tuple(not_old))
+		#					 qmarks + ')', tuple(no_delete))
 		
 		#self._db.commit()
 		
@@ -1600,19 +1605,24 @@ class ptvDB:
 		
 		if MAX_ARTICLES > 0:
 			if all_entries > MAX_ARTICLES:
-				if len(not_old) > 0:
-					qmarks = "?,"*(len(not_old)-1)+"?"
+				if len(no_delete) > 0:
+					qmarks = "?,"*(len(no_delete)-1)+"?"
 					self._db_execute(self._c, """SELECT rowid FROM entries WHERE rowid NOT IN (%s) AND keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""" % qmarks,
-						tuple(not_old) + (feed_id, all_entries - MAX_ARTICLES))
+						tuple(no_delete) + (feed_id, all_entries - MAX_ARTICLES))
 					ditchables = self._c.fetchall()
 				else:
 					self._db_execute(self._c, """SELECT rowid FROM entries WHERE keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""",
-						(feed_id, all_entries - MAX_ARTICLES,))
+						(feed_id, all_entries - MAX_ARTICLES))
 					ditchables = self._c.fetchall()
+				print "ditchables", ditchables
 				if ditchables is not None:
-					ditchables = [r[0] for r in ditchables]
-					qmarks = "?,"*(len(ditchables)-1)+"?"
-					self._db_execute(self._c, """DELETE FROM entries WHERE rowid in (%s)""" % qmarks, tuple(ditchables))
+					if len(ditchables) > 0:
+						ditchables = tuple([r[0] for r in ditchables])
+						print ditchables
+						qmarks = "?,"*(len(ditchables)-1)+"?"
+						self._db_execute(self._c, """DELETE FROM entries WHERE rowid IN (%s)""" % qmarks, ditchables)
+					else:
+						print "not none, but zero length!"
 		
 		
 		#delete pre-poll entry
