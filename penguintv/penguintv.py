@@ -172,9 +172,11 @@ class PenguinTVApp(gobject.GObject):
 			#initialize dbus object
 			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 			ptv_dbus = ptvDbus.ptvDbus(self, name)
-				
-			p = threading.Thread(None, self._get_poller)
-			p.start()
+			
+			#use out-of-process poller on hildon only.
+			if utils.RUNNING_HILDON:	
+				p = threading.Thread(None, self._get_poller)
+				p.start()
 			
 		self._net_connected = True
 		self.connect('online-status-changed', self.__online_status_changed)
@@ -367,7 +369,6 @@ class PenguinTVApp(gobject.GObject):
 		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
 		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
 		gtk.gdk.threads_leave()
-		#if utils.RUNNING_HILDON:
 		rundir = os.path.split(utils.__file__)[0]
 		subprocess.Popen(['/usr/bin/env', 'python2.5', 
 						  os.path.join(rundir, 'Poller.py')])
@@ -400,15 +401,12 @@ class PenguinTVApp(gobject.GObject):
 			logging.debug("Got poller")
 			
 	def _check_poller(self):
-		logging.debug("checking for poller")
 		if self._remote_poller is None:
-			logging.debug("We don't have one any more anyway")
+			logging.debug("Not checking, more poller anyway")
 			return False
-		
 		try:
 			#is the process still running?
 			os.kill(self._remote_poller_pid, 0)
-			logging.debug("Poller is alive and well")
 		except:
 			logging.error("We lost the poller")
 			if self._polling_taskinfo != -1:

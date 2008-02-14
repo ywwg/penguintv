@@ -10,19 +10,15 @@ except:
 	from pysqlite2 import dbapi2 as sqlite
 
 from math import floor,ceil
-from random import randint
 import feedparser
 import time
 import string
-import sha
 import urllib, urlparse
 from urllib2 import URLError
 from types import *
-import threading
 import ThreadPool
-import sys, os, os.path, re, traceback, shutil
+import sys, os, os.path, re
 import gc
-import glob
 import locale
 import gettext
 import sets
@@ -140,6 +136,7 @@ class ptvDB:
 		try:	
 			#also check db connection in _process_feed
 			if os.path.isfile(os.path.join(self.home,"penguintv4.db")) == False:
+				import shutil
 				self._new_db = True
 				if os.path.isfile(os.path.join(self.home,"penguintv3.db")):
 					try: 
@@ -236,7 +233,8 @@ class ptvDB:
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
-		if randint(1,80) == 1 and vacuumok:
+		import random
+		if random.randint(1,80) == 1 and vacuumok:
 			logging.info("compacting database")
 			self._c.execute('VACUUM')
 		logging.debug("closing db")
@@ -839,6 +837,7 @@ class ptvDB:
 		return feed_id
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
+		import sha
 		self._db_execute(self._c, u'SELECT rowid,feed_pointer,description FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
 		result = self._c.fetchone()
 		if result is None:
@@ -919,6 +918,7 @@ class ptvDB:
 		#but keep going in case the dirs are empty now
 		try:
 			#now check to see if we should get rid of the dated dir
+			import glob
 			globlist = glob.glob(os.path.split(media['file'])[0]+"/*")
 			if len(globlist)==1 and os.path.split(globlist[0])[1]=="playlist.m3u": #if only the playlist is left, we're done
 				utils.deltree(os.path.split(media['file'])[0])
@@ -954,6 +954,8 @@ class ptvDB:
 				self.polling_callback((-1, [], 0), False)
 				return
 		
+		#don't renice on hildon because we can't renice
+		#back down to zero again
 		if not utils.RUNNING_HILDON:
 			os.nice(2)
 				

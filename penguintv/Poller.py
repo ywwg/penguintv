@@ -12,8 +12,13 @@ import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 import gobject
 
+try:
+	import hildon
+	RUNNING_HILDON = True
+except:
+	RUNNING_HILDON = False
+	
 import ptvDB
-import utils
 
 logging.debug("poller startup")
 DBusGMainLoop(set_as_default=True)
@@ -32,18 +37,19 @@ class Poller(dbus.service.Object):
 		
 	def _app_ping(self):
 		try:
-			logging.debug("ping!")
 			if not self._remote_app.Ping():
 				self.exit()
-			logging.debug("pong!")
 		except Exception, e:
 			self.exit()
 		return True
 		
 	def _polling_cb(self, args, cancelled=False):
 		logging.debug("Poller calling back, %s" % str(self._quitting))
-		if self._app_ping():
-			self._remote_app.PollingCallback(str(args), cancelled)
+		try:
+			if not self._remote_app.PollingCallback(str(args), cancelled):
+				self.exit()
+		except:
+			self.exit()
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def poll_multiple(self, arguments, feeds, finished_cb):
@@ -94,7 +100,7 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	bus = dbus.service.BusName("com.ywwg.PenguinTVPoller", bus=bus)
 	loop = gobject.MainLoop()
 	poller = Poller(remote_app, loop, bus)
-	if utils.RUNNING_HILDON:
+	if RUNNING_HILDON:
 		os.nice(5)
 	logging.debug("mainloop")
 	loop.run()
