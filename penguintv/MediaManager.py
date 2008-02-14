@@ -49,7 +49,11 @@ class MediaManager:
 	def __init__(self, app, media_dir, progress_callback=None, finished_callback=None):
 		self.index=0
 		#should this be lucene compatible?
-		self.pool = ThreadPool.ThreadPool(5,"MediaManager")
+		if utils.RUNNING_HILDON:
+			max_downloads = 2
+		else:
+			max_downloads = 5
+		self.pool = ThreadPool.ThreadPool(max_downloads, "MediaManager")
 		self.downloads = []
 		self.db = ptvDB.ptvDB()
 		self.time_appendix=0

@@ -1090,7 +1090,11 @@ class ptvDB:
 		"""polls a feed and returns the number of new articles and a flag list.  Optionally, one can pass
 			a feedparser dictionary in the preparsed argument and avoid network operations"""
 		
-		# print "poll:",feed_id, arguments
+		def perform_feed_updates(updates, f_id):
+			updated_fields = ", ".join(["%s=?" % k for k in updates.keys()])
+			updated_values = tuple([updates[k] for k in updates.keys()])
+			self._db_execute(self._c, u"""UPDATE feeds SET %s WHERE rowid=?""" % updated_fields, updated_values + (feed_id,))
+			self._db.commit()
 
 		if preparsed is None:
 			#feed_id = self._resolve_pointed_feed(feed_id)
@@ -1116,19 +1120,24 @@ class ptvDB:
 				else:
 					data = feedparser.parse(url,etag)
 			except Exception, e:
+				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
-					self._set_new_update_freq(feed_id, 0)
-				self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
-				self._db.commit()
+					feed_updates = self._set_new_update_freq(feed_id, 0)
+				feed_updates['pollfail'] = 1
+				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
+				#self._db.commit()
+				perform_feed_updates(feed_updates, feed_id)
 				logging.warning(str(e))
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 		else:
 			if preparsed == -1:
+				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
-					self._set_new_update_freq(feed_id, 0)
-				self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
-				self._db.commit()
-				#print "it's -1"
+					feed_updates = self._set_new_update_freq(feed_id, 0)
+				feed_updates['pollfail'] = 1
+				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
+				#self._db.commit()
+				perform_feed_updates(feed_updates, feed_id)
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 			elif preparsed == -2:
 				#print "pointer feed, returning 0"
@@ -1144,16 +1153,22 @@ class ptvDB:
 			
 		if data.has_key('status'):
 			if data['status'] == 304:  #this means "nothing has changed"
+				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
-					self._set_new_update_freq(feed_id, 0)
-				self._db_execute(self._c, """UPDATE feeds SET pollfail=0 WHERE rowid=?""",(feed_id,))
-				self._db.commit()
+					feed_updates = self._set_new_update_freq(feed_id, 0)
+				feed_updates['pollfail'] = 1
+				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
+				#self._db.commit()
+				perform_feed_updates(feed_updates, feed_id)
 				return 0
 			if data['status'] == 404: #whoops
+				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
-					self._set_new_update_freq(feed_id, 0)
-				self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
-				self._db.commit()
+					feed_updates = self._set_new_update_freq(feed_id, 0)
+				feed_updates['pollfail'] = 1
+				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
+				#self._db.commit()
+				perform_feed_updates(feed_updates, feed_id)
 				raise FeedPollError,(feed_id,"404 not found: "+str(url))
 
 		if len(data['feed']) == 0 or len(data['items']) == 0:
@@ -1167,20 +1182,25 @@ class ptvDB:
 								11]:  #Resource temporarily unavailable
 						raise IOError(e)	
 			
+			feed_updates = {}
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
-				self._set_new_update_freq(feed_id, 0)
-			self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
-			self._db.commit()
+				feed_updates = self._set_new_update_freq(feed_id, 0)
+			feed_updates['pollfail'] = 1
+			#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
+			#self._db.commit()
+			perform_feed_updates(feed_updates, feed_id)
 			raise FeedPollError,(feed_id,"empty feed")
 			
 		#else...
+		
+		feed_updates = {}
 		
 		#see if we need to get an image
 		if not self._icon_manager.icon_exists(feed_id):
 			href = self._icon_manager.download_icon(feed_id, data)
 			if href is not None:
-				self._db_execute(self._c, u"""UPDATE feeds SET image=? WHERE rowid=?""",(href,feed_id))
-				#self._db.commit()
+				#self._db_execute(self._c, u"""UPDATE feeds SET image=? WHERE rowid=?""",(href,feed_id))
+				feed_updates['image'] = href
 		else:
 			self._db_execute(self._c, u"""SELECT image FROM feeds WHERE rowid=?""",(feed_id,))
 			try: old_href = self._c.fetchone()[0]
@@ -1190,8 +1210,8 @@ class ptvDB:
 				self._icon_manager.remove_icon(feed_id)
 				href = self._icon_manager.download_icon(feed_id, data)
 				if href is not None:
-					self._db_execute(self._c, u"""UPDATE feeds SET image=? WHERE rowid=?""",(href,feed_id))
-					#self._db.commit()					
+					#self._db_execute(self._c, u"""UPDATE feeds SET image=? WHERE rowid=?""",(href,feed_id))
+					feed_updates['image'] = href		
 		
 		if arguments & A_DELETE_ENTRIES == A_DELETE_ENTRIES:
 			logging.info("deleting existing entries"  + str(feed_id) + str(arguments))
@@ -1200,9 +1220,9 @@ class ptvDB:
 		#to discover the old entries, first we mark everything as old
 		#later, we well unset this flag for everything that is NEW,
 		#MODIFIED, and EXISTS. anything still flagged should be deleted  
-		self._db_execute(self._c, """UPDATE entries SET old=1 WHERE feed_id=?""",(feed_id,)) 
-		self._db_execute(self._c, """UPDATE feeds SET pollfail=0 WHERE rowid=?""",(feed_id,))
-		#self._db.commit()
+		self._db_execute(self._c, """UPDATE entries SET old=1 WHERE feed_id=?""",(feed_id,))
+		feed_updates['pollfail']=0
+		#self._db_execute(self._c, """UPDATE feeds SET pollfail=0 WHERE rowid=?""",(feed_id,))
 	
 		#normalize results
 		channel = data['feed']
@@ -1231,25 +1251,27 @@ class ptvDB:
 			self._db_execute(self._c, u'SELECT title FROM feeds WHERE rowid=?',(feed_id,))
 			exists=self._c.fetchone()
 			if len(exists[0])>4:
-				if exists[0][0:4]!="http": #hack to detect when the title hasn't been set yet because of first poll
-				 	self._db_execute(self._c, """UPDATE feeds SET description=?, modified=?, etag=? WHERE rowid=?""", (channel['description'], modified,data['etag'],feed_id))
-				else:
-					self._db_execute(self._c, """UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE rowid=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
+				#self._db_execute(self._c, """UPDATE feeds SET description=?, modified=?, etag=? WHERE rowid=?""", (channel['description'], modified,data['etag'],feed_id))
+				if exists[0][0:4] == "http": #hack to detect when the title hasn't been set yet because of first poll
+					feed_updates['title'] = channel['title']
+					#self._db_execute(self._c, """UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE rowid=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			elif len(exists[0])>0: #don't change title
-				if exists[0] is not None:
-					self._db_execute(self._c, """UPDATE feeds SET description=?, modified=?, etag=? WHERE rowid=?""", (channel['description'], modified,data['etag'],feed_id))
-				else:
-					self._db_execute(self._c, """UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE rowid=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
+				#self._db_execute(self._c, """UPDATE feeds SET description=?, modified=?, etag=? WHERE rowid=?""", (channel['description'], modified,data['etag'],feed_id))
+				if exists[0] is None:
+					feed_updates['title'] = channel['title']
+					#self._db_execute(self._c, """UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE rowid=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			else:
 				self._db_execute(self._c, """UPDATE feeds SET title=?, description=?, modified=?, etag=? WHERE rowid=?""", (channel['title'],channel['description'], modified,data['etag'],feed_id))
 			self._reindex_feed_list.append(feed_id)
+			
+			feed_updates['description'] = channel['description']
+			feed_updates['modified'] = modified
+			feed_updates['etag'] = data['etag']
 		except Exception, e:
 			logging.info(str(e))
-			#f = open("/var/log/penguintv.log",'a')
-			#f.write("borked on: UPDATE feeds SET title="+str(channel['title'])+", description="+str(channel['description'])+", modified="+str(modified)+", etag="+str(data['etag'])+", pollfail=0 WHERE rowid="+str(feed_id))
-			#f.close()	
-			self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
-			self._db.commit()	
+			feed_updates['pollfail'] = 1
+			#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
+			perform_feed_updates(feed_updates, feed_id)
 			raise FeedPollError,(feed_id,"error updating title and description of feed")
 			
 		self._db_execute(self._c, u'SELECT link FROM feeds WHERE rowid=?',(feed_id,))
@@ -1260,7 +1282,8 @@ class ptvDB:
 		if link is None:
 			link = ""
 		if link == "" and data['feed'].has_key('link'):
-			self._db_execute(self._c, u'UPDATE feeds SET link=? WHERE rowid=?',(data['feed']['link'],feed_id))
+			feed_updates['link'] = data['feed']['link']
+			#self._db_execute(self._c, u'UPDATE feeds SET link=? WHERE rowid=?',(data['feed']['link'],feed_id))
 		#self._db.commit()
 		
 		#populate the entries
@@ -1295,6 +1318,13 @@ class ptvDB:
 		
 		default_read = str(int(self.get_flags_for_feed(feed_id) & FF_MARKASREAD == FF_MARKASREAD))
 		
+		self._db_execute(self._c, u"""SELECT entry_id FROM media WHERE feed_id=?""", (feed_id,))
+		media_entries = self._c.fetchall()
+		if media_entries is None:
+			media_entries = []
+		else:
+			media_entries = [r[0] for r in media_entries]
+	
 		for item in data['items']:
 			#do a lot of normalizing
 			item['body'] = ''
@@ -1404,7 +1434,7 @@ class ptvDB:
 			if not item.has_key('date_parsed') or item['date_parsed'] is None:
 				item['date_parsed']=time.localtime()
 				
-			status = self._get_status(item, existing_entries, guid_quality)
+			status = self._get_status(item, existing_entries, guid_quality, media_entries)
 			
 			if status[0]==NEW:
 				new_items = new_items+1
@@ -1500,11 +1530,14 @@ class ptvDB:
 		#self.update_entry_flags(feed_id,db)
 		#self.update_feed_flag(feed_id,db)
 		if arguments & A_AUTOTUNE == A_AUTOTUNE:
-			self._set_new_update_freq(feed_id, new_items)
+			result = self._set_new_update_freq(feed_id, new_items)
+			feed_updates.update(result)
 		else:
 			cur_time = int(time.time())
-			self._db_execute(self._c, u'UPDATE feeds SET lastpoll=? WHERE rowid=?',(cur_time,feed_id))
-		self._db.commit()
+			feed_updates['lastpoll'] = curtime
+			#self._db_execute(self._c, u'UPDATE feeds SET lastpoll=? WHERE rowid=?',(cur_time,feed_id))
+
+		perform_feed_updates(feed_updates, feed_id)
 		
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
@@ -1529,6 +1562,8 @@ class ptvDB:
 		updates are never more often than 30 mins and never rarer than 4 hours
 		"""
 		
+		feed_updates = {}
+		
 		#should never be called on a filtered feed
 		
 		self._db_execute(self._c, u'SELECT lastpoll, newatlast, pollfreq FROM feeds WHERE rowid=?',(feed_id,))
@@ -1536,10 +1571,12 @@ class ptvDB:
 		cur_time = int(time.time())
 		#this could suck if the program was just started, so only do it if the poll_freq seems correct
 		#however still update the db with the poll time
-		self._db_execute(self._c, u'UPDATE feeds SET lastpoll=?, newatlast=? WHERE rowid=?',(cur_time,new_items,feed_id))
-		self._db.commit()
+		feed_updates['lastpoll'] = cur_time
+		feed_updates['newatlast'] = new_items
+		#self._db_execute(self._c, u'UPDATE feeds SET lastpoll=?, newatlast=? WHERE rowid=?',(cur_time,new_items,feed_id))
+		#self._db.commit()
 		if cur_time - last_time < old_poll_freq/2:  #too soon to get a good reading.
-			return
+			return feed_updates
 		
 		#normalize dif:
 		new_items = round(new_items *  old_poll_freq / (cur_time-last_time))
@@ -1566,17 +1603,19 @@ class ptvDB:
 		elif new_items>1:
 			poll_freq = floor((cur_time - last_time) / new_items)
 		else:
-			return
+			return feed_updates
 			
 		if poll_freq > 21600: #four hours
 			poll_freq = 21600
 		if poll_freq < 1800: #30 mins
 			poll_freq = 1800
 	
-		self._db_execute(self._c, 'UPDATE feeds SET pollfreq=? WHERE rowid=?',(poll_freq,feed_id))
-		self._db.commit()
+		feed_updates['pollfreq'] = poll_freq
+		#self._db_execute(self._c, 'UPDATE feeds SET pollfreq=? WHERE rowid=?',(poll_freq,feed_id))
+		#self._db.commit()
+		return feed_updates
 		
-	def _get_status(self, item, existing_entries, guid_quality):
+	def _get_status(self, item, existing_entries, guid_quality, media_entries):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
@@ -1633,10 +1672,11 @@ class ptvDB:
 
 		if new_hash == old_hash:
 			#now check enclosures
-			old_media = self.get_entry_media(entry_id)
-			if old_media is None:
+			if entry_id not in media_entries:
 				old_media = []
-			
+			else:
+				old_media = self.get_entry_media(entry_id)
+
 			#if they are both zero, return
 			if len(old_media) == 0 and item.has_key('enclosures') == False: 
 				return (EXISTS,entry_id, [])
@@ -2251,7 +2291,7 @@ class ptvDB:
 			feed_info['poll_fail'] = True
 		return feed_info
 	
-	def get_entry_flag(self, entry_id, medialist=None, read=None):
+	def get_entry_flag(self, entry_id, medialist=None, read=None, media_entries=None):
 		if self.entry_flag_cache.has_key(entry_id):
 			return self.entry_flag_cache[entry_id]
 
@@ -2262,7 +2302,13 @@ class ptvDB:
 			read = self._c.fetchone()[0]
 		
 		if medialist is None:
-			medialist = self.get_entry_media(entry_id)
+			if media_entries is not None:
+				if entry_id not in media_entries:
+					medialist = []
+				else:
+					medialist = self.get_entry_media(entry_id)
+			else:
+				medialist = self.get_entry_media(entry_id)
 		
 		status = D_NOT_DOWNLOADED
 		if medialist:
@@ -2353,8 +2399,16 @@ class ptvDB:
 			entrylist = self._c.fetchall()
 			if self.get_feed_media_count(feed_id) == 0:
 				medialist = []
+				media_entries = []
+			else:
+				self._db_execute(self._c, u"""SELECT entry_id FROM media WHERE feed_id=?""", (feed_id,))
+				media_entries = self._c.fetchall()
+				if media_entries is None:
+					media_entries = []
+				else:
+					media_entries = [r[0] for r in media_entries]
 			for entry,read in entrylist:
-				flaglist.append(self.get_entry_flag(entry, read=read, medialist=medialist))
+				flaglist.append(self.get_entry_flag(entry, read=read, medialist=medialist, media_entries=media_entries))
 		return flaglist
 	
 	def get_feed_flag(self, feed_id, flaglist = None):
