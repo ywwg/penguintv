@@ -32,7 +32,10 @@ class SynchronizeDialog:
 		self._destination_entry = self._xml.get_widget("dest_entry")
 		
 		if utils.HAS_GCONF:
-			import gconf
+			try:
+				import gconf
+			except:
+				from gnome import gconf
 			self._conf = gconf.client_get_default()
 			self._conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
 			self._conf.notify_add('/apps/penguintv/sync_delete',self.set_sync_delete)

@@ -122,11 +122,7 @@ class MainWindow(gobject.GObject):
 			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._app)
-			
-		self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
-		
-		self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
-		
+
 		#signals
 		self._app.connect('feed-added', self.__feed_added_cb)
 		self._app.connect('feed-removed', self.__feed_removed_cb)
@@ -924,19 +920,20 @@ class MainWindow(gobject.GObject):
 		if selected:
 			#title, description, url, link
 			feed_info = self._db.get_feed_info(selected)
-			self._feed_properties_dialog.set_feedid(selected)
-			self._feed_properties_dialog.set_title(feed_info['title'])
-			self._feed_properties_dialog.set_rss(feed_info['url'])
-			self._feed_properties_dialog.set_description(feed_info['description'])
-			self._feed_properties_dialog.set_link(feed_info['link'])
-			self._feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
-			self._feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
-			self._feed_properties_dialog.set_flags(self._db.get_flags_for_feed(selected))
+			feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
+			feed_properties_dialog.set_feedid(selected)
+			feed_properties_dialog.set_title(feed_info['title'])
+			feed_properties_dialog.set_rss(feed_info['url'])
+			feed_properties_dialog.set_description(feed_info['description'])
+			feed_properties_dialog.set_link(feed_info['link'])
+			feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
+			feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
+			feed_properties_dialog.set_flags(self._db.get_flags_for_feed(selected))
 			if self._app.feed_refresh_method == penguintv.REFRESH_AUTO:
-				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
+				feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
 			else:
-				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self._app.polling_frequency)
-			self._feed_properties_dialog.show()
+				feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self._app.polling_frequency)
+			feed_properties_dialog.show()
 			
 	def on_feed_filter_properties_activate(self, event):
 		selected = self.feed_list_view.get_selected()
@@ -1020,8 +1017,9 @@ class MainWindow(gobject.GObject):
 		self._sync_dialog.on_sync_button_clicked(event)	
 				
 	def on_edit_favorite_tags(self, o=None):
-		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
-		self._filter_selector_dialog.Show()	
+		filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
+		filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
+		filter_selector_dialog.Show()	
 	
 	def on_filter_changed(self, widget):
 		model = widget.get_model()
@@ -1061,10 +1059,18 @@ class MainWindow(gobject.GObject):
 		model = self._filter_selector_combo.get_model()
 		name = self._filters[index][F_NAME]
 		self._active_filter_path = None
-		for row in model:
-			if row[1] == name:
-				self._active_filter_path = row.path
-				break
+		#if utils.RUNNING_HILDON:
+		#	#not a tree, so some filters appear twice.  Need to select first
+		#	#instance, which foreach does not do easily
+		#	for row in model:
+		#		if row[1] == name:
+		#			self._active_filter_path = row.path
+		#			break
+		#else:
+		def hunt_path(model, p, it):
+			if model[it][1] == name and self._active_filter_path is None:
+				self._active_filter_path = p
+		model.foreach(hunt_path)
 		
 	def set_active_filter(self, index):
 		model = self._filter_selector_combo.get_model()

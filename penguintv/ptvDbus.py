@@ -35,7 +35,7 @@ class ptvDbus(dbus.service.Object):
 	def PollingCallback(self, pyobject_str, cancelled=False):
 		args = eval(pyobject_str)
 		self._app.polling_callback(args, cancelled)
-		if self._app.exiting:
+		if self._app.is_exiting():
 			return False
 		return True
 		

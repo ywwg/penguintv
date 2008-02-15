@@ -161,10 +161,9 @@ class AddFeedDialog:
 				flags += FF_MARKASREAD
 	
 		tags=[]
-		#if not utils.USE_TAGGING:
-		#	if len(self._edit_tags_widget.get_text()) > 0:
-		#		for tag in self._edit_tags_widget.get_text().split(','):
-		#			tags.append(tag.strip())
+		if len(self._edit_tags_widget.get_text()) > 0:
+			for tag in self._edit_tags_widget.get_text().split(','):
+				tags.append(tag.strip())
 		url = self._feed_url_widget.get_text()
 		if self._window:
 			self._window.set_sensitive(False)

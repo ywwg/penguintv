@@ -11,11 +11,19 @@ import time, datetime
 from math import floor
 
 
-class FeedPropertiesDialog:
+class FeedPropertiesDialog(gtk.Window):
 	def __init__(self,xml,app):
+		gtk.Window.__init__(self)
 		self._xml = xml
 		self._app = app
-		self._window = xml.get_widget("window_feed_properties")
+
+		#self._window = xml.get_widget("window_feed_properties")
+		contents = xml.get_widget("feed_prop_contents")
+		p = contents.get_parent()
+		contents.reparent(self)
+		gtk.Window.set_title(self, p.get_title())
+		del p
+
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))
@@ -62,8 +70,8 @@ class FeedPropertiesDialog:
 				scrolled.add(viewport)
 				parent.add(scrolled)
 				self._hildon_inited = True
-			self._window.show_all()
-		self._window.set_transient_for(self._app.main_window.get_parent())
+			self.show_all()
+		self.set_transient_for(self._app.main_window.get_parent())
 		self._xml.get_widget('notebook1').set_current_page(0)
 		if not utils.HAS_SEARCH:
 			self._xml.get_widget('b_search').hide()
@@ -72,7 +80,7 @@ class FeedPropertiesDialog:
 		#if not utils.USE_TAGGING
 		#	self._edit_tags_widget.hide()
 		self._title_widget.grab_focus()
-		self._window.show()
+		gtk.Window.show(self)
 		
 	def set_feedid(self, id):
 		self._feed_id = id
@@ -156,11 +164,11 @@ class FeedPropertiesDialog:
 		else:
 			self._xml.get_widget('b_markasread').set_active(False)
 		
-	def on_window_feed_properties_delete_event(self, widget, event):
-		return self._window.hide_on_delete()
+	#def on_window_feed_properties_delete_event(self, widget, event):
+	#	return self._window.hide_on_delete()
 		
-	def hide(self):
-		self._window.hide()
+	#def hide(self):
+	#	self._window.hide()
 		
 	def on_b_autodownload_toggled(self, b_autodownload):
 		# reverse the polarity!
@@ -279,4 +287,4 @@ class FeedPropertiesDialog:
 		
 	def _finish(self):
  		if self.on_save_values_activate(None):
- 			self.hide()
+ 			self.destroy()

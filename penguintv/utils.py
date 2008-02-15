@@ -5,7 +5,6 @@
 import os,sys,time, pwd, os.path
 import subprocess
 import string
-import fnmatch
 import urllib
 import HTMLParser
 import string
@@ -88,13 +87,21 @@ else:
 		import gconf
 		HAS_GCONF = True
 	except:
-		HAS_GCONF = False
+		try:
+			from gnome import gconf
+			HAS_GCONF = True
+		except:
+			HAS_GCONF = False
 		
 	try:
 		import gnomevfs
 		HAS_GNOMEVFS = True
 	except:
-		HAS_GNOMEVFS = False
+		try:
+			from gnome import gnomevfs
+			HAS_GNOMEVFS = True
+		except:
+			HAS_GNOMEVFS = False
 		
 	try:
 		from xml.sax.saxutils import DefaultHandler
@@ -295,6 +302,7 @@ class GlobDirectoryWalker:
 		self.index = 0
 
 	def __getitem__(self, index):
+		import fnmatch
 		while 1:
 			try:
 				file = self.files[self.index]

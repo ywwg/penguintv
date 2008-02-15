@@ -12,12 +12,19 @@ F_DISPLAY  = 1
 F_INDEX    = 2
 F_SEP      = 3
 
-class FilterSelectorDialog:
+class FilterSelectorDialog(gtk.Window):
 	def __init__(self, xml, main_window):
+		gtk.Window.__init__(self)
 		self._xml = xml
 		self._main_window = main_window
 		
-		self._widget = self._xml.get_widget('dialog_tag_favorites')
+		#self._widget = self._xml.get_widget('dialog_tag_favorites')
+		contents = xml.get_widget("dialog-vbox3")
+		p = contents.get_parent()
+		contents.reparent(self)
+		gtk.Window.set_title(self, p.get_title())
+		del p
+		
 		self._pane = self._xml.get_widget('hpaned')
 		
 		self._favorites_old_order = []
@@ -94,7 +101,7 @@ class FilterSelectorDialog:
 			self._favorites_model.append([name, display, index, False])
 		
 	def is_visible(self):
-		return self._widget.get_property('visible')
+		return self.get_property('visible')
 		
 	def Show(self):
 		if utils.RUNNING_HILDON:
@@ -112,8 +119,8 @@ class FilterSelectorDialog:
 				self._hildon_inited = True
 			self._all_tags_treeview.set_property('height-request', 150)
 	
-		context = self._widget.create_pango_context()
-		style = self._widget.get_style().copy()
+		context = self.create_pango_context()
+		style = self.get_style().copy()
 		font_desc = style.font_desc
 		metrics = context.get_metrics(font_desc, None)
 		char_width = metrics.get_approximate_char_width()
@@ -134,14 +141,14 @@ class FilterSelectorDialog:
 		self._pane_position = pango.PIXELS((widest_left+10)*char_width)
 		self._window_width  = pango.PIXELS((widest_left+widest_right+10)*char_width)+100
 		
-		self._widget.resize(self._window_width,1)
+		self.resize(self._window_width,1)
 		self._pane.set_position(self._pane_position)
 		self._favorites_treeview.columns_autosize()
 		self._all_tags_treeview.columns_autosize()
 		
-		self._widget.set_transient_for(self._main_window.get_parent())
+		self.set_transient_for(self._main_window.get_parent())
 		
-		self._widget.show_all()
+		self.show_all()
 		
 		if utils.RUNNING_HILDON:
 			self._xml.get_widget('info_icon').hide()
@@ -150,20 +157,21 @@ class FilterSelectorDialog:
 		
 	def Hide(self):
 		self._do_unselect()
-		self._widget.hide()
+		self.hide()
 		
 	def _on_apply_clicked(self, button):
 		new_order = [r[0] for r in self._favorites_model]
 		old_order = [r[1] for r in self._favorites_old_order]
 		if old_order != new_order:
 			self._main_window.set_tag_favorites(new_order)
-		self.Hide()
+		self.destroy()
 		
 	def _on_close_clicked(self, button):
-		self.Hide()
+		#self.Hide()
+		self.destroy()
 		
-	def _on_dialog_tag_favorites_delete_event(self, widget, event):
-		return widget.hide_on_delete()
+	#def _on_dialog_tag_favorites_delete_event(self, widget, event):
+	#	return widget.hide_on_delete()
 		
 	def _on_drag_data_get(self, treeview, drag_context, selection_data, info, time):
 		selection = treeview.get_selection()

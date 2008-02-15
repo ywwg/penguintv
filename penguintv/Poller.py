@@ -5,6 +5,7 @@
 import os
 import sys
 import logging
+import traceback
 logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.DEBUG)
 
 import dbus
@@ -38,8 +39,10 @@ class Poller(dbus.service.Object):
 	def _app_ping(self):
 		try:
 			if not self._remote_app.Ping():
+				logger.debug("Poller exit, ping was false (app exiting)")
 				self.exit()
 		except Exception, e:
+			logger.debug("Poller exit, ping excpetion %s" % str(e))
 			self.exit()
 		return True
 		
@@ -47,8 +50,10 @@ class Poller(dbus.service.Object):
 		logging.debug("Poller calling back, %s" % str(self._quitting))
 		try:
 			if not self._remote_app.PollingCallback(str(args), cancelled):
+				logger.debug("Poller exit, negative callback (exiting)")
 				self.exit()
-		except:
+		except Exception, e:
+			logger.debug("Poller exit, exception in callback: %s" % str(e))
 			self.exit()
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
@@ -77,8 +82,9 @@ class Poller(dbus.service.Object):
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def exit(self):
+		traceback.print_stack()
 		self._quitting = True
-		self._db.finish(False)
+		self._db.finish(False, False)
 		self._mainloop.quit()
 		return False
 		

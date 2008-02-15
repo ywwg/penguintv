@@ -272,7 +272,10 @@ class PenguinTVApp(gobject.GObject):
 		
 		#gconf
 		if utils.HAS_GCONF:
-			import gconf
+			try:
+				import gconf
+			except:
+				from gnome import gconf
 			conf = gconf.client_get_default()
 			conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
 			conf.notify_add('/apps/penguintv/auto_resume',self._gconf_set_auto_resume)
@@ -385,12 +388,17 @@ class PenguinTVApp(gobject.GObject):
 			logging.debug("waiting for poller")
 			if dubus_methods.NameHasOwner('com.ywwg.PenguinTVPoller'):
 				o = bus.get_object("com.ywwg.PenguinTVPoller", "/PtvPoller")
-				self._remote_poller = dbus.Interface(o, "com.ywwg.PenguinTVPoller.PollInterface")
-				if self._remote_poller.is_quitting():
-					self._remote_poller = None
-				else:
-					self._remote_poller_pid = self._remote_poller.get_pid()
-					gobject.timeout_add(20000, self._check_poller)
+				poller = dbus.Interface(o, "com.ywwg.PenguinTVPoller.PollInterface")
+				try:
+					if poller.is_quitting():
+						break
+					else:
+						self._remote_poller = poller
+						self._remote_poller_pid = self._remote_poller.get_pid()
+						gobject.timeout_add(20000, self._check_poller)
+				except:
+					gtk.gdk.threads_leave()
+					break
 				gtk.gdk.threads_leave()
 				break
 			gtk.gdk.threads_leave()
@@ -641,7 +649,7 @@ class PenguinTVApp(gobject.GObject):
 		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4],c[5]] for c in self.feed_list_view.get_feed_cache()]
 		self.db.set_feed_cache(adjusted_cache)
 		logging.info('stopping db')
-		self.db.finish()	
+		self.db.finish(majorsearchwait=False)	
 		logging.info('stopping mediamanager')
 		self.mediamanager.finish()
 		#while threading.activeCount()>1:
@@ -2195,10 +2203,11 @@ class PenguinTVApp(gobject.GObject):
 				time.sleep(self.threadSleepTime)
 			
 			if self.db is not None:
-				self.db.finish(False, True)	
+				self.db.finish(False)
+				self.db = None
 				
 		def _start_db(self):
-			traceback.print_stack()
+			#traceback.print_stack()
 			self.db = ptvDB.ptvDB(self.polling_callback)
 						
 		def get_db(self):
@@ -2231,7 +2240,8 @@ class PenguinTVApp(gobject.GObject):
 			logging.debug("got goAway signal, shutting down update thread")
 			self.__isDying = True
 			if self.db is not None:
-				self.db.finish(False)
+				self.db.finish(vacuumok=False, correctthread=False)
+				self.db = None
 				
 		def isDying(self):
 			return self.__isDying

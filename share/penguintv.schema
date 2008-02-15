@@ -140,6 +140,19 @@
 	</long>
      </locale>
    </schema>
+   
+   <schema>
+     <key>/schemas/apps/penguintv/bt_ul_limit</key>
+     <applyto>/apps/penguintv/bt_ul_limit</applyto>
+     <owner>penguintv</owner>
+     <type>int</type>
+     <default>0</default>
+     <locale name="C">
+	<short>Bit Torrent upload rate limit</short>
+	<long>This is the maximum upload rate for bittorrent, in kilobytes.  Zero means unlimited.  Defaults to 0.
+	</long>
+     </locale>
+   </schema>
 
 	<schema>
      <key>/schemas/apps/penguintv/bt_max_port</key>
@@ -357,6 +370,18 @@
      </locale>
    </schema>
 
+	<schema>
+     <key>/schemas/apps/penguintv/selected_feed</key>
+     <applyto>/apps/penguintv/selected_entry</applyto>
+     <owner>penguintv</owner>
+     <type>int</type>
+     <default>0</default>
+     <locale name="C">
+	<short>Bit Torrent upload rate limit</short>
+	<long>This is the maximum upload rate for bittorrent, in kilobytes.  Zero means unlimited.  Defaults to 0.
+	</long>
+     </locale>
+   </schema>
    
  </schemalist>
 </gconfschemafile>

@@ -41,8 +41,10 @@ if utils.HAS_LUCENE:
 if utils.HAS_XAPIAN:
 	import PTVXapian
 if utils.HAS_GCONF:
-	import gconf
-	import gobject
+	try:
+		import gconf
+	except:
+		from gnome import gconf
 if utils.HAS_PYXML:
 	import OPML
 if utils.RUNNING_SUGAR: # or utils.RUNNING_HILDON:
@@ -51,7 +53,7 @@ else:
 	USING_FLAG_CACHE = True
 #USING_FLAG_CACHE = False
 
-LATEST_DB_VER = 6
+LATEST_DB_VER = 7
 	
 NEW = 0
 EXISTS = 1
@@ -116,9 +118,6 @@ FF_MARKASREAD     = 32
 
 DB_FILE="penguintv4.db"
 
-from HTMLParser import HTMLParser
-from formatter import NullFormatter
-
 class ptvDB:
 	entry_flag_cache = {}
 	
@@ -162,7 +161,8 @@ class ptvDB:
 		
 		self._c = self._db.cursor()
 		self._c.execute('PRAGMA synchronous="NORMAL"')
-		self._c.execute('PRAGMA cache_size=6000')
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
+			self._c.execute('PRAGMA cache_size=6000')
 		self.cache_dirty = True
 		try:
 			if not self._new_db:
@@ -212,35 +212,35 @@ class ptvDB:
 	def __del__(self):
 		self.finish()
 		
-	def finish(self, vacuumok=True, searchwait=False):
+	def finish(self, vacuumok=True, majorsearchwait=False, correctthread=True):
 		#allow multiple finishes
 		if self._exiting:
 			return
 		self._exiting=True
 		self._cancel_poll_multiple = True
 		if utils.HAS_SEARCH:
-			if not self.searcher.is_indexing():
+			if not majorsearchwait and self.searcher.is_indexing(only_this_thread=True):
+				logging.debug("not waiting for reindex")
+				self.searcher.finish(False)
+			else:
 				if len(self._reindex_entry_list) > 0 or len(self._reindex_feed_list) > 0:
 					logging.info("have leftover things to reindex, reindexing")
 					#don't do it threadedly or else we will interrupt it on the next line
 					self.reindex(threaded=False) #it's usually not much...
 				logging.debug("shutting down search indexer")
-				self.searcher.finish(searchwait)
-			else:
-				logging.debug("not waiting for reindex")
-				self.searcher.finish(False)
+				self.searcher.finish(True)
+				
 		#FIXME: lame, but I'm being lazy
 		#if randint(1,100) == 1:
 		#	print "cleaning up unreferenced media"
 		#	self.clean_file_media()
-		import random
-		if random.randint(1,80) == 1 and vacuumok:
-			logging.info("compacting database")
-			self._c.execute('VACUUM')
-		logging.debug("closing db")
-		self._c.close()
-		self._db.close()
-		logging.debug("db closed")
+		if correctthread:
+			import random
+			if random.randint(1,80) == 1 and vacuumok:
+				logging.info("compacting database")
+				self._c.execute('VACUUM')
+			self._c.close()
+			self._db.close()
 
 	def maybe_initialize_db(self):
 		try:
@@ -275,7 +275,7 @@ class ptvDB:
 			if db_ver < 7:
 				self._migrate_database_six_seven()
 				self.clean_database_media()
-			if db_ver > 7:
+			if db_ver > LATEST_DB_VER:
 				logging.warning("This database comes from a later version of PenguinTV and may not work with this version")
 				raise DBError, "db_ver is "+str(db_ver)+" instead of "+str(LATEST_DB_VER)
 		except Exception, e:
@@ -284,6 +284,8 @@ class ptvDB:
 		#if self.searcher.needs_index:
 		#	print "indexing for the first time"
 		#	self.searcher.Do_Index_Threaded()
+		
+		self._check_settings_location()
 			
 		self.fix_tags()
 		self._fix_indexes()
@@ -725,11 +727,40 @@ class ptvDB:
 			new_filename = os.path.join(new_dir, filename[len(old_dir) + 1:])
 			self._db_execute(self._c, u'UPDATE media SET file=? WHERE rowid=?', (new_filename, rowid))
 		self._db.commit()
+		
+	def _check_settings_location(self):
+		"""Do we suddenly have gconf, where before we were using the db?
+		   If so, migrate from db to gconf"""
+		   
+		settings_in_db = self.get_setting(BOOL, "settings_in_db", utils.HAS_GCONF, force_db=True)
+		settings_now_in_db = settings_in_db
+		if settings_in_db:
+			if utils.HAS_GCONF:
+				self._db_execute(self._c, u'SELECT data, value FROM settings')
+				settings = self._c.fetchall()
+				for data, value in settings:
+					if data.startswith('/'):
+						val = self._conf.get_default_from_schema(data)
+						if val is None:
+							#not in schema, let it be replaced with a default
+							continue
+						if val.type == gconf.VALUE_BOOL:
+							self._conf.set_bool(data, bool(value))
+						elif val.type == gconf.VALUE_INT:
+							self._conf.set_int(data, int(value))
+						elif val.type == gconf.VALUE_STRING:
+							self._conf.set_string(data, value)
+				settings_now_in_db = False
+		else:
+			if not utils.HAS_GCONF:
+				logging.error("Setting used to be in gconf, but gconf is now missing.  Loading defaults")
+				settings_now_in_db = True
+		self.set_setting(BOOL, 'settings_in_db', settings_now_in_db, force_db=True)
 					
-	def get_setting(self, type, datum, default=None):
+	def get_setting(self, type, datum, default=None, force_db=False):
 		if utils.HAS_GCONF and self._new_db:
 			return default #always return default, gconf LIES
-		if utils.HAS_GCONF and datum[0] == '/':
+		if utils.HAS_GCONF and datum[0] == '/' and not force_db:
 			if   type == BOOL:
 				retval = self._conf.get_bool(datum)
 			elif type == INT:
@@ -752,8 +783,8 @@ class ptvDB:
 				return retval[0]
 			return default
 				
-	def set_setting(self, type, datum, value):
-		if utils.HAS_GCONF and datum[0] == '/':
+	def set_setting(self, type, datum, value, force_db=False):
+		if utils.HAS_GCONF and datum[0] == '/' and not force_db:
 			if   type == BOOL:
 				self._conf.set_bool(datum, value)
 			elif type == INT:

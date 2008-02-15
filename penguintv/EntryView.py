@@ -140,7 +140,10 @@ class EntryView(gobject.GObject):
 			scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
 			if utils.HAS_GCONF:
-				import gconf
+				try:
+					import gconf
+				except:
+					from gnome import gconf
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()

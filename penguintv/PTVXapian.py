@@ -57,18 +57,23 @@ class PTVXapian:
 			self.needs_index = True
 			
 		self._quitting = False
+		self._indexing = False
 	
-	def is_indexing(self):
-		if self._index_lock.acquire(False):
-			self._index_lock.release()
-			return False
+	def is_indexing(self, only_this_thread=False):
+		if not only_this_thread:
+			if self._index_lock.acquire(False):
+				self._index_lock.release()
+				return False
+			else:
+				return True
 		else:
-			return True
+			return self._indexing
 		
 	def finish(self, wait=False):
 		if wait:
-			self._index_lock.acquire()
-			self._index_lock.release()
+			if self.is_indexing(only_this_thread=True):
+				self._index_lock.acquire()
+				self._index_lock.release()
 		self._quitting = True
 		
 	def _interrupt(self):
@@ -92,6 +97,7 @@ class PTVXapian:
 		"""loop through all feeds and entries and feed them to the beast"""
 		
 		def index_interrupt():
+			self._indexing = False
 			self._index_lock.release()
 			if callback is not None:
 				callback()
@@ -101,7 +107,8 @@ class PTVXapian:
 		if not self._index_lock.acquire(False):
 			logging.info("already indexing, not trying to reindex again")
 			return
-			
+		
+		self._indexing = True
 		db = self._get_db()
 		c = db.cursor()
 		
@@ -187,6 +194,7 @@ class PTVXapian:
 				return index_interrupt()
 				
 		del database
+		self._indexing = False
 		self._index_lock.release()
 		if callback is not None:
 			callback()
@@ -199,6 +207,7 @@ class PTVXapian:
 			return
 			
 		def reindex_interrupt():
+			self._indexing = False
 			self._index_lock.release()
 			self._interrupt()
 			#logging.debug("Reindex interrupted")
@@ -207,6 +216,7 @@ class PTVXapian:
 		#logging.debug("Xapian reindexing: %i, %i" % (len(feedlist), len(entrylist)))
 			
 		self._index_lock.acquire()
+		self._indexing = True
 		db = self._get_db()
 		c = db.cursor()
 					
@@ -316,6 +326,7 @@ class PTVXapian:
 				logging.error("Failed adding entry: %s" % str(e))
 				
 		del database
+		self._indexing = False
 		self._index_lock.release()
 		#logging.debug("Reindex complete")
 						

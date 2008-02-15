@@ -152,8 +152,11 @@ something_disabled = False
 try:
 	import gconf
 except:
-	print "WARNING: gconf not installed or not installed correctly: Gconf support will be disabled"
-	something_disabled = True
+	try:
+		from gnome import gconf:
+	except:
+		print "WARNING: gconf not installed or not installed correctly: Gconf support will be disabled"
+		something_disabled = True
 	
 try:
 	import pygst
