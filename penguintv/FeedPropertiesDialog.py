@@ -11,17 +11,18 @@ import time, datetime
 from math import floor
 
 
-class FeedPropertiesDialog(gtk.Window):
+class FeedPropertiesDialog(gtk.Dialog):
 	def __init__(self,xml,app):
-		gtk.Window.__init__(self)
+		gtk.Dialog.__init__(self)
 		self._xml = xml
 		self._app = app
 
 		#self._window = xml.get_widget("window_feed_properties")
 		contents = xml.get_widget("feed_prop_contents")
 		p = contents.get_parent()
-		contents.reparent(self)
-		gtk.Window.set_title(self, p.get_title())
+		contents.unparent()
+		self.vbox.add(contents)
+		gtk.Dialog.set_title(self, p.get_title())
 		del p
 
 		for key in dir(self.__class__):
@@ -80,7 +81,7 @@ class FeedPropertiesDialog(gtk.Window):
 		#if not utils.USE_TAGGING
 		#	self._edit_tags_widget.hide()
 		self._title_widget.grab_focus()
-		gtk.Window.show(self)
+		gtk.Dialog.show(self)
 		
 	def set_feedid(self, id):
 		self._feed_id = id
@@ -164,11 +165,8 @@ class FeedPropertiesDialog(gtk.Window):
 		else:
 			self._xml.get_widget('b_markasread').set_active(False)
 		
-	#def on_window_feed_properties_delete_event(self, widget, event):
-	#	return self._window.hide_on_delete()
-		
-	#def hide(self):
-	#	self._window.hide()
+	def on_window_feed_properties_delete_event(self, widget, event):
+		return self._window.hide_on_delete()
 		
 	def on_b_autodownload_toggled(self, b_autodownload):
 		# reverse the polarity!
@@ -287,4 +285,4 @@ class FeedPropertiesDialog(gtk.Window):
 		
 	def _finish(self):
  		if self.on_save_values_activate(None):
- 			self.destroy()
+ 			self.hide()

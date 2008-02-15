@@ -12,17 +12,18 @@ F_DISPLAY  = 1
 F_INDEX    = 2
 F_SEP      = 3
 
-class FilterSelectorDialog(gtk.Window):
+class FilterSelectorDialog(gtk.Dialog):
 	def __init__(self, xml, main_window):
-		gtk.Window.__init__(self)
+		gtk.Dialog.__init__(self)
 		self._xml = xml
 		self._main_window = main_window
 		
 		#self._widget = self._xml.get_widget('dialog_tag_favorites')
 		contents = xml.get_widget("dialog-vbox3")
 		p = contents.get_parent()
-		contents.reparent(self)
-		gtk.Window.set_title(self, p.get_title())
+		contents.unparent()
+		self.vbox.add(contents)
+		gtk.Dialog.set_title(self, p.get_title())
 		del p
 		
 		self._pane = self._xml.get_widget('hpaned')
@@ -164,11 +165,11 @@ class FilterSelectorDialog(gtk.Window):
 		old_order = [r[1] for r in self._favorites_old_order]
 		if old_order != new_order:
 			self._main_window.set_tag_favorites(new_order)
-		self.destroy()
+		self.Hide()
 		
 	def _on_close_clicked(self, button):
-		#self.Hide()
-		self.destroy()
+		self.Hide()
+		#self.destroy()
 		
 	#def _on_dialog_tag_favorites_delete_event(self, widget, event):
 	#	return widget.hide_on_delete()

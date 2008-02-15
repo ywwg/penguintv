@@ -123,6 +123,9 @@ class MainWindow(gobject.GObject):
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._app)
 
+		self._filter_selector_dialog = None
+		self._feed_properties_dialog = None
+		
 		#signals
 		self._app.connect('feed-added', self.__feed_added_cb)
 		self._app.connect('feed-removed', self.__feed_removed_cb)
@@ -920,20 +923,21 @@ class MainWindow(gobject.GObject):
 		if selected:
 			#title, description, url, link
 			feed_info = self._db.get_feed_info(selected)
-			feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
-			feed_properties_dialog.set_feedid(selected)
-			feed_properties_dialog.set_title(feed_info['title'])
-			feed_properties_dialog.set_rss(feed_info['url'])
-			feed_properties_dialog.set_description(feed_info['description'])
-			feed_properties_dialog.set_link(feed_info['link'])
-			feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
-			feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
-			feed_properties_dialog.set_flags(self._db.get_flags_for_feed(selected))
+			if self._feed_properties_dialog is None:
+				self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
+			self._feed_properties_dialog.set_feedid(selected)
+			self._feed_properties_dialog.set_title(feed_info['title'])
+			self._feed_properties_dialog.set_rss(feed_info['url'])
+			self._feed_properties_dialog.set_description(feed_info['description'])
+			self._feed_properties_dialog.set_link(feed_info['link'])
+			self._feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
+			self._feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
+			self._feed_properties_dialog.set_flags(self._db.get_flags_for_feed(selected))
 			if self._app.feed_refresh_method == penguintv.REFRESH_AUTO:
-				feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
+				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
 			else:
-				feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self._app.polling_frequency)
-			feed_properties_dialog.show()
+				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+self._app.polling_frequency)
+			self._feed_properties_dialog.show()
 			
 	def on_feed_filter_properties_activate(self, event):
 		selected = self.feed_list_view.get_selected()
@@ -1017,9 +1021,10 @@ class MainWindow(gobject.GObject):
 		self._sync_dialog.on_sync_button_clicked(event)	
 				
 	def on_edit_favorite_tags(self, o=None):
-		filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
-		filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
-		filter_selector_dialog.Show()	
+		if self._filter_selector_dialog is None:
+			self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
+		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
+		self._filter_selector_dialog.Show()
 	
 	def on_filter_changed(self, widget):
 		model = widget.get_model()

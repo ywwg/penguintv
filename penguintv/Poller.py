@@ -39,10 +39,10 @@ class Poller(dbus.service.Object):
 	def _app_ping(self):
 		try:
 			if not self._remote_app.Ping():
-				logger.debug("Poller exit, ping was false (app exiting)")
+				logging.debug("Poller exit, ping was false (app exiting)")
 				self.exit()
 		except Exception, e:
-			logger.debug("Poller exit, ping excpetion %s" % str(e))
+			logging.debug("Poller exit, ping excpetion %s" % str(e))
 			self.exit()
 		return True
 		
@@ -50,10 +50,10 @@ class Poller(dbus.service.Object):
 		logging.debug("Poller calling back, %s" % str(self._quitting))
 		try:
 			if not self._remote_app.PollingCallback(str(args), cancelled):
-				logger.debug("Poller exit, negative callback (exiting)")
+				logging.debug("Poller exit, negative callback (exiting)")
 				self.exit()
 		except Exception, e:
-			logger.debug("Poller exit, exception in callback: %s" % str(e))
+			logging.debug("Poller exit, exception in callback: %s" % str(e))
 			self.exit()
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
