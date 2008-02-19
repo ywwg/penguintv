@@ -82,7 +82,6 @@ class Poller(dbus.service.Object):
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def exit(self):
-		traceback.print_stack()
 		self._quitting = True
 		self._db.finish(False, False)
 		self._mainloop.quit()

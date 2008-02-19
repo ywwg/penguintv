@@ -173,11 +173,6 @@ class PenguinTVApp(gobject.GObject):
 			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 			ptv_dbus = ptvDbus.ptvDbus(self, name)
 			
-			#use out-of-process poller on hildon only.
-			if utils.RUNNING_HILDON:	
-				p = threading.Thread(None, self._get_poller)
-				p.start()
-			
 		self._net_connected = True
 		self.connect('online-status-changed', self.__online_status_changed)
 		self.connect('state-changed', self._state_changed_cb)
@@ -296,28 +291,34 @@ class PenguinTVApp(gobject.GObject):
 		self._load_settings()
 		
 		#more DBUS
-		sys_bus = dbus.SystemBus()
-		try:
-			sys_bus.add_signal_receiver(self._nm_device_no_longer_active,
-										'DeviceNoLongerActive',
-										'org.freedesktop.NetworkManager',
-										'org.freedesktop.NetworkManager',
-										'/org/freedesktop/NetworkManager')
+		if HAS_DBUS:
+			sys_bus = dbus.SystemBus()
+			try:
+				sys_bus.add_signal_receiver(self._nm_device_no_longer_active,
+											'DeviceNoLongerActive',
+											'org.freedesktop.NetworkManager',
+											'org.freedesktop.NetworkManager',
+											'/org/freedesktop/NetworkManager')
 
-			sys_bus.add_signal_receiver(self._nm_device_now_active,
-										'DeviceNowActive',
-										'org.freedesktop.NetworkManager',
-										'org.freedesktop.NetworkManager',
-										'/org/freedesktop/NetworkManager')
+				sys_bus.add_signal_receiver(self._nm_device_now_active,
+											'DeviceNowActive',
+											'org.freedesktop.NetworkManager',
+											'org.freedesktop.NetworkManager',
+											'/org/freedesktop/NetworkManager')
 										
-			nm_ob = sys_bus.get_object("org.freedesktop.NetworkManager", 
-									   "/org/freedesktop/NetworkManager")
-									   
-			self._nm_interface = dbus.Interface(nm_ob, 
-										  "org.freedesktop.NetworkManager")
-			logging.info("Listening to NetworkManager")
-		except:
-			self._nm_interface = None
+				nm_ob = sys_bus.get_object("org.freedesktop.NetworkManager", 
+										   "/org/freedesktop/NetworkManager")
+										   
+				self._nm_interface = dbus.Interface(nm_ob, 
+											  "org.freedesktop.NetworkManager")
+				logging.info("Listening to NetworkManager")
+			except:
+				self._nm_interface = None
+				
+			#use out-of-process poller on hildon only.
+			if utils.RUNNING_HILDON:	
+				p = threading.Thread(None, self._get_poller)
+				p.start()
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
@@ -675,8 +676,9 @@ class PenguinTVApp(gobject.GObject):
 		
 		if was_setup is not None:
 			if self.feed_refresh_method == REFRESH_AUTO:
-				if was_setup==0: #initial poll
-					arguments = arguments | ptvDB.A_ALL_FEEDS
+				pass
+				#if was_setup==0: #initial poll
+				#	arguments = arguments | ptvDB.A_ALL_FEEDS
 			elif self.feed_refresh_method == REFRESH_SPECIFIED:
 				if was_setup!=self.polling_frequency and was_setup!=0:
 					return False
@@ -1988,6 +1990,14 @@ class PenguinTVApp(gobject.GObject):
 		
 	def set_app_window_layout(self, layout):
 		self.main_window.layout=layout
+		
+	def _gconf_set_use_article_sync(self, client, *args, **kwargs):
+		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
+		self.set_use_article_sync(enabled)
+		self.window_preferences.set_use_article_sync(enabled)
+		
+	def set_use_article_sync(self, enabled):
+		
 		
 	#def update_feed_list(self, feed_id=None):
 	#	self.feed_list_view.update_feed_list(feed_id) #for now, just update this ONLY

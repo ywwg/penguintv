@@ -36,10 +36,6 @@ class EntryView(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT])),
 		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
-		#unused except by planetview
-		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT]))
     }	
 

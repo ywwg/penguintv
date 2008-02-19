@@ -45,9 +45,6 @@ class PlanetView(gobject.GObject):
 		#
 		#unused by planetview, but part of entrylist API
 		#
-        'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
         'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),

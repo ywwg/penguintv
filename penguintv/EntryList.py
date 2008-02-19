@@ -36,12 +36,7 @@ class EntryList(gobject.GObject):
                            []),
 		'entrylist-resized': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT])),
-
-		##unused (planetview specific)
-		'entries-selected': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
+                           ([gobject.TYPE_INT]))
     }	
 	
 	def __init__(self, widget_tree, app, feed_list_view, main_window, db):

@@ -288,6 +288,10 @@ class MainWindow(gobject.GObject):
 			menu = self._build_hildon_menu(self._menu_widgettree)
 			self.window.set_menu(menu)
 			
+			show_notifs_item = self._menu_widgettree.get_widget('show_notifications')
+			show_notifs_item.set_active(self._db.get_setting(ptvDB.BOOL, 
+		                           '/apps/penguintv/show_notifications', True))
+			
 			self.window.show_all()
 			
 			for key in dir(self.__class__): #python insaneness

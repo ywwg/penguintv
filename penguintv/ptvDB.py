@@ -227,7 +227,6 @@ class ptvDB:
 					logging.info("have leftover things to reindex, reindexing")
 					#don't do it threadedly or else we will interrupt it on the next line
 					self.reindex(threaded=False) #it's usually not much...
-				logging.debug("shutting down search indexer")
 				self.searcher.finish(True)
 				
 		#FIXME: lame, but I'm being lazy
@@ -1094,7 +1093,7 @@ class ptvDB:
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
 			
-			result = self.poll_feed(feed_id, args, preparsed=data)
+			result, new_entryids = self.poll_feed(feed_id, args, preparsed=data)
 
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
@@ -1133,6 +1132,7 @@ class ptvDB:
 		if result > 0:
 			update_data['first_poll'] = last_poll_time == 0
 			update_data['new_entries'] = result
+			update_data['new_entryids'] = new_entryids
 			if self.is_feed_filter(feed_id):
 				entries = self.get_entrylist(feed_id) #reinitialize filtered_entries dict
 				update_data['unread_count'] = self.get_unread_count(feed_id)
@@ -1169,7 +1169,8 @@ class ptvDB:
 			feed['feed_id']=feed_id
 			feed['title']=result[0]
 			feed['url']=result[1]
-			feed['new_entries'] = self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
+			feed['new_entries'], feed['new_entryids'] = 
+				self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
 			logging.warning(str(e))
@@ -1434,6 +1435,7 @@ class ptvDB:
 		
 		flag_list = []
 		no_delete = []
+		new_entryids = []
 		
 		default_read = int(feed['flags'] & FF_MARKASREAD == FF_MARKASREAD)
 		
@@ -1567,6 +1569,7 @@ class ptvDB:
 						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 				self._reindex_entry_list.append(entry_id)
 				no_delete.append(entry_id)
+				new_entryids.append(entry_id)
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
@@ -1681,7 +1684,7 @@ class ptvDB:
 		if arguments & A_DO_REINDEX:
 			if new_items > 0:
 				self.reindex()
-		return new_items
+		return (new_items, new_entryids)
 		
 	def _set_new_update_freq(self, feed, new_items):
 		"""Based on previous feed history and number of items found, adjust
@@ -1928,7 +1931,7 @@ class ptvDB:
 		return self._c.fetchone()[0]
 	
 	def get_entry(self, entry_id):
-		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read, keep FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
+		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read, keep, guid FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
 		result = self._c.fetchone()
 		
 		entry_dic={}
@@ -1941,6 +1944,7 @@ class ptvDB:
 			entry_dic['date'] = result[5]
 			entry_dic['read'] = result[6]
 			entry_dic['keep'] = result[7]
+			entry_dic['guid'] = result[8]
 			entry_dic['entry_id'] = entry_id
 		except TypeError: #this error occurs when feed or item is wrong
 			raise NoEntry, entry_id
@@ -1950,7 +1954,7 @@ class ptvDB:
 		if len(entry_list) == 0:
 			return
 		qmarks = "?,"*(len(entry_list)-1)+"?"
-		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, rowid, keep FROM entries WHERE rowid in ('+qmarks+')', (tuple(entry_list)))
+		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, rowid, keep, guid FROM entries WHERE rowid in ('+qmarks+')', (tuple(entry_list)))
 		result = self._c.fetchall()
 		if result is None:
 			return []
@@ -1965,6 +1969,7 @@ class ptvDB:
 			entry_dic['date'] = entry[5]
 			entry_dic['read'] = entry[6]
 			entry_dic['entry_id'] = entry[7]
+			entry_dic['guid'] = entry[7]
 			entry_dic['keep'] = entry[8]
 			retval.append(entry_dic)
 		return retval

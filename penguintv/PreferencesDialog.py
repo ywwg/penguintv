@@ -59,7 +59,7 @@ class PreferencesDialog:
 		if utils.RUNNING_HILDON:
 			if not self._hildon_inited:
 				#put in a scrolled viewport so the user can see all the prefs
-				parent_vbox = self.xml.get_widget('dialog_vbox')
+				parent = self.xml.get_widget('tab1_container')
 				contents = self.xml.get_widget('prefs_vbox')
 				scrolled = gtk.ScrolledWindow()
 				scrolled.set_size_request(650, 200)
@@ -67,7 +67,18 @@ class PreferencesDialog:
 				viewport = gtk.Viewport()
 				contents.reparent(viewport)
 				scrolled.add(viewport)
-				parent_vbox.add(scrolled)
+				parent.add(scrolled)
+				
+				parent = self.xml.get_widget('tab2_container')
+				contents = self.xml.get_widget('sync_contents')
+				scrolled = gtk.ScrolledWindow()
+				scrolled.set_size_request(650, 200)
+				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+				viewport = gtk.Viewport()
+				contents.reparent(viewport)
+				scrolled.add(viewport)
+				parent.add(scrolled)
+				
 				self._hildon_inited = True
 			self._window.show_all()
 		elif utils.RUNNING_SUGAR:
@@ -163,6 +174,20 @@ class PreferencesDialog:
 			self._hildon_chooser_button.set_label(location)
 		else:
 			self.xml.get_widget("media_storage_chooser").set_current_folder(location)
+			
+	def set_use_article_sync(self, enabled):
+		self.xml.get_widget("sync_enabled_checkbox").set_active(enabled)
+		self.xml.get_widget("sync_settings_frame").set_sensitive(enabled)
+		self.xml.get_widget("sync_status_box").set_sensitive(enabled)
+		
+	def set_sync_username(self, username):
+		self.xml.get_widget("sync_user_entry").set_text(username)
+	
+	def set_sync_password(self, password):
+		self.xml.get_widget("sync_pass_entry").set_text(password)
+			
+	def set_sync_status(self, status):
+		self.xml.get_widget("sync_status_label").set_text(status)
 					
 	def on_button_close_clicked(self,event):
 		self.hide()
@@ -266,4 +291,30 @@ class PreferencesDialog:
 		if not utils.HAS_GCONF:
 			logging.debug("telling the app about the new setting")
 			self._app.set_media_storage_location(val)
+			
+	def on_sync_enabled_toggled(self, widget):
+		enabled = widget.get_active()
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', 
+			enabled)
+		if not utils.HAS_GCONF:
+			self._app.set_use_article_sync(enabled)
 	
+		self.xml.get_widget("sync_settings_frame").set_sensitive(enabled)
+		self.xml.get_widget("sync_status_box").set_sensitive(enabled)
+		
+	def on_sync_user_entry_changed(self, widget):
+		username = widget.get_text()
+		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', 
+			username)
+		if not utils.HAS_GCONF:
+			self._app.set_sync_username(username)
+			
+	def on_sync_pass_entry_changed(self, widget):
+		password = widget.get_text()
+		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', 
+			password)
+		if not utils.HAS_GCONF:
+			self._app.set_sync_password(password)
+			
+	def on_sync_login_button_activate(self, widget):
+		self._app.sync_authenticate()
