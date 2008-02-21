@@ -79,6 +79,7 @@ import MediaManager
 import Player
 import UpdateTasksManager
 import Downloader
+import ArticleSync
 
 import AddFeedDialog
 import PreferencesDialog
@@ -287,6 +288,9 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/auto_download_limiter',self._gconf_set_auto_download_limiter)
 			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
 			conf.notify_add('/apps/penguintv/media_storage_location',self._gconf_set_media_storage_location)
+			conf.notify_add('/apps/penguintv/use_article_sync',self._gconf_set_use_article_sync)
+			conf.notify_add('/apps/penguintv/sync_username',self._gconf_set_sync_username)
+			conf.notify_add('/apps/penguintv/sync_password',self._gconf_set_sync_password)
 
 		self._load_settings()
 		
@@ -327,6 +331,11 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_view.post_show_init()
 		
 		self._connect_signals()
+		
+		self._article_sync = self._setup_article_sync()
+		self.feed_list_view.set_article_sync(self._article_sync)
+		if self._article_sync.is_enabled():
+			self.sync_authenticate(self._startup_article_sync)
 		
 		self.main_window.search_container.set_sensitive(False)
 		if utils.HAS_SEARCH:
@@ -428,6 +437,52 @@ class PenguinTVApp(gobject.GObject):
 			self._remote_poller = None
 			self._remote_poller_pid = 0
 			return False
+		return True
+		
+	def _setup_article_sync(self):
+		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
+		article_sync = ArticleSync.ArticleSync(self, self._entry_view, 
+								username, password, enabled)
+	
+		self.window_preferences.set_use_article_sync(enabled)
+		self.window_preferences.set_sync_username(username)
+		self.window_preferences.set_sync_password(password)
+		return article_sync
+		
+	def _startup_article_sync(self, success, start_timeout=True):
+		"""Sync feedlist and any entries since last timestamp"""
+		
+		if success:
+			self._article_sync.get_feed_counts()
+			self._article_sync.get_readstates(timestamp=int(time.time()))
+		else:
+			logging.warning("Didn't log in to article sync server")
+		if start_timeout:
+			gobject.timeout_add(15 * 60 * 1000, self._submit_new_readstates)
+
+	def _submit_new_readstates(self):
+		def _submit_cb(result):
+			if result:
+				logging.debug("success submitting readstates!")
+				self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+			else:
+				logging.debug("trouble submitting readstates")
+	
+		logging.debug("submitting new readstates, maybe")
+		if not self._article_sync.is_enabled():
+			logging.debug("not enabled")
+			return True
+		if not self._article_sync.is_authenticated():
+			logging.debug("not authenticated (trying again)")
+			self._article_sync.authenticate(lambda x: self._startup_article_sync(x, False))
+		else:
+			logging.debug("going for it!")
+			timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', 
+							int(time.time()) - (7 * 24 * 60 * 60)) #seven days
+			self._article_sync.submit_readstates_since(timestamp, _submit_cb)
+				
 		return True
 			
 	def _import_default_feeds(self):
@@ -559,7 +614,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		val = self.mediamanager.get_media_dir()
 		self.window_preferences.set_media_storage_location(val)
-			
+		
 	@utils.db_except()
 	def save_settings(self):
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.main_window.feed_pane.get_position())
@@ -647,7 +702,16 @@ class PenguinTVApp(gobject.GObject):
 		self.save_settings()
 		self.db.clean_media_status()
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
-		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4],c[5]] for c in self.feed_list_view.get_feed_cache()]
+		feed_cache = self.feed_list_view.get_feed_cache()
+		
+		feed_dict = {}
+		for feed_id, flag, unread, total, pollfail, firstentrytitle in feed_cache:
+			feed_dict[feed_id] = unread
+		self._article_sync.submit_feed_counts(feed_dict)
+		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', 0)
+		self._article_sync.submit_readstates_since(timestamp)
+		
+		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4],c[5]] for c in feed_cache]
 		self.db.set_feed_cache(adjusted_cache)
 		logging.info('stopping db')
 		self.db.finish(majorsearchwait=False)	
@@ -1995,9 +2059,42 @@ class PenguinTVApp(gobject.GObject):
 		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
 		self.set_use_article_sync(enabled)
 		self.window_preferences.set_use_article_sync(enabled)
+		if enabled:
+			self.sync_authenticate()
+		else:
+			self.window_preferences.set_sync_status(_("Not Connected"))
 		
 	def set_use_article_sync(self, enabled):
+		self._article_sync.set_enabled(enabled)
 		
+	def _gconf_set_sync_username(self, client, *args, **kwargs):
+		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+		self.set_sync_username(username)
+		
+	def set_sync_username(self, username):
+		self._article_sync.set_username(username)
+		self.window_preferences.set_sync_username(username)
+		
+	def _gconf_set_sync_password(self, client, *args, **kwargs):
+		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+		self.set_sync_password(password)
+		
+	def set_sync_password(self, password):
+		self._article_sync.set_password(password)
+		self.window_preferences.set_sync_password(password)
+		
+	def sync_authenticate(self, cb=None):
+		logging.debug("authenticating sync settings")
+		
+		def authenticate_cb(result):
+			if result:
+				self.window_preferences.set_sync_status(_("Logged in"))
+			else:
+				self.window_preferences.set_sync_status(_("Not Logged in"))
+			if cb is not None:
+				cb(result)
+		
+		self._article_sync.authenticate(cb=authenticate_cb)
 		
 	#def update_feed_list(self, feed_id=None):
 	#	self.feed_list_view.update_feed_list(feed_id) #for now, just update this ONLY

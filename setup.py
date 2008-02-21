@@ -153,7 +153,7 @@ try:
 	import gconf
 except:
 	try:
-		from gnome import gconf:
+		from gnome import gconf
 	except:
 		print "WARNING: gconf not installed or not installed correctly: Gconf support will be disabled"
 		something_disabled = True

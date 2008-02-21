@@ -292,7 +292,7 @@ class PreferencesDialog:
 			logging.debug("telling the app about the new setting")
 			self._app.set_media_storage_location(val)
 			
-	def on_sync_enabled_toggled(self, widget):
+	def on_sync_enabled_checkbox_toggled(self, widget):
 		enabled = widget.get_active()
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', 
 			enabled)
@@ -316,5 +316,6 @@ class PreferencesDialog:
 		if not utils.HAS_GCONF:
 			self._app.set_sync_password(password)
 			
-	def on_sync_login_button_activate(self, widget):
+	def on_sync_login_button_clicked(self, widget):
+		logging.debug("button clicked")
 		self._app.sync_authenticate()

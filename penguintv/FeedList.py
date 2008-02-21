@@ -188,6 +188,10 @@ class FeedList(gobject.GObject):
 			else:
 				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
+	
+	def set_article_sync(self, sync):
+		h_id = sync.connect('update-feed-count', self.__update_feed_count_cb)
+		self._handlers.append((sync.disconnect, h_id))
 			
 	def finalize(self):
 		for disconnector, h_id in self._handlers:
@@ -226,6 +230,11 @@ class FeedList(gobject.GObject):
 	
 	def __entrylist_read_cb(self, app, feed_id, entrylist):
 		self.mark_entries_read(len(entrylist), feed_id)
+		
+	def __update_feed_count_cb(self, o, feed_id, count):
+		#logging.debug("update %i ->  %i" % (feed_id, count))
+		self.update_feed_list(feed_id, update_what=['readinfo'], 
+			update_data={'unread_count':count})
 
 	def grab_focus(self):
 		self._widget.grab_focus()
@@ -312,12 +321,16 @@ class FeedList(gobject.GObject):
 					continue
 			
 			if feed_cache is not None:
-				cached     = feed_cache[i]
-				flag       = cached[1]
-				unviewed   = cached[2]
-				entry_count= cached[3]
-				pollfail   = cached[4]
-				m_first_entry_title = cached[5]
+				try:
+					cached     = feed_cache[i]
+					flag       = cached[1]
+					unviewed   = cached[2]
+					entry_count= cached[3]
+					pollfail   = cached[4]
+					m_first_entry_title = cached[5]
+				except:
+					#bad cache, trigger test below
+					entry_count = None
 			else:
 				feed_info   = self._db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
@@ -331,6 +344,7 @@ class FeedList(gobject.GObject):
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
+				m_first_entry_title = ""
 				
 			if self._feedlist[i][FLAG]!=0:
 				flag = self._feedlist[i][FLAG] #don't overwrite flag (race condition)

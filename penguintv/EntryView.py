@@ -50,12 +50,13 @@ class EntryView(gobject.GObject):
 		self._moz_realized = False
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
-		html_dock = widget_tree.get_widget('html_dock')
+		self._widget_tree = widget_tree
+		html_dock = self._widget_tree.get_widget('html_dock')
 		
-		scrolled_window = gtk.ScrolledWindow()
-		html_dock.add(scrolled_window)
-		scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
-		scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		self._scrolled_window = gtk.ScrolledWindow()
+		html_dock.add(self._scrolled_window)
+		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
+		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		
 		#thanks to straw, again
 		style = html_dock.get_style().copy()
@@ -119,7 +120,7 @@ class EntryView(gobject.GObject):
 		#self._handlers.append((app.disconnect, h_id))
 		
 	def post_show_init(self):
-		html_dock = widget_tree.get_widget('html_dock')
+		html_dock = self._widget_tree.get_widget('html_dock')
 		if self._renderer==EntryFormatter.MOZILLA:
 			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
 			for l in f.readlines(): self._css += l
@@ -133,7 +134,7 @@ class EntryView(gobject.GObject):
 			self._moz.connect("unrealize", self._moz_realize, False)
 			self._moz.load_url("about:blank")
 			#html_dock.add(self._moz)
-			scrolled_window.add_with_viewport(self._moz)
+			self._scrolled_window.add_with_viewport(self._moz)
 			self._moz.show()
 			if utils.HAS_GCONF:
 				try:
@@ -364,6 +365,8 @@ class EntryView(gobject.GObject):
 			formatter = self._entry_formatter
 	
 		if self._renderer == EntryFormatter.MOZILLA:
+			if not self._moz_realized:
+				return
 			if item is not None:
 				#no comments in css { } please!
 				#FIXME windows: os.path.join... wrong direction slashes?  does moz care?

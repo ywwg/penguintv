@@ -24,6 +24,7 @@ import gettext
 import sets
 import traceback
 import pickle
+import sha
 
 import socket
 socket.setdefaulttimeout(30.0)
@@ -531,7 +532,8 @@ class ptvDB:
 						"""id, feed_id, title, creator, description,
 					        	fakedate, date, guid, link, keep,
 								read""")
-						 
+		
+		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN hash TEXT')
 
 		self._db_execute(self._c, u'UPDATE settings SET value=7 WHERE data="db_ver"')
 		self._db.commit()
@@ -607,6 +609,7 @@ class ptvDB:
 					        	link TEXT,
 					        	keep INTEGER,
 								read INTEGER NOT NULL,
+								hash TEXT,
 							);""")
 		self._db_execute(self._c, u"""CREATE TABLE media
 							(
@@ -867,7 +870,6 @@ class ptvDB:
 		return feed_id
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
-		import sha
 		self._db_execute(self._c, u'SELECT rowid,feed_pointer,description FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
 		result = self._c.fetchone()
 		if result is None:
@@ -1169,7 +1171,7 @@ class ptvDB:
 			feed['feed_id']=feed_id
 			feed['title']=result[0]
 			feed['url']=result[1]
-			feed['new_entries'], feed['new_entryids'] = 
+			feed['new_entries'], feed['new_entryids'] = \
 				self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
@@ -1219,7 +1221,7 @@ class ptvDB:
 			#result =self._c.fetchone()
 			#if result:
 			if feed['feed_pointer'] >= 0:
-				return 0
+				return 0, []
 				
 			#self._db_execute(self._c, """SELECT url,etag FROM feeds WHERE rowid=?""",(feed_id,))
 			#data = self._c.fetchone()
@@ -1257,7 +1259,7 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 			elif preparsed == -2:
 				#print "pointer feed, returning 0"
-				return 0
+				return 0, []
 			else:
 				#print "data is good"
 				#need to get a url from somewhere
@@ -1276,7 +1278,7 @@ class ptvDB:
 				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				#self._db.commit()
 				perform_feed_updates(feed_updates, feed_id)
-				return 0
+				return 0, []
 			if data['status'] == 404: #whoops
 				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
@@ -1557,9 +1559,15 @@ class ptvDB:
 				
 			status = self._get_status(item, existing_entries, guid_quality, media_entries)
 			
+			entry_hash = sha.new()
 			if status[0]==NEW:
 				new_items = new_items+1
-				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0)',(feed_id,item['title'],item['creator'],item['body'],default_read,fake_time-i, int(time.mktime(item['date_parsed'])),item['guid'],item['link']))
+				entry_hash.update(str(item['guid']) + str(item['title']))
+				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
+						(feed_id,item['title'],item['creator'],item['body'],
+						default_read,fake_time-i, 
+						int(time.mktime(item['date_parsed'])),
+						item['guid'],item['link'], entry_hash.hexdigest()))
 				self._db_execute(self._c,  "SELECT last_insert_rowid()")
 				entry_id = self._c.fetchone()[0]
 				if item.has_key('enclosures'):
@@ -1573,10 +1581,11 @@ class ptvDB:
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
-				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=? WHERE rowid=?',
+				entry_hash.update(str(item['guid']) + str(item['title']))
+				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, hash=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
 								 int(time.mktime(item['date_parsed'])),item['guid'],
-								 item['link'], status[1]))
+								 item['link'], entry_hash.hexdigest(), status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
 					#self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
@@ -1931,7 +1940,7 @@ class ptvDB:
 		return self._c.fetchone()[0]
 	
 	def get_entry(self, entry_id):
-		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read, keep, guid FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
+		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read, keep, guid, hash FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
 		result = self._c.fetchone()
 		
 		entry_dic={}
@@ -1945,6 +1954,7 @@ class ptvDB:
 			entry_dic['read'] = result[6]
 			entry_dic['keep'] = result[7]
 			entry_dic['guid'] = result[8]
+			entry_dic['hash'] = result[9]
 			entry_dic['entry_id'] = entry_id
 		except TypeError: #this error occurs when feed or item is wrong
 			raise NoEntry, entry_id
@@ -1952,9 +1962,9 @@ class ptvDB:
 		
 	def get_entry_block(self, entry_list):
 		if len(entry_list) == 0:
-			return
+			return []
 		qmarks = "?,"*(len(entry_list)-1)+"?"
-		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, rowid, keep, guid FROM entries WHERE rowid in ('+qmarks+')', (tuple(entry_list)))
+		self._db_execute(self._c, u'SELECT title, creator, link, description, feed_id, date, read, rowid, keep, guid, hash FROM entries WHERE rowid in ('+qmarks+')', (tuple(entry_list)))
 		result = self._c.fetchall()
 		if result is None:
 			return []
@@ -1969,10 +1979,19 @@ class ptvDB:
 			entry_dic['date'] = entry[5]
 			entry_dic['read'] = entry[6]
 			entry_dic['entry_id'] = entry[7]
-			entry_dic['guid'] = entry[7]
 			entry_dic['keep'] = entry[8]
+			entry_dic['guid'] = entry[9]
+			entry_dic['hash'] = entry[10]
 			retval.append(entry_dic)
 		return retval
+		
+	def get_entries_since(self, timestamp):
+		self._db_execute(self._c, u'SELECT feed_id, rowid, hash, read FROM entries WHERE fakedate > ?', (timestamp,))
+		result = self._c.fetchall()
+		if result is None:
+			return []
+		else:
+			return result
 		
 	def get_kept_entries(self, feed_id):
 		self._db_execute(self._c, u'SELECT rowid FROM entries WHERE keep=1 AND feed_id=?', (feed_id,))
@@ -2491,7 +2510,14 @@ class ptvDB:
 		
 		if USING_FLAG_CACHE:
 			self.entry_flag_cache[entry_id] = importance
-		return importance		
+		return importance
+		
+	def get_entry_for_hash(self, e_hash):
+		self._db_execute(self._c, u'SELECT feed_id, rowid FROM entries WHERE hash=?', (e_hash,))
+		retval = self._c.fetchone()
+		if retval is None:
+			return None, None
+		return retval
 		
 	def get_unread_count(self, feed_id):
 		if self._filtered_entries.has_key(feed_id):

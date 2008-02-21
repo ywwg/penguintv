@@ -138,7 +138,7 @@ VERSION="3.50"
 # Lucene sucks, forget it
 HAS_LUCENE = False
 ##disable while still unstable
-#HAS_XAPIAN = False
+HAS_XAPIAN = False
 if not HAS_XAPIAN:
 	HAS_SEARCH = False
 	
