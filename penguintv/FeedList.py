@@ -189,10 +189,6 @@ class FeedList(gobject.GObject):
 				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
 	
-	def set_article_sync(self, sync):
-		h_id = sync.connect('update-feed-count', self.__update_feed_count_cb)
-		self._handlers.append((sync.disconnect, h_id))
-			
 	def finalize(self):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
@@ -200,6 +196,14 @@ class FeedList(gobject.GObject):
 	def set_entry_view(self, entry_view):
 		h_id = entry_view.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((entry_view.disconnect, h_id))
+			
+	def set_article_sync(self, sync):
+		h_id = sync.connect('update-feed-count', self.__update_feed_count_cb)
+		self._handlers.append((sync.disconnect, h_id))
+		h_id = sync.connect('entries-viewed', self.__entries_viewed_cb)
+		self._handlers.append((sync.disconnect, h_id))
+		h_id = sync.connect('entries-unviewed', self.__entries_unviewed_cb)
+		self._handlers.append((sync.disconnect, h_id))
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		if update_data.has_key('no_changes'):
@@ -227,6 +231,9 @@ class FeedList(gobject.GObject):
 
 	def __entries_viewed_cb(self, app, feed_id, entrylist):
 		self.mark_entries_read(len(entrylist), feed_id)
+		
+	def __entries_unviewed_cb(self, app, feed_id, entrylist):
+		self.mark_entries_read(0 - len(entrylist), feed_id)
 	
 	def __entrylist_read_cb(self, app, feed_id, entrylist):
 		self.mark_entries_read(len(entrylist), feed_id)
@@ -370,7 +377,7 @@ class FeedList(gobject.GObject):
 				model, iter = selection.get_selected()
 				try: sel = model[iter][FEEDID]
 				except: sel = -1
-				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag, feed_id == sel) 
+				m_title = self._get_fancy_markedup_title(title,m_first_entry_title,unviewed,entry_count,flag,feed_id)
 				m_readinfo = self._get_markedup_title("(%d/%d)\n" % (unviewed,entry_count), flag)
 			else:
 				m_title = self._get_markedup_title(title,flag)
@@ -543,7 +550,7 @@ class FeedList(gobject.GObject):
 			if self._fancy:
 				try: feed[FIRSTENTRYTITLE] = self._db.get_first_entry_title(feed_id, True)
 				except: feed[FIRSTENTRYTITLE] = ""
-				feed[MARKUPTITLE] = self._get_fancy_markedup_title(update_data['title'],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], flag, feed_id == selected)
+				feed[MARKUPTITLE] = self._get_fancy_markedup_title(update_data['title'],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], flag, feed[FEEDID])
 			else:
 				feed[MARKUPTITLE] = self._get_markedup_title(update_data['title'], flag)
 				
@@ -633,7 +640,7 @@ class FeedList(gobject.GObject):
 															   feed[UNREAD], 
 															   feed[TOTAL], 
 															   feed[FLAG], 
-															   True)
+															   feed[FEEDID])
 		else:
 			feed[MARKUPTITLE] = self._get_markedup_title(feed[TITLE], feed[FLAG])
 			
@@ -652,7 +659,7 @@ class FeedList(gobject.GObject):
 			
 		if self._last_feed is not None:
 			old_item = self._feedlist[self._last_feed]
-			old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
+			old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], old_item[FEEDID])
 			
 		if results is None:
 			results = []
@@ -791,7 +798,7 @@ class FeedList(gobject.GObject):
 				if not passed_filter:
 					self._widget.get_selection().unselect_all() #and clear out the entry list and entry view
 					if self._fancy:
-						feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], False)
+						feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], feed[FEEDID])
 					#self._app.display_feed(-1)
 					self.emit('no-feed-selected')
 			else: #if it's not the selected feed
@@ -888,8 +895,8 @@ class FeedList(gobject.GObject):
 																  row[FIRSTENTRYTITLE],
 																  row[UNREAD],
 																  row[TOTAL],
-																  row[FLAG], 
-																  row[FEEDID] == selected)
+																  row[FLAG],
+																  row[FEEDID])
 				#self.resize_columns()
 				yield True
 		if self._cancel_load[1]:
@@ -1113,7 +1120,14 @@ class FeedList(gobject.GObject):
 			return title
 		return title
 		
-	def _get_fancy_markedup_title(self, title, first_entry_title, unread, total, flag, selected):
+	def _get_fancy_markedup_title(self, title, first_entry_title, unread, total, flag, feed_id, selected=None):
+		if selected is None:
+			selection = self._widget.get_selection()
+			model, iter = selection.get_selected()
+			try: sel = model[iter][FEEDID]
+			except: sel = -1
+			selected = feed_id == sel
+			
 		if not title:
 			return _("Please wait...")
 		try:
@@ -1151,7 +1165,7 @@ class FeedList(gobject.GObject):
 		if self._fancy and self._last_feed is not None:
 			try: 
 				old_item = self._feedlist[self._last_feed]
-				old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], False)
+				old_item[MARKUPTITLE] = self._get_fancy_markedup_title(old_item[TITLE],old_item[FIRSTENTRYTITLE],old_item[UNREAD], old_item[TOTAL], old_item[FLAG], old_item[FEEDID], False)
 			except:
 				pass
 				
@@ -1171,7 +1185,7 @@ class FeedList(gobject.GObject):
 		self._select_after_load=None
 		
 		if self._fancy:
-			feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], True)
+			feed[MARKUPTITLE] = self._get_fancy_markedup_title(feed[TITLE],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], feed[FLAG], feed[FEEDID], True)
 
 		try:
 			if self._feedlist[self.find_index_of_item(feed[FEEDID])][POLLFAIL]:

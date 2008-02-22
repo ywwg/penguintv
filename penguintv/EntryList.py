@@ -114,6 +114,12 @@ class EntryList(gobject.GObject):
 		h_id = entry_view.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((entry_view.disconnect, h_id))
 		
+	def set_article_sync(self, article_sync):
+		h_id = article_sync.connect('entries-viewed', self.__entries_viewed_cb)
+		self._handlers.append((article_sync.disconnect, h_id))
+		h_id = article_sync.connect('entries-unviewed', self.__entries_viewed_cb)
+		self._handlers.append((article_sync.disconnect, h_id))
+		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
 		
@@ -148,7 +154,7 @@ class EntryList(gobject.GObject):
 		
 	def __entries_viewed_cb(self, app, feed_id, entrylist):
 		for e in entrylist:
-			self.update_entry_list(e['entry_id'])
+			self.update_entry_list(e)
 			
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:

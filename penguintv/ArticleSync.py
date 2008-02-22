@@ -228,6 +228,8 @@ class ArticleSync(gobject.GObject):
 		"""get hashes while we are in main thread"""
 		
 		assert id_list is not None or timestamp is not None
+		if cb is None:
+			cb = self._get_readstates_cb
 		
 		if id_list is None:
 			hashes = None
@@ -300,16 +302,16 @@ class ArticleSync(gobject.GObject):
 		if server_readstates is None:
 			return False
 			
-		def emit_signal(feed_id, entrylist, signal_name):
-			#self.emit(signal_name, feed_id, entrylist)
+		def emit_signal(signal_name, feed_id, entrylist,):
 			logging.debug("would emit %s with %s %s" % 
 				(signal_name, feed_id, entrylist))
-			
+			self.emit(signal_name, feed_id, entrylist)
+				
 		unhashed_readstates = []
 		for k in server_readstates.keys():
 			f_id, e_id = self._db.get_entry_for_hash(k)
 			if e_id is not None:
-				unhashed_readstates.append(f_id, e_id, server_readstates[k])
+				unhashed_readstates.append((f_id, e_id, server_readstates[k]))
 			
 		# sort by feed id
 		unhashed_readstates.sort()
@@ -318,22 +320,28 @@ class ArticleSync(gobject.GObject):
 		for feed_id, entry_id, readstate in unhashed_readstates:
 			if cur_feed_id != feed_id:
 				if len(cur_list) > 0:
-					default_read = \
-						self._db.get_flags_for_feed(cur_feed_id) & FF_MARKASREAD
-	
+					default_read = self._db.get_flags_for_feed(cur_feed_id) & \
+						FF_MARKASREAD and 1 or 0
+					title = self._db.get_feed_title(cur_feed_id)
+					logging.debug("SYNC: %s %s" % (title, str(cur_list)))	
 					emit_list = [e[0] for e in cur_list if e[1] != default_read]
 				
 					# what's the default?
 					signal_name = default_read and \
 						'entries-unviewed' or 'entries-viewed'
-					emit_signal(cur_feed_id, cur_list)
+					emit_signal(signal_name, cur_feed_id, emit_list)
 					
 				cur_feed_id = feed_id
 			cur_list.append((entry_id, readstate))
 		if len(cur_list) > 0:
+			default_read = self._db.get_flags_for_feed(cur_feed_id) & \
+				FF_MARKASREAD and 1 or 0
+			title = self._db.get_feed_title(cur_feed_id)
+			logging.debug("SYNC: %s %s" % (title, str(cur_list)))	
+			emit_list = [e[0] for e in cur_list if e[1] != default_read]
 			signal_name = default_read and \
 				'entries-unviewed' or 'entries-viewed'
-			emit_signal(feed_id, cur_list)
+			emit_signal(signal_name, feed_id, emit_list)
 
 		return False
 		
@@ -362,8 +370,8 @@ class ArticleSync(gobject.GObject):
 		for feed_id, entry_id, entry_hash, read in hashlist:
 			if cur_feed_id != feed_id:
 				if len(cur_list) > 0:
-					default_read = \
-						self._db.get_flags_for_feed(cur_feed_id) & FF_MARKASREAD
+					default_read = self._db.get_flags_for_feed(cur_feed_id) & \
+							FF_MARKASREAD and 1 or 0
 					changed = {}
 					for entry_id, readstate in cur_list:
 						if readstate != default_read:
@@ -372,7 +380,8 @@ class ArticleSync(gobject.GObject):
 				cur_feed_id = feed_id
 			cur_list.append((entry_hash, read))
 		if len(cur_list) > 0:
-			default_read = self._db.get_flags_for_feed(cur_feed_id) & FF_MARKASREAD
+			default_read = self._db.get_flags_for_feed(cur_feed_id) & \
+				FF_MARKASREAD and 1 or 0
 			changed = {}
 			for entry_id, readstate in cur_list:
 				if readstate != default_read:
@@ -445,25 +454,27 @@ class ArticleSync(gobject.GObject):
 			return False
 			
 	@authenticated_func()
-	def get_feed_counts(self):
-		feed_dict = {}
-		for feed_id, title, url in self._db.get_feedlist():
-			s = sha.new()
-			s.update(url)
-			feed_dict[s.hexdigest()] = feed_id
+	def get_feed_counts(self, cb=None):
+		if cb is None:
+			cb = _get_feed_counts_cb
+			feed_dict = {}
+			for feed_id, title, url in self._db.get_feedlist():
+				s = sha.new()
+				s.update(url)
+				feed_dict[s.hexdigest()] = feed_id
 			
 		def _get_feed_counts_cb(counts):
 			for feedhash in counts.keys():
 				try:
 					logging.debug("emit update-feed-count: %i %i" % \
 						(feed_dict[feedhash], counts[feedhash]))
-					#self.emit('update-feed-count', 
-					#	feed_dict[feedhash], counts[feedhash])
+					self.emit('update-feed-count', 
+						feed_dict[feedhash], counts[feedhash])
 				except:
 					logging.debug("got key from server that doesn't exist locally -- this is ok")
 			return False
 
-		self._do_get_feed_counts(cb=_get_feed_counts_cb)
+		self._do_get_feed_counts(cb=cb)
 	
 	@threaded_func()
 	def _do_get_feed_counts(self):
@@ -505,10 +516,12 @@ class ArticleSync(gobject.GObject):
 			if entry['hash'] is not None:
 				hashdict[entry['entry_id']] = entry['hash']
 			else:
+				logging.error("Hash does not exist for entry: %s" % \
+					str(entry['entry_id']))
 				#This must match ptvdb line ~1565
-				s = sha.new()
-				s.update(str(entry['guid']) + str(entry['title']))
-				hashdict[entry['entry_id']] = s.hexdigest()
+				#s = sha.new()
+				#s.update(str(entry['guid']) + str(entry['title']))
+				#hashdict[entry['entry_id']] = s.hexdigest()
 		return hashdict
 		
 	def _submit_list(self, base_url, arglist):

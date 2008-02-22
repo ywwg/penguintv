@@ -53,6 +53,7 @@ import gobject
 import locale
 import gettext
 import getopt
+import sha
 try:
 	import dbus
 	import dbus.service
@@ -330,12 +331,13 @@ class PenguinTVApp(gobject.GObject):
 		
 		self._entry_view.post_show_init()
 		
-		self._connect_signals()
-		
 		self._article_sync = self._setup_article_sync()
 		self.feed_list_view.set_article_sync(self._article_sync)
+		self._entry_list_view.set_article_sync(self._article_sync)
 		if self._article_sync.is_enabled():
 			self.sync_authenticate(self._startup_article_sync)
+		
+		self._connect_signals()
 		
 		self.main_window.search_container.set_sensitive(False)
 		if utils.HAS_SEARCH:
@@ -455,8 +457,10 @@ class PenguinTVApp(gobject.GObject):
 		"""Sync feedlist and any entries since last timestamp"""
 		
 		if success:
-			self._article_sync.get_feed_counts()
-			self._article_sync.get_readstates(timestamp=int(time.time()))
+			pass
+			#self._article_sync.get_feed_counts()
+			#done in done_populating
+			#self._article_sync.get_readstates(timestamp=int(time.time()))
 		else:
 			logging.warning("Didn't log in to article sync server")
 		if start_timeout:
@@ -469,6 +473,7 @@ class PenguinTVApp(gobject.GObject):
 				self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 			else:
 				logging.debug("trouble submitting readstates")
+			return False
 	
 		logging.debug("submitting new readstates, maybe")
 		if not self._article_sync.is_enabled():
@@ -480,7 +485,7 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			logging.debug("going for it!")
 			timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', 
-							int(time.time()) - (7 * 24 * 60 * 60)) #seven days
+							int(time.time()) - (1 * 24 * 60 * 60)) #one day
 			self._article_sync.submit_readstates_since(timestamp, _submit_cb)
 				
 		return True
@@ -514,6 +519,8 @@ class PenguinTVApp(gobject.GObject):
 		self.feed_list_view.connect('state-change', self.__feedlist_state_change_cb)
 		#self._entry_view.connect('entry-selected', self.__entry_selected_cb)
 		self._entry_view.connect('entries-viewed', self.__entries_viewed_cb)
+		self._article_sync.connect('entries-viewed', self.__entries_viewed_cb)
+		self._article_sync.connect('entries-unviewed', self.__entries_viewed_cb)
 		
 		self.feed_list_view.set_entry_view(self._entry_view)	
 		self._entry_list_view.set_entry_view(self._entry_view)
@@ -527,12 +534,14 @@ class PenguinTVApp(gobject.GObject):
 	#		self._delayed_set_viewed(feed_id, [entry_id])
 	#			
 	#def __entries_selected_cb(self, o, feed_id, entrylist):
-	#	#self.mark_entrylist_as_viewed(feed_id, entrylist, False)
+	#	#self.mark_entrylist_viewstate(feed_id, entrylist, False)
 	#	self._delayed_set_viewed(feed_id, entrylist)
 	
 	def __entries_viewed_cb(self, o, feed_id, entrylist):
-		id_list = [e['entry_id'] for e in entrylist]
-		self.mark_entrylist_as_viewed(feed_id, id_list)
+		self.mark_entrylist_viewstate(feed_id, entrylist, True)
+		
+	def __entries_viewed_cb(self, o, feed_id, entrylist):
+		self.mark_entrylist_viewstate(feed_id, entrylist, False)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
@@ -708,8 +717,9 @@ class PenguinTVApp(gobject.GObject):
 		for feed_id, flag, unread, total, pollfail, firstentrytitle in feed_cache:
 			feed_dict[feed_id] = unread
 		self._article_sync.submit_feed_counts(feed_dict)
-		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', 0)
+		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (24*60*60))
 		self._article_sync.submit_readstates_since(timestamp)
+		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 		
 		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4],c[5]] for c in feed_cache]
 		self.db.set_feed_cache(adjusted_cache)
@@ -1334,14 +1344,17 @@ class PenguinTVApp(gobject.GObject):
 			self.emit('entry-updated', entry['entry_id'], feed_id)
 		
 	@utils.db_except()
-	def mark_entrylist_as_viewed(self, feed_id, entrylist): #, update_entrylist=True):
+	def mark_entrylist_viewstate(self, feed_id, entrylist, read=True): #, update_entrylist=True):
 		if len(entrylist) == 0:
 			return
 		
-		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
+		default_read = self.db.get_flags_for_feed(feed_id) & \
+							ptvDB.FF_MARKASREAD and 1 or 0
+		
+		if default_read and read:
 			return
 		
-		self.db.set_entrylist_read(entrylist, True)
+		self.db.set_entrylist_read(entrylist, read)
 		#self.emit('entrylist-read', feed_id, entrylist)
 			
 	@utils.db_except()
@@ -1811,7 +1824,7 @@ class PenguinTVApp(gobject.GObject):
 		all_feeds_list = db.get_media_for_download()
 		this_feed_list = [item[2] for item in all_feeds_list if item[3] == feed_id]
 		db.set_entrylist_read(this_feed_list[1:], True)
-		self.mark_entrylist_as_viewed(feed_id, this_feed_list[1:])
+		self.mark_entrylist_viewstate(feed_id, this_feed_list[1:], True)
 		self.emit('entrylist-read', feed_id, this_feed_list[1:])
 		if self._auto_download:
 			self._auto_download_unviewed()
@@ -2093,6 +2106,7 @@ class PenguinTVApp(gobject.GObject):
 				self.window_preferences.set_sync_status(_("Not Logged in"))
 			if cb is not None:
 				cb(result)
+			return False
 		
 		self._article_sync.authenticate(cb=authenticate_cb)
 		
@@ -2110,10 +2124,46 @@ class PenguinTVApp(gobject.GObject):
 		self._gui_updater.queue(self.main_window._sensitize_search)
 		
 	def _done_populating(self):
+		self._article_sync.get_feed_counts(self._get_feed_counts_cb)
+		self._article_sync.get_readstates(timestamp=int(time.time()))
 		self._gui_updater.queue(self.done_populating)
 
 	def _done_populating_dont_sensitize(self):
+		self._article_sync.get_feed_counts(self._get_feed_counts_cb)
+		self._article_sync.get_readstates(timestamp=int(time.time()))
 		self._gui_updater.queue(self.done_populating, False)
+		
+	def _get_feed_counts_cb(self, counts):
+		feed_dict = {}
+		for row1, row2 in zip(self.db.get_feedlist(), self.feed_list_view.get_feed_cache()):
+			#feed_id, title, url, feed_id, flag, unread, total, pollfail, firstentrytitle
+			row = row1 + row2
+			feed = {}
+			feed['feed_id'] = row[0]
+			feed['url'] = row[2]
+			feed['unread'] = row[5]
+			feed['title'] = row[1]
+			s = sha.new()
+			s.update(feed['url'])
+			feed_dict[s.hexdigest()] = feed
+	
+		for feedhash in counts.keys():
+			if feed_dict.has_key(feedhash):
+				if counts[feedhash] < feed_dict[feedhash]['unread']:
+					logging.debug("%s: server: %s local: %s" % \
+						(feed_dict[feedhash]['title'], counts[feedhash], 
+						 feed_dict[feedhash]['unread']))
+					unreads = self.db.get_unread_entries(feed_dict[feedhash]['feed_id'])
+					self._article_sync.get_readstates(unreads)
+					
+				elif counts[feedhash] > feed_dict[feedhash]['unread']:
+					logging.debug("%s: server: %s local: %s" % \
+						(feed_dict[feedhash]['title'], counts[feedhash], 
+						 feed_dict[feedhash]['unread']))
+					logging.debug("server has more unread, ignoring")
+				else:
+					logging.debug("%s: server and local agree" % feed_dict[feedhash]['title'])
+		return False
 		
 	def done_populating(self, sensitize=True):
 		self._unset_state(True) #force exit of done_loading state

@@ -534,7 +534,18 @@ class ptvDB:
 								read""")
 		
 		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN hash TEXT')
-
+		
+		logging.info("Creating entry hashes")
+		self._db_execute(self._c, u'SELECT rowid, guid, title FROM entries')
+		entries = self._c.fetchall()
+		hashes = []
+		for entry_id, guid, title in entries:
+			s = sha.new()
+			s.update(str(guid) + str(title))
+			self._db_execute(self._c, u'UPDATE entries SET hash=? WHERE rowid=?', (s.hexdigest(), entry_id))
+		
+		self._db.commit()
+		
 		self._db_execute(self._c, u'UPDATE settings SET value=7 WHERE data="db_ver"')
 		self._db.commit()
 		
@@ -2518,6 +2529,16 @@ class ptvDB:
 		if retval is None:
 			return None, None
 		return retval
+		
+	def get_unread_entries(self, feed_id):
+		if self._filtered_entries.has_key(feed_id):
+			return []
+		
+		self._db_execute(self._c, u'SELECT rowid FROM entries WHERE feed_id=? AND read=0', (feed_id,))
+		retval = self._c.fetchall()
+		if retval is None:
+			return []
+		return [r[0] for r in retval]
 		
 	def get_unread_count(self, feed_id):
 		if self._filtered_entries.has_key(feed_id):
