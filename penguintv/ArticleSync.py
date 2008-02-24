@@ -9,11 +9,12 @@ logging.basicConfig(level=logging.DEBUG)
 import gobject
 
 from ptvDB import FF_MARKASREAD
-
-URL_URL = "http://penguintv.sourceforge.net/sync_server.txt"
+from amazon import S3
 
 ### Debugging uses regular callbacks instead of gobject idlers
 DEBUG = False
+
+BUCKET_NAME = 'penguintv-article-sync'
 
 def threaded_func():
 	def annotate(func):
@@ -51,8 +52,8 @@ def authenticated_func():
 		def _exec_cb(self, *args, **kwargs):
 			if not self._enabled:
 				return
-			elif self._serveraddr is None:
-				self.emit('server-error', "Server address unknown")
+			elif self._conn is None:
+				self.emit('server-error', "No Connection")
 			elif not self._authenticated:
 				self.emit('authentication-error', "Not authenticated")
 			else:
@@ -80,7 +81,7 @@ class ArticleSync(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT]))             
 	}
 
-	def __init__(self, app, entry_view, username, password, enabled=True):
+	def __init__(self, app, entry_view, access_key, secret_key, enabled=True):
 		gobject.GObject.__init__(self)
 		if app is not None:
 			app.connect('feed-polled', self._feed_polled_cb)
@@ -95,9 +96,9 @@ class ArticleSync(gobject.GObject):
 		if entry_view is not None:
 			self.set_entry_view(entry_view)	
 			
-		self._username = username
-		self._password = password
-		self._serveraddr = None
+		self._access_key = access_key
+		self._secret_key = secret_key
+		self._conn = None
 		self._authenticated = False
 		self._enabled = enabled		
 		self.__logging_in = False
@@ -114,10 +115,10 @@ class ArticleSync(gobject.GObject):
 		self._enabled = enabled
 		
 	def set_username(self, username):
-		self._username = username
+		self._access_key = username
 	
 	def set_password(self, password):
-		self._password = password
+		self._secret_key = password
 		
 	def is_authenticated(self):
 		return self._authenticated
@@ -127,64 +128,59 @@ class ArticleSync(gobject.GObject):
 		
 	@threaded_func()
 	def authenticate(self):
+		"""Creates the bucket as part of authentication, helpfully"""
 		if self.__logging_in:
 			return False
+		
+		if self._authenticated:
+			return True
 			
 		self.__logging_in = True
-		if self._serveraddr is None:
-			self._serveraddr = self._get_server_url()
-			if self._serveraddr is None:
-				self.emit('server-error', "Couldn't get server address")
-				self._authenticated = False
+		
+		self._conn = S3.AWSAuthConnection(self._access_key, self._secret_key)
+		
+		#the only way to "authenticate" is to list buckets.  if list is
+		#empty, try creating the bucket.  success?  it worked!  failure? 
+		#bad keys
+		
+		buckets = [x.name for x in self._conn.list_all_my_buckets().entries]
+		print buckets
+		if len(buckets) > 0:
+			if BUCKET_NAME not in buckets:
+				logging.debug("bucket not exist")
+				#try creating our bucket
+				response = \
+				   self._conn.create_located_bucket(BUCKET_NAME, S3.Location.DEFAULT)
+				print response.http_response.status
+				if response.http_response.status == 200:
+					logging.debug("bucket created")
+					self._authenticated = True
+					self.__logging_in = False
+					return True
+				else:
+					logging.debug("couldn't make bucke2t")
+					self.__logging_in = False
+					return False
+			else:
+				logging.debug("bucket exists")
+				self._authenticated = True
 				self.__logging_in = False
-				return False
-		try:
-			self.__urllib_lock.acquire()
-			fd = urllib.urlopen('http://%s:%s@%s/ping' % (self._username, 
-								self._password, self._serveraddr))
-			self.__urllib_lock.release()
+				return True
+		
+		response = \
+			   self._conn.create_located_bucket(BUCKET_NAME, S3.Location.DEFAULT)
+		print response.http_response.status
+		self.__logging_in = False
+		if response.http_response.status == 200:
+			logging.debug("made bucket!")
 			self._authenticated = True
 			self.__logging_in = False
 			return True
-		except IOError, e:
-			self.__urllib_lock.release()
-			logging.debug("error: %s" % str(e))
-			if e[1] == 401:
-				logging.debug("not authorized")
-			self._authenticated = False
+		else:
+			logging.debug("couldn't make bucket")
 			self.__logging_in = False
 			return False
-		except Exception, e:
-			logging.debug("eh2? %s" % str(e))
-			self.__urllib_lock.release()
-			return False
 		
-	@threaded_func()
-	def _get_server_url(self):
-		for i in range(0,3):
-			try:
-				self.__urllib_lock.acquire()
-				fd = urllib.urlopen(URL_URL)
-				self.__urllib_lock.release()
-				break
-			except IOError, e:
-				self.__urllib_lock.release()
-				logging.debug("getting server url io error, ignoring: %s" % \
-									str(e))
-				fd = None
-			except Exception, e:
-				logging.debug("eh? %s" % str(e))
-				self.__urllib_lock.release()
-		if fd is None:
-			return None
-		url = fd.readline().split('\n')[0]
-		parsed = urlparse.urlparse(url)
-		if parsed[0] != "http":
-			return None
-		else:
-			addr = "%s%s" % (parsed[1], parsed[2])
-			return addr
-	
 	@authenticated_func()	
 	def _feed_polled_cb(self, app, feed_id, update_data):
 		if not update_data.has_key('new_entryids'):
@@ -224,10 +220,10 @@ class ArticleSync(gobject.GObject):
 		return False
 		
 	@authenticated_func()
-	def get_readstates(self, id_list=None, timestamp=None, cb=None):
+	def get_readstates(self, timestamp=None, cb=None):
 		"""get hashes while we are in main thread"""
 		
-		assert id_list is not None or timestamp is not None
+		assert timestamp is not None
 		if cb is None:
 			cb = self._get_readstates_cb
 		
@@ -235,8 +231,7 @@ class ArticleSync(gobject.GObject):
 			hashes = None
 		else:
 			hashes = self._get_entryhashes(id_list)
-		self._do_get_readstates(hashes, timestamp, 
-							cb=cb)
+		self._do_get_readstates(timestamp, cb=cb)
 		
 	@threaded_func()
 	def _do_get_readstates(self, hashes=None, timestamp=None):
@@ -246,15 +241,15 @@ class ArticleSync(gobject.GObject):
 		if timestamp is not None:
 			if hashes is not None:
 				base_url = 'http://%s:%s@%s/get_readstates?timestamp=%s&entryhashes=' \
-							% (self._username, self._password, 
+							% (self._access_key, self._secret_key, 
 								self._serveraddr, timestamp)
 			else:
 				base_url = 'http://%s:%s@%s/get_readstates?timestamp=%s' \
-							% (self._username, self._password, 
+							% (self._access_key, self._secret_key, 
 								self._serveraddr, timestamp)
 		else:
 			base_url = 'http://%s:%s@%s/get_readstates?entryhashes=' \
-						% (self._username, self._password, self._serveraddr)
+						% (self._access_key, self._secret_key, self._serveraddr)
 					
 		hash_csv = ''
 		
@@ -360,34 +355,6 @@ class ArticleSync(gobject.GObject):
 		else:
 			self._do_submit_readstates(hash_dict, cb=cb)
 			
-	@authenticated_func()
-	def submit_readstates_since(self, timestamp, cb=None):
-		hashlist = self._db.get_entries_since(timestamp)
-		
-		hashlist.sort()
-		cur_feed_id = None
-		cur_list = []
-		for feed_id, entry_id, entry_hash, read in hashlist:
-			if cur_feed_id != feed_id:
-				if len(cur_list) > 0:
-					default_read = self._db.get_flags_for_feed(cur_feed_id) & \
-							FF_MARKASREAD and 1 or 0
-					changed = {}
-					for entry_id, readstate in cur_list:
-						if readstate != default_read:
-							changed[entry_id] = readstate
-					self._do_submit_readstates(changed, cb=cb)
-				cur_feed_id = feed_id
-			cur_list.append((entry_hash, read))
-		if len(cur_list) > 0:
-			default_read = self._db.get_flags_for_feed(cur_feed_id) & \
-				FF_MARKASREAD and 1 or 0
-			changed = {}
-			for entry_id, readstate in cur_list:
-				if readstate != default_read:
-					changed[entry_id] = readstate
-			self._do_submit_readstates(changed, cb=cb)
-		
 	@threaded_func()		
 	def _do_submit_readstates(self, hashes):
 		"""hashes is a dict of entry_hashes."""
@@ -395,11 +362,11 @@ class ArticleSync(gobject.GObject):
 		def _submit(read_list, unread_list):
 			failure = False
 			base_url = 'http://%s:%s@%s/set_readstates?readstate=1&entryhashes=' % \
-					(self._username, self._password, self._serveraddr)
+					(self._access_key, self._secret_key, self._serveraddr)
 			if not self._submit_list(base_url, read_list):
 				failure = True
 			base_url = 'http://%s:%s@%s/set_readstates?readstate=0&entryhashes=' % \
-					(self._username, self._password, self._serveraddr)
+					(self._access_key, self._secret_key, self._serveraddr)
 			if not self._submit_list(base_url, unread_list):
 				failure = True
 			return not failure
@@ -413,101 +380,6 @@ class ArticleSync(gobject.GObject):
 				unread_list.append(e_hash)
 		return _submit(read_list, unread_list)
 			
-	@authenticated_func()
-	def submit_feed_counts(self, feed_dict, cb=None):
-		hash_dict = {}
-		for feed_id in feed_dict.keys():
-			url = self._db.get_feed_info(feed_id)['url']
-			s = sha.new()
-			s.update(url)			
-			hash_dict[s.hexdigest()] = feed_dict[feed_id]
-			
-		#logging.debug("feed hashes: %s" % str(hash_dict))
-			
-		self._do_submit_feed_counts(hash_dict, cb=cb)
-		
-	@threaded_func()
-	def _do_submit_feed_counts(self, hash_dict):
-		try:
-			base_url = 'http://%s:%s@%s/set_feedcounts?' % \
-					(self._username, self._password, self._serveraddr)
-					
-			hashes = '&hashes='
-			counts = '&counts='
-			
-			for feedhash in hash_dict.keys():
-				if len(base_url) + len(hashes) + len(counts) >= 4000:
-					self.__urllib_lock.acquire()
-					urllib.urlopen(''.join((base_url, hashes[:-1], counts[:-1])))
-					self.__urllib_lock.release()
-					hashes = '&hashes='
-					counts = '&counts='
-				hashes += feedhash + ','
-				counts += str(hash_dict[feedhash]) + ','
-			if len(hashes) > len('&hashes='):
-				self.__urllib_lock.acquire()
-				urllib.urlopen(''.join((base_url, hashes[:-1], counts[:-1])))
-				self.__urllib_lock.release()
-			return True
-		except Exception, e:
-			logging.debug("Error: %s" % str(e))
-			return False
-			
-	@authenticated_func()
-	def get_feed_counts(self, cb=None):
-		if cb is None:
-			cb = _get_feed_counts_cb
-			feed_dict = {}
-			for feed_id, title, url in self._db.get_feedlist():
-				s = sha.new()
-				s.update(url)
-				feed_dict[s.hexdigest()] = feed_id
-			
-		def _get_feed_counts_cb(counts):
-			for feedhash in counts.keys():
-				try:
-					logging.debug("emit update-feed-count: %i %i" % \
-						(feed_dict[feedhash], counts[feedhash]))
-					self.emit('update-feed-count', 
-						feed_dict[feedhash], counts[feedhash])
-				except:
-					logging.debug("got key from server that doesn't exist locally -- this is ok")
-			return False
-
-		self._do_get_feed_counts(cb=cb)
-	
-	@threaded_func()
-	def _do_get_feed_counts(self):
-		"""Called from a separate thread to avoid blocking.  Returns
-		a dictionary with mapping entry_id: readstate.  Or returns 
-		None on failure"""
-		
-		counts = {}
-		try:
-			#logging.debug("getting: %s" % (base_url + h_csv))
-			self.__urllib_lock.acquire()
-			fd = urllib.urlopen('http://%s:%s@%s/get_feedcounts' \
-					% (self._username, self._password, self._serveraddr))
-			self.__urllib_lock.release()
-			for line in fd.readlines():
-				feedhash, count = line.split(' ')
-				count = count.split('\n')[0]
-				counts[feedhash] = int(count)
-			return counts
-		except ValueError, e:
-			self.__urllib_lock.release()
-			self.emit('server-error', str(e))
-			return {}
-		except IOError, e:
-			self.__urllib_lock.release()
-			if e[1] == 401:
-				self.emit('authentication-error', str(e))
-			else:
-				self.emit('server-error', str(e))
-			return {}
-	
-		return counts
-		
 	def _get_entryhashes(self, id_list):
 		""""""
 		entries = self._db.get_entry_block(id_list)
@@ -523,23 +395,4 @@ class ArticleSync(gobject.GObject):
 				#s.update(str(entry['guid']) + str(entry['title']))
 				#hashdict[entry['entry_id']] = s.hexdigest()
 		return hashdict
-		
-	def _submit_list(self, base_url, arglist):
-		try:
-			hash_str = ''
-			for arg in arglist:
-				if len(base_url) + len(hash_str) >= 4000:
-					self.__urllib_lock.acquire()
-					urllib.urlopen(base_url + hash_str[:-1])
-					self.__urllib_lock.release()
-					hash_str = ''
-				hash_str += str(arg) + ','
-			if len(hash_str) > 0:
-				self.__urllib_lock.acquire()
-				urllib.urlopen(base_url + hash_str[:-1])
-				self.__urllib_lock.release()
-			return True
-		except Exception, e:
-			logging.warning("submission error: %s %s, %s" % \
-				(base_url, arglist, str(e)))
-			return False
+
