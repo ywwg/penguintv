@@ -143,6 +143,10 @@ class SyncClient:
 			Returns True on success, False on error"""
 			
 		assert self._conn is not None
+		
+		if len(readstates) == 0:
+			return True
+		
 		if do_upload and noclosedb is not None:
 			logging.error("Can't upload without closing DB, so this makes no sense")
 		
@@ -153,36 +157,32 @@ class SyncClient:
 		else:
 			db = noclosedb
 		
-		if len(readstates) > 0:
-			timestamp = int(time.time())
-			
-			c = db.cursor()
-
-			hashes = [r[0] for r in readstates]
-			existing = []
-			while len(hashes) > 0:
-				subset = hashes[:900]
-				qmarks = '?,'*(len(subset)-1)+'?'
-				c.execute(u'SELECT hash FROM readinfo WHERE hash IN ('+qmarks+')', \
-					tuple(subset))
-				batch = c.fetchall()
-				if batch is None: 
-					batch = []
-				existing = existing + batch
-				hashes = hashes[900:]
-			
-			existing = [r[0] for r in existing]			
-			
-			for entry_hash, readstate in readstates:
-				#logging.debug(": %s %i %i" % (entry_hash, timestamp, readstate))
-				if entry_hash in existing:
-					c.execute(u'UPDATE readinfo SET readstate=?, timestamp=? WHERE hash=?',
-							(readstate, timestamp, entry_hash))
-				else:
-					c.execute(u'INSERT INTO readinfo (hash, timestamp, readstate) VALUES (?,?,?)',
-						(entry_hash, timestamp, readstate))
-			db.commit()
-			c.close()
+		timestamp = int(time.time())
+		c = db.cursor()
+		hashes = [r[0] for r in readstates]
+		existing = []
+		while len(hashes) > 0:
+			subset = hashes[:900]
+			qmarks = '?,'*(len(subset)-1)+'?'
+			c.execute(u'SELECT hash FROM readinfo WHERE hash IN ('+qmarks+')', \
+				tuple(subset))
+			batch = c.fetchall()
+			if batch is None: 
+				batch = []
+			existing = existing + batch
+			hashes = hashes[900:]
+		existing = [r[0] for r in existing]			
+		
+		for entry_hash, readstate in readstates:
+			#logging.debug(": %s %i %i" % (entry_hash, timestamp, readstate))
+			if entry_hash in existing:
+				c.execute(u'UPDATE readinfo SET readstate=?, timestamp=? WHERE hash=?',
+						(readstate, timestamp, entry_hash))
+			else:
+				c.execute(u'INSERT INTO readinfo (hash, timestamp, readstate) VALUES (?,?,?)',
+					(entry_hash, timestamp, readstate))
+		db.commit()
+		c.close()
 		
 		if do_upload:
 			return self._close_and_send_db(db)
