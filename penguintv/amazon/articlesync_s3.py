@@ -42,7 +42,7 @@ class SyncClient:
 			if db is not None:
 				if len(last_upload) > 0:
 					logging.debug("BUT UPLOADING TOO")
-					self.submit_readstates(last_upload, do_upload=False, db=db)
+					self.submit_readstates(last_upload, do_upload=False, noclosedb=db)
 				else:
 					logging.debug("nothing to upload")
 				c = db.cursor()
@@ -144,7 +144,7 @@ class SyncClient:
 			Returns True on success, False on error"""
 			
 		assert self._conn is not None
-		if not do_upload and db is not None:
+		if do_upload and noclosedb is not None:
 			logging.error("Can't upload without closing DB, so this makes no sense")
 		
 		if noclosedb is None:

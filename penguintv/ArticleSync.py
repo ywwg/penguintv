@@ -117,7 +117,7 @@ class ArticleSync(gobject.GObject):
 		def update_cb(success):
 			logging.debug("update was: %s" % str(success))
 			return False
-		gobject.timeout_add(30000, self.update_readstates, update_cb)
+		gobject.timeout_add(30 * 60 * 1000, self.update_readstates, update_cb)
 		
 	def set_entry_view(self, entry_view):
 		for disconnector, h_id in self._handlers:
@@ -182,6 +182,8 @@ class ArticleSync(gobject.GObject):
 		return result
 		
 	def _entries_viewed_cb(self, app, viewlist):
+		if not self._authenticated:
+			return
 		for feed_id, viewlist in viewlist:
 			for entry_id in viewlist:
 				if not self._readstates_diff.has_key(feed_id):
@@ -191,6 +193,8 @@ class ArticleSync(gobject.GObject):
 		logging.debug("sync updated diff: %s" % str(self._readstates_diff))
 	
 	def _entry_updated_cb(self, app, entry_id, feed_id):
+		if not self._authenticated:
+			return
 		readstate = self._db.get_entry_read(entry_id)
 		if not self._readstates_diff.has_key(feed_id):
 			self._readstates_diff[feed_id] = {}
