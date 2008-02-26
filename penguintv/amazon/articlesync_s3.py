@@ -211,7 +211,6 @@ class SyncClient:
 		#	logging.debug("whole: %s" % str(row))
 		c.close()
 		db.close()
-		self._last_sync = int(time.time())
 		if new_hashes is None:
 			return []
 		return new_hashes
@@ -243,6 +242,9 @@ class SyncClient:
 		fp.write(db_data)
 		logging.debug("Downloaded %i bytes" % fp.tell())
 		fp.close()
+		
+		logging.debug("SETTING LAST SYNC TIMESTAMP")
+		self._last_sync = int(time.time())
 		return sqlite3.connect(self._sync_file)
 		
 	def _create_db(self):
