@@ -763,6 +763,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		self._article_sync.finish(cb=lambda x: True)
 		def article_sync_wait():
+			logging.debug("waiting for article sync to finish")
 			if self._article_sync.is_working():
 				return True
 				
@@ -776,7 +777,7 @@ class PenguinTVApp(gobject.GObject):
 			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				gtk.main_quit()
 			return False
-		gobject.timeout_add(250, article_sync_wait)
+		gobject.timeout_add(1000, article_sync_wait)
 			
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
@@ -2114,8 +2115,9 @@ class PenguinTVApp(gobject.GObject):
 		self.set_use_article_sync(enabled)
 		self.window_preferences.set_use_article_sync(enabled)
 		if enabled:
-			if not self._article_sync.is_authenticated():
-				self.sync_authenticate()
+			if self._state != MAJOR_DB_OPERATION:
+				if not self._article_sync.is_authenticated():
+					self.sync_authenticate()
 		else:
 			self.window_preferences.set_sync_status(_("Not Logged In"))
 		

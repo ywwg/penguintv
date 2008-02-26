@@ -42,7 +42,7 @@ def threaded_func():
 				
 			t = threading.Thread(None, t_func, "ArticleSync",
 								 args=(self,) + args, kwargs=kwargs)
-			t.setDaemon(True)
+			#t.setDaemon(True)
 			t.start()
 		return _exec_cb
 	return annotate
@@ -107,6 +107,7 @@ class ArticleSync(gobject.GObject):
 		#and readstates is a dict of entry_id:readstate
 		self._readstates_diff = {}
 		self.__logging_in = False
+		#self.__exiting = False
 		
 		def update_cb(success):
 			logging.debug("update was: %s" % str(success))
@@ -141,9 +142,13 @@ class ArticleSync(gobject.GObject):
 		my_threads = [t.getName() for t in threading.enumerate() \
 			if t.getName().startswith("ArticleSync")]
 			
+		#working = len(my_threads)
+		#if working == 0 and self.__exiting:
+		#	return 1
 		return len(my_threads)
 		
 	def finish(self, cb=None):
+		#self.__exiting = True
 		last_diff = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}
 		self._do_close_conn(last_diff, cb=cb)
@@ -153,6 +158,7 @@ class ArticleSync(gobject.GObject):
 		while self.is_working() > 1:
 			print "self.is_working", self.is_working()
 			time.sleep(.5)
+		#self.__exiting = False
 		self._conn.finish(states)
 		
 	@threaded_func()
@@ -232,6 +238,7 @@ class ArticleSync(gobject.GObject):
 		def get_readstates_cb(readstates):
 			if len(readstates) == 0:
 				logging.debug("No readstates since %i" % timestamp)
+				self.emit('got-readstates', [])
 				return False
 				
 			unread_hashes = []
