@@ -763,21 +763,25 @@ class PenguinTVApp(gobject.GObject):
 		
 		self._article_sync.finish(cb=lambda x: True)
 		def article_sync_wait():
-			logging.debug("waiting for article sync to finish")
 			if self._article_sync.is_working():
 				return True
 				
-			logging.info('stopping db')
-			self.db.finish(majorsearchwait=False)	
-		
 			#while threading.activeCount()>1:
 			#	print threading.enumerate()
 			#	print str(threading.activeCount())+" threads active..."
 			#	time.sleep(1)
+			
+			logging.info('stopping db')
+			self.db.finish(majorsearchwait=False)	
+		
 			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 				gtk.main_quit()
+			self._exiting = 2
 			return False
-		gobject.timeout_add(1000, article_sync_wait)
+		gobject.timeout_add(250, article_sync_wait)
+	
+	def is_quit_complete(self):
+		return self._exiting > 1
 			
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())

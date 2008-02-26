@@ -64,13 +64,7 @@ def authenticated_func():
 class ArticleSync(gobject.GObject):
 
 	__gsignals__ = {
-		#'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
-  #                         gobject.TYPE_NONE, 
-  #                         ([gobject.TYPE_PYOBJECT])),
-		#'entries-unviewed': (gobject.SIGNAL_RUN_FIRST, 
-  #                         gobject.TYPE_NONE, 
-  #                         ([gobject.TYPE_PYOBJECT])),
-        'update-feed-count': (gobject.SIGNAL_RUN_FIRST, 
+		'update-feed-count': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
         'got-readstates': (gobject.SIGNAL_RUN_FIRST, 
@@ -107,7 +101,6 @@ class ArticleSync(gobject.GObject):
 		#and readstates is a dict of entry_id:readstate
 		self._readstates_diff = {}
 		self.__logging_in = False
-		#self.__exiting = False
 		
 		def update_cb(success):
 			logging.debug("update was: %s" % str(success))
@@ -142,13 +135,9 @@ class ArticleSync(gobject.GObject):
 		my_threads = [t.getName() for t in threading.enumerate() \
 			if t.getName().startswith("ArticleSync")]
 			
-		#working = len(my_threads)
-		#if working == 0 and self.__exiting:
-		#	return 1
 		return len(my_threads)
 		
 	def finish(self, cb=None):
-		#self.__exiting = True
 		last_diff = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}
 		self._do_close_conn(last_diff, cb=cb)
@@ -156,9 +145,7 @@ class ArticleSync(gobject.GObject):
 	@threaded_func()
 	def _do_close_conn(self, states):
 		while self.is_working() > 1:
-			print "self.is_working", self.is_working()
 			time.sleep(.5)
-		#self.__exiting = False
 		self._conn.finish(states)
 		
 	@threaded_func()
@@ -169,7 +156,6 @@ class ArticleSync(gobject.GObject):
 		
 		if self._authenticated:
 			while self.is_working() > 1:
-				print "self.is_working", self.is_working()
 				time.sleep(.5)
 			self._conn.finish()
 			

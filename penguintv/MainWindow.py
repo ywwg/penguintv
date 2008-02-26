@@ -865,11 +865,13 @@ class MainWindow(gobject.GObject):
 		self._app.do_quit()
 		
 		def gtkquit():
+			if not self._app.is_quit_complete():
+				return True
 			gtk.main_quit()
 			return False
 
 		if utils.RUNNING_HILDON:
-			gobject.idle_add(gtkquit)
+			gobject.timeout_add(250, gtkquit)
 			return self.window.hide_on_delete()
 		
 	def on_app_destroy_event(self,event,data=None):
