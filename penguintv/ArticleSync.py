@@ -50,18 +50,13 @@ def threaded_func():
 def authenticated_func():
 	def annotate(func):
 		def _exec_cb(self, *args, **kwargs):
-			logging.debug("authed?")
 			if not self._enabled:
-				logging.debug("not enabled")
 				return
 			elif self._conn is None:
-				logging.debug("no connection")
 				self.emit('server-error', "No Connection")
 			elif not self._authenticated:
-				logging.debug("not authed")
 				self.emit('authentication-error', "Not authenticated")
 			else:
-				logging.debug("authed. calling: %s" % str(func))
 				return func(self, *args, **kwargs)
 		return _exec_cb
 	return annotate	
@@ -106,7 +101,6 @@ class ArticleSync(gobject.GObject):
 			self.set_entry_view(entry_view)	
 			
 		self._conn = articlesync_s3.SyncClient(username, password)
-		logging.debug("auth is false1")
 		self._authenticated = False
 		self._enabled = enabled		
 		#diff is a dict of feed_id:readstates
@@ -117,7 +111,7 @@ class ArticleSync(gobject.GObject):
 		def update_cb(success):
 			logging.debug("update was: %s" % str(success))
 			return False
-		gobject.timeout_add(30 * 60 * 1000, self.update_readstates, update_cb)
+		gobject.timeout_add(30 * 60 * 1000, self.submit_readstates, update_cb)
 		
 	def set_entry_view(self, entry_view):
 		for disconnector, h_id in self._handlers:
@@ -129,7 +123,6 @@ class ArticleSync(gobject.GObject):
 	def set_enabled(self, enabled):
 		self._enabled = enabled
 		if not self._enabled:
-			logging.debug("auth is false2")
 			self._authenticated = False
 		
 	def set_username(self, username):
@@ -178,7 +171,6 @@ class ArticleSync(gobject.GObject):
 		result = self._conn.authenticate()
 		self.__logging_in = False
 		self._authenticated = result
-		logging.debug("result of auth procedure: %s" % str(result))
 		return result
 		
 	def _entries_viewed_cb(self, app, viewlist):
@@ -200,14 +192,22 @@ class ArticleSync(gobject.GObject):
 			self._readstates_diff[feed_id] = {}
 		self._readstates_diff[feed_id][entry_id] = readstate
 		logging.debug("sync updated diff2: %s" % str(self._readstates_diff))
+	
+	@authenticated_func()
+	def submit_readstates_since(self, timestamp, cb):
+		readstates = self._db.get_entries_since(timestamp)
+		readstates = [(r[2],r[3]) for r in readstates if r[3] == 1]
+		logging.debug("submitting readstates since %i, there are %i" \
+			% (timestamp, len(readstates)))
+		self._do_submit_readstates(readstates, cb=cb)
 		
 	@authenticated_func()	
-	def update_readstates(self, cb):
+	def submit_readstates(self, cb):
 		readstates = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}
 		
 		logging.debug("updating readstates: %s" % str(readstates))
-		self._do_update_readstates(readstates, cb=cb)
+		self._do_submit_readstates(readstates, cb=cb)
 		
 	def _get_readstates_list(self, state_dict):
 		read_entries = []
@@ -223,7 +223,7 @@ class ArticleSync(gobject.GObject):
 		return readstates
 	
 	@threaded_func()
-	def _do_update_readstates(self, readstates):
+	def _do_submit_readstates(self, readstates):
 		return self._conn.submit_readstates(readstates)
 		
 	@authenticated_func()
@@ -239,15 +239,16 @@ class ArticleSync(gobject.GObject):
 				else:
 					unread_hashes.append(entry_hash)
 					
-			read_entries = self._db.get_entries_for_hashes(read_hashes)
-			read_entries.sort()
+			unread_entries = \
+				self._db.get_entries_for_hashes(read_hashes, read=False)
+			unread_entries.sort()
 			logging.debug("hash to entry conversion result:")
-			for row in read_entries:
+			for row in unread_entries:
 				logging.debug(str(row))
 			viewlist = []
 			cur_feed_id = None
 			cur_list = []
-			for feed_id, entry_id, readstate in read_entries:
+			for feed_id, entry_id, readstate in unread_entries:
 				if feed_id != cur_feed_id:
 					if len(cur_list) > 0:
 						viewlist.append((cur_feed_id, cur_list))
@@ -255,6 +256,8 @@ class ArticleSync(gobject.GObject):
 					cur_feed_id = feed_id
 				if readstate == 0:
 					cur_list.append(entry_id)
+				else:
+					logging.debug("programming error: should never be true")
 				
 			if len(cur_list) > 0:
 				viewlist.append((cur_feed_id, cur_list))

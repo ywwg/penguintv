@@ -2246,10 +2246,14 @@ class ptvDB:
 		if len(entrylist) == 0:
 			return
 		l = [str(e) for e in entrylist]
-		qmarks = "?,"*(len(l)-1)+"?"
-		self._db_execute(self._c, u'UPDATE entries SET read=? WHERE rowid IN ('+qmarks+')', (int(read),)+tuple(l))
-		self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE entry_id IN ('+qmarks+')',(int(read),)+tuple(l))
-		self._db.commit()
+		subset = []
+		while len(l) > 0:
+			subset = l[:900]
+			qmarks = "?,"*(len(subset)-1)+"?"
+			self._db_execute(self._c, u'UPDATE entries SET read=? WHERE rowid IN ('+qmarks+')', (int(read),)+tuple(subset))
+			self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE entry_id IN ('+qmarks+')',(int(read),)+tuple(subset))
+			self._db.commit()
+			l = l[900:]
 		for e in entrylist:
 			if self.entry_flag_cache.has_key(e): del self.entry_flag_cache[e]
 		
@@ -2541,26 +2545,42 @@ class ptvDB:
 			return None, None
 		return retval
 		
-	def get_entries_for_hashes(self, hashlist):
+	def get_entries_for_hashes(self, hashlist, read=None):
 		if len(hashlist) == 0:
 			return []
 			
-		qmarks = "?,"*(len(hashlist)-1)+"?"
-		self._db_execute(self._c, u'SELECT feed_id, rowid, read FROM entries WHERE hash IN ('+qmarks+')', tuple(hashlist))
-		retval = self._c.fetchall()
-		if retval is None:
-			return []
+		retval = []
+		subset = []
+		while len(hashlist) > 0:
+			subset = hashlist[:900]
+			qmarks = "?,"*(len(subset)-1)+"?"
+			condition = ''
+			if read is not None:
+				if read:
+					condition = ' AND read=1'
+				else:
+					condition = ' AND read=0'
+			self._db_execute(self._c, u'SELECT feed_id, rowid, read FROM entries WHERE hash IN ('+qmarks+')'+condition, tuple(subset))
+			r = self._c.fetchall()
+			if r is not None:
+				retval += r
+			hashlist = hashlist[900:]
 		return retval
 		
 	def get_hashes_for_entries(self, entrylist):
 		if len(entrylist) == 0:
 			return []
 			
-		qmarks = "?,"*(len(entrylist)-1)+"?"
-		self._db_execute(self._c, u'SELECT hash FROM entries WHERE rowid IN ('+qmarks+')', tuple(entrylist))
-		retval = self._c.fetchall()
-		if retval is None:
-			return []
+		retval = []
+		subset = []
+		while len(entrylist) > 0:
+			subset = entrylist[:900]
+			qmarks = "?,"*(len(subset)-1)+"?"
+			self._db_execute(self._c, u'SELECT hash FROM entries WHERE rowid IN ('+qmarks+')', tuple(subset))
+			r = self._c.fetchall()
+			if r is not None:
+				retval += r
+			entrylist = entrylist[900:]
 		return [r[0] for r in retval]
 	
 	def get_unread_entries(self, feed_id):

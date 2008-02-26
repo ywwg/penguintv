@@ -4,13 +4,14 @@ import traceback
 import tempfile
 import sqlite3
 import os
+import threading
 
 import S3
 
 #BUCKET_NAME will be prepended with access key
 BUCKET_NAME_SUF = '-penguintv-article-sync-db'
 KEYNAME = 'penguintv-syncdb-1'
-REF_KEYNAME = 'penguintv-syncdb-ref'
+STAMP_KEYNAME = 'penguintv-syncdb-timestamp'
 
 class SyncClient:
 	def __init__(self, username, password):
@@ -20,7 +21,8 @@ class SyncClient:
 		self._bucket = self._access_key.lower() + BUCKET_NAME_SUF
 		self._sync_file = None
 		self._authenticated = False
-		self._old_refcount = 0
+		self._last_sync = 0
+		self.__transfer_lock = threading.Lock()
 		
 	def set_username(self, username):
 		if username == self._access_key:
@@ -44,14 +46,17 @@ class SyncClient:
 					logging.debug("BUT UPLOADING TOO")
 					self.submit_readstates(last_upload, do_upload=False, noclosedb=db)
 				else:
-					logging.debug("nothing to upload")
+					logging.debug("no new readstates to submit")
 				c = db.cursor()
+				one_month = int(time.time()) - (60*60*24*30)
+				c.execute('DELETE FROM readinfo WHERE timestamp < ?', (one_month,))
+				db.commit()
 				c.execute('VACUUM')
 				db.commit()
+				c.close()
 				self._close_and_send_db(db)
 				os.remove(self._sync_file)
 			self._sync_file = None
-			self._unref()
 			self._authenticated = False
 			self._conn = None
 		else:
@@ -101,41 +106,32 @@ class SyncClient:
 		else:
 			self.__logging_in = False
 			return False
-			
-	def _ref(self):
-		old_val, active_syncs = self._get_refcount()
-		active_syncs += 1
-		logging.debug("current ref is now %i" % active_syncs)
-		resp = self._conn.put(self._bucket, REF_KEYNAME, str(active_syncs))
-		if resp.http_response.status != 200:
-			logging.error("error incrementing ref")
-		return old_val, active_syncs
-			
-	def _unref(self):
-		old_val, active_syncs = self._get_refcount()
-		active_syncs -= 1
-		logging.debug("after unref, current ref is now %i" % active_syncs)
-		if active_syncs < 0:
-			logging.warning("less than zero active syncs?")
-			active_syncs = 0
-		resp = self._conn.put(self._bucket, REF_KEYNAME, str(active_syncs))
-		if resp.http_response.status != 200:
-			logging.error("error decrementing ref")
-		return old_val, active_syncs
-		
-	def _get_refcount(self):
+	
+	def _stamp_submission(self):
 		assert self._authenticated
-		resp = self._conn.get(self._bucket, REF_KEYNAME)
-		if resp.http_response.status == 404:
-			self._conn.put(self._bucket, REF_KEYNAME, "0")
-			return 0,0
-		elif resp.http_response.status != 200:
-			logging.error("couldn't get current ref: %s %s" % resp.message)
-			return 0,0
-		old_val = self._old_refcount
-		self._old_refcount = int(resp.object.data)
-		return old_val, int(resp.object.data)
+		logging.debug("TIMESTAMPING SUBMISSION")
+		timestamp = int(time.time())
+		resp = self._conn.put(self._bucket, STAMP_KEYNAME, str(timestamp))
+		if resp.http_response.status != 200:
+			logging.error("error submitting timestamp")
+			return 0
+		return timestamp
 		
+	def _get_last_submit_time(self):
+		assert self._authenticated
+		self.__transfer_lock.acquire()
+		resp = self._conn.get(self._bucket, STAMP_KEYNAME)
+		if resp.http_response.status == 404:
+			self._conn.put(self._bucket, STAMP_KEYNAME, "0")
+			self.__transfer_lock.release()
+			return 0
+		elif resp.http_response.status != 200:
+			logging.error("couldn't get last submit time: %s" % resp.message)
+			self.__transfer_lock.release()
+			return 0
+		self.__transfer_lock.release()
+		return int(resp.object.data)
+	
 	def submit_readstates(self, readstates, do_upload=True, noclosedb=None):
 		"""takes a list of entryhash, readstate and submits it to S3 as:
 			KEYNAME=timestamp-entryid
@@ -158,16 +154,24 @@ class SyncClient:
 			timestamp = int(time.time())
 			
 			c = db.cursor()
-			qmarks = '?,'*(len(readstates)-1)+'?'
+
 			hashes = [r[0] for r in readstates]
-			c.execute(u'SELECT hash FROM readinfo WHERE hash IN ('+qmarks+')', \
-					tuple(hashes))
-			existing = c.fetchall()
-			if existing is None: existing = []
-			else: existing = [r[0] for r in existing]
+			existing = []
+			while len(hashes) > 0:
+				subset = hashes[:900]
+				qmarks = '?,'*(len(subset)-1)+'?'
+				c.execute(u'SELECT hash FROM readinfo WHERE hash IN ('+qmarks+')', \
+					tuple(subset))
+				batch = c.fetchall()
+				if batch is None: 
+					batch = []
+				existing = existing + batch
+				hashes = hashes[900:]
+			
+			existing = [r[0] for r in existing]			
 			
 			for entry_hash, readstate in readstates:
-				logging.debug("writing: %s %i %i" % (entry_hash, timestamp, readstate))
+				#logging.debug(": %s %i %i" % (entry_hash, timestamp, readstate))
 				if entry_hash in existing:
 					c.execute(u'UPDATE readinfo SET readstate=?, timestamp=? WHERE hash=?',
 							(readstate, timestamp, entry_hash))
@@ -200,30 +204,33 @@ class SyncClient:
 		logging.debug("getting updated entries since %i" % timestamp)
 		c.execute(u'SELECT hash, readstate FROM readinfo WHERE timestamp >= ?', (timestamp,))
 		new_hashes = c.fetchall()
-		logging.debug("result: %s" % str(new_hashes))
+		#logging.debug("result: %s" % str(new_hashes))
 		c.execute(u'SELECT hash, readstate, timestamp FROM readinfo')
 		r = c.fetchall()
-		for row in r:
-			logging.debug("whole: %s" % str(row))
+		#for row in r:
+		#	logging.debug("whole: %s" % str(row))
 		c.close()
 		db.close()
+		self._last_sync = int(time.time())
 		if new_hashes is None:
 			return []
 		return new_hashes
 		
 	def _get_db(self):
-		old_val, active_syncs = self._get_refcount()
-		if old_val > 1 or active_syncs > 1:
-			logging.debug("more than one instance running, so download db")
-			return self._download_db()
-		
 		if self._sync_file is None:
 			return self._download_db()
-		else:
-			return sqlite3.connect(self._sync_file)
+			
+		server_submit_time = self._get_last_submit_time()
+		if server_submit_time > self._last_sync:
+			logging.debug("someone else updated the db more recently than us")
+			return self._download_db()
+		
+		return sqlite3.connect(self._sync_file)
 		
 	def _download_db(self):
+		self.__transfer_lock.acquire()
 		response = self._conn.get(self._bucket, KEYNAME)
+		self.__transfer_lock.release()
 		if response.http_response.status == 404:
 			return self._create_db()
 		elif response.http_response.status != 200:
@@ -231,7 +238,6 @@ class SyncClient:
 		
 		db_data = response.object.data
 		if self._sync_file is None:
-			self._ref()
 			self._sync_file = tempfile.mkstemp(suffix='.db')[1]
 		fp = open(self._sync_file, 'wb')
 		fp.write(db_data)
@@ -240,7 +246,6 @@ class SyncClient:
 		return sqlite3.connect(self._sync_file)
 		
 	def _create_db(self):
-		self._ref()
 		self._sync_file = tempfile.mkstemp(suffix='.db')[1]
 		db = sqlite3.connect(self._sync_file)
 		c = db.cursor()
@@ -260,11 +265,15 @@ class SyncClient:
 		"""close the db and send it"""
 		db.close()
 		fp = open(self._sync_file, 'rb')
+		self.__transfer_lock.acquire()
 		response = self._conn.put(self._bucket, KEYNAME, fp.read())
+		self.__transfer_lock.release()
 		logging.debug("Uploaded %i bytes" % fp.tell())
 		fp.close()
 		if response.http_response.status != 200:
 			return False
+			
+		self._last_sync = self._stamp_submission()
 		return True
 		
 	def _reset_db(self):
