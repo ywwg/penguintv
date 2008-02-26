@@ -176,9 +176,9 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('tags-changed', self.__tags_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
-		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('state_changed', self.__state_changed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		
 		#init style
@@ -196,14 +196,6 @@ class FeedList(gobject.GObject):
 	def set_entry_view(self, entry_view):
 		h_id = entry_view.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((entry_view.disconnect, h_id))
-			
-	def set_article_sync(self, sync):
-		h_id = sync.connect('update-feed-count', self.__update_feed_count_cb)
-		self._handlers.append((sync.disconnect, h_id))
-		h_id = sync.connect('entries-viewed', self.__entries_viewed_cb)
-		self._handlers.append((sync.disconnect, h_id))
-		h_id = sync.connect('entries-unviewed', self.__entries_unviewed_cb)
-		self._handlers.append((sync.disconnect, h_id))
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		if update_data.has_key('no_changes'):
@@ -229,14 +221,14 @@ class FeedList(gobject.GObject):
 	#	self.mark_entries_read(feed_id, 1)
 	#	
 
-	def __entries_viewed_cb(self, app, feed_id, entrylist):
-		self.mark_entries_read(len(entrylist), feed_id)
+	def __entries_viewed_cb(self, app, viewlist):
+		logging.debug("feedlist entries viewed")
+		for feed_id, id_list in viewlist:
+			self.mark_entries_read(len(id_list), feed_id)
 		
-	def __entries_unviewed_cb(self, app, feed_id, entrylist):
-		self.mark_entries_read(0 - len(entrylist), feed_id)
-	
-	def __entrylist_read_cb(self, app, feed_id, entrylist):
-		self.mark_entries_read(len(entrylist), feed_id)
+	def __entries_unviewed_cb(self, app, feed_id, viewlist):
+		for feed_id, id_list in viewlist:
+			self.mark_entries_read(0 - len(id_list), feed_id)
 		
 	def __update_feed_count_cb(self, o, feed_id, count):
 		#logging.debug("update %i ->  %i" % (feed_id, count))
@@ -612,7 +604,7 @@ class FeedList(gobject.GObject):
 		else:
 			feed = self._feedlist[self.find_index_of_item(feed_id)]
 
-		#print feed[UNREAD],feed[TOTAL],num_to_mark
+		print feed[UNREAD],feed[TOTAL],num_to_mark
 
 		#sanity check
 		if feed[UNREAD] - num_to_mark < 0 or feed[UNREAD] - num_to_mark > feed[TOTAL]:
@@ -1004,6 +996,10 @@ class FeedList(gobject.GObject):
 		newlist = self._db.get_feedlist()
 		index = [f[0] for f in newlist].index(feed_id)
 		feed = newlist[index]
+		print "-----------ADDFEED---------"
+		print feed
+		print index
+		print newlist
 		p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		p.fill(0xffffff00)
 		#insert, not append

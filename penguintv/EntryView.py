@@ -36,7 +36,7 @@ class EntryView(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT])),
 		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT]))
+                           ([gobject.TYPE_PYOBJECT]))
     }	
 
 	def __init__(self, widget_tree, feed_list_view, entry_list_view, 
@@ -109,7 +109,7 @@ class EntryView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('render-ops-updated', self.__render_ops_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
-		h_id = self._app.connect('entrylist-read', self.__entrylist_read_cb)
+		h_id = self._app.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('state-changed', self.__state_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
@@ -181,9 +181,10 @@ class EntryView(gobject.GObject):
 		self._convert_newlines = (-1, False)
 		self.update_if_selected(self._current_entry['entry_id'], self._current_entry['feed_id'])
 		
-	def __entrylist_read_cb(self, app, feed_id, entrylist):
-		for e in entrylist:
-			self.update_if_selected(e, feed_id)
+	def __entries_viewed_cb(self, app, viewlist):
+		for feed_id, entrylist in viewlist:
+			for e in entrylist:
+				self.update_if_selected(e, feed_id)
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
 		pass
@@ -443,7 +444,7 @@ class EntryView(gobject.GObject):
 			if not self._current_entry['read'] and \
 			   not self._current_entry['keep'] and \
 			   len(self._current_entry['media']) == 0:
-				self.emit('entries-viewed', self._current_entry['feed_id'], [self._current_entry])
+				self.emit('entries-viewed', [(self._current_entry['feed_id'], [self._current_entry])])
 		return False
 
 	def _do_download_images(self, entry_id, html, images):

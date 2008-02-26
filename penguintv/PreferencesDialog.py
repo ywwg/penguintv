@@ -185,6 +185,15 @@ class PreferencesDialog:
 	
 	def set_sync_password(self, password):
 		self.xml.get_widget("sync_pass_entry").set_text(password)
+
+	def get_use_article_sync(self):
+		return self.xml.get_widget("sync_enabled_checkbox").get_active()
+		
+	def get_sync_username(self):
+		return self.xml.get_widget("sync_user_entry").get_text()
+	
+	def get_sync_password(self):
+		return self.xml.get_widget("sync_pass_entry").get_text()
 			
 	def set_sync_status(self, status):
 		self.xml.get_widget("sync_status_label").set_text(status)
@@ -304,18 +313,21 @@ class PreferencesDialog:
 		
 	def on_sync_user_entry_changed(self, widget):
 		username = widget.get_text()
-		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', 
-			username)
-		if not utils.HAS_GCONF:
-			self._app.set_sync_username(username)
+		old_user = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+		if username != old_user:
+			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', 
+				username)
+			if not utils.HAS_GCONF:
+				self._app.set_sync_username(username)
 			
 	def on_sync_pass_entry_changed(self, widget):
 		password = widget.get_text()
-		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', 
-			password)
-		if not utils.HAS_GCONF:
-			self._app.set_sync_password(password)
+		old_pass = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+		if password != old_pass:
+			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', 
+				password)
+			if not utils.HAS_GCONF:
+				self._app.set_sync_password(password)
 			
 	def on_sync_login_button_clicked(self, widget):
-		logging.debug("button clicked")
 		self._app.sync_authenticate()

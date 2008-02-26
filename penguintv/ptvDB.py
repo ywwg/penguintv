@@ -132,12 +132,12 @@ class ptvDB:
 				os.mkdir(self.home)
 			except:
 				raise DBError, "error creating directories: "+self.home
-		self._new_db = False
+		self._initializing_db = False
 		try:	
 			#also check db connection in _process_feed
 			if os.path.isfile(os.path.join(self.home,"penguintv4.db")) == False:
 				import shutil
-				self._new_db = True
+				self._initializing_db = True
 				if os.path.isfile(os.path.join(self.home,"penguintv3.db")):
 					try: 
 						shutil.copyfile(os.path.join(self.home,"penguintv3.db"), os.path.join(self.home,"penguintv4.db"))
@@ -166,7 +166,7 @@ class ptvDB:
 			self._c.execute('PRAGMA cache_size=6000')
 		self.cache_dirty = True
 		try:
-			if not self._new_db:
+			if not self._initializing_db:
 				self.cache_dirty = self.get_setting(BOOL, "feed_cache_dirty", True)
 		except:
 			pass
@@ -185,8 +185,9 @@ class ptvDB:
 			if utils.HAS_XAPIAN:
 				self.searcher = PTVXapian.PTVXapian()
 			else:
-				raise ProgrammingError("Have search, but no search engine?  Programming error!")
-			if not self._new_db:
+				logging.error("Have search, but no search engine?  Programming error!")
+				assert False
+			if not self._initializing_db:
 				self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
 			
 		if utils.HAS_GCONF:
@@ -290,6 +291,9 @@ class ptvDB:
 		self.fix_tags()
 		self._fix_indexes()
 		return False
+		
+	def done_initializing(self):
+		self._initializing_db = False
 			
 	def _migrate_database_one_two(self):
 		#add table settings
@@ -536,12 +540,12 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN hash TEXT')
 		
 		logging.info("Creating entry hashes")
-		self._db_execute(self._c, u'SELECT rowid, guid, title FROM entries')
+		self._db_execute(self._c, u'SELECT rowid, description, title FROM entries')
 		entries = self._c.fetchall()
 		hashes = []
-		for entry_id, guid, title in entries:
+		for entry_id, description, title in entries:
 			s = sha.new()
-			s.update(str(guid) + str(title))
+			s.update(str(description) + str(title))
 			self._db_execute(self._c, u'UPDATE entries SET hash=? WHERE rowid=?', (s.hexdigest(), entry_id))
 		
 		self._db.commit()
@@ -620,7 +624,7 @@ class ptvDB:
 					        	link TEXT,
 					        	keep INTEGER,
 								read INTEGER NOT NULL,
-								hash TEXT,
+								hash TEXT
 							);""")
 		self._db_execute(self._c, u"""CREATE TABLE media
 							(
@@ -656,7 +660,7 @@ class ptvDB:
 							
 		self._db.commit()
 		
-		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 6)""")
+		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 7)""")
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
 		
@@ -771,7 +775,7 @@ class ptvDB:
 		self.set_setting(BOOL, 'settings_in_db', settings_now_in_db, force_db=True)
 					
 	def get_setting(self, type, datum, default=None, force_db=False):
-		if utils.HAS_GCONF and self._new_db:
+		if utils.HAS_GCONF and self._initializing_db:
 			return default #always return default, gconf LIES
 		if utils.HAS_GCONF and datum[0] == '/' and not force_db:
 			if   type == BOOL:
@@ -999,8 +1003,8 @@ class ptvDB:
 		
 		#don't renice on hildon because we can't renice
 		#back down to zero again
-		if not utils.RUNNING_HILDON:
-			os.nice(2)
+		#if not utils.RUNNING_HILDON:
+		#	os.nice(2)
 				
 		threadcount = 5
 		if utils.RUNNING_HILDON or utils.RUNNING_SUGAR:
@@ -1046,8 +1050,8 @@ class ptvDB:
 					del pool
 					self._c.close()
 					self._db.close()
-					if not utils.RUNNING_HILDON:
-						os.nice(-2)
+					#if not utils.RUNNING_HILDON:
+					#	os.nice(-2)
 					return
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
@@ -1055,8 +1059,8 @@ class ptvDB:
 		self.reindex()
 		self._cancel_poll_multiple = False
 		gc.collect()
-		if not utils.RUNNING_HILDON:
-			os.nice(-2)
+		#if not utils.RUNNING_HILDON:
+		#	os.nice(-2)
 		
 	def interrupt_poll_multiple(self):
 		self._cancel_poll_multiple = True
@@ -1573,7 +1577,7 @@ class ptvDB:
 			entry_hash = sha.new()
 			if status[0]==NEW:
 				new_items = new_items+1
-				entry_hash.update(str(item['guid']) + str(item['title']))
+				entry_hash.update(str(item['description']) + str(item['title']))
 				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
 						(feed_id,item['title'],item['creator'],item['body'],
 						default_read,fake_time-i, 
@@ -1592,7 +1596,7 @@ class ptvDB:
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
-				entry_hash.update(str(item['guid']) + str(item['title']))
+				entry_hash.update(str(item['description']) + str(item['title']))
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, hash=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
 								 int(time.mktime(item['date_parsed'])),item['guid'],
@@ -2003,7 +2007,7 @@ class ptvDB:
 			return []
 		else:
 			return result
-		
+			
 	def get_kept_entries(self, feed_id):
 		self._db_execute(self._c, u'SELECT rowid FROM entries WHERE keep=1 AND feed_id=?', (feed_id,))
 		result = self._c.fetchall()
@@ -2327,6 +2331,7 @@ class ptvDB:
 		"""marks a feed's entries and media as viewed.  If there's a way to do this all
 		in sql, I'd like to know"""
 		if self._filtered_entries.has_key(feed_id):
+			changed_list = []
 			list = []
 			for entry in self._filtered_entries[feed_id]:
 				self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE rowid=? AND read=0 AND keep=0',(entry[0],))
@@ -2335,6 +2340,8 @@ class ptvDB:
 			feed_id = self._resolve_pointed_feed(feed_id)
 		else:
 			#feed_id = self._resolve_pointed_feed(feed_id)
+			self._db_execute(self._c, u'SELECT rowid FROM entries WHERE feed_id=? AND read=0 AND keep=0',(feed_id,))
+			changed_list = self._c.fetchall()
 			self._db_execute(self._c, u'UPDATE entries SET read=1 WHERE feed_id=? AND read=0 AND keep=0',(feed_id,))
 			self._db_execute(self._c, u'SELECT media.rowid, media.download_status FROM media INNER JOIN entries ON media.entry_id = entries.rowid WHERE entries.keep=0 AND media.feed_id = ?',(feed_id,))
 			list = self._c.fetchall()
@@ -2348,11 +2355,15 @@ class ptvDB:
 		#	if item[1] == D_ERROR:
 		#		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE rowid=?', (D_NOT_DOWNLOADED,item[0]))
 		self._db.commit()
-		self._db_execute(self._c, u'SELECT rowid,read FROM entries WHERE feed_id=?',(feed_id,))
-		list = self._c.fetchall()
-		for item in list:
-			if self.entry_flag_cache.has_key(item[0]): 
-				del self.entry_flag_cache[item[0]]
+		
+		changed_list = [r[0] for r in changed_list]
+		
+		for item in changed_list:
+			if self.entry_flag_cache.has_key(item): 
+				del self.entry_flag_cache[item]
+				
+		return changed_list
+		
 	
 	def media_exists(self, filename):
 		self._db_execute(self._c, u'SELECT count(*) FROM media WHERE media.file=?',(filename,))
@@ -2530,6 +2541,28 @@ class ptvDB:
 			return None, None
 		return retval
 		
+	def get_entries_for_hashes(self, hashlist):
+		if len(hashlist) == 0:
+			return []
+			
+		qmarks = "?,"*(len(hashlist)-1)+"?"
+		self._db_execute(self._c, u'SELECT feed_id, rowid, read FROM entries WHERE hash IN ('+qmarks+')', tuple(hashlist))
+		retval = self._c.fetchall()
+		if retval is None:
+			return []
+		return retval
+		
+	def get_hashes_for_entries(self, entrylist):
+		if len(entrylist) == 0:
+			return []
+			
+		qmarks = "?,"*(len(entrylist)-1)+"?"
+		self._db_execute(self._c, u'SELECT hash FROM entries WHERE rowid IN ('+qmarks+')', tuple(entrylist))
+		retval = self._c.fetchall()
+		if retval is None:
+			return []
+		return [r[0] for r in retval]
+	
 	def get_unread_entries(self, feed_id):
 		if self._filtered_entries.has_key(feed_id):
 			return []

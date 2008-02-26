@@ -71,8 +71,9 @@ if [ $? -gt 0 ] ; then
 	exit 1
 fi
 
-if [ $HILDON -eq 1 ] ; then
-	echo "Running ptv in $ptv_home"
+echo "Running ptv in $ptv_home"
+
+if [ $HILDON -eq 1 ] ; then	
 	run-standalone.sh python2.5 -c "import sys; \
 sys.path.insert(0, \"$ptv_home\");
 import penguintv;

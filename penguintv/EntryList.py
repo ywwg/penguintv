@@ -101,10 +101,8 @@ class EntryList(gobject.GObject):
 		self._handlers.append((app.disconnect, h_id))
 		h_id = app.connect('state-changed', self.__state_changed_cb)
 		self._handlers.append((app.disconnect, h_id))
-		h_id = app.connect('entrylist-read', self.__entrylist_read_cb)
+		h_id = app.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((app.disconnect, h_id))
-		#h_id = app.connect('entries-viewed', self.__entries_viewed_cb)
-		#self._handlers.append((app.disconnect, h_id))
 		
 	def finalize(self):
 		for disconnector, h_id in self._handlers:
@@ -113,12 +111,6 @@ class EntryList(gobject.GObject):
 	def set_entry_view(self, entry_view):
 		h_id = entry_view.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((entry_view.disconnect, h_id))
-		
-	def set_article_sync(self, article_sync):
-		h_id = article_sync.connect('entries-viewed', self.__entries_viewed_cb)
-		self._handlers.append((article_sync.disconnect, h_id))
-		h_id = article_sync.connect('entries-unviewed', self.__entries_viewed_cb)
-		self._handlers.append((article_sync.disconnect, h_id))
 		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
@@ -148,13 +140,11 @@ class EntryList(gobject.GObject):
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
 		
-	def __entrylist_read_cb(self, app, feed_id, entrylist):
-		for e in entrylist:
-			self.update_entry_list(e)
-		
-	def __entries_viewed_cb(self, app, feed_id, entrylist):
-		for e in entrylist:
-			self.update_entry_list(e)
+	def __entries_viewed_cb(self, app, viewlist):
+		for feed_id, entrylist in viewlist:
+			if feed_id == self._feed_id:
+				for e in entrylist:
+					self.update_entry_list(e)
 			
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:

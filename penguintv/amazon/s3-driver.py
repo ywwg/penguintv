@@ -9,7 +9,13 @@
 #  this software code. (c) 2006-2007 Amazon Digital Services, Inc. or its
 #  affiliates.
 
+#BREAKME:
+import feedparser
+
+#print "FEEDPARSERDONE"
+
 import S3
+#print "S3DONE"
 import time
 import sys
 
@@ -36,7 +42,7 @@ generator = S3.QueryStringAuthGenerator(AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY
 print '----- listing all my buckets -----'
 print map(lambda x: x.name, conn.list_all_my_buckets().entries)
 
-
+print BUCKET_NAME
 if (conn.check_bucket_exists(BUCKET_NAME).status == 200):
   print '----- bucket already exists! -----'
 else:
@@ -53,6 +59,8 @@ print conn.get_bucket_location(BUCKET_NAME).location
 
 print '----- listing bucket -----'
 print map(lambda x: x.key, conn.list_bucket(BUCKET_NAME).entries)
+
+sys.exit(0)
 
 print '----- putting object (with content type) -----'
 print conn.put(

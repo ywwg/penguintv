@@ -81,6 +81,7 @@ import Player
 import UpdateTasksManager
 import Downloader
 import ArticleSync
+import Poller
 
 import AddFeedDialog
 import PreferencesDialog
@@ -124,9 +125,9 @@ class PenguinTVApp(gobject.GObject):
 		'entry-updated': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
 						   ([gobject.TYPE_INT, gobject.TYPE_INT])),
-		'entrylist-read': (gobject.SIGNAL_RUN_FIRST, 
+		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
-						   ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
+						   ([gobject.TYPE_PYOBJECT])),
 		'render-ops-updated': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
 						   ([])),
@@ -155,6 +156,7 @@ class PenguinTVApp(gobject.GObject):
 	def __init__(self, window=None):
 		gobject.GObject.__init__(self)
 		self._for_import = []
+		self.__importing = False
 		self._app_loaded = False
 		self._remote_poller = None
 		self._remote_poller_pid = 0
@@ -320,10 +322,8 @@ class PenguinTVApp(gobject.GObject):
 			except:
 				self._nm_interface = None
 				
-			#use out-of-process poller on hildon only.
-			if utils.RUNNING_HILDON:	
-				p = threading.Thread(None, self._get_poller)
-				p.start()
+			p = threading.Thread(None, self._get_poller)
+			p.start()
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
@@ -332,10 +332,8 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_view.post_show_init()
 		
 		self._article_sync = self._setup_article_sync()
-		self.feed_list_view.set_article_sync(self._article_sync)
-		self._entry_list_view.set_article_sync(self._article_sync)
 		if self._article_sync.is_enabled():
-			self.sync_authenticate(self._startup_article_sync)
+			self.sync_authenticate()
 		
 		self._connect_signals()
 		
@@ -376,6 +374,8 @@ class PenguinTVApp(gobject.GObject):
 		#gtk.gdk.threads_leave()
 		self.emit('app-loaded')
 		self._app_loaded = True
+		self.db.done_initializing()
+		self.save_settings()
 		return False #for idler	
 		
 	def _get_poller(self):
@@ -385,6 +385,8 @@ class PenguinTVApp(gobject.GObject):
 		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
 		gtk.gdk.threads_leave()
 		rundir = os.path.split(utils.__file__)[0]
+		if rundir == "": rundir = "./"
+		logging.debug("running poller: %s %s" % ('/usr/bin/env python2.5', os.path.join(rundir, 'Poller.py')))
 		subprocess.Popen(['/usr/bin/env', 'python2.5', 
 						  os.path.join(rundir, 'Poller.py')])
 		
@@ -448,47 +450,48 @@ class PenguinTVApp(gobject.GObject):
 		article_sync = ArticleSync.ArticleSync(self, self._entry_view, 
 								username, password, enabled)
 	
-		self.window_preferences.set_use_article_sync(enabled)
 		self.window_preferences.set_sync_username(username)
 		self.window_preferences.set_sync_password(password)
+		self.window_preferences.set_use_article_sync(enabled)
 		return article_sync
 		
-	def _startup_article_sync(self, success, start_timeout=True):
-		"""Sync feedlist and any entries since last timestamp"""
-		
-		if success:
-			pass
-			#self._article_sync.get_feed_counts()
-			#done in done_populating
-			#self._article_sync.get_readstates(timestamp=int(time.time()))
-		else:
-			logging.warning("Didn't log in to article sync server")
-		if start_timeout:
-			gobject.timeout_add(15 * 60 * 1000, self._submit_new_readstates)
+	def _sync_articles_get(self):
+		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
+		self._article_sync.get_readstates_since(timestamp)
 
-	def _submit_new_readstates(self):
-		def _submit_cb(result):
-			if result:
-				logging.debug("success submitting readstates!")
-				self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
-			else:
-				logging.debug("trouble submitting readstates")
-			return False
-	
-		logging.debug("submitting new readstates, maybe")
-		if not self._article_sync.is_enabled():
-			logging.debug("not enabled")
-			return True
-		if not self._article_sync.is_authenticated():
-			logging.debug("not authenticated (trying again)")
-			self._article_sync.authenticate(lambda x: self._startup_article_sync(x, False))
-		else:
-			logging.debug("going for it!")
-			timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', 
-							int(time.time()) - (1 * 24 * 60 * 60)) #one day
-			self._article_sync.submit_readstates_since(timestamp, _submit_cb)
-				
-		return True
+	def __got_readstates_cb(self, o, viewlist):
+		if self._exiting:
+			logging.debug("got readstates, but no time to apply them")
+			return
+		if len(viewlist) > 0:
+			self.mark_entrylist_viewstate(viewlist, True)
+			self.emit('entries-viewed', viewlist)
+		logging.debug("SETTING TIMESTAMPE=========")
+		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+
+	#def _submit_new_readstates(self):
+	#	def _submit_cb(result):
+	#		if result:
+	#			logging.debug("success submitting readstates!")
+	#			self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+	#		else:
+	#			logging.debug("trouble submitting readstates")
+	#		return False
+	#
+	#	logging.debug("submitting new readstates, maybe")
+	#	if not self._article_sync.is_enabled():
+	#		logging.debug("not enabled")
+	#		return True
+	#	if not self._article_sync.is_authenticated():
+	#		logging.debug("not authenticated (trying again)")
+	#		self._article_sync.authenticate(lambda x: self._startup_article_sync(x, False))
+	#	else:
+	#		logging.debug("going for it!")
+	#		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', 
+	#						int(time.time()) - (1 * 24 * 60 * 60)) #one day
+	#		self._article_sync.submit_readstates_since(timestamp, _submit_cb)
+	#			
+	#	return True
 			
 	def _import_default_feeds(self):
 		found_subs = False
@@ -519,8 +522,7 @@ class PenguinTVApp(gobject.GObject):
 		self.feed_list_view.connect('state-change', self.__feedlist_state_change_cb)
 		#self._entry_view.connect('entry-selected', self.__entry_selected_cb)
 		self._entry_view.connect('entries-viewed', self.__entries_viewed_cb)
-		self._article_sync.connect('entries-viewed', self.__entries_viewed_cb)
-		self._article_sync.connect('entries-unviewed', self.__entries_viewed_cb)
+		self._article_sync.connect('got-readstates', self.__got_readstates_cb)
 		
 		self.feed_list_view.set_entry_view(self._entry_view)	
 		self._entry_list_view.set_entry_view(self._entry_view)
@@ -537,11 +539,16 @@ class PenguinTVApp(gobject.GObject):
 	#	#self.mark_entrylist_viewstate(feed_id, entrylist, False)
 	#	self._delayed_set_viewed(feed_id, entrylist)
 	
-	def __entries_viewed_cb(self, o, feed_id, entrylist):
-		self.mark_entrylist_viewstate(feed_id, entrylist, True)
+	def __entries_viewed_cb(self, o, viewlist):
+		if self._exiting:
+			return
+		logging.debug("got viewlist: %s" % str(viewlist))
+		self.mark_entrylist_viewstate(viewlist, True)
 		
-	def __entries_viewed_cb(self, o, feed_id, entrylist):
-		self.mark_entrylist_viewstate(feed_id, entrylist, False)
+	def __entries_unviewed_cb(self, o, unviewedlist):
+		if self._exiting:
+			return
+		self.mark_entrylist_viewstate(unviewedlist, False)
 		
 	def __feedlist_state_change_cb(self, o, new_state):
 		self.set_state(new_state)
@@ -668,6 +675,13 @@ class PenguinTVApp(gobject.GObject):
 			val = self._entry_list_view.get_selected_id()
 			if val is None: val = 0
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', val)
+		
+		username = self.window_preferences.get_sync_username()
+		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', username)
+		password = self.window_preferences.get_sync_password()
+		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', password)
+		enabled = self.window_preferences.get_use_article_sync()
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', enabled)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
 	@utils.db_except()
@@ -695,7 +709,7 @@ class PenguinTVApp(gobject.GObject):
 		##good breakpoint for gc analysis
 		#import code
 		#code.interact()
-		
+	
 		logging.info('ptv quitting')
 		self._exiting=1
 		self._entry_view.finish()
@@ -716,17 +730,20 @@ class PenguinTVApp(gobject.GObject):
 		feed_dict = {}
 		for feed_id, flag, unread, total, pollfail, firstentrytitle in feed_cache:
 			feed_dict[feed_id] = unread
-		self._article_sync.submit_feed_counts(feed_dict)
-		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (24*60*60))
-		self._article_sync.submit_readstates_since(timestamp)
-		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
-		
+			
 		adjusted_cache = [[c[0],(c[1] & ptvDB.F_DOWNLOADING and c[1]-ptvDB.F_DOWNLOADING+ptvDB.F_PAUSED or c[1]),c[2],c[3],c[4],c[5]] for c in feed_cache]
 		self.db.set_feed_cache(adjusted_cache)
-		logging.info('stopping db')
-		self.db.finish(majorsearchwait=False)	
+			
 		logging.info('stopping mediamanager')
 		self.mediamanager.finish()
+		
+		self._article_sync.finish(cb=lambda x: True)
+		while self._article_sync.is_working():
+			time.sleep(1)
+			
+		logging.info('stopping db')
+		self.db.finish(majorsearchwait=False)	
+		
 		#while threading.activeCount()>1:
 		#	print threading.enumerate()
 		#	print str(threading.activeCount())+" threads active..."
@@ -745,7 +762,7 @@ class PenguinTVApp(gobject.GObject):
 			as the current frequency.  If not, exit with False to stop 
 			the timer."""
 			
-		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
+		if self._state == MAJOR_DB_OPERATION or not self._app_loaded or self._exiting:
 			return True
 		
 		if was_setup is not None:
@@ -810,13 +827,13 @@ class PenguinTVApp(gobject.GObject):
 		return False
 		
 	def poll_finished_cb(self):
-		print "got poll finished callback"
 		self.main_window.display_status_message(_("Feeds Updated"))
 		gobject.timeout_add(2000, self.main_window.display_status_message, "")
 		self.update_disk_usage()
 		if self._auto_download == True:
 			self._auto_download_unviewed()
 		self._gui_updater.set_completed(self._polling_taskinfo)
+		self._gui_updater.queue(self._sync_articles_get)
 	
 	@utils.db_except()
 	def _auto_download_unviewed(self):
@@ -1270,7 +1287,7 @@ class PenguinTVApp(gobject.GObject):
 		if self._state == MAJOR_DB_OPERATION or not self._app_loaded:
 			self._for_import.append((1, f))
 			return
-	
+			
 		def import_gen(f):
 			dialog = gtk.Dialog(title=_("Importing OPML file"), parent=None, flags=gtk.DIALOG_MODAL, buttons=None)
 			label = gtk.Label(_("Loading the feeds from the OPML file"))
@@ -1307,17 +1324,13 @@ class PenguinTVApp(gobject.GObject):
 				bar.set_fraction(i/feed_count)
 				i+=1.0
 				yield True
-			if len(newfeeds)>10:
-				#it's faster to just start over if we have a lot of feeds to add
-				self.main_window.search_container.set_sensitive(False)
-				self.feed_list_view.clear_list()
-				self._populate_feeds(self._done_populating)
-			else:
-				for feed in newfeeds:
-					self.feed_list_view.add_feed(feed)
+			#if len(newfeeds)>10:
+			#it's faster to just start over if we have a lot of feeds to add
+			self.main_window.search_container.set_sensitive(False)
+			self.feed_list_view.clear_list()
+			self._populate_feeds(self.done_pop_with_poll)
 			self.emit('tags-changed', 0)
 			self.main_window.display_status_message("")
-			self.do_poll_multiple(feeds=newfeeds)
 			task_id = self._gui_updater.queue(self.__finish_import, None, self._polling_taskinfo)
 			dialog.hide()
 			del dialog
@@ -1344,18 +1357,16 @@ class PenguinTVApp(gobject.GObject):
 			self.emit('entry-updated', entry['entry_id'], feed_id)
 		
 	@utils.db_except()
-	def mark_entrylist_viewstate(self, feed_id, entrylist, read=True): #, update_entrylist=True):
-		if len(entrylist) == 0:
+	def mark_entrylist_viewstate(self, viewlist, read=True):
+		print viewlist
+		if len(viewlist) == 0:
 			return
 		
-		default_read = self.db.get_flags_for_feed(feed_id) & \
-							ptvDB.FF_MARKASREAD and 1 or 0
-		
-		if default_read and read:
-			return
+		entrylist = []
+		for feed_id, id_list in viewlist:
+			entrylist += id_list
 		
 		self.db.set_entrylist_read(entrylist, read)
-		#self.emit('entrylist-read', feed_id, entrylist)
 			
 	@utils.db_except()
 	def mark_entry_as_unviewed(self,entry):
@@ -1374,9 +1385,11 @@ class PenguinTVApp(gobject.GObject):
 		
 	@utils.db_except()
 	def mark_feed_as_viewed(self,feed):
-		self.db.mark_feed_as_viewed(feed)
-		self._entry_list_view.populate_if_selected(feed)
-		self.feed_list_view.update_feed_list(feed, ['readinfo'])
+		changed = self.db.mark_feed_as_viewed(feed)
+		print "changed:",changed
+		self.emit('entries-viewed', [(feed, changed)])
+		#self._entry_list_view.populate_if_selected(feed)
+		#self.feed_list_view.update_feed_list(feed, ['readinfo'])
 		
 	@utils.db_except()
 	def mark_all_viewed(self):
@@ -1458,6 +1471,7 @@ class PenguinTVApp(gobject.GObject):
 		
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
+			self._gui_updater.queue(self._sync_articles_get)
 			if info['lastpoll'] == 0 and success:
 				self._first_poll_marking(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
@@ -1824,8 +1838,8 @@ class PenguinTVApp(gobject.GObject):
 		all_feeds_list = db.get_media_for_download()
 		this_feed_list = [item[2] for item in all_feeds_list if item[3] == feed_id]
 		db.set_entrylist_read(this_feed_list[1:], True)
-		self.mark_entrylist_viewstate(feed_id, this_feed_list[1:], True)
-		self.emit('entrylist-read', feed_id, this_feed_list[1:])
+		self.mark_entrylist_viewstate([(feed_id, this_feed_list[1:])], True)
+		self.emit('entries-viewed', [(feed_id, this_feed_list[1:])])
 		if self._auto_download:
 			self._auto_download_unviewed()
 	
@@ -2073,9 +2087,10 @@ class PenguinTVApp(gobject.GObject):
 		self.set_use_article_sync(enabled)
 		self.window_preferences.set_use_article_sync(enabled)
 		if enabled:
-			self.sync_authenticate()
+			if not self._article_sync.is_authenticated():
+				self.sync_authenticate()
 		else:
-			self.window_preferences.set_sync_status(_("Not Connected"))
+			self.window_preferences.set_sync_status(_("Not Logged In"))
 		
 	def set_use_article_sync(self, enabled):
 		self._article_sync.set_enabled(enabled)
@@ -2101,12 +2116,18 @@ class PenguinTVApp(gobject.GObject):
 		
 		def authenticate_cb(result):
 			if result:
+				self._sync_articles_get()
 				self.window_preferences.set_sync_status(_("Logged in"))
 			else:
 				self.window_preferences.set_sync_status(_("Not Logged in"))
 			if cb is not None:
 				cb(result)
 			return False
+		
+		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+		self._article_sync.set_username(username)
+		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+		self._article_sync.set_password(password)
 		
 		self._article_sync.authenticate(cb=authenticate_cb)
 		
@@ -2124,13 +2145,13 @@ class PenguinTVApp(gobject.GObject):
 		self._gui_updater.queue(self.main_window._sensitize_search)
 		
 	def _done_populating(self):
-		self._article_sync.get_feed_counts(self._get_feed_counts_cb)
-		self._article_sync.get_readstates(timestamp=int(time.time()))
+		#self._article_sync.get_feed_counts(self._get_feed_counts_cb)
+		#self._article_sync.get_readstates(timestamp=int(time.time()))
 		self._gui_updater.queue(self.done_populating)
 
 	def _done_populating_dont_sensitize(self):
-		self._article_sync.get_feed_counts(self._get_feed_counts_cb)
-		self._article_sync.get_readstates(timestamp=int(time.time()))
+		#self._article_sync.get_feed_counts(self._get_feed_counts_cb)
+		#self._article_sync.get_readstates(timestamp=int(time.time()))
 		self._gui_updater.queue(self.done_populating, False)
 		
 	def _get_feed_counts_cb(self, counts):
@@ -2154,7 +2175,7 @@ class PenguinTVApp(gobject.GObject):
 						(feed_dict[feedhash]['title'], counts[feedhash], 
 						 feed_dict[feedhash]['unread']))
 					unreads = self.db.get_unread_entries(feed_dict[feedhash]['feed_id'])
-					self._article_sync.get_readstates(unreads)
+					#self._article_sync.get_readstates(unreads)
 					
 				elif counts[feedhash] > feed_dict[feedhash]['unread']:
 					logging.debug("%s: server: %s local: %s" % \
@@ -2170,18 +2191,26 @@ class PenguinTVApp(gobject.GObject):
 		self.set_state(DEFAULT) #redundant
 		if sensitize:
 			self.main_window._sensitize_search()
-		for item in self._for_import:
-			if item[0] == 0: #url
-				typ, url, title = item
-				self.add_feed(url, title)
-			elif item[0] == 1: #opml
-				typ, f = item
-				try:
-					self.import_subscriptions(f)
-				except e:
-					logging.error("Exception importing opml file:" + str(e))
+			
+		if not self.__importing:
+			self.__importing = True
+			for item in self._for_import:
+				if item[0] == 0: #url
+					typ, url, title = item
+					self.add_feed(url, title)
+				elif item[0] == 1: #opml
+					typ, f = item
+					try:
+						self.import_subscriptions(f)
+					except e:
+						logging.error("Exception importing opml file:" + str(e))
 
-		self._for_import = []
+			self._for_import = []
+			self.__importing = False
+			
+	def done_pop_with_poll(self):
+		self.done_populating()
+		self.do_poll_multiple()
 		
 	def get_database_name(self):
 		return os.path.join(utils.get_home(), "penguintv4.db")

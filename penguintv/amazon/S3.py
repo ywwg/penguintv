@@ -292,7 +292,7 @@ class AWSAuthConnection:
 
     def _add_aws_auth_header(self, headers, method, bucket, key, query_args):
         if not headers.has_key('Date'):
-            headers['Date'] = time.strftime("%a, %d %b %Y %X GMT", time.gmtime())
+            headers['Date'] = time.strftime("%a, %d %b %Y %H:%M:%S GMT", time.gmtime())
 
         c_string = canonical_string(method, bucket, key, query_args, headers)
         headers['Authorization'] = \

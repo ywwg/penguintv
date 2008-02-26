@@ -4,17 +4,17 @@ import urlparse
 import threading
 import logging
 import sha
+import traceback
+import time
 logging.basicConfig(level=logging.DEBUG)
 
 import gobject
 
 from ptvDB import FF_MARKASREAD
-from amazon import S3
+from amazon import articlesync_s3
 
 ### Debugging uses regular callbacks instead of gobject idlers
 DEBUG = False
-
-BUCKET_NAME = 'penguintv-article-sync'
 
 def threaded_func():
 	def annotate(func):
@@ -40,7 +40,7 @@ def threaded_func():
 					else:
 						gobject.idle_add(cb, retval)
 				
-			t = threading.Thread(None, t_func, 
+			t = threading.Thread(None, t_func, "ArticleSync",
 								 args=(self,) + args, kwargs=kwargs)
 			t.setDaemon(True)
 			t.start()
@@ -50,13 +50,18 @@ def threaded_func():
 def authenticated_func():
 	def annotate(func):
 		def _exec_cb(self, *args, **kwargs):
+			logging.debug("authed?")
 			if not self._enabled:
+				logging.debug("not enabled")
 				return
 			elif self._conn is None:
+				logging.debug("no connection")
 				self.emit('server-error', "No Connection")
 			elif not self._authenticated:
+				logging.debug("not authed")
 				self.emit('authentication-error', "Not authenticated")
 			else:
+				logging.debug("authed. calling: %s" % str(func))
 				return func(self, *args, **kwargs)
 		return _exec_cb
 	return annotate	
@@ -64,15 +69,18 @@ def authenticated_func():
 class ArticleSync(gobject.GObject):
 
 	__gsignals__ = {
-		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
-		'entries-unviewed': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
+		#'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
+  #                         gobject.TYPE_NONE, 
+  #                         ([gobject.TYPE_PYOBJECT])),
+		#'entries-unviewed': (gobject.SIGNAL_RUN_FIRST, 
+  #                         gobject.TYPE_NONE, 
+  #                         ([gobject.TYPE_PYOBJECT])),
         'update-feed-count': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT, gobject.TYPE_INT])),
+        'got-readstates': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([gobject.TYPE_PYOBJECT])),
         'authentication-error': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
@@ -81,11 +89,12 @@ class ArticleSync(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT]))             
 	}
 
-	def __init__(self, app, entry_view, access_key, secret_key, enabled=True):
+	def __init__(self, app, entry_view, username, password, enabled=True):
 		gobject.GObject.__init__(self)
+		global BUCKET_NAME, BUCKET_NAME_SUF
 		if app is not None:
-			app.connect('feed-polled', self._feed_polled_cb)
 			app.connect('entry-updated', self._entry_updated_cb)
+			app.connect('entries-viewed', self._entries_viewed_cb)
 			
 			self._db = app.db
 		else:
@@ -96,13 +105,19 @@ class ArticleSync(gobject.GObject):
 		if entry_view is not None:
 			self.set_entry_view(entry_view)	
 			
-		self._access_key = access_key
-		self._secret_key = secret_key
-		self._conn = None
+		self._conn = articlesync_s3.SyncClient(username, password)
+		logging.debug("auth is false1")
 		self._authenticated = False
 		self._enabled = enabled		
+		#diff is a dict of feed_id:readstates
+		#and readstates is a dict of entry_id:readstate
+		self._readstates_diff = {}
 		self.__logging_in = False
-		self.__urllib_lock = threading.Lock()
+		
+		def update_cb(success):
+			logging.debug("update was: %s" % str(success))
+			return False
+		gobject.timeout_add(30000, self.update_readstates, update_cb)
 		
 	def set_entry_view(self, entry_view):
 		for disconnector, h_id in self._handlers:
@@ -113,18 +128,39 @@ class ArticleSync(gobject.GObject):
 	
 	def set_enabled(self, enabled):
 		self._enabled = enabled
+		if not self._enabled:
+			logging.debug("auth is false2")
+			self._authenticated = False
 		
 	def set_username(self, username):
-		self._access_key = username
+		self._conn.set_username(username)
 	
 	def set_password(self, password):
-		self._secret_key = password
+		self._conn.set_password(password)
 		
 	def is_authenticated(self):
 		return self._authenticated
 		
 	def is_enabled(self):
 		return self._enabled
+		
+	def is_working(self):
+		my_threads = [t.getName() for t in threading.enumerate() \
+			if t.getName().startswith("ArticleSync")]
+			
+		return len(my_threads)
+		
+	def finish(self, cb=None):
+		last_diff = self._get_readstates_list(self._readstates_diff)
+		self._readstates_diff = {}
+		self._do_close_conn(last_diff, cb=cb)
+	
+	@threaded_func()
+	def _do_close_conn(self, states):
+		while self.is_working() > 1:
+			print "self.is_working", self.is_working()
+			time.sleep(.5)
+		self._conn.finish(states)
 		
 	@threaded_func()
 	def authenticate(self):
@@ -133,266 +169,99 @@ class ArticleSync(gobject.GObject):
 			return False
 		
 		if self._authenticated:
-			return True
+			while self.is_working() > 1:
+				print "self.is_working", self.is_working()
+				time.sleep(.5)
+			self._conn.finish()
 			
 		self.__logging_in = True
-		
-		self._conn = S3.AWSAuthConnection(self._access_key, self._secret_key)
-		
-		#the only way to "authenticate" is to list buckets.  if list is
-		#empty, try creating the bucket.  success?  it worked!  failure? 
-		#bad keys
-		
-		buckets = [x.name for x in self._conn.list_all_my_buckets().entries]
-		print buckets
-		if len(buckets) > 0:
-			if BUCKET_NAME not in buckets:
-				logging.debug("bucket not exist")
-				#try creating our bucket
-				response = \
-				   self._conn.create_located_bucket(BUCKET_NAME, S3.Location.DEFAULT)
-				print response.http_response.status
-				if response.http_response.status == 200:
-					logging.debug("bucket created")
-					self._authenticated = True
-					self.__logging_in = False
-					return True
-				else:
-					logging.debug("couldn't make bucke2t")
-					self.__logging_in = False
-					return False
-			else:
-				logging.debug("bucket exists")
-				self._authenticated = True
-				self.__logging_in = False
-				return True
-		
-		response = \
-			   self._conn.create_located_bucket(BUCKET_NAME, S3.Location.DEFAULT)
-		print response.http_response.status
+		result = self._conn.authenticate()
 		self.__logging_in = False
-		if response.http_response.status == 200:
-			logging.debug("made bucket!")
-			self._authenticated = True
-			self.__logging_in = False
-			return True
-		else:
-			logging.debug("couldn't make bucket")
-			self.__logging_in = False
-			return False
+		self._authenticated = result
+		logging.debug("result of auth procedure: %s" % str(result))
+		return result
 		
-	@authenticated_func()	
-	def _feed_polled_cb(self, app, feed_id, update_data):
-		if not update_data.has_key('new_entryids'):
-			return
-		id_list = update_data['new_entryids']
-		
-		#print "new entry ids!", id_list
-		
-		if len(id_list) == 0:
-			return
-		
-		#get readstates in a thread, call back with result
-		self.get_readstates(id_list, 
-					cb=self._get_readstates_cb)
-		
-	@authenticated_func()
-	def _entries_viewed_cb(self, app, feed_id, entrylist):
-		pass
-		## Update the server with the new readstates
-		#state_list = [(e['entry_id'], True) for e in entrylist]
-		#self.submit_readstates(state_list, cb=self._error_cb)
+	def _entries_viewed_cb(self, app, viewlist):
+		for feed_id, viewlist in viewlist:
+			for entry_id in viewlist:
+				if not self._readstates_diff.has_key(feed_id):
+					self._readstates_diff[feed_id] = {}
+				self._readstates_diff[feed_id][entry_id] = 1
+				
+		logging.debug("sync updated diff: %s" % str(self._readstates_diff))
 	
-	@authenticated_func()	
 	def _entry_updated_cb(self, app, entry_id, feed_id):
-		pass
-		#readstate = self._db.get_entry_read(entry_id)
-		#self.submit_readstates([(entry_id,readstate)], cb=self._error_cb)
+		readstate = self._db.get_entry_read(entry_id)
+		if not self._readstates_diff.has_key(feed_id):
+			self._readstates_diff[feed_id] = {}
+		self._readstates_diff[feed_id][entry_id] = readstate
+		logging.debug("sync updated diff2: %s" % str(self._readstates_diff))
 		
-	def _error_cb(self, errtype, errmsg):
-		if errtype is None:
-			return False
-		logging.debug("error: %s --  %s" % (str(errtype), errmsg))
-		if errtype == 0:
-			self.emit('authentication-error', errmsg)
-		else:
-			self.emit('server-error', errmsg)
-		return False
+	@authenticated_func()	
+	def update_readstates(self, cb):
+		readstates = self._get_readstates_list(self._readstates_diff)
+		self._readstates_diff = {}
 		
-	@authenticated_func()
-	def get_readstates(self, timestamp=None, cb=None):
-		"""get hashes while we are in main thread"""
+		logging.debug("updating readstates: %s" % str(readstates))
+		self._do_update_readstates(readstates, cb=cb)
 		
-		assert timestamp is not None
-		if cb is None:
-			cb = self._get_readstates_cb
-		
-		if id_list is None:
-			hashes = None
-		else:
-			hashes = self._get_entryhashes(id_list)
-		self._do_get_readstates(timestamp, cb=cb)
-		
-	@threaded_func()
-	def _do_get_readstates(self, hashes=None, timestamp=None):
-		"""takes dict of entry:hashes and/or a timestamp"""
-		
-		readstates = {}
-		if timestamp is not None:
-			if hashes is not None:
-				base_url = 'http://%s:%s@%s/get_readstates?timestamp=%s&entryhashes=' \
-							% (self._access_key, self._secret_key, 
-								self._serveraddr, timestamp)
-			else:
-				base_url = 'http://%s:%s@%s/get_readstates?timestamp=%s' \
-							% (self._access_key, self._secret_key, 
-								self._serveraddr, timestamp)
-		else:
-			base_url = 'http://%s:%s@%s/get_readstates?entryhashes=' \
-						% (self._access_key, self._secret_key, self._serveraddr)
-					
-		hash_csv = ''
-		
-		def build_readstates(h_csv):
-			readstates = {}
-			try:
-				logging.debug("getting: %s" % (base_url + h_csv))
-				self.__urllib_lock.acquire()
-				fd = urllib.urlopen(base_url + h_csv)
-				self.__urllib_lock.release()
-				for line in fd.readlines():
-					entryhash, readstate = line.split(' ')
-					readstate = readstate.split('\n')[0]
-					readstates[entryhash] = int(readstate)
-				return readstates
-			except ValueError, e:
-				self.__urllib_lock.release()
-				self.emit('server-error', str(e))
-				return {}
-			except IOError, e:
-				self.__urllib_lock.release()
-				if e[1] == 401:
-					self.emit('authentication-error', str(e))
+	def _get_readstates_list(self, state_dict):
+		read_entries = []
+		unread_entries = []
+		for feed_id in state_dict.keys():
+			for entry_id in state_dict[feed_id].keys():
+				if state_dict[feed_id][entry_id]:
+					read_entries.append(entry_id)
 				else:
-					self.emit('server-error', str(e))
-				return {}
-		
-		if hashes is not None:
-			self._submit_list(base_url, hashes)
-			for e_id in hashes.keys():
-				if len(base_url) + len(hash_csv) + len(hashes[e_id]) > 4000:
-					readstates.update(build_readstates(hash_csv[:-1]))
-					hash_csv = ''
-				hash_csv += str(hashes[e_id]) + ','
-				
-			if len(hash_csv) > 0:
-				readstates.update(build_readstates(hash_csv[:-1]))
-		else:
-			readstates.update(build_readstates(''))
-		
+					unread_entries.append(entry_id)
+		read_hashes = self._db.get_hashes_for_entries(read_entries)
+		readstates = [(r, 1) for r in read_hashes]
 		return readstates
-		
-	def _get_readstates_cb(self, server_readstates):
-		"""takes a dict of hashed_entry:readstate"""
-		if server_readstates is None:
-			return False
-			
-		def emit_signal(signal_name, feed_id, entrylist,):
-			logging.debug("would emit %s with %s %s" % 
-				(signal_name, feed_id, entrylist))
-			self.emit(signal_name, feed_id, entrylist)
-				
-		unhashed_readstates = []
-		for k in server_readstates.keys():
-			f_id, e_id = self._db.get_entry_for_hash(k)
-			if e_id is not None:
-				unhashed_readstates.append((f_id, e_id, server_readstates[k]))
-			
-		# sort by feed id
-		unhashed_readstates.sort()
-		cur_feed_id = None
-		cur_list = []
-		for feed_id, entry_id, readstate in unhashed_readstates:
-			if cur_feed_id != feed_id:
-				if len(cur_list) > 0:
-					default_read = self._db.get_flags_for_feed(cur_feed_id) & \
-						FF_MARKASREAD and 1 or 0
-					title = self._db.get_feed_title(cur_feed_id)
-					logging.debug("SYNC: %s %s" % (title, str(cur_list)))	
-					emit_list = [e[0] for e in cur_list if e[1] != default_read]
-				
-					# what's the default?
-					signal_name = default_read and \
-						'entries-unviewed' or 'entries-viewed'
-					emit_signal(signal_name, cur_feed_id, emit_list)
-					
-				cur_feed_id = feed_id
-			cur_list.append((entry_id, readstate))
-		if len(cur_list) > 0:
-			default_read = self._db.get_flags_for_feed(cur_feed_id) & \
-				FF_MARKASREAD and 1 or 0
-			title = self._db.get_feed_title(cur_feed_id)
-			logging.debug("SYNC: %s %s" % (title, str(cur_list)))	
-			emit_list = [e[0] for e in cur_list if e[1] != default_read]
-			signal_name = default_read and \
-				'entries-unviewed' or 'entries-viewed'
-			emit_signal(signal_name, feed_id, emit_list)
-
-		return False
+	
+	@threaded_func()
+	def _do_update_readstates(self, readstates):
+		return self._conn.submit_readstates(readstates)
 		
 	@authenticated_func()
-	def submit_readstates(self, state_list, cb=None):
-		"""state list is a list of (entry_id, readstate)"""
-		#get hashes while we are in main thread
+	def get_readstates_since(self, timestamp):
+		logging.debug("getting readstates since %i" % timestamp)
+		def get_readstates_cb(readstates):
+			unread_hashes = []
+			read_hashes = []
 		
-		id_list = [r[0] for r in state_list]
-		hashes = self._get_entryhashes(id_list)
-		hash_dict = {}
-		for entry_id, readstate in id_list:
-			hash_dict[hashes[entry_id]] = readstate
-		if cb is None:
-			return (self._do_submit_readstates(hash_dict))
-		else:
-			self._do_submit_readstates(hash_dict, cb=cb)
+			for entry_hash, readstate in readstates:
+				if readstate:
+					read_hashes.append(entry_hash)
+				else:
+					unread_hashes.append(entry_hash)
+					
+			read_entries = self._db.get_entries_for_hashes(read_hashes)
+			read_entries.sort()
+			logging.debug("hash to entry conversion result:")
+			for row in read_entries:
+				logging.debug(str(row))
+			viewlist = []
+			cur_feed_id = None
+			cur_list = []
+			for feed_id, entry_id, readstate in read_entries:
+				if feed_id != cur_feed_id:
+					if len(cur_list) > 0:
+						viewlist.append((cur_feed_id, cur_list))
+						cur_list = []
+					cur_feed_id = feed_id
+				if readstate == 0:
+					cur_list.append(entry_id)
+				
+			if len(cur_list) > 0:
+				viewlist.append((cur_feed_id, cur_list))
+				
+			logging.debug("viewed shit: %s" % viewlist)
+			self.emit('got-readstates', viewlist)
+			return False
+		
+		self._do_get_readstates_since(timestamp, cb=get_readstates_cb)
 			
-	@threaded_func()		
-	def _do_submit_readstates(self, hashes):
-		"""hashes is a dict of entry_hashes."""
-	
-		def _submit(read_list, unread_list):
-			failure = False
-			base_url = 'http://%s:%s@%s/set_readstates?readstate=1&entryhashes=' % \
-					(self._access_key, self._secret_key, self._serveraddr)
-			if not self._submit_list(base_url, read_list):
-				failure = True
-			base_url = 'http://%s:%s@%s/set_readstates?readstate=0&entryhashes=' % \
-					(self._access_key, self._secret_key, self._serveraddr)
-			if not self._submit_list(base_url, unread_list):
-				failure = True
-			return not failure
-			
-		read_list = []
-		unread_list = []
-		for e_hash in hashes.keys():
-			if hashes[e_hash]:
-				read_list.append(e_hash)
-			else:
-				unread_list.append(e_hash)
-		return _submit(read_list, unread_list)
-			
-	def _get_entryhashes(self, id_list):
-		""""""
-		entries = self._db.get_entry_block(id_list)
-		hashdict = {}
-		for entry in entries:
-			if entry['hash'] is not None:
-				hashdict[entry['entry_id']] = entry['hash']
-			else:
-				logging.error("Hash does not exist for entry: %s" % \
-					str(entry['entry_id']))
-				#This must match ptvdb line ~1565
-				#s = sha.new()
-				#s.update(str(entry['guid']) + str(entry['title']))
-				#hashdict[entry['entry_id']] = s.hexdigest()
-		return hashdict
-
+	@threaded_func()
+	def _do_get_readstates_since(self, timestamp):
+		return self._conn.get_readstates_since(timestamp)
+		

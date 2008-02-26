@@ -566,7 +566,6 @@ def init_gtkmozembed():
 	of getting it from the module itself.  good luck with this"""
 
 	assert HAS_MOZILLA
-	os.chdir(os.getenv('HOME'))
 	
 	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
 		return False
@@ -699,7 +698,6 @@ def get_pynotify_ok():
 		return False
 
 	# first get what package config reports
-	os.chdir(os.getenv('HOME'))
 	
 	cmd = "pkg-config notify-python --modversion"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)

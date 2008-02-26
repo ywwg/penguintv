@@ -41,7 +41,7 @@ class PlanetView(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT])),
 		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
+                           ([gobject.TYPE_PYOBJECT])),
 		#
 		#unused by planetview, but part of entrylist API
 		#
@@ -144,6 +144,8 @@ class PlanetView(gobject.GObject):
 			self._handlers.append((self._app.disconnect, h_id))
 			h_id = self._app.connect('state-changed', self.__state_changed_cb)
 			self._handlers.append((self._app.disconnect, h_id))
+			h_id = self._app.connect('entries-viewed', self.__entries_updated_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -220,12 +222,6 @@ class PlanetView(gobject.GObject):
 	def set_entry_view(self, entry_view):
 		pass
 		
-	def set_article_sync(self, article_sync):
-		h_id = article_sync.connect('entries-viewed', self.__entries_updated_cb)
-		self._handlers.append((article_sync.disconnect, h_id))
-		h_id = article_sync.connect('entries-unviewed', self.__entries_updated_cb)
-		self._handlers.append((article_sync.disconnect, h_id))
-		
 	def __feedlist_feed_selected_cb(self, o, feed_id):
 		self.populate_entries(feed_id)
 
@@ -262,9 +258,11 @@ class PlanetView(gobject.GObject):
 		if feed_id == self._current_feed_id and not self._USING_AJAX:
 			self._render_entries(mark_read=False, force=True)
 			
-	def __entries_updated_cb(self, app, feed_id, entrylist):
-		if feed_id == self._current_feed_id:
-			self.populate_entries(feed_id)
+	def __entries_updated_cb(self, app, viewlist):
+		logging.debug("planet entries viewed")
+		for feed_id, idlist in viewlist:
+			if feed_id == self._current_feed_id:
+				self.populate_entries(feed_id)
 			
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = self._db.get_flags_for_feed(self._current_feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
@@ -793,9 +791,9 @@ class PlanetView(gobject.GObject):
 			if self._state == S_SEARCH:
 				if feed_id == -1:
 					for item in keepers:
-						self.emit('entries-viewed', item['feed_id'], [item['entry_id']])
+						self.emit('entries-viewed', [(item['feed_id'], [item['entry_id']])])
 					return False
-			self.emit('entries-viewed', feed_id, [e['entry_id'] for e in keepers])
+			self.emit('entries-viewed', [(feed_id, [e['entry_id'] for e in keepers])])
 		return False
 
 	def _hulahop_prop_changed(self, obj, pspec):
