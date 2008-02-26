@@ -230,6 +230,10 @@ class ArticleSync(gobject.GObject):
 	def get_readstates_since(self, timestamp):
 		logging.debug("getting readstates since %i" % timestamp)
 		def get_readstates_cb(readstates):
+			if len(readstates) == 0:
+				logging.debug("No readstates since %i" % timestamp)
+				return False
+				
 			unread_hashes = []
 			read_hashes = []
 		
@@ -240,11 +244,10 @@ class ArticleSync(gobject.GObject):
 					unread_hashes.append(entry_hash)
 					
 			unread_entries = \
-				self._db.get_entries_for_hashes(read_hashes, read=False)
+				self._db.get_entries_for_hashes(read_hashes)
 			unread_entries.sort()
-			logging.debug("hash to entry conversion result:")
-			for row in unread_entries:
-				logging.debug(str(row))
+			logging.debug("hash to entry conversion result: %i known %i unknown" \
+				% (len(unread_entries), len(readstates) - len(unread_entries)))
 			viewlist = []
 			cur_feed_id = None
 			cur_list = []
@@ -256,13 +259,13 @@ class ArticleSync(gobject.GObject):
 					cur_feed_id = feed_id
 				if readstate == 0:
 					cur_list.append(entry_id)
-				else:
-					logging.debug("programming error: should never be true")
+				#else:
+				#	logging.debug("programming error: should never be true")
 				
 			if len(cur_list) > 0:
 				viewlist.append((cur_feed_id, cur_list))
 				
-			logging.debug("viewed shit: %s" % viewlist)
+			logging.debug("sync says to mark these viewed: %s" % viewlist)
 			self.emit('got-readstates', viewlist)
 			return False
 		

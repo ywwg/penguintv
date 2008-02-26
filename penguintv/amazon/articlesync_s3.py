@@ -21,7 +21,8 @@ class SyncClient:
 		self._bucket = self._access_key.lower() + BUCKET_NAME_SUF
 		self._sync_file = None
 		self._authenticated = False
-		self._last_sync = 0
+		self._local_timestamp = 0
+		self._no_updates = False
 		self.__transfer_lock = threading.Lock()
 		
 	def set_username(self, username):
@@ -38,15 +39,11 @@ class SyncClient:
 		self._secret_key = password
 		
 	def finish(self, last_upload=[]):
-		logging.debug("SHUTTING DOWN S3")
+		logging.debug("TIDYING UP S3")
 		if self._sync_file is not None:
 			db = self._get_db()
 			if db is not None:
-				if len(last_upload) > 0:
-					logging.debug("BUT UPLOADING TOO")
-					self.submit_readstates(last_upload, do_upload=False, noclosedb=db)
-				else:
-					logging.debug("no new readstates to submit")
+				self.submit_readstates(last_upload, do_upload=False, noclosedb=db)
 				c = db.cursor()
 				one_month = int(time.time()) - (60*60*24*30)
 				c.execute('DELETE FROM readinfo WHERE timestamp < ?', (one_month,))
@@ -87,7 +84,6 @@ class SyncClient:
 				if response.http_response.status == 200:
 					self._authenticated = True
 					self.__logging_in = False
-					logging.debug("true, we created the bucket")
 					return True
 				else:
 					self.__logging_in = False
@@ -95,7 +91,6 @@ class SyncClient:
 			else:
 				self._authenticated = True
 				self.__logging_in = False
-				logging.debug("true, the bucket exists")
 				return True
 		
 		response = \
@@ -104,23 +99,22 @@ class SyncClient:
 		if response.http_response.status == 200:
 			self._authenticated = True
 			self.__logging_in = False
-			logging.debug("true, we created the bucket2")
 			return True
 		else:
 			self.__logging_in = False
 			return False
 	
-	def _stamp_submission(self):
+	def _set_server_timestamp(self):
 		assert self._authenticated
-		logging.debug("TIMESTAMPING SUBMISSION")
 		timestamp = int(time.time())
+		logging.debug("TIMESTAMPING SUBMISSION: %i" % timestamp)
 		resp = self._conn.put(self._bucket, STAMP_KEYNAME, str(timestamp))
 		if resp.http_response.status != 200:
 			logging.error("error submitting timestamp")
 			return 0
 		return timestamp
 		
-	def _get_last_submit_time(self):
+	def _get_server_timestamp(self):
 		assert self._authenticated
 		self.__transfer_lock.acquire()
 		resp = self._conn.get(self._bucket, STAMP_KEYNAME)
@@ -133,6 +127,7 @@ class SyncClient:
 			self.__transfer_lock.release()
 			return 0
 		self.__transfer_lock.release()
+		
 		return int(resp.object.data)
 	
 	def submit_readstates(self, readstates, do_upload=True, noclosedb=None):
@@ -144,7 +139,9 @@ class SyncClient:
 			
 		assert self._conn is not None
 		
+		logging.debug("ArticleSync Submitting %i readstates" % len(readstates))
 		if len(readstates) == 0:
+			logging.debug("(returning immediately)")
 			return True
 		
 		if do_upload and noclosedb is not None:
@@ -188,7 +185,7 @@ class SyncClient:
 			return self._close_and_send_db(db)
 		if noclosedb is None:
 			db.close()
-		logging.debug("Not uploading right now")
+		logging.debug("Not uploading just yet")
 		return True
 	
 	def get_readstates_since(self, timestamp):
@@ -199,12 +196,18 @@ class SyncClient:
 		   
 		assert self._conn is not None
 		
+		if self._no_updates:
+			server_timestamp = self._get_server_timestamp()
+			logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))
+			if server_timestamp == self._local_timestamp:
+				logging.debug("no updates last time, so no point checking")
+				return []
+		
 		db = self._get_db()
 		if db is None:
 			return []
 			
 		c = db.cursor()
-		logging.debug("getting updated entries since %i" % timestamp)
 		c.execute(u'SELECT hash, readstate FROM readinfo WHERE timestamp >= ?', (timestamp,))
 		new_hashes = c.fetchall()
 		#logging.debug("result: %s" % str(new_hashes))
@@ -215,6 +218,8 @@ class SyncClient:
 		c.close()
 		db.close()
 		if new_hashes is None:
+			logging.debug("No results, so if the server doesn't update next time we won't download it")
+			self._no_updates = True
 			return []
 		return new_hashes
 		
@@ -222,14 +227,16 @@ class SyncClient:
 		if self._sync_file is None:
 			return self._download_db()
 			
-		server_submit_time = self._get_last_submit_time()
-		if server_submit_time > self._last_sync:
-			logging.debug("someone else updated the db more recently than us")
+		server_timestamp = self._get_server_timestamp()
+		if server_timestamp != self._local_timestamp:
+			logging.debug("sync time unexpectedly changed %i %i" \
+				% (server_timestamp, self._local_timestamp))
 			return self._download_db()
 		
 		return sqlite3.connect(self._sync_file)
 		
 	def _download_db(self):
+		self._no_updates = False
 		self.__transfer_lock.acquire()
 		response = self._conn.get(self._bucket, KEYNAME)
 		self.__transfer_lock.release()
@@ -246,8 +253,8 @@ class SyncClient:
 		logging.debug("Downloaded %i bytes" % fp.tell())
 		fp.close()
 		
-		logging.debug("SETTING LAST SYNC TIMESTAMP")
-		self._last_sync = int(time.time())
+		self._local_timestamp = self._get_server_timestamp()
+		
 		return sqlite3.connect(self._sync_file)
 		
 	def _create_db(self):
@@ -264,6 +271,8 @@ class SyncClient:
 			
 		db.commit()
 		c.close()
+		self._local_timestamp = self._set_server_timestamp()
+		logging.debug("SETTING S3 TIMESTAMP2: %i" % self._local_timestamp)
 		return db
 		
 	def _close_and_send_db(self, db):
@@ -278,7 +287,8 @@ class SyncClient:
 		if response.http_response.status != 200:
 			return False
 			
-		self._last_sync = self._stamp_submission()
+		self._local_timestamp = self._set_server_timestamp()
+		logging.debug("SETTING S3 TIMESTAMP3: %i" % self._local_timestamp)
 		return True
 		
 	def _reset_db(self):

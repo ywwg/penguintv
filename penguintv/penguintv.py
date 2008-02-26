@@ -332,9 +332,7 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_view.post_show_init()
 		
 		self._article_sync = self._setup_article_sync()
-		if self._article_sync.is_enabled():
-			self.sync_authenticate()
-		
+			
 		self._connect_signals()
 		
 		self.main_window.search_container.set_sensitive(False)
@@ -455,6 +453,26 @@ class PenguinTVApp(gobject.GObject):
 		self.window_preferences.set_use_article_sync(enabled)
 		return article_sync
 		
+	def sync_authenticate(self, cb=None):
+		logging.debug("authenticating sync settings")
+		
+		def authenticate_cb(result):
+			if result:
+				self._sync_articles_get()
+				self.window_preferences.set_sync_status(_("Logged in"))
+			else:
+				self.window_preferences.set_sync_status(_("Not Logged in"))
+			if cb is not None:
+				cb(result)
+			return False
+		
+		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+		self._article_sync.set_username(username)
+		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+		self._article_sync.set_password(password)
+		
+		self._article_sync.authenticate(cb=authenticate_cb)
+		
 	def _sync_articles_get(self):
 		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
 		self._article_sync.get_readstates_since(timestamp)
@@ -466,7 +484,9 @@ class PenguinTVApp(gobject.GObject):
 		if len(viewlist) > 0:
 			self.mark_entrylist_viewstate(viewlist, True)
 			self.emit('entries-viewed', viewlist)
-		logging.debug("SETTING TIMESTAMPE=========")
+		else:
+			logging.debug("stamping even though none found")
+		logging.debug("SETTING GCONF TIMESTAMP=========")
 		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 
 	#def _submit_new_readstates(self):
@@ -742,18 +762,21 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager.finish()
 		
 		self._article_sync.finish(cb=lambda x: True)
-		while self._article_sync.is_working():
-			time.sleep(1)
-			
-		logging.info('stopping db')
-		self.db.finish(majorsearchwait=False)	
+		def article_sync_wait():
+			if self._article_sync.is_working():
+				return True
+				
+			logging.info('stopping db')
+			self.db.finish(majorsearchwait=False)	
 		
-		#while threading.activeCount()>1:
-		#	print threading.enumerate()
-		#	print str(threading.activeCount())+" threads active..."
-		#	time.sleep(1)
-		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
-			gtk.main_quit()
+			#while threading.activeCount()>1:
+			#	print threading.enumerate()
+			#	print str(threading.activeCount())+" threads active..."
+			#	time.sleep(1)
+			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
+				gtk.main_quit()
+			return False
+		gobject.timeout_add(250, article_sync_wait)
 			
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
@@ -2115,26 +2138,6 @@ class PenguinTVApp(gobject.GObject):
 		self._article_sync.set_password(password)
 		self.window_preferences.set_sync_password(password)
 		
-	def sync_authenticate(self, cb=None):
-		logging.debug("authenticating sync settings")
-		
-		def authenticate_cb(result):
-			if result:
-				self._sync_articles_get()
-				self.window_preferences.set_sync_status(_("Logged in"))
-			else:
-				self.window_preferences.set_sync_status(_("Not Logged in"))
-			if cb is not None:
-				cb(result)
-			return False
-		
-		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
-		self._article_sync.set_username(username)
-		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
-		self._article_sync.set_password(password)
-		
-		self._article_sync.authenticate(cb=authenticate_cb)
-		
 	#def update_feed_list(self, feed_id=None):
 	#	self.feed_list_view.update_feed_list(feed_id) #for now, just update this ONLY
 		
@@ -2193,6 +2196,8 @@ class PenguinTVApp(gobject.GObject):
 	def done_populating(self, sensitize=True):
 		self._unset_state(True) #force exit of done_loading state
 		self.set_state(DEFAULT) #redundant
+		if self._article_sync.is_enabled():
+			self.sync_authenticate()
 		if sensitize:
 			self.main_window._sensitize_search()
 			

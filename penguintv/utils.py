@@ -483,7 +483,10 @@ class StrippingParser(HTMLParser.HTMLParser):
         if tag in self.valid_tags:
             self.result = "%s</%s>" % (self.result, tag)
             remTag = '</%s>' % tag
-            self.endTagList.remove(remTag)
+            try:
+            	self.endTagList.remove(remTag)
+            except:
+            	pass
 
     def cleanup(self):
         """ Append missing closing tags """

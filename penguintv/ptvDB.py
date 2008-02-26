@@ -540,13 +540,13 @@ class ptvDB:
 		self._db_execute(self._c, u'ALTER TABLE entries ADD COLUMN hash TEXT')
 		
 		logging.info("Creating entry hashes")
-		self._db_execute(self._c, u'SELECT rowid, description, title FROM entries')
+		self._db_execute(self._c, u'SELECT rowid, description, title, guid FROM entries')
 		entries = self._c.fetchall()
 		hashes = []
-		for entry_id, description, title in entries:
-			s = sha.new()
-			s.update(str(description) + str(title))
-			self._db_execute(self._c, u'UPDATE entries SET hash=? WHERE rowid=?', (s.hexdigest(), entry_id))
+		for entry_id, description, title, guid in entries:
+			entry_hash = self._get_hash(guid, title, description)
+			self._db_execute(self._c, u'UPDATE entries SET hash=? WHERE rowid=?', \
+				(entry_hash, entry_id))
 		
 		self._db.commit()
 		
@@ -663,6 +663,19 @@ class ptvDB:
 		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 7)""")
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
+		
+	def _get_hash(self, guid, title, description):
+		s = sha.new()
+		try:
+			p = utils.StrippingParser()
+			p.feed(guid + title + description)
+			p.close()
+			p.cleanup()
+			s.update(p.result)
+		except:
+			logging.debug("hashing error, just using raw text")
+			s.update(guid + title + description)
+		return s.hexdigest()
 		
 	def _fix_indexes(self):
 		try:
@@ -1574,15 +1587,14 @@ class ptvDB:
 				
 			status = self._get_status(item, existing_entries, guid_quality, media_entries)
 			
-			entry_hash = sha.new()
 			if status[0]==NEW:
 				new_items = new_items+1
-				entry_hash.update(str(item['description']) + str(item['title']))
+				entry_hash = self._get_hash(item['guid'], item['title'], item['description'])
 				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
 						(feed_id,item['title'],item['creator'],item['body'],
 						default_read,fake_time-i, 
 						int(time.mktime(item['date_parsed'])),
-						item['guid'],item['link'], entry_hash.hexdigest()))
+						item['guid'],item['link'], entry_hash))
 				self._db_execute(self._c,  "SELECT last_insert_rowid()")
 				entry_id = self._c.fetchone()[0]
 				if item.has_key('enclosures'):
@@ -1596,11 +1608,11 @@ class ptvDB:
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
-				entry_hash.update(str(item['description']) + str(item['title']))
+				entry_hash = self._get_hash(item['guid'], item['title'], item['description'])
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, hash=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
 								 int(time.mktime(item['date_parsed'])),item['guid'],
-								 item['link'], entry_hash.hexdigest(), status[1]))
+								 item['link'], entry_hash, status[1]))
 				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
 				if item.has_key('enclosures'):
 					#self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
