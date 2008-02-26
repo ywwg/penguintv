@@ -54,7 +54,10 @@ class SyncClient:
 				c.execute('VACUUM')
 				db.commit()
 				c.close()
-				self._close_and_send_db(db)
+				if len(last_upload) > 0:
+					self._close_and_send_db(db)
+				else:
+					db.close()
 				os.remove(self._sync_file)
 			self._sync_file = None
 			self._authenticated = False

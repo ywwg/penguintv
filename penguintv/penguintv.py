@@ -717,6 +717,10 @@ class PenguinTVApp(gobject.GObject):
 		if self._update_thread is not None:
 			if self._update_thread.isAlive():
 				self._update_thread.goAway()
+
+		if self._article_sync.is_enabled():
+			self.main_window.display_status_message(_("Synchronizing Articles"))
+
 		self.main_window.finish()
 		logging.info('stopping downloads')
 		
@@ -737,9 +741,6 @@ class PenguinTVApp(gobject.GObject):
 		logging.info('stopping mediamanager')
 		self.mediamanager.finish()
 		
-		if self._article_sync.is_enabled():
-			self.main_window.display_status_message(_("Synchronizing Articles"))
-			
 		self._article_sync.finish(cb=lambda x: True)
 		while self._article_sync.is_working():
 			time.sleep(1)
