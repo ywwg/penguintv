@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 import gobject
 
 from ptvDB import FF_MARKASREAD
-from amazon import articlesync_s3
+from amazon import S3SyncClient
 
 ### Debugging uses regular callbacks instead of gobject idlers
 DEBUG = False
@@ -97,7 +97,7 @@ class ArticleSync(gobject.GObject):
 		if entry_view is not None:
 			self.set_entry_view(entry_view)	
 			
-		self._conn = articlesync_s3.S3SyncClient(username, password)
+		self._conn = S3SyncClient.S3SyncClient(username, password)
 		self._authenticated = False
 		self._enabled = enabled		
 		#diff is a dict of feed_id:readstates
