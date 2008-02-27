@@ -212,7 +212,7 @@ class SqliteSyncClient:
 		fp.close()
 		self._local_timestamp = int(time.time())
 		logging.debug("SETTING server TIMESTAMP3: %i" % self._local_timestamp)
-		if not self._set_server_timestamp():
+		if not self._set_server_timestamp(self._local_timestamp):
 			logging.error("error setting timestamp")
 		
 		return True
@@ -227,7 +227,7 @@ class SqliteSyncClient:
 		logging.error("must be implemented in subclass")
 		assert False
 					
-	def _set_server_timestamp(self):
+	def _set_server_timestamp(self, timestamp):
 		logging.error("must be implemented in subclass")
 		assert False
 		
