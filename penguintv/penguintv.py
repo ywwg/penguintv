@@ -488,6 +488,10 @@ class PenguinTVApp(gobject.GObject):
 			logging.debug("stamping even though none found")
 		logging.debug("SETTING GCONF TIMESTAMP=========")
 		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+		
+	def __sent_readstates_cb(self, o):
+		logging.debug("SENT BATCH, GCONF STAMPING=========")
+		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 
 	#def _submit_new_readstates(self):
 	#	def _submit_cb(result):
@@ -543,6 +547,7 @@ class PenguinTVApp(gobject.GObject):
 		#self._entry_view.connect('entry-selected', self.__entry_selected_cb)
 		self._entry_view.connect('entries-viewed', self.__entries_viewed_cb)
 		self._article_sync.connect('got-readstates', self.__got_readstates_cb)
+		self._article_sync.connect('sent-readstates', self.__sent_readstates_cb)
 		
 		self.feed_list_view.set_entry_view(self._entry_view)	
 		self._entry_list_view.set_entry_view(self._entry_view)
@@ -562,7 +567,7 @@ class PenguinTVApp(gobject.GObject):
 	def __entries_viewed_cb(self, o, viewlist):
 		if self._exiting:
 			return
-		logging.debug("got viewlist: %s" % str(viewlist))
+		#logging.debug("got viewlist: %s" % str(viewlist))
 		self.mark_entrylist_viewstate(viewlist, True)
 		
 	def __entries_unviewed_cb(self, o, unviewedlist):

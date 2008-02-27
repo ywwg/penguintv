@@ -70,6 +70,9 @@ class ArticleSync(gobject.GObject):
         'got-readstates': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
+		'sent-readstates': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),
         'authentication-error': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_PYOBJECT])),
@@ -115,6 +118,9 @@ class ArticleSync(gobject.GObject):
 		self._handlers.append((entry_view.disconnect, h_id))
 	
 	def set_enabled(self, enabled):
+		if self._enabled and self._authenticated and not enabled:
+			#changing to offline
+			self.finish()
 		self._enabled = enabled
 		if not self._enabled:
 			self._authenticated = False
@@ -138,9 +144,10 @@ class ArticleSync(gobject.GObject):
 		return len(my_threads)
 		
 	def finish(self, cb=None):
-		last_diff = self._get_readstates_list(self._readstates_diff)
-		self._readstates_diff = {}
-		self._do_close_conn(last_diff, cb=cb)
+		if self._enabled:
+			last_diff = self._get_readstates_list(self._readstates_diff)
+			self._readstates_diff = {}
+			self._do_close_conn(last_diff, cb=cb)
 	
 	@threaded_func()
 	def _do_close_conn(self, states):
@@ -174,7 +181,7 @@ class ArticleSync(gobject.GObject):
 					self._readstates_diff[feed_id] = {}
 				self._readstates_diff[feed_id][entry_id] = 1
 				
-		logging.debug("sync updated diff: %s" % str(self._readstates_diff))
+		#logging.debug("sync updated diff: %s" % str(self._readstates_diff))
 	
 	def _entry_updated_cb(self, app, entry_id, feed_id):
 		if not self._authenticated:
@@ -183,7 +190,7 @@ class ArticleSync(gobject.GObject):
 		if not self._readstates_diff.has_key(feed_id):
 			self._readstates_diff[feed_id] = {}
 		self._readstates_diff[feed_id][entry_id] = readstate
-		logging.debug("sync updated diff2: %s" % str(self._readstates_diff))
+		#logging.debug("sync updated diff2: %s" % str(self._readstates_diff))
 	
 	@authenticated_func()
 	def submit_readstates_since(self, timestamp, cb):
