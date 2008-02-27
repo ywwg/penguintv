@@ -5,7 +5,7 @@ import tempfile
 import sqlite3
 import os
 
-class SyncClient:
+class SqliteSyncClient:
 	def __init__(self, username, password):
 		self._username = username
 		self._password = password
@@ -28,7 +28,7 @@ class SyncClient:
 		self._password = password
 		
 	def finish(self, last_upload=[]):
-		logging.debug("TIDYING UP S3")
+		logging.debug("TIDYING UP db")
 		if self._sync_file is not None:
 			db = self._get_db()
 			if db is not None:
@@ -64,11 +64,7 @@ class SyncClient:
 		return success
 
 	def submit_readstates(self, readstates, do_upload=True, noclosedb=None):
-		"""takes a list of entryhash, readstate and submits it to S3 as:
-			KEYNAME=timestamp-entryid
-			VALUE=readstate.
-			
-			Returns True on success, False on error"""
+		"""Returns True on success, False on error"""
 			
 		logging.debug("ArticleSync Submitting %i readstates" % len(readstates))
 		if len(readstates) == 0:
@@ -199,7 +195,7 @@ class SyncClient:
 		db.commit()
 		c.close()
 		self._local_timestamp = int(time.time())
-		logging.debug("SETTING S3 TIMESTAMP2: %i" % self._local_timestamp)
+		logging.debug("SETTING server TIMESTAMP2: %i" % self._local_timestamp)
 		if not self._set_server_timestamp(self._local_timestamp):
 			logging.error("error setting timestamp")
 		return db
@@ -215,7 +211,7 @@ class SyncClient:
 		logging.debug("Uploaded %i bytes" % fp.tell())
 		fp.close()
 		self._local_timestamp = int(time.time())
-		logging.debug("SETTING S3 TIMESTAMP3: %i" % self._local_timestamp)
+		logging.debug("SETTING server TIMESTAMP3: %i" % self._local_timestamp)
 		if not self._set_server_timestamp():
 			logging.error("error setting timestamp")
 		
