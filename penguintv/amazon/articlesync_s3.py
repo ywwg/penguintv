@@ -90,3 +90,4 @@ class S3SyncClient(SyncClient.SyncClient):
 		self.__transfer_lock.acquire()
 		response = self._conn.put(self._bucket, KEYNAME, fp.read())
 		self.__transfer_lock.release()
+		return response.http_response.status == 200
