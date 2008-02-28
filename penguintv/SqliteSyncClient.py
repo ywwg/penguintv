@@ -6,10 +6,7 @@ import sqlite3
 import os
 
 class SqliteSyncClient:
-	def __init__(self, username, password):
-		self._username = username
-		self._password = password
-				
+	def __init__(self):
 		self._sync_file = None
 		self._authenticated = False
 		self._local_timestamp = 0
@@ -37,8 +34,8 @@ class SqliteSyncClient:
 				one_month = int(time.time()) - (60*60*24*30)
 				c.execute('DELETE FROM readinfo WHERE timestamp < ?', (one_month,))
 				db.commit()
-				c.execute('VACUUM')
-				db.commit()
+				#c.execute('VACUUM')
+				#db.commit()
 				c.close()
 				if len(last_upload) > 0:
 					self._close_and_send_db(db)
@@ -221,9 +218,11 @@ class SqliteSyncClient:
 		db = self._create_db()
 		self._close_and_send_db(db)
 		
-#####future extended class functions#####
+##### extended class functions#####
 
 	def _do_authenticate(self):
+		"""Authenticates to the server with self._username and self._password.
+		Returns True on success and False on failure"""
 		logging.error("must be implemented in subclass")
 		assert False
 					

@@ -1012,7 +1012,7 @@ class ptvDB:
 				feeds = [row[0] for row in data]
 			else:
 				self.polling_callback((-1, [], 0), False)
-				return
+				return 0
 		
 		#don't renice on hildon because we can't renice
 		#back down to zero again
@@ -1065,7 +1065,7 @@ class ptvDB:
 					self._db.close()
 					#if not utils.RUNNING_HILDON:
 					#	os.nice(-2)
-					return
+					return total
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
@@ -1074,6 +1074,7 @@ class ptvDB:
 		gc.collect()
 		#if not utils.RUNNING_HILDON:
 		#	os.nice(-2)
+		return total
 		
 	def interrupt_poll_multiple(self):
 		self._cancel_poll_multiple = True

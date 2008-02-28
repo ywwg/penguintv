@@ -60,9 +60,9 @@ class Poller(dbus.service.Object):
 	def poll_multiple(self, arguments, feeds, finished_cb):
 		logging.debug("Poller starting poll mult")
 		def go(arguments, feeds):
-			self._db.poll_multiple(arguments, feeds)
+			total = self._db.poll_multiple(arguments, feeds)
 			f = getattr(self._remote_app, finished_cb)
-			f()
+			f(total)
 			return False
 		gobject.idle_add(go, arguments, feeds)
 		
@@ -70,9 +70,9 @@ class Poller(dbus.service.Object):
 	def poll_all(self, arguments, finished_cb):
 		logging.debug("Poller starting poll all")
 		def go(arguments):
-			self._db.poll_multiple(arguments)
+			total = self._db.poll_multiple(arguments)
 			f = getattr(self._remote_app, finished_cb)
-			f()
+			f(total)
 			return False
 		gobject.idle_add(go, arguments)
 		

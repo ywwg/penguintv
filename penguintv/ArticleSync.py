@@ -6,15 +6,26 @@ import logging
 import sha
 import traceback
 import time
+import gettext
 logging.basicConfig(level=logging.DEBUG)
 
+_=gettext.gettext
+
 import gobject
+import gtk
 
 from ptvDB import FF_MARKASREAD
-from amazon import S3SyncClient
+
+import amazon
+import FtpSyncClient
 
 ### Debugging uses regular callbacks instead of gobject idlers
 DEBUG = False
+
+PLUGINS = {
+	_("Amazon S3"): ("S3SyncClient", "S3SyncClient"),
+	_("FTP"): ("FtpSyncClient", "FtpSyncClient")
+	}
 
 def threaded_func():
 	def annotate(func):
@@ -97,7 +108,8 @@ class ArticleSync(gobject.GObject):
 		if entry_view is not None:
 			self.set_entry_view(entry_view)	
 			
-		self._conn = S3SyncClient.S3SyncClient(username, password)
+		#self._conn = S3SyncClient.S3SyncClient(username, password)
+		self._conn = None #FtpSyncClient.FtpSyncClient(username, password)
 		self._authenticated = False
 		self._enabled = enabled		
 		#diff is a dict of feed_id:readstates
@@ -118,12 +130,45 @@ class ArticleSync(gobject.GObject):
 		self._handlers.append((entry_view.disconnect, h_id))
 	
 	def set_enabled(self, enabled):
+		if self._conn is None:
+			return
 		if self._enabled and self._authenticated and not enabled:
 			#changing to offline
+			logging.debug("changing to offline")
 			self.finish()
 		self._enabled = enabled
 		if not self._enabled:
 			self._authenticated = False
+			
+	def get_plugins(self):
+		#will eventually be generated automatically
+		return PLUGINS
+			
+	def get_parameter_ui(self, plugin):
+		for title in PLUGINS.keys():
+			print title, plugin
+			if title == plugin:
+				print "eh?",  PLUGINS[title][1]
+				self._conn = getattr(__import__(PLUGINS[title][0]), PLUGINS[title][1])()
+				return self._build_ui(self._conn.get_parameters())
+		return None
+	
+	def _build_ui(self, parameters):
+		table = gtk.Table(2, len(parameters), False)
+		y = 0
+		for label_text, param, default in parameters:
+			label = gtk.Label(label_text)
+			table.attach(label, 0, 1, y, y + 1)
+			entry = gtk.Entry()
+			table.attach(entry, 1, 2, y, y + 1)
+			entry.connect('changed', self._parameter_changed, param)
+			entry.set_text(default)
+			y += 1
+		return table
+			
+	def _parameter_changed(self, widget, param):
+		logging.debug("parameter %s is now %s" % (param, widget.get_text()))
+		getattr(self._conn, 'set_%s' % param)(widget.get_text())
 		
 	def set_username(self, username):
 		self._conn.set_username(username)
@@ -153,6 +198,7 @@ class ArticleSync(gobject.GObject):
 	def _do_close_conn(self, states):
 		while self.is_working() > 1:
 			time.sleep(.5)
+		logging.debug("closing connection")
 		self._conn.finish(states)
 		
 	@threaded_func()
@@ -160,10 +206,14 @@ class ArticleSync(gobject.GObject):
 		"""Creates the bucket as part of authentication, helpfully"""
 		if self.__logging_in:
 			return False
+			
+		if self._conn is None:
+			return False
 		
 		if self._authenticated:
 			while self.is_working() > 1:
 				time.sleep(.5)
+			logging.debug("we were already authenticated")
 			self._conn.finish()
 			
 		self.__logging_in = True
@@ -207,6 +257,7 @@ class ArticleSync(gobject.GObject):
 		
 		logging.debug("updating readstates: %s" % str(readstates))
 		self._do_submit_readstates(readstates, cb=cb)
+		return True
 		
 	def _get_readstates_list(self, state_dict):
 		read_entries = []

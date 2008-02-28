@@ -15,6 +15,7 @@ class PreferencesDialog:
 		self.xml = xml
 		self._app = app
 		self._db = self._app.db
+		self._article_sync = None
 		self._window = xml.get_widget("window_preferences")
 		self._window.set_transient_for(self._app.main_window.get_parent())
 		for key in dir(self.__class__):
@@ -54,6 +55,14 @@ class PreferencesDialog:
 			container.remove(old_chooser)
 			container.add(self._hildon_chooser_button)
 			del old_chooser
+			
+		model = gtk.ListStore(str)
+		combo = self.xml.get_widget("sync_protocol_combo")
+		combo.set_model(model)
+		renderer = gtk.CellRendererText()
+		combo.pack_start(renderer)
+		combo.add_attribute(renderer, 'text', 0)
+		
 
 	def show(self):
 		if utils.RUNNING_HILDON:
@@ -127,7 +136,16 @@ class PreferencesDialog:
 				
 	def hide(self):
 		if self._window:
-			self._window.hide()	
+			self._window.hide()
+			
+	def set_article_sync(self, article_sync):
+		self._article_sync = article_sync
+		logging.debug("look I'm SETTING THE ARTICLE SYNC")
+		combo = self.xml.get_widget("sync_protocol_combo")
+		model = combo.get_model()
+		model.clear()
+		for name in self._article_sync.get_plugins().keys():
+			model.append([name])
 		
 	def on_window_preferences_delete_event(self, widget, event):
 		if self._window:
@@ -180,20 +198,20 @@ class PreferencesDialog:
 		self.xml.get_widget("sync_settings_frame").set_sensitive(enabled)
 		self.xml.get_widget("sync_status_box").set_sensitive(enabled)
 		
-	def set_sync_username(self, username):
-		self.xml.get_widget("sync_user_entry").set_text(username)
-	
-	def set_sync_password(self, password):
-		self.xml.get_widget("sync_pass_entry").set_text(password)
+	#def set_sync_username(self, username):
+	#	self.xml.get_widget("sync_user_entry").set_text(username)
+	#
+	#def set_sync_password(self, password):
+	#	self.xml.get_widget("sync_pass_entry").set_text(password)
 
 	def get_use_article_sync(self):
 		return self.xml.get_widget("sync_enabled_checkbox").get_active()
 		
-	def get_sync_username(self):
-		return self.xml.get_widget("sync_user_entry").get_text()
-	
-	def get_sync_password(self):
-		return self.xml.get_widget("sync_pass_entry").get_text()
+	#def get_sync_username(self):
+	#	return self.xml.get_widget("sync_user_entry").get_text()
+	#
+	#def get_sync_password(self):
+	#	return self.xml.get_widget("sync_pass_entry").get_text()
 			
 	def set_sync_status(self, status):
 		self.xml.get_widget("sync_status_label").set_text(status)
@@ -311,23 +329,37 @@ class PreferencesDialog:
 		self.xml.get_widget("sync_settings_frame").set_sensitive(enabled)
 		self.xml.get_widget("sync_status_box").set_sensitive(enabled)
 		
-	def on_sync_user_entry_changed(self, widget):
-		username = widget.get_text()
-		old_user = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
-		if username != old_user:
-			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', 
-				username)
-			if not utils.HAS_GCONF:
-				self._app.set_sync_username(username)
+	def on_sync_protocol_combo_changed(self, widget):
+		logging.debug("COMBO CHANGED")
+		def infanticide(child):
+			logging.debug("destroying %s" % str(child))
+			child.destroy()
+		container = self.xml.get_widget("sync_settings_vbox")
+		container.foreach(infanticide)
+		plugins = self._article_sync.get_plugins()
+		model = widget.get_model()
+		it = widget.get_active_iter()
+		new_ui = self._article_sync.get_parameter_ui(model[it][0])
+		container.add(new_ui)
+		container.show_all()
+		
+	#def on_sync_user_entry_changed(self, widget):
+	#	username = widget.get_text()
+	#	old_user = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+	#	if username != old_user:
+	#		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', 
+	#			username)
+	#		if not utils.HAS_GCONF:
+	#			self._app.set_sync_username(username)
 			
-	def on_sync_pass_entry_changed(self, widget):
-		password = widget.get_text()
-		old_pass = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
-		if password != old_pass:
-			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', 
-				password)
-			if not utils.HAS_GCONF:
-				self._app.set_sync_password(password)
+	#def on_sync_pass_entry_changed(self, widget):
+	#	password = widget.get_text()
+	#	old_pass = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+	#	if password != old_pass:
+	#		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', 
+	#			password)
+	#		if not utils.HAS_GCONF:
+	#			self._app.set_sync_password(password)
 			
 	def on_sync_login_button_clicked(self, widget):
 		self._app.sync_authenticate()

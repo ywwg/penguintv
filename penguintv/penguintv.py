@@ -332,6 +332,7 @@ class PenguinTVApp(gobject.GObject):
 		self._entry_view.post_show_init()
 		
 		self._article_sync = self._setup_article_sync()
+		self.window_preferences.set_article_sync(self._article_sync)
 			
 		self._connect_signals()
 		
@@ -448,8 +449,9 @@ class PenguinTVApp(gobject.GObject):
 		article_sync = ArticleSync.ArticleSync(self, self._entry_view, 
 								username, password, enabled)
 	
-		self.window_preferences.set_sync_username(username)
-		self.window_preferences.set_sync_password(password)
+		logging.debug("FIXME how to set up username and password???")
+		#self.window_preferences.set_sync_username(username)
+		#self.window_preferences.set_sync_password(password)
 		self.window_preferences.set_use_article_sync(enabled)
 		return article_sync
 		
@@ -466,10 +468,10 @@ class PenguinTVApp(gobject.GObject):
 				cb(result)
 			return False
 		
-		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
-		self._article_sync.set_username(username)
-		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
-		self._article_sync.set_password(password)
+		#username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+		#self._article_sync.set_username(username)
+		#password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+		#self._article_sync.set_password(password)
 		
 		self._article_sync.authenticate(cb=authenticate_cb)
 		
@@ -701,10 +703,10 @@ class PenguinTVApp(gobject.GObject):
 			if val is None: val = 0
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', val)
 		
-		username = self.window_preferences.get_sync_username()
-		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', username)
-		password = self.window_preferences.get_sync_password()
-		self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', password)
+		#username = self.window_preferences.get_sync_username()
+		#self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', username)
+		#password = self.window_preferences.get_sync_password()
+		#self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', password)
 		enabled = self.window_preferences.get_use_article_sync()
 		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', enabled)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
@@ -844,6 +846,7 @@ class PenguinTVApp(gobject.GObject):
 			updater, db = self._get_updater()
 			task_id = updater.queue(db.poll_multiple, (arguments,feeds))
 			if arguments & ptvDB.A_ALL_FEEDS==0:
+				self._gui_updater.queue(self._sync_articles_get)
 				self._gui_updater.queue(self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
 				#insane: queueing a timeout
 				self._gui_updater.queue(gobject.timeout_add, 
@@ -863,14 +866,15 @@ class PenguinTVApp(gobject.GObject):
 			return True
 		return False
 		
-	def poll_finished_cb(self):
+	def poll_finished_cb(self, total):
 		self.main_window.display_status_message(_("Feeds Updated"))
 		gobject.timeout_add(2000, self.main_window.display_status_message, "")
 		self.update_disk_usage()
 		if self._auto_download == True:
 			self._auto_download_unviewed()
 		self._gui_updater.set_completed(self._polling_taskinfo)
-		self._gui_updater.queue(self._sync_articles_get)
+		if total > 0:
+			self._gui_updater.queue(self._sync_articles_get)
 	
 	@utils.db_except()
 	def _auto_download_unviewed(self):
@@ -2138,16 +2142,18 @@ class PenguinTVApp(gobject.GObject):
 		self.set_sync_username(username)
 		
 	def set_sync_username(self, username):
-		self._article_sync.set_username(username)
-		self.window_preferences.set_sync_username(username)
+		pass
+		#self._article_sync.set_username(username)
+		#self.window_preferences.set_sync_username(username)
 		
 	def _gconf_set_sync_password(self, client, *args, **kwargs):
 		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
-		self.set_sync_password(password)
+		#self.set_sync_password(password)
 		
 	def set_sync_password(self, password):
-		self._article_sync.set_password(password)
-		self.window_preferences.set_sync_password(password)
+		pass
+		#self._article_sync.set_password(password)
+		#self.window_preferences.set_sync_password(password)
 		
 	#def update_feed_list(self, feed_id=None):
 	#	self.feed_list_view.update_feed_list(feed_id) #for now, just update this ONLY
@@ -2305,11 +2311,14 @@ class PenguinTVApp(gobject.GObject):
 
 		self._polled += 1
 		if self._polled >= total or cancelled:
+			if total > 0:
+				self._gui_updater.queue(self._sync_articles_get)
 			self._polled = 0
 			self._polling_taskinfo = -1
 			self._poll_message = ""
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
+			
 			gobject.timeout_add(2000, self.main_window.display_status_message,"")
 		else:
 			d = { 'polled':self._polled,

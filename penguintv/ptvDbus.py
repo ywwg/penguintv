@@ -40,8 +40,8 @@ class ptvDbus(dbus.service.Object):
 		return True
 		
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
-	def FinishedCallback(self):
-		self._app.poll_finished_cb()
+	def FinishedCallback(self, total):
+		self._app.poll_finished_cb(total)
 		
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def Ping(self):

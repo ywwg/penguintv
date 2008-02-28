@@ -5,7 +5,7 @@ import gettext
 _=gettext.gettext
 
 from SqliteSyncClient import SqliteSyncClient
-import S3
+from amazon import S3
 
 #BUCKET_NAME will be prepended with access key
 BUCKET_NAME_SUF = '-penguintv-article-sync-db'
