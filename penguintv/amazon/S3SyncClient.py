@@ -1,7 +1,10 @@
 import logging
 import threading
 
-import SqliteSyncClient
+import gettext
+_=gettext.gettext
+
+from SqliteSyncClient import SqliteSyncClient
 import S3
 
 #BUCKET_NAME will be prepended with access key
@@ -9,13 +12,23 @@ BUCKET_NAME_SUF = '-penguintv-article-sync-db'
 KEYNAME = 'penguintv-syncdb-1'
 STAMP_KEYNAME = 'penguintv-syncdb-timestamp'
 
-class S3SyncClient(SqliteSyncClient.SqliteSyncClient):
-	def __init__(self, username, password):
-		SqliteSyncClient.SqliteSyncClient.__init__(self, username, password)
+class S3SyncClient(SqliteSyncClient):
+	def __init__(self):
+		SqliteSyncClient.__init__(self)
 		self.__transfer_lock = threading.Lock()
 		
 		self._bucket = self._username.lower() + BUCKET_NAME_SUF
 		self._conn = None
+		
+	def get_parameters(self):
+		return [
+			(_("Access Key"), "username", ""),
+			(_("Secret Key"), "password", "")
+			]
+		
+	def set_username(self, username):
+		SqliteSyncClient.set_username(self, username)
+		self._bucket = self._username.lower() + BUCKET_NAME_SUF
 
 	def _do_authenticate(self):
 		self._conn = S3.AWSAuthConnection(self._username, self._password)
