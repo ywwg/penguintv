@@ -481,8 +481,14 @@ class PenguinTVApp(gobject.GObject):
 		#self._article_sync.set_password(password)
 		
 		if newplugin is not None:
+			logging.debug("telling old plugin to clean up")
 			self._article_sync.finish()
-		
+			logging.debug("old plugin done")
+		else:
+			if self._article_sync.get_current_plugin() is None:
+				logging.debug("no current plugin specified to authenticate")
+				return
+			
 		if not self._article_sync.is_loaded():
 			logging.debug("app loading the plugin")
 			self._article_sync.load_plugin(newplugin)
@@ -784,7 +790,7 @@ class PenguinTVApp(gobject.GObject):
 		logging.info('stopping mediamanager')
 		self.mediamanager.finish()
 		
-		self._article_sync.finish(cb=lambda x: True)
+		self._article_sync.finish()
 		def article_sync_wait():
 			if self._article_sync.is_working():
 				return True
@@ -854,7 +860,12 @@ class PenguinTVApp(gobject.GObject):
 		if self._remote_poller is not None:
 			logging.debug("Using remote poller")
 			if feeds is None:
-				self._remote_poller.poll_all(arguments, "FinishedCallback")
+				try:
+					self._remote_poller.poll_all(arguments, "FinishedCallback")
+				except:
+					self._remote_poller = None
+					logging.debug("lost the poller, trying again with local poller")
+					return self._do_poll_multiple(was_setup, arguments, feeds, message)
 			else:
 				self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
 			self._polling_taskinfo = int(time.time())

@@ -995,10 +995,10 @@ class FeedList(gobject.GObject):
 		newlist = self._db.get_feedlist()
 		index = [f[0] for f in newlist].index(feed_id)
 		feed = newlist[index]
-		print "-----------ADDFEED---------"
-		print feed
-		print index
-		print newlist
+		#print "-----------ADDFEED---------"
+		#print feed
+		#print index
+		#print newlist
 		p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		p.fill(0xffffff00)
 		#insert, not append

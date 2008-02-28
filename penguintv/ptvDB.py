@@ -669,8 +669,8 @@ class ptvDB:
 		try:
 			p = utils.StrippingParser()
 			p.feed(guid + title + description)
+			#p.cleanup()
 			p.close()
-			p.cleanup()
 			s.update(p.result)
 		except:
 			logging.debug("hashing error, just using raw text")
@@ -1508,8 +1508,8 @@ class ptvDB:
 				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
 					p = utils.StrippingParser()
 					p.feed(item['description'])
+					#p.cleanup()
 					p.close()
-					p.cleanup()
 					item['title']=p.result[0:35]
 			elif item['title']=="":
 				item['title']=item['description'][0:35]
@@ -1517,8 +1517,8 @@ class ptvDB:
 				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
 					p = utils.StrippingParser()
 					p.feed(item['description'])
+					#p.cleanup()
 					p.close()
-					p.cleanup()
 					item['title']=p.result[0:35]
 			
 				elif html_begin > 5: #in case there's html within 35 chars...
@@ -1533,8 +1533,8 @@ class ptvDB:
 			try:
 				p = utils.StrippingParser()
 				p.feed(item['title'])
+				#p.cleanup()
 				p.close()
-				p.cleanup()
 				item['title'] = p.result				
 			except:
 				pass

@@ -138,7 +138,7 @@ VERSION="3.50"
 # Lucene sucks, forget it
 HAS_LUCENE = False
 ##disable while still unstable
-HAS_XAPIAN = False
+#HAS_XAPIAN = False
 if not HAS_XAPIAN:
 	HAS_SEARCH = False
 	
@@ -468,30 +468,31 @@ class StrippingParser(HTMLParser.HTMLParser):
             x = ''
         self.result = "%s&%s%s" % (self.result, name, x)
     
-    def handle_starttag(self, tag, attrs):
-        """ Delete all tags except for legal ones """
-        if tag in self.valid_tags:
-            self.result = self.result + '<' + tag
-            for k, v in attrs:
-                if string.lower(k[0:2]) != 'on' and string.lower(v[0:10]) != 'javascript':
-                    self.result = '%s %s="%s"' % (self.result, k, v)
-            endTag = '</%s>' % tag
-            self.endTagList.insert(0,endTag)    
-            self.result = self.result + '>'
+    #def handle_starttag(self, tag, attrs):
+    #    """ Delete all tags except for legal ones """
+    #    if tag in self.valid_tags:
+    #        #self.result = self.result + '<' + tag
+    #        for k, v in attrs:
+    #            if string.lower(k[0:2]) != 'on' and string.lower(v[0:10]) != 'javascript':
+    #                self.result = '%s %s="%s"' % (self.result, k, v)
+    #        #endTag = '</%s>' % tag
+    #        #self.endTagList.insert(0,endTag)    
+    #      	#self.result = self.result + '>'
                 
-    def handle_endtag(self, tag):
-        if tag in self.valid_tags:
-            self.result = "%s</%s>" % (self.result, tag)
-            remTag = '</%s>' % tag
-            try:
-            	self.endTagList.remove(remTag)
-            except:
-            	pass
+    #def handle_endtag(self, tag):
+    #    if tag in self.valid_tags:
+    #    	
+    #        #self.result = "%s</%s>" % (self.result, tag)
+    #        #remTag = '</%s>' % tag
+    #        #try:
+    #        #	self.endTagList.remove(remTag)
+    #        #except:
+    #        #	pass
 
-    def cleanup(self):
-        """ Append missing closing tags """
-        for j in range(len(self.endTagList)):
-                self.result = self.result + self.endTagList[j]    
+    #def cleanup(self):
+    #    """ Append missing closing tags """
+    #    for j in range(len(self.endTagList)):
+    #            self.result = self.result + self.endTagList[j]    
         
 #usage:
 #def strip(s):

@@ -116,8 +116,7 @@ class ArticleSync(gobject.GObject):
 		#diff is a dict of feed_id:readstates
 		#and readstates is a dict of entry_id:readstate
 		self._readstates_diff = {}
-		self.__logging_in = False
-		self.__loading = False
+		self.__operation_lock = threading.Lock()
 		
 		self._current_plugin = None
 		self.load_plugin(plugin)
@@ -196,41 +195,40 @@ class ArticleSync(gobject.GObject):
 		widget.set_text(value)
 		widget.connect('changed', self._parameter_changed, plugin, param)
 	
-	def _gconf_param_changed(self, c, connid, entr, (widget, plugin, param)):
-		self._parameter_changed(widget, plugin, param)
+	def _gconf_param_changed(self, c, connid, entr, (widget, plugin, param)):	
+		self._parameter_changed(widget, plugin, param, noset=True)
 			
-	def _parameter_changed(self, widget, plugin, param):
-		self._db.set_setting(STRING, '/apps/penguintv/sync_plugins/%s/%s' % \
-			(plugin.replace(' ', '_'), param), widget.get_text())
+	def _parameter_changed(self, widget, plugin, param, noset=False):
+		if not noset:
+			self._db.set_setting(STRING, '/apps/penguintv/sync_plugins/%s/%s' % \
+				(plugin.replace(' ', '_'), param), widget.get_text())
 			
 		logging.debug("parameter %s is now %s" % (param, widget.get_text()))
 		getattr(self._conn, 'set_%s' % param)(widget.get_text())
 		
 	def load_plugin(self, plugin=None):
-		if self.__loading:
-			return 
-			
 		if plugin is None:
 			if self._current_plugin is None:
 				return
 			plugin = self._current_plugin
 			
-		self.__loading = True
+		self._authenticated = False
 			
 		def _do_load_plugin():
 			if self.is_working() > 1:
 				logging.debug("still working")
 				return True
 				
+			self.__operation_lock.acquire()
 			self._current_plugin = plugin
 			for title in PLUGINS.keys():
 				if title == plugin:
 					self._conn = getattr(__import__(PLUGINS[title][0]), PLUGINS[title][1])()
 					self._load_plugin_settings(plugin)
-					self.__loading = False
+					self.__operation_lock.release()
 					return False
 			self._conn = None
-			self.__loading = False
+			self.__operation_lock.release()
 			return False
 			
 		if self._current_plugin is not None:
@@ -239,7 +237,7 @@ class ArticleSync(gobject.GObject):
 			gobject.timeout_add(500, _do_load_plugin)
 		else:
 			_do_load_plugin()
-			self.__loading = False
+			
 			
 	def _load_plugin_settings(self, plugin):
 		assert self._conn is not None
@@ -271,25 +269,28 @@ class ArticleSync(gobject.GObject):
 	def is_loaded(self):
 		return self._conn is not None
 		
-	def finish(self, cb=None):
+	def finish(self):
+		def empty_cb(arg=None):
+			pass
+			
 		if self._enabled and self._conn is not None:
 			last_diff = self._get_readstates_list(self._readstates_diff)
 			self._readstates_diff = {}
-			self._do_close_conn(last_diff, cb=cb)
+			conn = self._conn
+			self._conn = None
+			self._do_close_conn(conn, last_diff, cb=empty_cb)
 	
 	@threaded_func()
-	def _do_close_conn(self, states):
+	def _do_close_conn(self, conn, states):
 		while self.is_working() > 1:
 			time.sleep(.5)
 		logging.debug("closing connection")
-		self._conn.finish(states)
-		self._conn = None
+		conn.finish(states)
 		
 	@threaded_func()
 	def authenticate(self):
 		"""Creates the bucket as part of authentication, helpfully"""
-		if self.__logging_in:
-			return False
+		self.__operation_lock.acquire()
 			
 		if self._conn is None:
 			return False
@@ -300,10 +301,9 @@ class ArticleSync(gobject.GObject):
 			logging.debug("we were already authenticated")
 			self._conn.finish()
 			
-		self.__logging_in = True
 		result = self._conn.authenticate()
 		logging.debug("authenticate: %s" % str(result))
-		self.__logging_in = False
+		self.__operation_lock.release()
 		self._authenticated = result
 		return result
 		

@@ -206,15 +206,6 @@ class MainWindow(gobject.GObject):
 #	def __getitem__(self, key):
 #		return self.widgets.get_widget(key)
 
-	def set_wait_cursor(self, wait=True):
-		if self.app_window is None:
-			return
-		if wait:
-			c = gtk.gdk.Cursor(gtk.gdk.WATCH)
-			self.app_window.window.set_cursor(c)
-		else:
-			self.app_window.window.set_cursor(None)
-
 	def Show(self, dock_widget = None):
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
@@ -1003,9 +994,7 @@ class MainWindow(gobject.GObject):
 			self._app.add_feed(url, url)
 			
 	def on_feeds_poll_clicked(self,event):
-		self.set_wait_cursor()
 		self._app.poll_feeds()
-		self.set_wait_cursor(False)
 		
 	def set_show_kept_menuitem(self, state):
 		self._menu_widgettree.get_widget('showkept_cb').set_active(state)
@@ -1284,14 +1273,10 @@ class MainWindow(gobject.GObject):
 		self._app.refresh_feed(feed)
 		
 	def on_refresh_feeds_activate(self, event):
-		self.set_wait_cursor()
 		self._app.poll_feeds()
-		self.set_wait_cursor(False)
 
 	def on_refresh_feeds_with_errors_activate(self, event):
-		self.set_wait_cursor()
 		self._app.poll_feeds(ptvDB.A_ERROR_FEEDS)
-		self.set_wait_cursor(False)
 		
 	def on_refresh_visible_feeds_activate(self, event):
 		if self._active_filter_index > FeedList.SEARCH:
