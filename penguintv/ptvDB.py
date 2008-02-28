@@ -1590,7 +1590,7 @@ class ptvDB:
 			
 			if status[0]==NEW:
 				new_items = new_items+1
-				entry_hash = self._get_hash(item['guid'], item['title'], item['description'])
+				entry_hash = self._get_hash(item['guid'], item['title'], item['body'])
 				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
 						(feed_id,item['title'],item['creator'],item['body'],
 						default_read,fake_time-i, 
@@ -1609,7 +1609,7 @@ class ptvDB:
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
-				entry_hash = self._get_hash(item['guid'], item['title'], item['description'])
+				entry_hash = self._get_hash(item['guid'], item['title'], item['body'])
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, hash=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
 								 int(time.mktime(item['date_parsed'])),item['guid'],
