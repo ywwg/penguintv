@@ -15,7 +15,7 @@ import httplib
 import sys
 
 AWS_ACCESS_KEY_ID = '07CYX2K0Q5FDMKG7P582'
-AWS_SECRET_ACCESS_KEY = 'iMISVU86J4a/UpW1UjFOYMvS2Ani1LsWkGBiegQo'
+AWS_SECRET_ACCESS_KEY = ''
 # remove these next two lines when you've updated your credentials.
 
 # for subdomains (bucket.s3.amazonaws.com),

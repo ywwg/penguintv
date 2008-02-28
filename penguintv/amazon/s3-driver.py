@@ -20,7 +20,7 @@ import time
 import sys
 
 AWS_ACCESS_KEY_ID = '07CYX2K0Q5FDMKG7P582'
-AWS_SECRET_ACCESS_KEY = 'iMISVU86J4a/UpW1UjFOYMvS2Ani1LsWkGBiegQo'
+AWS_SECRET_ACCESS_KEY = ''
 
 # convert the bucket to lowercase for vanity domains
 # the bucket name must be lowercase since DNS is case-insensitive

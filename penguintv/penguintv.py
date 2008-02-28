@@ -333,6 +333,8 @@ class PenguinTVApp(gobject.GObject):
 		
 		self._article_sync = self._setup_article_sync()
 		self.window_preferences.set_article_sync(self._article_sync)
+		self.window_preferences.set_article_sync_plugin( \
+			self._article_sync.get_current_plugin())
 			
 		self._connect_signals()
 		
@@ -446,16 +448,14 @@ class PenguinTVApp(gobject.GObject):
 		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
 		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
 		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
-		article_sync = ArticleSync.ArticleSync(self, self._entry_view, 
-								username, password, enabled)
+		plugin = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/article_sync_plugin', "")
+		article_sync = ArticleSync.ArticleSync(self, self._entry_view,  plugin, 
+							enabled)
 	
-		logging.debug("FIXME how to set up username and password???")
-		#self.window_preferences.set_sync_username(username)
-		#self.window_preferences.set_sync_password(password)
 		self.window_preferences.set_use_article_sync(enabled)
 		return article_sync
 		
-	def sync_authenticate(self, cb=None):
+	def sync_authenticate(self, newplugin=None, cb=None):
 		logging.debug("authenticating sync settings")
 		
 		def authenticate_cb(result):
@@ -468,12 +468,28 @@ class PenguinTVApp(gobject.GObject):
 				cb(result)
 			return False
 		
+		def _do_authenticate():
+			if not self._article_sync.is_loaded():
+				logging.debug("plugin not loaded yet")
+				return True
+			self._article_sync.authenticate(cb=authenticate_cb)
+			return False
+		
 		#username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
 		#self._article_sync.set_username(username)
 		#password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
 		#self._article_sync.set_password(password)
 		
-		self._article_sync.authenticate(cb=authenticate_cb)
+		if newplugin is not None:
+			self._article_sync.finish()
+		
+		if not self._article_sync.is_loaded():
+			logging.debug("app loading the plugin")
+			self._article_sync.load_plugin(newplugin)
+			gobject.timeout_add(500, _do_authenticate)
+		else:
+			_do_authenticate()
+		
 		
 	def _sync_articles_get(self):
 		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
@@ -1399,7 +1415,7 @@ class PenguinTVApp(gobject.GObject):
 		
 	@utils.db_except()
 	def mark_entrylist_viewstate(self, viewlist, read=True):
-		print viewlist
+		#print viewlist
 		if len(viewlist) == 0:
 			return
 		

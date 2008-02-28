@@ -17,13 +17,14 @@ class S3SyncClient(SqliteSyncClient):
 		SqliteSyncClient.__init__(self)
 		self.__transfer_lock = threading.Lock()
 		
+		self._username = ""
 		self._bucket = self._username.lower() + BUCKET_NAME_SUF
 		self._conn = None
 		
 	def get_parameters(self):
 		return [
-			(_("Access Key"), "username", ""),
-			(_("Secret Key"), "password", "")
+			(_("Access Key"), "username", "", False),
+			(_("Secret Key"), "password", "", True)
 			]
 		
 	def set_username(self, username):

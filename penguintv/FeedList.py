@@ -222,7 +222,7 @@ class FeedList(gobject.GObject):
 	#	
 
 	def __entries_viewed_cb(self, app, viewlist):
-		logging.debug("feedlist entries viewed")
+		#logging.debug("feedlist entries viewed")
 		for feed_id, id_list in viewlist:
 			self.mark_entries_read(len(id_list), feed_id)
 		
@@ -604,11 +604,10 @@ class FeedList(gobject.GObject):
 		else:
 			feed = self._feedlist[self.find_index_of_item(feed_id)]
 
-		print feed[UNREAD],feed[TOTAL],num_to_mark
-
 		#sanity check
 		if feed[UNREAD] - num_to_mark < 0 or feed[UNREAD] - num_to_mark > feed[TOTAL]:
 			print "WARNING: trying to mark more or less than we have:", feed[TITLE], feed[UNREAD], num_to_mark
+			print feed[UNREAD],feed[TOTAL],num_to_mark
 			self.update_feed_list(feed[FEEDID], ['readinfo'])
 			return
 			

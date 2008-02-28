@@ -14,7 +14,8 @@ _=gettext.gettext
 import gobject
 import gtk
 
-from ptvDB import FF_MARKASREAD
+from ptvDB import FF_MARKASREAD, STRING
+import utils
 
 import amazon
 import FtpSyncClient
@@ -92,7 +93,7 @@ class ArticleSync(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT]))             
 	}
 
-	def __init__(self, app, entry_view, username, password, enabled=True):
+	def __init__(self, app, entry_view, plugin, enabled=True):
 		gobject.GObject.__init__(self)
 		global BUCKET_NAME, BUCKET_NAME_SUF
 		if app is not None:
@@ -116,6 +117,10 @@ class ArticleSync(gobject.GObject):
 		#and readstates is a dict of entry_id:readstate
 		self._readstates_diff = {}
 		self.__logging_in = False
+		self.__loading = False
+		
+		self._current_plugin = None
+		self.load_plugin(plugin)
 		
 		def update_cb(success):
 			logging.debug("update was: %s" % str(success))
@@ -140,41 +145,116 @@ class ArticleSync(gobject.GObject):
 		if not self._enabled:
 			self._authenticated = False
 			
+	def get_current_plugin(self):
+		return self._current_plugin
+			
 	def get_plugins(self):
 		#will eventually be generated automatically
 		return PLUGINS
 			
 	def get_parameter_ui(self, plugin):
+		if self._conn is None:
+			#logging.debug("no conn, returning")
+			return None
+		if plugin != self._current_plugin:
+			#logging.debug("wrong plugin, returning: %s %s" % (plugin, self._current_plugin))
+			return None
 		for title in PLUGINS.keys():
-			print title, plugin
 			if title == plugin:
-				print "eh?",  PLUGINS[title][1]
-				self._conn = getattr(__import__(PLUGINS[title][0]), PLUGINS[title][1])()
-				return self._build_ui(self._conn.get_parameters())
+				return self._build_ui(plugin, self._conn.get_parameters())
+		#logging.debug("didn't find plugin, returning")
 		return None
 	
-	def _build_ui(self, parameters):
+	def _build_ui(self, plugin, parameters):
 		table = gtk.Table(2, len(parameters), False)
 		y = 0
-		for label_text, param, default in parameters:
+		for label_text, param, default, hidechars in parameters:
 			label = gtk.Label(label_text)
+			label.set_alignment(0, 0.5)
 			table.attach(label, 0, 1, y, y + 1)
 			entry = gtk.Entry()
+			entry.set_visibility(not hidechars)
 			table.attach(entry, 1, 2, y, y + 1)
-			entry.connect('changed', self._parameter_changed, param)
-			entry.set_text(default)
+			self._setup_entry(plugin.replace('_',''), entry, param, default)
 			y += 1
 		return table
+		
+	def _setup_entry(self, plugin, widget, param, default):
+		if utils.HAS_GCONF:
+			try:
+				import gconf
+			except:
+				from gnome import gconf
+				
+			conf = gconf.client_get_default()
+			conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
+			conf.notify_add('/apps/penguintv/sync_plugins/%s/%s' % \
+				(plugin.replace(' ', '_'), param),
+				self._gconf_param_changed, (widget, plugin, param))
+		value = self._db.get_setting(STRING, '/apps/penguintv/sync_plugins/%s/%s' % \
+				(plugin.replace(' ', '_'), param), default)
+		widget.set_text(value)
+		widget.connect('changed', self._parameter_changed, plugin, param)
+	
+	def _gconf_param_changed(self, c, connid, entr, (widget, plugin, param)):
+		self._parameter_changed(widget, plugin, param)
 			
-	def _parameter_changed(self, widget, param):
+	def _parameter_changed(self, widget, plugin, param):
+		self._db.set_setting(STRING, '/apps/penguintv/sync_plugins/%s/%s' % \
+			(plugin.replace(' ', '_'), param), widget.get_text())
+			
 		logging.debug("parameter %s is now %s" % (param, widget.get_text()))
 		getattr(self._conn, 'set_%s' % param)(widget.get_text())
 		
-	def set_username(self, username):
-		self._conn.set_username(username)
-	
-	def set_password(self, password):
-		self._conn.set_password(password)
+	def load_plugin(self, plugin=None):
+		if self.__loading:
+			return 
+			
+		if plugin is None:
+			if self._current_plugin is None:
+				return
+			plugin = self._current_plugin
+			
+		self.__loading = True
+			
+		def _do_load_plugin():
+			if self.is_working() > 1:
+				logging.debug("still working")
+				return True
+				
+			self._current_plugin = plugin
+			for title in PLUGINS.keys():
+				if title == plugin:
+					self._conn = getattr(__import__(PLUGINS[title][0]), PLUGINS[title][1])()
+					self._load_plugin_settings(plugin)
+					self.__loading = False
+					return False
+			self._conn = None
+			self.__loading = False
+			return False
+			
+		if self._current_plugin is not None:
+			self.finish()
+			logging.debug("switching plugins, cleaning up the last one")
+			gobject.timeout_add(500, _do_load_plugin)
+		else:
+			_do_load_plugin()
+			self.__loading = False
+			
+	def _load_plugin_settings(self, plugin):
+		assert self._conn is not None
+		
+		for label, param, default, hidechars in self._conn.get_parameters():
+			val = self._db.get_setting(STRING, '/apps/penguintv/sync_plugins/%s/%s' % \
+					(plugin.replace(' ', '_'), param), default)
+			#logging.debug("initializing plugin %s with %s" % (param, val))
+			getattr(self._conn, 'set_%s' % param)(val)
+			
+	#def set_username(self, username):
+	#	self._conn.set_username(username)
+	#
+	#def set_password(self, password):
+	#	self._conn.set_password(password)
 		
 	def is_authenticated(self):
 		return self._authenticated
@@ -188,8 +268,11 @@ class ArticleSync(gobject.GObject):
 			
 		return len(my_threads)
 		
+	def is_loaded(self):
+		return self._conn is not None
+		
 	def finish(self, cb=None):
-		if self._enabled:
+		if self._enabled and self._conn is not None:
 			last_diff = self._get_readstates_list(self._readstates_diff)
 			self._readstates_diff = {}
 			self._do_close_conn(last_diff, cb=cb)
@@ -200,6 +283,7 @@ class ArticleSync(gobject.GObject):
 			time.sleep(.5)
 		logging.debug("closing connection")
 		self._conn.finish(states)
+		self._conn = None
 		
 	@threaded_func()
 	def authenticate(self):
@@ -218,6 +302,7 @@ class ArticleSync(gobject.GObject):
 			
 		self.__logging_in = True
 		result = self._conn.authenticate()
+		logging.debug("authenticate: %s" % str(result))
 		self.__logging_in = False
 		self._authenticated = result
 		return result

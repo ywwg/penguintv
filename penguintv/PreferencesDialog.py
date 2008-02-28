@@ -1,6 +1,7 @@
 # Written by Owen Williams
 # see LICENSE for license information
 import gtk
+import gobject
 import logging
 
 import penguintv
@@ -140,7 +141,6 @@ class PreferencesDialog:
 			
 	def set_article_sync(self, article_sync):
 		self._article_sync = article_sync
-		logging.debug("look I'm SETTING THE ARTICLE SYNC")
 		combo = self.xml.get_widget("sync_protocol_combo")
 		model = combo.get_model()
 		model.clear()
@@ -197,6 +197,14 @@ class PreferencesDialog:
 		self.xml.get_widget("sync_enabled_checkbox").set_active(enabled)
 		self.xml.get_widget("sync_settings_frame").set_sensitive(enabled)
 		self.xml.get_widget("sync_status_box").set_sensitive(enabled)
+		
+	def set_article_sync_plugin(self, plugin):
+		combo = self.xml.get_widget("sync_protocol_combo")
+		for row in combo.get_model():
+			if row[0] == plugin:
+				combo.set_active_iter(row.iter)
+				self._add_sync_ui(plugin)
+				return
 		
 	#def set_sync_username(self, username):
 	#	self.xml.get_widget("sync_user_entry").set_text(username)
@@ -330,18 +338,46 @@ class PreferencesDialog:
 		self.xml.get_widget("sync_status_box").set_sensitive(enabled)
 		
 	def on_sync_protocol_combo_changed(self, widget):
-		logging.debug("COMBO CHANGED")
-		def infanticide(child):
-			logging.debug("destroying %s" % str(child))
-			child.destroy()
-		container = self.xml.get_widget("sync_settings_vbox")
-		container.foreach(infanticide)
-		plugins = self._article_sync.get_plugins()
+		current_plugin = self._article_sync.get_current_plugin()
 		model = widget.get_model()
 		it = widget.get_active_iter()
-		new_ui = self._article_sync.get_parameter_ui(model[it][0])
+		plugin = model[it][0]
+		if plugin == current_plugin:
+			#logging.debug("same plugin")
+			return
+			
+		#logging.debug("COMBO CHANGED")
+		if self._article_sync.is_enabled():	
+			self._app.sync_authenticate(newplugin=plugin)
+			
+		def _do_switch_ui():
+			if not self._article_sync.is_loaded():
+				logging.debug("prefs window: plugin not loaded yet")
+				return True
+				
+			self._remove_sync_ui()
+			self._add_sync_ui(plugin)
+			
+			#logging.debug("setting sync plugin to %s" % plugin)
+			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/article_sync_plugin', 
+				plugin)
+			return False
+				
+		gobject.timeout_add(500, _do_switch_ui)
+		
+	def _remove_sync_ui(self):
+		def infanticide(child):
+			#logging.debug("destroying %s" % str(child))
+			child.destroy()
+			
+		container = self.xml.get_widget("sync_settings_vbox")
+		container.foreach(infanticide)
+		
+	def _add_sync_ui(self, plugin):
+		container = self.xml.get_widget("sync_settings_vbox")
+		new_ui = self._article_sync.get_parameter_ui(plugin)
 		container.add(new_ui)
-		container.show_all()
+		container.show_all()	
 		
 	#def on_sync_user_entry_changed(self, widget):
 	#	username = widget.get_text()

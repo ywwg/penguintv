@@ -7,6 +7,8 @@ import os
 
 class SqliteSyncClient:
 	def __init__(self):
+		self._username = None
+		self._password = None
 		self._sync_file = None
 		self._authenticated = False
 		self._local_timestamp = 0
@@ -25,8 +27,8 @@ class SqliteSyncClient:
 		self._password = password
 		
 	def finish(self, last_upload=[]):
-		logging.debug("TIDYING UP db")
 		if self._sync_file is not None:
+			logging.debug("TIDYING UP db")
 			db = self._get_db()
 			if db is not None:
 				self.submit_readstates(last_upload, do_upload=False, noclosedb=db)
@@ -44,8 +46,6 @@ class SqliteSyncClient:
 				os.remove(self._sync_file)
 			self._sync_file = None
 			self._authenticated = False
-		else:
-			logging.debug("no sync file, so nothing accomplished anyway")
 		return True
 	
 	def authenticate(self):
