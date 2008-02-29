@@ -865,7 +865,7 @@ class PenguinTVApp(gobject.GObject):
 				except:
 					self._remote_poller = None
 					logging.debug("lost the poller, trying again with local poller")
-					return self._do_poll_multiple(was_setup, arguments, feeds, message)
+					return self.do_poll_multiple(was_setup, arguments, feeds, message)
 			else:
 				self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
 			self._polling_taskinfo = int(time.time())
