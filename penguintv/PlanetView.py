@@ -259,7 +259,6 @@ class PlanetView(gobject.GObject):
 			self._render_entries(mark_read=False, force=True)
 			
 	def __entries_updated_cb(self, app, viewlist):
-		logging.debug("planet entries viewed")
 		for feed_id, idlist in viewlist:
 			if feed_id == self._current_feed_id:
 				self.populate_entries(feed_id)

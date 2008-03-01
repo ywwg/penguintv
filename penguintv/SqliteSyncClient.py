@@ -55,7 +55,12 @@ class SqliteSyncClient:
 		if self._authenticated:
 			self._authenticated = False
 		
-		success = self._do_authenticate()
+		try:
+			success = self._do_authenticate()
+		except Exception, e:
+			logging.error("error authenticating: %s" % str(e))
+			success = False
+			
 		self.__logging_in = False
 		self._authenticated = success
 		return success
@@ -111,20 +116,55 @@ class SqliteSyncClient:
 			db.close()
 		logging.debug("Not uploading just yet")
 		return True
+		
+	def get_readstates(self, hashlist):
+		"""takes a list of hashes, asks the db for their readstates
+		   
+		   returns a hash of entryhash:readstate"""
+		   
+		db = self._get_db()
+		if db is None:
+			return []
+			
+		c = db.cursor()
+		readstates = []
+		while len(hashlist) > 0:
+			subset = hashlist[:900]
+			qmarks = '?,'*(len(subset)-1)+'?'
+			c.execute(u'SELECT hash, readstate FROM readinfo WHERE hash IN ('+qmarks+')', \
+				tuple(subset))
+			batch = c.fetchall()
+			if batch is None: 
+				batch = []
+			readstates += batch
+			hashlist = hashlist[900:]
+			
+		c.close()
+		db.close()
+		return readstates
 	
 	def get_readstates_since(self, timestamp):
 		"""takes a timestamp, asks the db for hashes since then
 		   
 		   returns a hash of entryhash:readstate"""
+		
+		try:
+			server_timestamp = self._get_server_timestamp()
+		except Exception, e:
+			logging.error("error getting timestamp: %s" % str(e))
+			return None
 		   
 		if self._no_updates:
-			server_timestamp = self._get_server_timestamp()
 			logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))
 			if server_timestamp == self._local_timestamp:
 				logging.debug("no updates last time, so no point checking")
 				return []
+				
+		if server_timestamp < self._local_timestamp:
+			logging.debug("server timestamp is less than local, so clocks must be off. Using their time")
+			timestamp = server_timestamp
 		
-		db = self._get_db()
+		db = self._get_db(server_timestamp)
 		if db is None:
 			return []
 			
@@ -146,11 +186,17 @@ class SqliteSyncClient:
 			return []
 		return new_hashes
 		
-	def _get_db(self):
+	def _get_db(self, server_timestamp=None):
 		if self._sync_file is None:
 			return self._download_db()
 			
-		server_timestamp = self._get_server_timestamp()
+		if server_timestamp is None:
+			try:
+				server_timestamp = self._get_server_timestamp()
+			except Exception, e:
+				logging.error("error getting timestamp: %s" % str(e))
+				return None
+			
 		if server_timestamp != self._local_timestamp:
 			logging.debug("sync time unexpectedly changed %i %i" \
 				% (server_timestamp, self._local_timestamp))
@@ -161,10 +207,17 @@ class SqliteSyncClient:
 	def _download_db(self):
 		self._no_updates = False
 		
-		if not self._db_exists():
-			return self._create_db()
+		try:
+			if not self._db_exists():
+				return self._create_db()
+		except Exception, e:
+			logging.error("error checking for db: %s" % str(e))
 			
-		db_data = self._do_download_db()	
+		try:
+			db_data = self._do_download_db()
+		except Exception, e:
+			logging.error("error downloading db: %s" % str(e))
+			return None
 			
 		if self._sync_file is None:
 			self._sync_file = tempfile.mkstemp(suffix='.db')[1]
@@ -173,7 +226,10 @@ class SqliteSyncClient:
 		logging.debug("Downloaded %i bytes" % fp.tell())
 		fp.close()
 		
-		self._local_timestamp = self._get_server_timestamp()
+		try:
+			self._local_timestamp = self._get_server_timestamp()
+		except Exception, e:
+			logging.error("error getting timestamp: %s" % str(e))
 		
 		return sqlite3.connect(self._sync_file)
 		
@@ -193,15 +249,22 @@ class SqliteSyncClient:
 		c.close()
 		self._local_timestamp = int(time.time())
 		logging.debug("SETTING server TIMESTAMP2: %i" % self._local_timestamp)
-		if not self._set_server_timestamp(self._local_timestamp):
-			logging.error("error setting timestamp")
+		try:
+			if not self._set_server_timestamp(self._local_timestamp):
+				logging.error("error setting timestamp")
+		except Exception, e:
+			logging.error("error setting timestamp: %s" % str(e))
 		return db
 		
 	def _close_and_send_db(self, db):
 		"""close the db and send it"""
 		db.close()
 		fp = open(self._sync_file, 'rb')
-		success = self._upload_db(fp)
+		try:
+			success = self._upload_db(fp)
+		except Exception, e:
+			logging.error("error uploading db: %s" % str(e))
+			success = False
 		if not success:
 			logging.debug("error uploading readstate database")
 			return False
@@ -209,9 +272,13 @@ class SqliteSyncClient:
 		fp.close()
 		self._local_timestamp = int(time.time())
 		logging.debug("SETTING server TIMESTAMP3: %i" % self._local_timestamp)
-		if not self._set_server_timestamp(self._local_timestamp):
-			logging.error("error setting timestamp")
-		
+		try:
+			if not self._set_server_timestamp(self._local_timestamp):
+				logging.error("error setting timestamp")
+				return False
+		except Exception, e:
+			logging.error("error setting timestamp: %s" % str(e))
+			return False
 		return True
 		
 	def _reset_db(self):

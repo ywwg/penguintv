@@ -198,6 +198,7 @@ class PenguinTVApp(gobject.GObject):
 		self._poll_message = ""
 		self._polling_taskinfo = -1 # the taskid we can use to waitfor a polling operation,
 									# and the time of last polling
+		self._poll_new_entries = []
 		self.polling_frequency=12*60*60*1000
 		self._bt_settings = {}
 		self._auto_download = False
@@ -436,6 +437,8 @@ class PenguinTVApp(gobject.GObject):
 				self._polled = 0
 				self._polling_taskinfo = -1
 				self._poll_message = ""
+				self._article_sync.get_readstates(self._poll_new_entries)
+				self._poll_new_entries = []
 				self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 				self.main_window.display_status_message(_("Polling Error"),MainWindow.U_POLL)
 				gobject.timeout_add(2000, self.main_window.display_status_message,"")
@@ -496,9 +499,10 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			_do_authenticate()
 		
-		
 	def _sync_articles_get(self):
 		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
+		# because clocks might be different, make it everything in the past day
+		timestamp -= 60 * 60 * 24
 		self._article_sync.get_readstates_since(timestamp)
 
 	def __got_readstates_cb(self, o, viewlist):
@@ -873,7 +877,6 @@ class PenguinTVApp(gobject.GObject):
 			updater, db = self._get_updater()
 			task_id = updater.queue(db.poll_multiple, (arguments,feeds))
 			if arguments & ptvDB.A_ALL_FEEDS==0:
-				self._gui_updater.queue(self._sync_articles_get)
 				self._gui_updater.queue(self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
 				#insane: queueing a timeout
 				self._gui_updater.queue(gobject.timeout_add, 
@@ -894,14 +897,15 @@ class PenguinTVApp(gobject.GObject):
 		return False
 		
 	def poll_finished_cb(self, total):
-		self.main_window.display_status_message(_("Feeds Updated"))
-		gobject.timeout_add(2000, self.main_window.display_status_message, "")
+		#self.main_window.display_status_message(_("Feeds Updated"))
+		#gobject.timeout_add(2000, self.main_window.display_status_message, "")
 		self.update_disk_usage()
 		if self._auto_download == True:
 			self._auto_download_unviewed()
 		self._gui_updater.set_completed(self._polling_taskinfo)
-		if total > 0:
-			self._gui_updater.queue(self._sync_articles_get)
+		#logging.debug("done polling multiple 2, updating readstates")
+		#self._gui_updater.queue(self._article_sync.get_readstates, self._poll_new_entries)
+		#self._poll_new_entries = []
 	
 	@utils.db_except()
 	def _auto_download_unviewed(self):
@@ -1454,7 +1458,6 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def mark_feed_as_viewed(self,feed):
 		changed = self.db.mark_feed_as_viewed(feed)
-		print "changed:",changed
 		self.emit('entries-viewed', [(feed, changed)])
 		#self._entry_list_view.populate_if_selected(feed)
 		#self.feed_list_view.update_feed_list(feed, ['readinfo'])
@@ -1539,7 +1542,8 @@ class PenguinTVApp(gobject.GObject):
 		
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
-			self._gui_updater.queue(self._sync_articles_get)
+			if update_data.has_key('new_entryids'):
+				self._gui_updater.queue(self._article_sync.get_readstates, update_data['new_entryids'])
 			if info['lastpoll'] == 0 and success:
 				self._first_poll_marking(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
@@ -2196,13 +2200,9 @@ class PenguinTVApp(gobject.GObject):
 		self._gui_updater.queue(self.main_window._sensitize_search)
 		
 	def _done_populating(self):
-		#self._article_sync.get_feed_counts(self._get_feed_counts_cb)
-		#self._article_sync.get_readstates(timestamp=int(time.time()))
 		self._gui_updater.queue(self.done_populating)
 
 	def _done_populating_dont_sensitize(self):
-		#self._article_sync.get_feed_counts(self._get_feed_counts_cb)
-		#self._article_sync.get_readstates(timestamp=int(time.time()))
 		self._gui_updater.queue(self.done_populating, False)
 		
 	def _get_feed_counts_cb(self, counts):
@@ -2226,7 +2226,6 @@ class PenguinTVApp(gobject.GObject):
 						(feed_dict[feedhash]['title'], counts[feedhash], 
 						 feed_dict[feedhash]['unread']))
 					unreads = self.db.get_unread_entries(feed_dict[feedhash]['feed_id'])
-					#self._article_sync.get_readstates(unreads)
 					
 				elif counts[feedhash] > feed_dict[feedhash]['unread']:
 					logging.debug("%s: server: %s local: %s" % \
@@ -2289,6 +2288,10 @@ class PenguinTVApp(gobject.GObject):
 				
 	def maybe_change_online_status(self, new_status):
 		if new_status != self._net_connected:
+			if new_status:
+				self._article_sync.authenticate()
+			else:
+				self._article_sync.disconnected()
 			self.emit('online-status-changed', new_status)
 			
 	def _progress_callback(self,d):
@@ -2311,19 +2314,24 @@ class PenguinTVApp(gobject.GObject):
 		if not self._exiting:
 			feed_id, update_data, total = args
 			if len(update_data)>0:
-				if update_data.has_key('ioerror'):
+				if (update_data['pollfail'] and not self._net_connected) or \
+				  update_data.has_key('ioerror'):
 					logging.warning("ioerror polling reset")
 					updater, db = self._get_updater()
 					db.interrupt_poll_multiple()
 					self._polled = 0
 					self._polling_taskinfo = -1
 					self._poll_message = ""
+					self._gui_updater.queue(self._article_sync.get_readstates, self._poll_new_entries)
+					self._poll_new_entries = []
 					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 					self.main_window.display_status_message(_("Trouble connecting to the internet"),MainWindow.U_POLL)
 					gobject.timeout_add(2000, self.main_window.display_status_message,"")
 					return
 				else:
 					update_data['polling_multiple'] = True
+					if update_data.has_key('new_entryids'):
+						self._poll_new_entries += update_data['new_entryids']
 					self._threaded_emit('feed-polled', feed_id, update_data)
 					if update_data.has_key('first_poll'):
 						if update_data['first_poll']:
@@ -2338,11 +2346,12 @@ class PenguinTVApp(gobject.GObject):
 
 		self._polled += 1
 		if self._polled >= total or cancelled:
-			if total > 0:
-				self._gui_updater.queue(self._sync_articles_get)
 			self._polled = 0
 			self._polling_taskinfo = -1
 			self._poll_message = ""
+			logging.debug("done polling multiple 1, updating readstates")
+			self._article_sync.get_readstates(self._poll_new_entries)
+			self._poll_new_entries = []
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
 			

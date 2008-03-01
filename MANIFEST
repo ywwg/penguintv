@@ -74,6 +74,12 @@ penguintv/PtvTrayIcon.py
 penguintv/PTVXapian.py
 penguintv/itunes.py
 penguintv/Poller.py
+penguintv/ArticleSync.py
+penguintv/SqliteSyncClient.py
+penguintv/S3SyncClient.py
+penguintv/FtpSyncClient.py
+penguintv/amazon/S3.py
+penguintv/amazon/__init__.py
 penguintv/trayicon/__init__.py
 penguintv/trayicon/TrayIcon.py
 penguintv/trayicon/SonataNotification.py
@@ -89,6 +95,7 @@ share/penguintv.schema.in
 share/defaultsubs.opml
 share/penguintv.glade
 share/penguintvicon.png
+share/penguintv.service
 share/mozilla.css
 share/mozilla-planet.css
 share/mozilla-planet-hildon.css

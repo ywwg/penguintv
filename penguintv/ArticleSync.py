@@ -14,7 +14,7 @@ _=gettext.gettext
 import gobject
 import gtk
 
-from ptvDB import FF_MARKASREAD, STRING
+from ptvDB import FF_MARKASREAD, STRING, INT
 import utils
 
 import amazon
@@ -38,9 +38,17 @@ def threaded_func():
 				return func(self, *args, **kwargs)
 			
 			def t_func(self, *args, **kwargs):
+				logging.debug("Article Sync waiting for lock")
+				self._operation_lock.acquire()
+				logging.debug("Article Sync got lock")
 				cb = kwargs['cb']
 				del kwargs['cb']
-				retval = func(self, *args, **kwargs)
+				try:
+					retval = func(self, *args, **kwargs)
+				except Exception, e:
+					logging.error("Article Sync caught error: %s" % str(e))
+				logging.debug("Article Sync releasing lock")
+				self._operation_lock.release()
 				if type(retval) is tuple:
 					if DEBUG:
 						cb(*retval)
@@ -59,15 +67,17 @@ def threaded_func():
 		return _exec_cb
 	return annotate
 	
-def authenticated_func():
+def authenticated_func(defaultret=None):
 	def annotate(func):
 		def _exec_cb(self, *args, **kwargs):
 			if not self._enabled:
-				return
+				return defaultret
 			elif self._conn is None:
 				self.emit('server-error', "No Connection")
+				return defaultret
 			elif not self._authenticated:
 				self.emit('authentication-error', "Not authenticated")
+				return defaultret
 			else:
 				return func(self, *args, **kwargs)
 		return _exec_cb
@@ -109,14 +119,13 @@ class ArticleSync(gobject.GObject):
 		if entry_view is not None:
 			self.set_entry_view(entry_view)	
 			
-		#self._conn = S3SyncClient.S3SyncClient(username, password)
-		self._conn = None #FtpSyncClient.FtpSyncClient(username, password)
+		self._conn = None
 		self._authenticated = False
 		self._enabled = enabled		
 		#diff is a dict of feed_id:readstates
 		#and readstates is a dict of entry_id:readstate
 		self._readstates_diff = {}
-		self.__operation_lock = threading.Lock()
+		self._operation_lock = threading.Lock()
 		
 		self._current_plugin = None
 		self.load_plugin(plugin)
@@ -124,7 +133,7 @@ class ArticleSync(gobject.GObject):
 		def update_cb(success):
 			logging.debug("update was: %s" % str(success))
 			return False
-		gobject.timeout_add(30 * 60 * 1000, self.submit_readstates, update_cb)
+		gobject.timeout_add(20 * 60 * 1000, self.get_and_send, update_cb)
 		
 	def set_entry_view(self, entry_view):
 		for disconnector, h_id in self._handlers:
@@ -219,16 +228,16 @@ class ArticleSync(gobject.GObject):
 				logging.debug("still working")
 				return True
 				
-			self.__operation_lock.acquire()
+			self._operation_lock.acquire()
 			self._current_plugin = plugin
 			for title in PLUGINS.keys():
 				if title == plugin:
 					self._conn = getattr(__import__(PLUGINS[title][0]), PLUGINS[title][1])()
 					self._load_plugin_settings(plugin)
-					self.__operation_lock.release()
+					self._operation_lock.release()
 					return False
 			self._conn = None
-			self.__operation_lock.release()
+			self._operation_lock.release()
 			return False
 			
 		if self._current_plugin is not None:
@@ -290,8 +299,6 @@ class ArticleSync(gobject.GObject):
 	@threaded_func()
 	def authenticate(self):
 		"""Creates the bucket as part of authentication, helpfully"""
-		self.__operation_lock.acquire()
-			
 		if self._conn is None:
 			return False
 		
@@ -303,9 +310,12 @@ class ArticleSync(gobject.GObject):
 			
 		result = self._conn.authenticate()
 		logging.debug("authenticate: %s" % str(result))
-		self.__operation_lock.release()
 		self._authenticated = result
 		return result
+		
+	def disconnected(self):
+		"""lost the connection -- no way to shut down"""
+		self._authenticated = False
 		
 	def _entries_viewed_cb(self, app, viewlist):
 		if not self._authenticated:
@@ -326,6 +336,14 @@ class ArticleSync(gobject.GObject):
 			self._readstates_diff[feed_id] = {}
 		self._readstates_diff[feed_id][entry_id] = readstate
 		#logging.debug("sync updated diff2: %s" % str(self._readstates_diff))
+		
+	@authenticated_func(True)
+	def get_and_send(self, cb):
+		logging.debug("getting and sending!")
+		timestamp = self._db.get_setting(INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
+		self.get_readstates_since(timestamp)
+		self.submit_readstates()
+		return True
 	
 	@authenticated_func()
 	def submit_readstates_since(self, timestamp, cb):
@@ -364,50 +382,66 @@ class ArticleSync(gobject.GObject):
 	@authenticated_func()
 	def get_readstates_since(self, timestamp):
 		logging.debug("getting readstates since %i" % timestamp)
-		def get_readstates_cb(readstates):
-			if len(readstates) == 0:
-				logging.debug("No readstates since %i" % timestamp)
-				self.emit('got-readstates', [])
-				return False
-				
-			unread_hashes = []
-			read_hashes = []
-		
-			for entry_hash, readstate in readstates:
-				if readstate:
-					read_hashes.append(entry_hash)
-				else:
-					unread_hashes.append(entry_hash)
-					
-			unread_entries = \
-				self._db.get_entries_for_hashes(read_hashes)
-			unread_entries.sort()
-			logging.debug("hash to entry conversion result: %i known %i unknown" \
-				% (len(unread_entries), len(readstates) - len(unread_entries)))
-			viewlist = []
-			cur_feed_id = None
-			cur_list = []
-			for feed_id, entry_id, readstate in unread_entries:
-				if feed_id != cur_feed_id:
-					if len(cur_list) > 0:
-						viewlist.append((cur_feed_id, cur_list))
-						cur_list = []
-					cur_feed_id = feed_id
-				if readstate == 0:
-					cur_list.append(entry_id)
-				#else:
-				#	logging.debug("programming error: should never be true")
-				
-			if len(cur_list) > 0:
-				viewlist.append((cur_feed_id, cur_list))
-				
-			logging.debug("sync says to mark these viewed: %s" % viewlist)
-			self.emit('got-readstates', viewlist)
-			return False
-		
-		self._do_get_readstates_since(timestamp, cb=get_readstates_cb)
+		self._do_get_readstates_since(timestamp, cb=self.get_readstates_cb)
 			
 	@threaded_func()
 	def _do_get_readstates_since(self, timestamp):
 		return self._conn.get_readstates_since(timestamp)
+		
+	@authenticated_func()
+	def get_readstates(self, entrylist):
+		"""take an entrylist, build a list of hashes, ask for their readstates"""
+		
+		if len(entrylist) == 0:
+			return
+			
+		logging.debug("getting readstates for: %s" % str(entrylist))
+		
+		hashlist = self._db.get_hashes_for_entries(entrylist)
+		self._do_get_readstates(hashlist, cb=self.get_readstates_cb)
+		
+	@threaded_func()
+	def _do_get_readstates(self, hashlist):
+		return self._conn.get_readstates(hashlist)
+		
+	def get_readstates_cb(self, readstates):
+		if len(readstates) == 0:
+			logging.debug("No readstates to report")
+			self.emit('got-readstates', [])
+			return False
+			
+		unread_hashes = []
+		read_hashes = []
+	
+		for entry_hash, readstate in readstates:
+			if readstate:
+				read_hashes.append(entry_hash)
+			else:
+				unread_hashes.append(entry_hash)
+				
+		unread_entries = \
+			self._db.get_entries_for_hashes(read_hashes)
+		unread_entries.sort()
+		logging.debug("hash to entry conversion result: %i known %i unknown" \
+			% (len(unread_entries), len(readstates) - len(unread_entries)))
+		viewlist = []
+		cur_feed_id = None
+		cur_list = []
+		for feed_id, entry_id, readstate in unread_entries:
+			if feed_id != cur_feed_id:
+				if len(cur_list) > 0:
+					viewlist.append((cur_feed_id, cur_list))
+					cur_list = []
+				cur_feed_id = feed_id
+			if readstate == 0:
+				cur_list.append(entry_id)
+			#else:
+			#	logging.debug("programming error: should never be true")
+			
+		if len(cur_list) > 0:
+			viewlist.append((cur_feed_id, cur_list))
+			
+		logging.debug("sync says to mark these viewed: %s" % viewlist)
+		self.emit('got-readstates', viewlist)
+		return False
 		
