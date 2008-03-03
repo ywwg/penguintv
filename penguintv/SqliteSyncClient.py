@@ -152,7 +152,7 @@ class SqliteSyncClient:
 			server_timestamp = self._get_server_timestamp()
 		except Exception, e:
 			logging.error("error getting timestamp: %s" % str(e))
-			return None
+			return []
 		   
 		if self._no_updates:
 			logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))

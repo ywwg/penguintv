@@ -845,6 +845,7 @@ class MainWindow(gobject.GObject):
 	def on_about_activate(self,event):
 		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
 		about_box = widgets.get_widget('aboutdialog1')
+		about_box.set_name('PenguinTV')
 		about_box.set_version(utils.VERSION)
 		about_box.connect('response', self.on_about_response)
 		about_box.show_all()

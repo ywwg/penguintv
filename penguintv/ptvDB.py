@@ -1223,6 +1223,9 @@ class ptvDB:
 			a feedparser dictionary in the preparsed argument and avoid network operations"""
 		
 		def perform_feed_updates(updates, f_id):
+			if not updates.has_key('pollfail'):
+				updates['pollfail'] = 0
+			logging.debug("setting pollfail to %i for %i" % (updates['pollfail'], f_id))
 			updated_fields = ", ".join(["%s=?" % k for k in updates.keys()])
 			updated_values = tuple([updates[k] for k in updates.keys()])
 			self._db_execute(self._c, u"""UPDATE feeds SET %s WHERE rowid=?""" % updated_fields, updated_values + (feed_id,))
@@ -1255,7 +1258,7 @@ class ptvDB:
 			#self._db_execute(self._c, """SELECT url,etag FROM feeds WHERE rowid=?""",(feed_id,))
 			#data = self._c.fetchone()
 			try:
-				feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
+				#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 				
 				#speed up feedparser
 				if utils.RUNNING_SUGAR:
@@ -1270,6 +1273,7 @@ class ptvDB:
 				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
 					feed_updates = self._set_new_update_freq(feed, 0)
+				logging.warning("feedparser exception: %s" % str(e))
 				feed_updates['pollfail'] = 1
 				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				#self._db.commit()
@@ -1281,6 +1285,7 @@ class ptvDB:
 				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
 					feed_updates = self._set_new_update_freq(feed, 0)
+				logging.warning("bad preparsed")
 				feed_updates['pollfail'] = 1
 				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				#self._db.commit()
@@ -1303,7 +1308,7 @@ class ptvDB:
 				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
 					feed_updates = self._set_new_update_freq(feed, 0)
-				feed_updates['pollfail'] = 1
+				#feed_updates['pollfail'] = 1
 				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				#self._db.commit()
 				perform_feed_updates(feed_updates, feed_id)
@@ -1319,14 +1324,15 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"404 not found: "+str(url))
 
 		if len(data['feed']) == 0 or len(data['items']) == 0:
+			print data
 			if data.has_key('bozo_exception'):
 				if isinstance(data['bozo_exception'], URLError):
 					e = data['bozo_exception'][0]
 					errno = e[0]
-					if errno in [#-2, # Name or service not known 
+					if errno in (#-2, # Name or service not known 
 								-3, #failure in name resolution   
 								114, #Operation already in progress
-								11]:  #Resource temporarily unavailable
+								11):  #Resource temporarily unavailable
 						raise IOError(e)	
 			
 			feed_updates = {}
@@ -1368,7 +1374,7 @@ class ptvDB:
 		#later, we well unset this flag for everything that is NEW,
 		#MODIFIED, and EXISTS. anything still flagged should be deleted  
 		#self._db_execute(self._c, """UPDATE entries SET old=1 WHERE feed_id=?""",(feed_id,))
-		feed_updates['pollfail']=0
+		feed_updates['pollfail'] = 0
 		#self._db_execute(self._c, """UPDATE feeds SET pollfail=0 WHERE rowid=?""",(feed_id,))
 	
 		#normalize results
@@ -1418,7 +1424,7 @@ class ptvDB:
 			feed_updates['description'] = channel['description']
 			feed_updates['etag'] = data['etag']
 		except Exception, e:
-			logging.info(str(e))
+			logging.warning(str(e))
 			feed_updates['pollfail'] = 1
 			#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 			perform_feed_updates(feed_updates, feed_id)

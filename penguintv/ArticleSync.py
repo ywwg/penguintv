@@ -354,12 +354,16 @@ class ArticleSync(gobject.GObject):
 		self._do_submit_readstates(readstates, cb=cb)
 		
 	@authenticated_func()	
-	def submit_readstates(self, cb):
+	def submit_readstates(self):
+		def submit_cb(success):
+			self.emit('server-error', 'Problem submitting readstates')
+			return False
+	
 		readstates = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}
 		
 		logging.debug("updating readstates: %s" % str(readstates))
-		self._do_submit_readstates(readstates, cb=cb)
+		self._do_submit_readstates(readstates, cb=submit_cb)
 		return True
 		
 	def _get_readstates_list(self, state_dict):

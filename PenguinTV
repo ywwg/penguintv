@@ -74,22 +74,11 @@ fi
 echo "Running ptv in $ptv_home"
 
 if [ $HILDON -eq 1 ] ; then	
-	run-standalone.sh python2.5 -c "import sys; \
-sys.path.insert(0, \"$ptv_home\");
-import penguintv;
-import utils;
-
-penguintv.main()"
+	PYTHONPATH="$ptv_home"
+	cd $ptv_home
+	run-standalone.sh python2.5 ./penguintv.py
 else
-	/usr/bin/env python -c "import os, sys;
-os.chdir(\"$ptv_home\");
-sys.path.insert(0, \"$ptv_home\");
-
-import penguintv;
-import utils;
-
-#import cProfile;
-#cProfile.run('penguintv.main()', '/tmp/penguintv-prof');
-#sys.exit(0);
-penguintv.main()"
+	PYTHONPATH="$ptv_home"
+	cd $ptv_home
+	./penguintv.py
 fi
