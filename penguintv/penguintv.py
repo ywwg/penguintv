@@ -189,6 +189,8 @@ class PenguinTVApp(gobject.GObject):
 		logging.info("penguintv " + utils.VERSION + " startup")
 			
 		self.db = ptvDB.ptvDB(self.polling_callback, self._emit_change_setting)
+		# Clean media status on startup, not exit, in case of crash.
+		self.db.clean_media_status()
 		
 		self._firstrun = self.db.maybe_initialize_db()
 
@@ -780,7 +782,7 @@ class PenguinTVApp(gobject.GObject):
 		self.stop_downloads()
 		logging.info('saving settings')
 		self.save_settings()
-		self.db.clean_media_status()
+		
 		#if anything is downloading, report it as paused, because we pause all downloads on quit
 		feed_cache = self.feed_list_view.get_feed_cache()
 		
