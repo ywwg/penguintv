@@ -21,8 +21,10 @@ DONE_MAJOR_DB_OPERATION = 5
 #import urlparse loaded as needed
 try:
 	from sqlite3 import OperationalError as OperationalError
+	import sqlite3 as sqlite
 except:
 	from pysqlite2.dbapi2 import OperationalError as OperationalError
+	from pysqlite2 import dbapi2 as sqlite
 import threading
 import sys, os, os.path
 import gc
@@ -192,6 +194,8 @@ class PenguinTVApp(gobject.GObject):
 		# Clean media status on startup, not exit, in case of crash.
 		self.db.clean_media_status()
 		
+		#we have already run this down at the bottom, but run it again
+		#because we don't init the DB down there (should we?)
 		self._firstrun = self.db.maybe_initialize_db()
 		
 		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
@@ -2551,69 +2555,160 @@ def do_commandline(remote_app=None, local_app=None):
 		else:
 			local_app.add_feed(sys.argv[1], sys.argv[1])
 
-def main():
-	gtk.gdk.threads_init()
-	gtk.window_set_auto_startup_notification(True)
-	if HAS_GNOME:
-		gnome.init("PenguinTV", utils.VERSION)
-	try:
-		app = PenguinTVApp()    # Instancing of the GUI
-	except AlreadyRunning, e:
-		do_commandline(remote_app=e.remote_app)
-		sys.exit(0)
-	
-	app.main_window.Show() 
-	## load-time testing
-	#sys.exit(0)
-	if utils.is_kde():
-		try:
-			from kdecore import KApplication, KCmdLineArgs, KAboutData
-
-			description = "test kde"
-			version     = "1.0"
-			aboutData   = KAboutData ("", "",\
-			    version, description, KAboutData.License_GPL,\
-			    "(C) 2004-2008 Owen Williams")
-			KCmdLineArgs.init (sys.argv, aboutData)
-			app = KApplication ()
-			
-		except:
-			logging.error("Unable to initialize KDE")
-			sys.exit(1)	
-	do_commandline(local_app=app)
-	gtk.main() 
+#def main():
+#	gtk.gdk.threads_init()
+#	gtk.window_set_auto_startup_notification(True)
+#	if HAS_GNOME:
+#		gnome.init("PenguinTV", utils.VERSION)
+#	try:
+#		app = PenguinTVApp()    # Instancing of the GUI
+#	except AlreadyRunning, e:
+#		do_commandline(remote_app=e.remote_app)
+#		sys.exit(0)
+#	
+#	app.main_window.Show() 
+#	## load-time testing
+#	#sys.exit(0)
+#	if utils.is_kde():
+#		try:
+#			from kdecore import KApplication, KCmdLineArgs, KAboutData
+#
+#			description = "test kde"
+#			version     = "1.0"
+#			aboutData   = KAboutData ("", "",\
+#			    version, description, KAboutData.License_GPL,\
+#			    "(C) 2004-2008 Owen Williams")
+#			KCmdLineArgs.init (sys.argv, aboutData)
+#			app = KApplication ()
+#			
+#		except:
+#			logging.error("Unable to initialize KDE")
+#			sys.exit(1)	
+#	do_commandline(local_app=app)
+#	gtk.main() 
 
 def do_quit(event, app):
 	app.do_quit()
 	
+	
+setup_success = True
 def setup_database():
-	db = ptvDB.ptvDB()
-	db_ver, latest_ver = db.get_version_info()
+	global setup_success
+	
+	try:
+		home = utils.get_home()
+		os.stat(os.path.join(self.home,"penguintv4.db"))
+		db=sqlite.connect(os.path.join(home,"penguintv4.db"), timeout=10)
+		db.isolation_level="DEFERRED"
+		c = db.cursor()
+		c.execute(u'SELECT rowid FROM feeds LIMIT 1')
+		c.execute(u'SELECT value FROM settings WHERE data="db_ver"')
+		db_ver = c.fetchone()
+		if db_ver is None: db_ver = 0
+		else: db_ver = int(db_ver[0])
+		latest_ver = ptvDB.LATEST_DB_VER
+		print "got without object:",db_ver, latest_ver
+		c.close()
+		db.close()
+	except:
+		logging.debug("Didn't get sqlite the easy way, trying the hard way")
+		db = ptvDB.ptvDB()
+		db_ver, latest_ver = db.get_version_info()
+		db.finish(vacuumok=False)
+		
+	def upgrade_db(dialog, cb):
+		try:
+			logging.info(_("Upgrading Database"))
+			db = ptvDB.ptvDB()
+			db.maybe_initialize_db()
+			db.finish(vacuumok=False)
+			logging.info("Done upgrading database")
+			cb(True, dialog)
+		except Exception, e:
+			cb(False, dialog, str(e))
+			
+	def upgrade_done(success, dialog, errormsg=None):
+		global setup_success
+		setup_success = success
+		if errormsg is not None:
+			logging.error("Problem upgrading DB: %s" % errormsg)
+		dialog.destroy()
+		gtk.main_quit() 
+		
+	def pulse(progressbar):
+		progressbar.pulse()
+		return True
+		
+	def destroy(widget, data):
+		gtk.main_quit()
+		
+	logging.info("Our database version: %i \nProgram version: %i" % \
+				(db_ver, latest_ver))
 	
 	if db_ver == latest_ver:
-		db.finish(vacuumok=False)
+		pass
 	elif db_ver == -1:
-		db.finish(vacuumok=False)
+		pass
 	elif db_ver > latest_ver:
-		logging.error( \
-"""The database you are running is from a later version of PenguinTV than the 
-version you are currently running.  Please upgrade back to the latest version 
-of PenguinTV.  To avoid errors and corruption, PenguinTV will quit now.""")
-		#dialog = gtk.Dialog(title=_("Database Version Mismatch"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_QUIT, gtk.RESPONSE_ACCEPT))
-#		label = gtk.Label(_("""The database you are running is from a later version of PenguinTV than 
-#the version you are currently running.  To avoid errors and corruption, PenguinTV will quit now.
-#Please upgrade back to the latest version of PenguinTV
-#FIXME: this just crashes instead of quitting :("""))
-#		dialog.vbox.pack_start(label, True, True, 0)
-#		label.show()
-#		response = dialog.run()
-#		#FIXME: this doesn't work
-#		gtk.main()
+		logging.error("""The database you are running is from a later version of PenguinTV than the version you are currently running.  Please upgrade back to the latest version of PenguinTV.  To avoid errors and corruption, PenguinTV will quit now.""")
+		dialog = gtk.Dialog(title=_("Database Version Mismatch"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_QUIT, gtk.RESPONSE_ACCEPT))
+		frame = gtk.Frame()
+		title = gtk.Label()
+		title.set_use_markup(True)
+		title.set_markup(_("<b>Database Version Mismatch</b>"))
+		frame.set_label_widget(title)
+		hbox = gtk.HBox()
+		hbox.set_spacing(12)
+		image = gtk.image_new_from_stock(gtk.STOCK_DIALOG_ERROR, gtk.ICON_SIZE_DIALOG)
+		hbox.pack_start(image, False, False, 12)
+		label = gtk.Label(_("""The database you are running is from a later version of PenguinTV than the version you are currently running.  To avoid errors and corruption, PenguinTV will quit now. 
+		
+Please upgrade back to the latest version of PenguinTV."""))
+		label.set_line_wrap(True)
+		hbox.pack_start(label, True, True, 12)
+		frame.add(hbox)
+		frame.set_border_width(12)
+		dialog.vbox.pack_start(frame, True, True, 0)
+		label.show()
+		dialog.resize(400,200)
+		response = dialog.show_all()
+		dialog.connect("response", destroy)
+		dialog.connect("destroy", destroy)
+		gtk.main()
 		return False
 	elif db_ver < latest_ver:
-		logging.info(_("Upgrading Database"))
-		db.maybe_initialize_db()
-		db.finish(vacuumok=False)
+		logging.error("""The database you are running is from a later version of PenguinTV than the version you are currently running.  Please upgrade back to the latest version of PenguinTV.  To avoid errors and corruption, PenguinTV will quit now.""")
+		dialog = gtk.Dialog(title=_("Upgrading Database"), parent=None, flags=gtk.DIALOG_MODAL)
+		frame = gtk.Frame()
+		title = gtk.Label()
+		title.set_use_markup(True)
+		title.set_markup(_("<b>Upgrading Database</b>"))
+		frame.set_label_widget(title)
+		vbox = gtk.VBox()
+		vbox.set_spacing(12)
+		hbox = gtk.HBox()
+		hbox.set_spacing(12)
+		image = gtk.image_new_from_stock(gtk.STOCK_EXECUTE, gtk.ICON_SIZE_DIALOG)
+		hbox.pack_start(image, False, False, 12)
+		label = gtk.Label(_("""The PenguinTV database is being upgraded. This may take a few minutes."""))
+		label.set_line_wrap(True)
+		hbox.pack_start(label, True, True, 12)
+		vbox.pack_start(hbox, True, True, 12)
+		progressbar = gtk.ProgressBar()
+		progressbar.set_pulse_step(0.05)
+		vbox.pack_start(progressbar, False, False, 12)
+		frame.add(vbox)
+		frame.set_border_width(12)
+		dialog.vbox.add(frame)
+		dialog.resize(400,200)
+		dialog.show_all()
+		gobject.timeout_add(50, pulse, progressbar)
+		
+		t = threading.Thread(None, upgrade_db, args=(dialog, upgrade_done))
+		t.start()
+		
+		gtk.main()
+		return setup_success
 	return True
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
@@ -2622,12 +2717,15 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 to prevent crashes."""
 		sys.exit(1)
 		
+	gtk.gdk.threads_init()
+		
 	if not setup_database():
+		logging.error("Error initializing database")
 		sys.exit(1)
 	
 	if HAS_GNOME:
 		logging.info("Have GNOME")
-		gtk.gdk.threads_init()
+		
 		gtk.window_set_auto_startup_notification(True)
 		gnome.init("PenguinTV", utils.VERSION)
 		try:
@@ -2666,14 +2764,12 @@ to prevent crashes."""
 				sys.exit(1)
 	elif utils.RUNNING_HILDON: #no gnome, no gnomeapp
 		logging.debug("Starting Hildon version")
-		gtk.gdk.threads_init()
 		gtk.window_set_auto_startup_notification(True)
 		app = PenguinTVApp()
 		app.main_window.Show()
 	else:
 		logging.debug("No gnome")
 		window = gtk.Window()
-		gtk.gdk.threads_init()
 		app = PenguinTVApp()
 		app.main_window.Show(window)
 		window.connect('delete-event', do_quit, app)
