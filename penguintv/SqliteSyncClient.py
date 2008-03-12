@@ -13,6 +13,7 @@ class SqliteSyncClient:
 		self._authenticated = False
 		self._local_timestamp = 0
 		self._no_updates = False
+		self._readonly = False
 		
 	def set_username(self, username):
 		if username == self._username:
@@ -25,6 +26,9 @@ class SqliteSyncClient:
 			return
 		self.finish()
 		self._password = password
+		
+	def set_readonly(self, readonly):
+		self._readonly = readonly
 		
 	def finish(self, last_upload=[]):
 		if self._sync_file is not None:
@@ -66,6 +70,10 @@ class SqliteSyncClient:
 
 	def submit_readstates(self, readstates, do_upload=True, noclosedb=None):
 		"""Returns True on success, False on error"""
+		
+		if self._readonly:
+			logging.debug("in readonly mode, not submitting")
+			return True
 			
 		logging.debug("ArticleSync Submitting %i readstates" % len(readstates))
 		if len(readstates) == 0:

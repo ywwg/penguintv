@@ -397,27 +397,14 @@
    </schema>
    
    <schema>
-     <key>/schemas/apps/penguintv/sync_username</key>
-     <applyto>/apps/penguintv/sync_username</applyto>
+     <key>/schemas/apps/penguintv/sync_readonly</key>
+     <applyto>/apps/penguintv/sync_readonly</applyto>
      <owner>penguintv</owner>
-     <type>string</type>
+     <type>bool</type>
      <default></default>
      <locale name="C">
-	<short>Article Sync Username</short>
-	<long>Username for article synchronization.  Default blank.
-	</long>
-     </locale>
-   </schema>
-   
-    <schema>
-     <key>/schemas/apps/penguintv/sync_password</key>
-     <applyto>/apps/penguintv/sync_password</applyto>
-     <owner>penguintv</owner>
-     <type>string</type>
-     <default></default>
-     <locale name="C">
-	<short>Article Sync Password</short>
-	<long>Password for article synchronization.  Default blank.
+	<short>Article Sync Readonly Mode</short>
+	<long>If true, do not submit article readstate info, just download info.  Default False
 	</long>
      </locale>
    </schema>

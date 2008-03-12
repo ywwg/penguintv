@@ -299,8 +299,9 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
 			conf.notify_add('/apps/penguintv/media_storage_location',self._gconf_set_media_storage_location)
 			conf.notify_add('/apps/penguintv/use_article_sync',self._gconf_set_use_article_sync)
-			conf.notify_add('/apps/penguintv/sync_username',self._gconf_set_sync_username)
-			conf.notify_add('/apps/penguintv/sync_password',self._gconf_set_sync_password)
+			#conf.notify_add('/apps/penguintv/sync_username',self._gconf_set_sync_username)
+			#conf.notify_add('/apps/penguintv/sync_password',self._gconf_set_sync_password)
+			conf.notify_add('/apps/penguintv/sync_readonly', self._gconf_set_sync_readonly)
 
 		self._load_settings()
 		
@@ -454,14 +455,14 @@ class PenguinTVApp(gobject.GObject):
 		return True
 		
 	def _setup_article_sync(self):
-		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
-		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
 		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
 		plugin = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/article_sync_plugin', "")
+		readonly = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_readonly', False)
 		article_sync = ArticleSync.ArticleSync(self, self._entry_view,  plugin, 
-							enabled)
+							enabled, readonly)
 	
 		self.window_preferences.set_use_article_sync(enabled)
+		self.window_preferences.set_article_sync_readonly(readonly)
 		return article_sync
 		
 	def sync_authenticate(self, newplugin=None, cb=None):
@@ -735,15 +736,13 @@ class PenguinTVApp(gobject.GObject):
 			if val is None: val = 0
 			self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', val)
 		
-		#username = self.window_preferences.get_sync_username()
-		#self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', username)
-		#password = self.window_preferences.get_sync_password()
-		#self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', password)
 		media_dir = self.window_preferences.get_media_storage_location()
 		if media_dir is not None:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', media_dir)
 		enabled = self.window_preferences.get_use_article_sync()
 		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', enabled)
+		readonly = self.window_preferences.get_article_sync_readonly()
+		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_readonly', readonly)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())
 	
 	@utils.db_except()
@@ -2177,23 +2176,30 @@ class PenguinTVApp(gobject.GObject):
 	def set_use_article_sync(self, enabled):
 		self._article_sync.set_enabled(enabled)
 		
-	def _gconf_set_sync_username(self, client, *args, **kwargs):
-		username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
-		self.set_sync_username(username)
+	#def _gconf_set_sync_username(self, client, *args, **kwargs):
+	#	username = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_username', "")
+	#	self.set_sync_username(username)
+	#	
+	#def set_sync_username(self, username):
+	#	pass
+	#	#self._article_sync.set_username(username)
+	#	#self.window_preferences.set_sync_username(username)
+	#	
+	#def _gconf_set_sync_password(self, client, *args, **kwargs):
+	#	password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
+	#	#self.set_sync_password(password)
+	#	
+	#def set_sync_password(self, password):
+	#	pass
+	#	#self._article_sync.set_password(password)
+	#	#self.window_preferences.set_sync_password(password)
+	
+	def _gconf_set_sync_readonly(self, client, *args, **kwargs):
+		readonly = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_readonly', False)
+		self.set_article_sync_readonly(readonly)
 		
-	def set_sync_username(self, username):
-		pass
-		#self._article_sync.set_username(username)
-		#self.window_preferences.set_sync_username(username)
-		
-	def _gconf_set_sync_password(self, client, *args, **kwargs):
-		password = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_password', "")
-		#self.set_sync_password(password)
-		
-	def set_sync_password(self, password):
-		pass
-		#self._article_sync.set_password(password)
-		#self.window_preferences.set_sync_password(password)
+	def set_article_sync_readonly(self, readonly):
+		self._article_sync.set_readonly(readonly)
 		
 	#def update_feed_list(self, feed_id=None):
 	#	self.feed_list_view.update_feed_list(feed_id) #for now, just update this ONLY

@@ -1332,7 +1332,7 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"404 not found: "+str(url))
 
 		if len(data['feed']) == 0 or len(data['items']) == 0:
-			print data
+			#print data
 			if data.has_key('bozo_exception'):
 				if isinstance(data['bozo_exception'], URLError):
 					e = data['bozo_exception'][0]

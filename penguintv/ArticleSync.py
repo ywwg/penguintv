@@ -100,7 +100,7 @@ class ArticleSync(gobject.GObject):
                            ([gobject.TYPE_PYOBJECT]))             
 	}
 
-	def __init__(self, app, entry_view, plugin, enabled=True):
+	def __init__(self, app, entry_view, plugin, enabled=True, readonly=False):
 		gobject.GObject.__init__(self)
 		global BUCKET_NAME, BUCKET_NAME_SUF
 		if app is not None:
@@ -119,6 +119,7 @@ class ArticleSync(gobject.GObject):
 		self._conn = None
 		self._authenticated = False
 		self._enabled = enabled		
+		self._readonly = readonly
 		#diff is a dict of feed_id:readstates
 		#and readstates is a dict of entry_id:readstate
 		self._readstates_diff = {}
@@ -147,6 +148,11 @@ class ArticleSync(gobject.GObject):
 		self._enabled = enabled
 		if not self._enabled:
 			self._authenticated = False
+			
+	def set_readonly(self, readonly):
+		self._readonly = readonly
+		if self._conn is not None:
+			self._conn.set_readonly(readonly)
 			
 	def get_current_plugin(self):
 		return self._current_plugin
@@ -226,6 +232,7 @@ class ArticleSync(gobject.GObject):
 			for title in PLUGINS.keys():
 				if title == plugin:
 					self._conn = getattr(__import__(PLUGINS[title][0]), PLUGINS[title][1])()
+					self._conn.set_readonly(self._readonly)
 					self._load_plugin_settings(plugin)
 					self._operation_lock.release()
 					return False
@@ -249,12 +256,6 @@ class ArticleSync(gobject.GObject):
 			#logging.debug("initializing plugin %s with %s" % (param, val))
 			getattr(self._conn, 'set_%s' % param)(val)
 			
-	#def set_username(self, username):
-	#	self._conn.set_username(username)
-	#
-	#def set_password(self, password):
-	#	self._conn.set_password(password)
-		
 	def is_authenticated(self):
 		return self._authenticated
 		
@@ -330,11 +331,18 @@ class ArticleSync(gobject.GObject):
 	def get_and_send(self, cb):
 		timestamp = self._db.get_setting(INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
 		self.get_readstates_since(timestamp)
-		self.submit_readstates()
+		if self._readonly:
+			logging.info("Readonly mode, not submitting")
+		else:
+			self.submit_readstates()
 		return True
 	
 	@authenticated_func()
 	def submit_readstates_since(self, timestamp, cb):
+		if self._readonly:
+			logging.info("Readonly mode, not submitting")
+			return
+			
 		readstates = self._db.get_entries_since(timestamp)
 		readstates = [(r[2],r[3]) for r in readstates if r[3] == 1]
 		logging.debug("submitting readstates since %i, there are %i" \
@@ -343,6 +351,10 @@ class ArticleSync(gobject.GObject):
 		
 	@authenticated_func()	
 	def submit_readstates(self):
+		if self._readonly:
+			logging.info("Readonly mode, not submitting")
+			return
+			
 		def submit_cb(success):
 			self.emit('server-error', 'Problem submitting readstates')
 			return False
