@@ -5,6 +5,8 @@
 # GNU General Public License, version 2 or later
 #
 
+MOZ_LIB_DIR="##MOZ_LIB_DIR##"
+
 HILDON=0
 if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
 	HILDON=1
@@ -24,21 +26,15 @@ else
 	fi
 	
 	if [ $have_home -eq 0 ] ; then
-		for moz in "xulrunner-gtkmozembed" "firefox-gtkmozembed" "mozilla-gtkmozembed"; do
-			home=`pkg-config --silence-errors --libs-only-L $moz | sed 's/ //g'`
-			if [ "x"$home != "x" ] ; then
-				home=`echo $home | sed -e 's/-L//;'`
-				if [ ! -d $home ] ; then
-					echo "Thought mozilla was in $home, but path doesn't exist"
-					echo "Error finding MOZILLA_FIVE_HOME, please set it yourself"
-					exit 1
-				fi
-				echo Found gtkmozembed in $home
-				export MOZILLA_FIVE_HOME=$home
-				export LD_LIBRARY_PATH=$home
-				break	
-			fi
-		done
+		home = MOZ_LIB_DIR
+		if [ ! -d $home ] ; then
+			echo "Thought mozilla was in $home, but path doesn't exist"
+			echo "Error finding MOZILLA_FIVE_HOME, please set it yourself"
+			exit 1
+		fi
+		echo Found gtkmozembed in $home
+		export MOZILLA_FIVE_HOME=$home
+		export LD_LIBRARY_PATH=$home
 	fi
 fi
 
