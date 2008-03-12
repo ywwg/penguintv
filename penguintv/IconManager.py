@@ -108,6 +108,8 @@ class IconManager:
 						os.rename(filename+".thumb", newname)
 				except Exception, e:
 					logging.warning("Feed %i: Couldn't resize feed icon: %s" % (feed_id, str(e)))
+			else:
+				logging.warning("Don't have Python Imaging, can't resize icons")
 			return url
 			
 		f = open(os.path.join(self._home, 'icons', str(feed_id)+'.none'), 'w')
