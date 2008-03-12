@@ -107,6 +107,11 @@ else:
 				break
 			except:
 				pass
+				
+if moz_lib_dir == "":
+	if os.path.isfile("/usr/lib/libgtkembedmoz.so.0") and \
+	   os.path.isdir("/usr/lib/microb-engine"):
+		moz_lib_dir = "/usr/lib/microb-engine"
 
 if moz_lib_dir == "":
 	cmd = "ldd " + gtkmozembed.__file__ + "|grep libgtkembedmoz"
