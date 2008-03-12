@@ -26,7 +26,7 @@ else
 	fi
 	
 	if [ $have_home -eq 0 ] ; then
-		home = MOZ_LIB_DIR
+		home="$MOZ_LIB_DIR"
 		if [ ! -d $home ] ; then
 			echo "Thought mozilla was in $home, but path doesn't exist"
 			echo "Error finding MOZILLA_FIVE_HOME, please set it yourself"

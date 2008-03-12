@@ -124,11 +124,18 @@ if moz_lib_dir == "":
 else:
 	print "Setting default MOZILLA_FIVE_HOME to", moz_lib_dir
 	
-os.mkdir("./bin")
+try:
+	os.stat("./bin")
+except:
+	try:
+		os.mkdir("./bin")
+	except:
+		print "Error creating ./bin directory for script"
+		sys.exit(1)
 f = open("PenguinTV.in", "r")
 f2 = open("./bin/PenguinTV", "w")
 for line in f.readlines():
-	f2.write(f.replace("##MOZ_LIB_DIR##", moz_lib_dir))
+	f2.write(line.replace("##MOZ_LIB_DIR##", moz_lib_dir))
 f2.close()
 f.close()
 	
