@@ -227,3 +227,5 @@ if something_disabled:
 	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
 	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
 
+if "build" in sys.argv:
+	print "You can run ./bin/PenguinTV to run PenguinTV"

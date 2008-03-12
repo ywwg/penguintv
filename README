@@ -6,16 +6,29 @@ Thank you for downloading Penguin TV.  This application is an RSS feed reader wi
 
 PenguinTV is a python program, and requires python version 2.3 or higher.  It also requires several libraries and their python versions:
 
-* gnome 2.x 
-* pysqlite version 2 or greater (http://pysqlite.org/)
+* gnome 2.x
+* python 2.5 or later
 * pycurl version 7.11 or greater (http://pycurl.sourceforge.net/)
 * mozilla support for python (gnome-python2-gtkmozembed or python-gnome2-extras)
+* python imaging library (http://www.pythonware.com/products/pil/)
 
 == Optional Libraries ==
 
 PenguinTV supports some other extra libraries but will run without them:
 
 * python-gstreamer for internal media playback
+* python-xapian for search support
+
+== Building ==
+
+Build with:
+python setup.py build
+
+== Running without Installing ==
+
+after you've built penguintv, you can type
+./bin/PenguinTV 
+to run the program
 
 == Installing ==
 
@@ -24,8 +37,6 @@ Installation should be as simple as running
 python setup.py install
 
 as root.  Please email me if you have trouble installing the program.
-
-the autotools files (autogen.sh, configure.ac, etc) are for OLPC ONLY.  They are not needed for regular penguintv installations.
 
 == Running PenguinTV ==
 
