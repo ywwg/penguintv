@@ -193,7 +193,7 @@ class PenguinTVApp(gobject.GObject):
 		self.db.clean_media_status()
 		
 		self._firstrun = self.db.maybe_initialize_db()
-
+		
 		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
 		self.mediamanager = MediaManager.MediaManager(self, media_dir, self._progress_callback, self._finished_callback)
 		self._polled=0      #Used for updating the polling progress bar
@@ -253,7 +253,6 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
-		
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(gst_player)
 		if gst_player is not None:
@@ -2582,12 +2581,46 @@ def main():
 
 def do_quit(event, app):
 	app.do_quit()
+	
+def setup_database():
+	db = ptvDB.ptvDB()
+	db_ver, latest_ver = db.get_version_info()
+	
+	if db_ver == latest_ver:
+		db.finish(vacuumok=False)
+	elif db_ver == -1:
+		db.finish(vacuumok=False)
+	elif db_ver > latest_ver:
+		logging.error( \
+"""The database you are running is from a later version of PenguinTV than the 
+version you are currently running.  Please upgrade back to the latest version 
+of PenguinTV.  To avoid errors and corruption, PenguinTV will quit now.""")
+		#dialog = gtk.Dialog(title=_("Database Version Mismatch"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_QUIT, gtk.RESPONSE_ACCEPT))
+#		label = gtk.Label(_("""The database you are running is from a later version of PenguinTV than 
+#the version you are currently running.  To avoid errors and corruption, PenguinTV will quit now.
+#Please upgrade back to the latest version of PenguinTV
+#FIXME: this just crashes instead of quitting :("""))
+#		dialog.vbox.pack_start(label, True, True, 0)
+#		label.show()
+#		response = dialog.run()
+#		#FIXME: this doesn't work
+#		gtk.main()
+		return False
+	elif db_ver < latest_ver:
+		logging.info(_("Upgrading Database"))
+		db.maybe_initialize_db()
+		db.finish(vacuumok=False)
+	return True
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
 	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
 		print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 
 to prevent crashes."""
 		sys.exit(1)
+		
+	if not setup_database():
+		sys.exit(1)
+	
 	if HAS_GNOME:
 		logging.info("Have GNOME")
 		gtk.gdk.threads_init()

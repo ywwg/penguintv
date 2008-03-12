@@ -188,7 +188,10 @@ class ptvDB:
 				logging.error("Have search, but no search engine?  Programming error!")
 				assert False
 			if not self._initializing_db:
-				self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
+				try:
+					self._blacklist = self.get_feeds_for_flag(FF_NOSEARCH)
+				except:
+					logging.error("possible old database version")
 			
 		if utils.HAS_GCONF:
 			self._conf = gconf.client_get_default()
@@ -242,26 +245,31 @@ class ptvDB:
 				self._c.execute('VACUUM')
 			self._c.close()
 			self._db.close()
-
-	def maybe_initialize_db(self):
+			
+	def get_version_info(self):
 		try:
 			self._db_execute(self._c, u'SELECT rowid FROM feeds LIMIT 1')
 		except:
+			return (-1, LATEST_DB_VER)
+		self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
+		db_ver = self._c.fetchone()
+		if db_ver is None:
+			db_ver = 0
+		else:
+			db_ver = int(db_ver[0])
+		return (db_ver, LATEST_DB_VER)
+
+	def maybe_initialize_db(self):
+		"""returns true if new database"""
+		db_ver = self.get_version_info()[0]
+		if db_ver == -1:
 			logging.info("initializing database")
 			self._init_database()
 			return True	
-			
+
 		try:
-			#self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
-			#db_ver = self._c.fetchone()
-			#db_ver = db_ver[0]
-			self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
-			try:
-				db_ver = int(self._c.fetchone()[0])
-			except:
-				db_ver = None
 			logging.debug("current database version is " + str(db_ver))
-			if db_ver is None:
+			if db_ver == 0:
 				self._migrate_database_one_two()
 			if db_ver < 2:
 				self._migrate_database_one_two()

@@ -44,8 +44,12 @@ fi
 
 rundir=`dirname $0`
 
-
-ptv_home=`/usr/bin/env python -c "import os, sys; 
+if [ -d "./penguintv" ] ; then
+	ptv_home="./penguintv"
+elif [ -d "/usr/lib/python2.5/site-packages/penguintv" ] ; then
+	ptv_home="/usr/lib/python2.5/site-packages/penguintv"
+else
+	ptv_home=`/usr/bin/env python -c "import os, sys; 
 if os.environ.has_key('PENGUINTV_LIB'): 
     print os.environ['PENGUINTV_LIB'];  
     sys.exit(0); 
@@ -65,10 +69,10 @@ if t == 'bin':
         print libdir; 
         sys.exit(0); 
 sys.exit(1)"`
-
-if [ $? -gt 0 ] ; then
-	echo "Error finding PenguinTV library home.  Please export PENGUINTV_LIB"
-	exit 1
+	if [ $? -gt 0 ] ; then
+		echo "Error finding PenguinTV library home.  Please export PENGUINTV_LIB"
+		exit 1
+	fi
 fi
 
 echo "Running ptv in $ptv_home"
@@ -80,5 +84,5 @@ if [ $HILDON -eq 1 ] ; then
 else
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	./penguintv.py
+	/usr/bin/env python ./penguintv.py
 fi

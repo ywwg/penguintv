@@ -1418,7 +1418,6 @@ class MainWindow(gobject.GObject):
 		if self._status_view is None:
 			return
 		
-		#gtk.gdk.threads_enter()
 		current_text = self._status_view.get_status().get_text()
 	
 		if current_text == "":
@@ -1715,6 +1714,14 @@ class MainWindow(gobject.GObject):
 			self._layout_container.set_sensitive(False)
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
+			
+	def sensitize(self):
+		if self.app_window:
+			self.app_window.set_sensitive(True)
+		else:
+			self._layout_container.set_sensitive(True)
+		while gtk.events_pending(): #make sure the sensitivity change goes through
+			gtk.main_iteration()		
 			
 class NotebookManager(gtk.Notebook):
 	"""manages showing and hiding of tabs.  Also, hides the whole tab bar if only one 
