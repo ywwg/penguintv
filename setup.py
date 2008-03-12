@@ -76,6 +76,11 @@ try:
 except:
 	missing_something.append("Need pycurl (http://pycurl.sourceforge.net/)")
 	
+try:
+	import Image
+except:
+	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)"
+	
 #try:
 #	import gnome
 #except:
@@ -95,7 +100,6 @@ else:
 		sp = my_subProcess.subProcess("pkg-config --silence-errors --libs-only-L %s | sed 's/ //g'" % moz)
 		lib_dir = sp.read()
 		if lib_dir != 0:
-			print lib_dir
 			lib_dir = lib_dir.replace("-L", "")
 			try:
 				os.stat(lib_dir)
@@ -124,6 +128,13 @@ if moz_lib_dir == "":
 else:
 	print "Setting default MOZILLA_FIVE_HOME to", moz_lib_dir
 	
+code = subprocess.call(["which","msgfmt"])
+if code != 0:
+	missing_something.append("Need gettext")
+	
+if len(missing_something) > 0:
+	sys.exit("\n".join(missing_something))
+
 try:
 	os.stat("./bin")
 except:
@@ -138,14 +149,6 @@ for line in f.readlines():
 	f2.write(line.replace("##MOZ_LIB_DIR##", moz_lib_dir))
 f2.close()
 f.close()
-	
-
-code = subprocess.call(["which","msgfmt"])
-if code != 0:
-	missing_something.append("Need gettext")
-	
-if len(missing_something) > 0:
-	sys.exit("\n".join(missing_something))
 	
 from penguintv import utils
 
@@ -222,11 +225,4 @@ except:
 if something_disabled:
 	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
 	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""
-	
-#if utils.RUNNING_HILDON:
-#	sp = my_subProcess.subProcess('''maemo-select-menu-location penguintv-hildon.desktop Internet''')
-#	if sp.read() != 0:
-#		print sp.outdata
-#		print "There was an error setting the category"
-#		sys.exit(1)
-	
+
