@@ -516,11 +516,11 @@ class PenguinTVApp(gobject.GObject):
 			self.emit('entries-viewed', viewlist)
 		else:
 			logging.debug("stamping even though none found")
-		logging.debug("SETTING GCONF TIMESTAMP=========")
+		#logging.debug("SETTING GCONF TIMESTAMP=========")
 		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 		
 	def __sent_readstates_cb(self, o):
-		logging.debug("SENT BATCH, GCONF STAMPING=========")
+		#logging.debug("SENT BATCH, GCONF STAMPING=========")
 		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 
 	#def _submit_new_readstates(self):

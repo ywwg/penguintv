@@ -187,13 +187,13 @@ class FtpSyncClient(SqliteSyncClient):
 			logging.debug("last connection was recent, assuming ok")
 			return True
 			
-		logging.debug("checking connection")
+		#logging.debug("checking connection")
 		try:
 			self._ftp.dir(dir_cb)
-			logging.debug("connection still up")
+			#logging.debug("connection still up")
 			return True
 		except Exception, e:
-			logging.debug("exception checking connection: %s" % str(e))
+			#logging.debug("exception checking connection: %s" % str(e))
 			if not self._do_authenticate(tryreconnect=True):
 				logging.debug("can't reconnect")
 				return False

@@ -59,7 +59,7 @@ class S3SyncClient(SqliteSyncClient):
 			
 	def _set_server_timestamp(self, timestamp):
 		assert self._authenticated
-		logging.debug("TIMESTAMPING SUBMISSION: %i" % timestamp)
+		#logging.debug("TIMESTAMPING SUBMISSION: %i" % timestamp)
 		resp = self._conn.put(self._bucket, STAMP_KEYNAME, str(timestamp))
 		if resp.http_response.status != 200:
 			logging.error("error submitting timestamp")

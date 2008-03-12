@@ -38,16 +38,13 @@ def threaded_func():
 				return func(self, *args, **kwargs)
 			
 			def t_func(self, *args, **kwargs):
-				logging.debug("Article Sync waiting for lock")
 				self._operation_lock.acquire()
-				logging.debug("Article Sync got lock")
 				cb = kwargs['cb']
 				del kwargs['cb']
 				try:
 					retval = func(self, *args, **kwargs)
 				except Exception, e:
 					logging.error("Article Sync caught error: %s" % str(e))
-				logging.debug("Article Sync releasing lock")
 				self._operation_lock.release()
 				if type(retval) is tuple:
 					if DEBUG:
@@ -131,7 +128,6 @@ class ArticleSync(gobject.GObject):
 		self.load_plugin(plugin)
 		
 		def update_cb(success):
-			logging.debug("update was: %s" % str(success))
 			return False
 		gobject.timeout_add(20 * 60 * 1000, self.get_and_send, update_cb)
 		
@@ -147,7 +143,6 @@ class ArticleSync(gobject.GObject):
 			return
 		if self._enabled and self._authenticated and not enabled:
 			#changing to offline
-			logging.debug("changing to offline")
 			self.finish()
 		self._enabled = enabled
 		if not self._enabled:
@@ -212,7 +207,6 @@ class ArticleSync(gobject.GObject):
 			self._db.set_setting(STRING, '/apps/penguintv/sync_plugins/%s/%s' % \
 				(plugin.replace(' ', '_'), param), widget.get_text())
 			
-		logging.debug("parameter %s is now %s" % (param, widget.get_text()))
 		getattr(self._conn, 'set_%s' % param)(widget.get_text())
 		
 	def load_plugin(self, plugin=None):
@@ -225,7 +219,6 @@ class ArticleSync(gobject.GObject):
 			
 		def _do_load_plugin():
 			if self.is_working() > 1:
-				logging.debug("still working")
 				return True
 				
 			self._operation_lock.acquire()
@@ -242,7 +235,6 @@ class ArticleSync(gobject.GObject):
 			
 		if self._current_plugin is not None:
 			self.finish()
-			logging.debug("switching plugins, cleaning up the last one")
 			gobject.timeout_add(500, _do_load_plugin)
 		else:
 			_do_load_plugin()
@@ -293,7 +285,6 @@ class ArticleSync(gobject.GObject):
 	def _do_close_conn(self, conn, states):
 		while self.is_working() > 1:
 			time.sleep(.5)
-		logging.debug("closing connection")
 		conn.finish(states)
 		
 	@threaded_func()
@@ -305,11 +296,9 @@ class ArticleSync(gobject.GObject):
 		if self._authenticated:
 			while self.is_working() > 1:
 				time.sleep(.5)
-			logging.debug("we were already authenticated")
 			self._conn.finish()
 			
 		result = self._conn.authenticate()
-		logging.debug("authenticate: %s" % str(result))
 		self._authenticated = result
 		return result
 		
@@ -339,7 +328,6 @@ class ArticleSync(gobject.GObject):
 		
 	@authenticated_func(True)
 	def get_and_send(self, cb):
-		logging.debug("getting and sending!")
 		timestamp = self._db.get_setting(INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
 		self.get_readstates_since(timestamp)
 		self.submit_readstates()
@@ -445,7 +433,7 @@ class ArticleSync(gobject.GObject):
 		if len(cur_list) > 0:
 			viewlist.append((cur_feed_id, cur_list))
 			
-		logging.debug("sync says to mark these viewed: %s" % viewlist)
+		#logging.debug("sync says to mark these viewed: %s" % viewlist)
 		self.emit('got-readstates', viewlist)
 		return False
 		

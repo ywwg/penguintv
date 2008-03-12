@@ -28,7 +28,6 @@ class SqliteSyncClient:
 		
 	def finish(self, last_upload=[]):
 		if self._sync_file is not None:
-			logging.debug("TIDYING UP db")
 			db = self._get_db()
 			if db is not None:
 				self.submit_readstates(last_upload, do_upload=False, noclosedb=db)
@@ -114,7 +113,6 @@ class SqliteSyncClient:
 			return self._close_and_send_db(db)
 		if noclosedb is None:
 			db.close()
-		logging.debug("Not uploading just yet")
 		return True
 		
 	def get_readstates(self, hashlist):
@@ -155,7 +153,7 @@ class SqliteSyncClient:
 			return []
 		   
 		if self._no_updates:
-			logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))
+			#logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))
 			if server_timestamp == self._local_timestamp:
 				logging.debug("no updates last time, so no point checking")
 				return []
@@ -248,7 +246,7 @@ class SqliteSyncClient:
 		db.commit()
 		c.close()
 		self._local_timestamp = int(time.time())
-		logging.debug("SETTING server TIMESTAMP2: %i" % self._local_timestamp)
+		#logging.debug("SETTING server TIMESTAMP2: %i" % self._local_timestamp)
 		try:
 			if not self._set_server_timestamp(self._local_timestamp):
 				logging.error("error setting timestamp")
@@ -271,7 +269,7 @@ class SqliteSyncClient:
 		logging.debug("Uploaded %i bytes" % fp.tell())
 		fp.close()
 		self._local_timestamp = int(time.time())
-		logging.debug("SETTING server TIMESTAMP3: %i" % self._local_timestamp)
+		#logging.debug("SETTING server TIMESTAMP3: %i" % self._local_timestamp)
 		try:
 			if not self._set_server_timestamp(self._local_timestamp):
 				logging.error("error setting timestamp")

@@ -79,7 +79,7 @@ except:
 try:
 	import Image
 except:
-	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)"
+	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)")
 	
 #try:
 #	import gnome
@@ -149,6 +149,7 @@ for line in f.readlines():
 	f2.write(line.replace("##MOZ_LIB_DIR##", moz_lib_dir))
 f2.close()
 f.close()
+os.chmod("./bin/PenguinTV", 0775)
 	
 from penguintv import utils
 
