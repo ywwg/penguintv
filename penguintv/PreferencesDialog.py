@@ -212,6 +212,13 @@ class PreferencesDialog:
 	#def set_sync_password(self, password):
 	#	self.xml.get_widget("sync_pass_entry").set_text(password)
 
+	def get_media_storage_location(self):
+		if utils.RUNNING_HILDON:
+			return self._hildon_chooser_button.get_label()
+		else:
+			widget = self.xml.get_widget("media_storage_chooser")
+			return widget.get_filename()
+
 	def get_use_article_sync(self):
 		return self.xml.get_widget("sync_enabled_checkbox").get_active()
 		

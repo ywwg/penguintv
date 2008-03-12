@@ -195,6 +195,7 @@ class PenguinTVApp(gobject.GObject):
 		self._firstrun = self.db.maybe_initialize_db()
 		
 		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
+		media_dir = media_dir.replace("\"","")
 		self.mediamanager = MediaManager.MediaManager(self, media_dir, self._progress_callback, self._finished_callback)
 		self._polled=0      #Used for updating the polling progress bar
 		self._poll_message = ""
@@ -734,6 +735,9 @@ class PenguinTVApp(gobject.GObject):
 		#self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_username', username)
 		#password = self.window_preferences.get_sync_password()
 		#self.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_password', password)
+		media_dir = self.window_preferences.get_media_storage_location()
+		if media_dir is not None:
+			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', media_dir)
 		enabled = self.window_preferences.get_use_article_sync()
 		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', enabled)
 		#self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_internal_player', self.player.using_internal_player())

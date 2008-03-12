@@ -76,7 +76,7 @@ class MediaManager:
 		if media_dir[0] == '~':
 			media_dir = os.getenv('HOME') + media_dir[1:]
 		
-		try:	
+		try:
 			os.stat(media_dir)
 		except:
 			try:
