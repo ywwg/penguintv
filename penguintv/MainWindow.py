@@ -1596,15 +1596,19 @@ class MainWindow(gobject.GObject):
 				
 	def set_tag_favorites(self, tag_list):
 		old_order = [f[0] for f in self._favorite_filters]
-		
 		i=0
 		for t in tag_list[:len(old_order)]:
 			i+=1
+			print t, i
 			if t != old_order[i-1]:
 				self._db.set_tag_favorite(t, i)
 		
-		i=len(old_order)-1
+		if len(old_order) > 0:
+			i = len(old_order)-1
+		else:
+			i = 0
 		for t in tag_list[len(old_order):]:
+			print t, i
 			i+=1
 			self._db.set_tag_favorite(t, i)
 				

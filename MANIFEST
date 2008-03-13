@@ -108,7 +108,7 @@ po/pt_BR.po
 po/sv.po
 po/make_pot.sh
 po/install-po.sh
-PenguinTV
+PenguinTV.in
 LICENSE
 MANIFEST
 setup.py

@@ -191,12 +191,13 @@ class PenguinTVApp(gobject.GObject):
 		logging.info("penguintv " + utils.VERSION + " startup")
 			
 		self.db = ptvDB.ptvDB(self.polling_callback, self._emit_change_setting)
-		# Clean media status on startup, not exit, in case of crash.
-		self.db.clean_media_status()
 		
 		#we have already run this down at the bottom, but run it again
 		#because we don't init the DB down there (should we?)
 		self._firstrun = self.db.maybe_initialize_db()
+		
+		# Clean media status on startup, not exit, in case of crash.
+		self.db.clean_media_status()
 		
 		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
 		media_dir = media_dir.replace("\"","")

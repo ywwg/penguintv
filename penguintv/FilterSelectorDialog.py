@@ -126,7 +126,7 @@ class FilterSelectorDialog(gtk.Dialog):
 		metrics = context.get_metrics(font_desc, None)
 		char_width = metrics.get_approximate_char_width()
 		
-		widest_left = 0
+		widest_left = 15
 		widest_right = 0
 		
 		for row in self._all_tags_model:
