@@ -44,6 +44,7 @@ def threaded_func():
 				try:
 					retval = func(self, *args, **kwargs)
 				except Exception, e:
+					retval = None
 					logging.error("Article Sync caught error: %s" % str(e))
 				self._operation_lock.release()
 				if type(retval) is tuple:

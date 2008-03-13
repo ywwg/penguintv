@@ -40,7 +40,7 @@ fi
 
 rundir=`dirname $0`
 
-if [ -d "./penguintv" ] ; then
+if [ -f "./penguintv/penguintv.py" ] ; then
 	ptv_home="./penguintv"
 elif [ -d "/usr/lib/python2.5/site-packages/penguintv" ] ; then
 	ptv_home="/usr/lib/python2.5/site-packages/penguintv"
@@ -72,6 +72,7 @@ sys.exit(1)"`
 fi
 
 echo "Running ptv in $ptv_home"
+export PTV_PREFIX=$rundir
 
 if [ $HILDON -eq 1 ] ; then	
 	PYTHONPATH="$ptv_home"

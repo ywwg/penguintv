@@ -1385,6 +1385,7 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.remove(self._layout_container)
 		
 		self._layout_dock.add(self.load_layout())
+		self.entry_view.post_show_init()#**#
 		if self.layout.endswith("planet"):
 			self._menu_widgettree.get_widget('entry_menu_item').hide()
 			self._menu_widgettree.get_widget('showkept_cb').show()

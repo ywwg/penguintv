@@ -41,6 +41,11 @@ try:
 	HAS_GNOME=True
 except:
 	HAS_GNOME=False
+try:
+	import webbrowser
+	HAS_WEBBROWSER=True
+except:
+	HAS_WEBBROWSER=False
 import time
 import sets
 import string
@@ -1164,6 +1169,8 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				if HAS_GNOME:
 					gnome.url_show(media['file'])
+				elif HAS_WEBBROWSER:
+					webbrowser.open_new_tab(media['file'])
 			if not entry['keep']:
 				self.db.set_entry_read(media['entry_id'],True)
 			self.emit('entry-updated', media['entry_id'], entry['feed_id'])
@@ -1201,6 +1208,8 @@ class PenguinTVApp(gobject.GObject):
 				reveal_url = "file:"+os.path.split(urllib.quote(parsed_url[1]+parsed_url[2]))[0]
 				if HAS_GNOME:
 					gnome.url_show(reveal_url)
+				elif HAS_WEBBROWSER:
+					webbrowser.open_new_tab(reveal_url)
 		elif action == "http" or action == "https":
 			try:
 				if len(parameters)>0:
@@ -1237,10 +1246,14 @@ class PenguinTVApp(gobject.GObject):
 				rpc_handler = osso.rpc.Rpc(self._hildon_context)
 				logging.debug("Trying to launch maemo browser")
 				rpc_handler.rpc_run_with_defaults('osso_browser', 'open_new_window', (uri,))
+			elif HAS_WEBBROWSER:
+				webbrowser.open_new_tab(uri)
 		elif action=="file":
 			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			if HAS_GNOME:
 				gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
+			elif HAS_WEBBROWSER:
+				webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 		
 	@utils.db_except()	
 	def download_entry(self, entry_id):

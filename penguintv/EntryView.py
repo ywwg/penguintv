@@ -444,7 +444,7 @@ class EntryView(gobject.GObject):
 			if not self._current_entry['read'] and \
 			   not self._current_entry['keep'] and \
 			   len(self._current_entry['media']) == 0:
-				self.emit('entries-viewed', [(self._current_entry['feed_id'], [self._current_entry])])
+				self.emit('entries-viewed', [(self._current_entry['feed_id'], [self._current_entry['entry_id']])])
 		return False
 
 	def _do_download_images(self, entry_id, html, images):

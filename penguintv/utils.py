@@ -175,6 +175,9 @@ def format_size(size):
 		return str(size)+" bytes"
 		
 def GetPrefix():
+	if os.environ.has_key('PTV_PREFIX'):
+		h, t = os.path.split(os.environ['PTV_PREFIX'])
+		return h
 	h, t = os.path.split(os.path.split(os.path.abspath(sys.argv[0]))[0])
 	return h
 	

@@ -79,6 +79,7 @@ class PlanetView(gobject.GObject):
 		self._filter_feed = None
 		self._show_kept = False
 		self._ignore_next_event = False
+		self._USING_AJAX = False
 		
 		self._entrylist = []
 		self._entry_store = {}
