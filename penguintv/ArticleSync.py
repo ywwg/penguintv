@@ -362,7 +362,7 @@ class ArticleSync(gobject.GObject):
 		readstates = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}
 		
-		logging.debug("updating readstates: %s" % str(readstates))
+		logging.debug("updating %i readstates" % len(readstates))
 		self._do_submit_readstates(readstates, cb=submit_cb)
 		return True
 		
@@ -399,7 +399,7 @@ class ArticleSync(gobject.GObject):
 		if len(entrylist) == 0:
 			return
 			
-		logging.debug("getting readstates for: %s" % str(entrylist))
+		logging.debug("getting %i readstates" % len(entrylist))
 		
 		hashlist = self._db.get_hashes_for_entries(entrylist)
 		self._do_get_readstates(hashlist, cb=self.get_readstates_cb)
@@ -445,7 +445,7 @@ class ArticleSync(gobject.GObject):
 		if len(cur_list) > 0:
 			viewlist.append((cur_feed_id, cur_list))
 			
-		#logging.debug("sync says to mark these viewed: %s" % viewlist)
+		logging.debug("marking %i as viewed" % len(viewlist))
 		self.emit('got-readstates', viewlist)
 		return False
 		
