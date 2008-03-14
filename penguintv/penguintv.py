@@ -2617,7 +2617,7 @@ def setup_database():
 	
 	try:
 		home = utils.get_home()
-		os.stat(os.path.join(self.home,"penguintv4.db"))
+		os.stat(os.path.join(home,"penguintv4.db"))
 		db=sqlite.connect(os.path.join(home,"penguintv4.db"), timeout=10)
 		db.isolation_level="DEFERRED"
 		c = db.cursor()
