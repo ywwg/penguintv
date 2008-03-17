@@ -7,6 +7,7 @@
 import sys,os,os.path
 import pickle
 import urllib
+import getopt
 from math import ceil, floor
 
 import pygst
@@ -59,9 +60,10 @@ class GStreamerPlayer(gobject.GObject):
         'items-removed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 	}
 
-	def __init__(self, layout_dock, tick_interval=1):
+	def __init__(self, layout_dock, playlist, tick_interval=1):
 		gobject.GObject.__init__(self)
 		self._layout_dock = layout_dock
+		self._playlist_name = playlist
 		self._media_duration = 0
 		self._media_position = 0
 		self._last_tick = 0
@@ -290,13 +292,8 @@ class GStreamerPlayer(gobject.GObject):
 			self._sidepane_vbox.hide()
 			
 	def load(self):
-		if RUNNING_SUGAR:
-			import sugar.env
-			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
-		else:
-			home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
-			playlist = open(os.path.join(home, 'gst_playlist.pickle'), 'r')
+			playlist = open(self._playlist_name, 'r')
 		except:
 			print "error reading playlist"
 			return
@@ -317,13 +314,8 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def save(self):
 		"""saves playlist"""
-		if RUNNING_SUGAR:
-			import sugar.env
-			home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
-		else:
-			home = os.path.join(os.getenv('HOME'), ".penguintv")
 		try:
-			playlist = open(os.path.join(home, 'gst_playlist.pickle'), 'w')
+			playlist = open(self._playlist_name, 'w')
 		except:
 			print "error writing playlist"
 			return
@@ -359,9 +351,9 @@ class GStreamerPlayer(gobject.GObject):
 			self._on_type_discovered(None, ext in known_good, filename, name, userdata)
 		else:
 			#thanks gstfile.py
-			self.current = Discoverer(filename)
-			self.current.connect('discovered', self._on_type_discovered, filename, name, userdata)
-			self.current.discover()	
+			d = Discoverer(filename)
+			d.connect('discovered', self._on_type_discovered, filename, name, userdata)
+			d.discover()	
 		
 	def relocate_media(self, old_dir, new_dir):
 		if old_dir[-1] == '/' or old_dir[-1] == '\\':
@@ -962,6 +954,7 @@ class GStreamerPlayer(gobject.GObject):
 			uri_list = [s for s in selection.data.split('\r\n') if len(s) > 0]
 			for uri in uri_list:
 				uri = uri.replace("file://", "")
+				uri = urllib.unquote(uri)
 				self.queue_file(uri)			
 
 	def checkSanity(self, model, iter_to_copy, target_iter):
@@ -1048,15 +1041,35 @@ def on_app_key_press_event(widget, event, player, window):
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program 
 	window = gtk.Window()
-	app = GStreamerPlayer(window)
+	if RUNNING_SUGAR:
+		import sugar.env
+		home = os.path.join(sugar.env.get_profile_path(), 'penguintv')
+	else:
+		home = os.path.join(os.getenv('HOME'), ".penguintv")
+	try:
+		opts, args = getopt.getopt(sys.argv[1:], "p:", ["--playlist"])
+	except getopt.GetoptError, e:
+		print "error %s", str(e)
+		sys.exit(1)
+	playlist = os.path.join(home, 'gst_playlist.pickle')
+	if len(opts) > 0:
+		for o, a in opts:
+			if o in ('-p', '--playlist'):
+				playlist = a
+								
+	app = GStreamerPlayer(window, playlist)
 	app.Show()
-	app.load()
+	
 	window.connect('delete-event', do_quit, app)
 	window.connect('key-press-event', on_app_key_press_event, app, window)
 	window.resize(640,480)
 	app.connect('items-removed', items_removed)	
 	app.connect('item-not-supported', item_not_supported)
-	for item in sys.argv[1:]:
+	
+				
+	app.load()
+
+	for item in args:
 		app.queue_file(item)
 	gtk.main()
 	

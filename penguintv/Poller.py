@@ -6,7 +6,7 @@ import os
 import sys
 import logging
 import traceback
-logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.DEBUG)
+logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.WARNING)
 
 import dbus
 import dbus.service

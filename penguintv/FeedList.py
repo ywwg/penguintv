@@ -527,8 +527,8 @@ class FeedList(gobject.GObject):
 				#print feed[MARKUPTITLE], feed[READINFO]
 				need_resize = True
 			
-			if self._filter_unread: 	 
-				if unviewed==0 and self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it 	 
+			if self._filter_unread:
+				if self.filter_test_feed(feed_id): #no sense testing the filter if we won't see it
 					need_filter = True
 				
 		if 'title' in update_what:

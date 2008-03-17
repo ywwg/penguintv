@@ -107,13 +107,14 @@ class Player:
 					uri = str("file://" + filename)
 					logging.debug("Trying to launch media player: %s" % uri)
 					rpc_handler.rpc_run_with_defaults('mediaplayer', 'mime_open', (uri,))
-			for player in players.keys():
-				cmdline=player+" "
-				for filename in players[player]:
-					cmdline+=filename+" "
-				cmdline+="&"
-				#print "running: "+str(cmdline)
-				subProcess.subProcess(cmdline)
+			else:
+				for player in players.keys():
+					cmdline=player+" "
+					for filename in players[player]:
+						cmdline+=filename+" "
+					cmdline+="&"
+					#print "running: "+str(cmdline)
+					subProcess.subProcess(cmdline)
 			
 class NoDir(Exception):
 	def __init__(self,durr):

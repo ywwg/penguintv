@@ -41,11 +41,7 @@ try:
 	HAS_GNOME=True
 except:
 	HAS_GNOME=False
-try:
-	import webbrowser
-	HAS_WEBBROWSER=True
-except:
-	HAS_WEBBROWSER=False
+import webbrowser
 import time
 import sets
 import string
@@ -1168,8 +1164,11 @@ class PenguinTVApp(gobject.GObject):
 				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'], context=self._hildon_context)
 			else:
 				if HAS_GNOME:
-					gnome.url_show(media['file'])
-				elif HAS_WEBBROWSER:
+					try:
+						gnome.url_show(media['file'])
+					except:
+						webbrowser.open_new_tab(media['file'])
+				else:
 					webbrowser.open_new_tab(media['file'])
 			if not entry['keep']:
 				self.db.set_entry_read(media['entry_id'],True)
@@ -1207,8 +1206,11 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				reveal_url = "file:"+os.path.split(urllib.quote(parsed_url[1]+parsed_url[2]))[0]
 				if HAS_GNOME:
-					gnome.url_show(reveal_url)
-				elif HAS_WEBBROWSER:
+					try:
+						gnome.url_show(reveal_url)
+					except:
+						webbrowser.open_new_tab(reveal_url)
+				else:
 					webbrowser.open_new_tab(reveal_url)
 		elif action == "http" or action == "https":
 			try:
@@ -1236,9 +1238,7 @@ class PenguinTVApp(gobject.GObject):
 			#however don't quote * (yahoo news don't like it quoted)
 			quoted_url = string.replace(quoted_url,"%2A","*")
 			uri = parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor
-			if HAS_GNOME:
-				gnome.url_show(uri)
-			elif utils.RUNNING_SUGAR:
+			if utils.RUNNING_SUGAR:
 				from sugar.activity import activityfactory
 				activityfactory.create_with_uri('org.laptop.WebActivity', uri)
 			elif utils.RUNNING_HILDON:
@@ -1246,13 +1246,21 @@ class PenguinTVApp(gobject.GObject):
 				rpc_handler = osso.rpc.Rpc(self._hildon_context)
 				logging.debug("Trying to launch maemo browser")
 				rpc_handler.rpc_run_with_defaults('osso_browser', 'open_new_window', (uri,))
-			elif HAS_WEBBROWSER:
+			elif HAS_GNOME:
+				try:
+					gnome.url_show(uri)
+				except:
+					webbrowser.open_new_tab(uri)
+			else:
 				webbrowser.open_new_tab(uri)
 		elif action=="file":
 			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			if HAS_GNOME:
-				gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
-			elif HAS_WEBBROWSER:
+				try:
+					gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
+				except:
+					webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
+			else:
 				webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 		
 	@utils.db_except()	
