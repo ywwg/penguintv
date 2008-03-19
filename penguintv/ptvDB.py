@@ -1233,7 +1233,7 @@ class ptvDB:
 		def perform_feed_updates(updates, f_id):
 			if not updates.has_key('pollfail'):
 				updates['pollfail'] = 0
-			logging.debug("setting pollfail to %i for %i" % (updates['pollfail'], f_id))
+			#logging.debug("setting pollfail to %i for %i" % (updates['pollfail'], f_id))
 			updated_fields = ", ".join(["%s=?" % k for k in updates.keys()])
 			updated_values = tuple([updates[k] for k in updates.keys()])
 			self._db_execute(self._c, u"""UPDATE feeds SET %s WHERE rowid=?""" % updated_fields, updated_values + (feed_id,))

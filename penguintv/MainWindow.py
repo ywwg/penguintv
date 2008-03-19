@@ -552,7 +552,7 @@ class MainWindow(gobject.GObject):
 		
 		p_vbox = gtk.VBox()
 		if self._use_internal_player:
-			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, os.path.join(utils.get_home(), "gst_playlist.pickle"), tick_interval=7)
+			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, os.path.join(utils.get_home(), "gst_playlist.pickle"), tick_interval=5)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()
@@ -823,7 +823,11 @@ class MainWindow(gobject.GObject):
 				self.feed_pane.set_position(val)
 			
 		self._notebook.set_keep_hidden(False)
-		self._widgetTree.get_widget('toolbar1').show_all()
+		
+		#don't show the toolbar if we are on hildon and we are in the player
+		pagenum = self._notebook.get_current_page()
+		if not utils.RUNNING_HILDON or not pagenum == N_PLAYER:
+			self._widgetTree.get_widget('toolbar1').show_all()
 		
 		def _unfullscreen_finish():
 			self.app_window.unfullscreen()
