@@ -1191,8 +1191,12 @@ class _FeedParserMixin:
 
     def _start_title(self, attrsD):
         self.pushContent('title', attrsD, 'text/plain', self.infeed or self.inentry or self.insource)
-    _start_dc_title = _start_title
-    _start_media_title = _start_title
+
+    def _start_title_low_pri(self, attrsD):
+        if not self._getContext().has_key('title'):
+            self._start_title(attrsD)
+    _start_dc_title = _start_title_low_pri
+    _start_media_title = _start_title_low_pri
 
     def _end_title(self):
         value = self.popContent('title')
@@ -1201,8 +1205,12 @@ class _FeedParserMixin:
             context['textinput']['title'] = value
         elif self.inimage:
             context['image']['title'] = value
-    _end_dc_title = _end_title
-    _end_media_title = _end_title
+
+    def _end_title_low_pri(self):
+        if not self._getContext().has_key('title'):
+            self._end_title()
+    _end_dc_title = _end_title_low_pri
+    _end_media_title = _end_title_low_pri
 
     def _start_description(self, attrsD):
         context = self._getContext()
