@@ -86,7 +86,6 @@ class GStreamerPlayer(gobject.GObject):
 		
 	def Show(self):
 		main_vbox = gtk.VBox()
-		main_vbox.connect('button-press-event', self._on_main_button_press)
 		
 		vbox = gtk.VBox()
 		self._hpaned = gtk.HPaned()
@@ -621,11 +620,6 @@ class GStreamerPlayer(gobject.GObject):
 				
 			menu.show_all()
 			menu.popup(None,None,None, event.button,event.time)
-			
-	def _on_main_button_press(self, widget, event):
-		if event.button==1:
-			if not self._controls_hbox.visible():
-				self.play_pause_toggle()
 			
 	def _on_key_press_event(self, widget, event):
 		keyname = gtk.gdk.keyval_name(event.keyval)
