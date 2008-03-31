@@ -60,7 +60,7 @@ def threaded_func():
 				
 			t = threading.Thread(None, t_func, "ArticleSync",
 								 args=(self,) + args, kwargs=kwargs)
-			#t.setDaemon(True)
+			t.setDaemon(True)
 			t.start()
 		return _exec_cb
 	return annotate
