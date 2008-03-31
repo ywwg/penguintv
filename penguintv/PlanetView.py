@@ -146,7 +146,7 @@ class PlanetView(gobject.GObject):
 			h_id = self._app.connect('state-changed', self.__state_changed_cb)
 			self._handlers.append((self._app.disconnect, h_id))
 			h_id = self._app.connect('entries-viewed', self.__entries_updated_cb)
-		self._handlers.append((self._app.disconnect, h_id))
+			self._handlers.append((self._app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
