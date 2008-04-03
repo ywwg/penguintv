@@ -1452,8 +1452,16 @@ class ptvDB:
 		#self._db.commit()
 		
 		#populate the entries
-		self._db_execute(self._c, """SELECT rowid,guid,link,title,description FROM entries WHERE feed_id=? order by fakedate DESC""",(feed_id,)) 
+		#only look as far back as 1000% for existing entries
+		#existing_limit = int(len(data['items']) * 10)
+		#print "only checking", existing_limit
+		self._db_execute(self._c, 
+			#"""SELECT rowid,guid,link,title,description FROM entries WHERE feed_id=? ORDER BY fakedate DESC LIMIT %i""" % existing_limit,
+			"""SELECT rowid,guid,link,title,description,hash FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",
+			(feed_id,)) 
 		existing_entries = self._c.fetchall()
+		logging.debug("existing entries: %i" % len(existing_entries))
+		#print "got", len(existing_entries)
 		
 		#only use GUID if there are no dupes -- thanks peter's feed >-(
 		guid_quality = 0.0
@@ -1469,8 +1477,8 @@ class ptvDB:
 					prev_g = g
 				guid_quality = 1 - (dupe_count / len(existing_entries))
 		
-		#we can't trust the dates inside the items for timing data
-		#bad formats, no dates at all, and timezones screw things up
+		#we can't trust the dates inside the items for timing data.
+		#Bad formats, no dates at all, and timezones screw things up
 		#so I introduce a fake date which works for determining read and
 		#unread article counts, and keeps the articles in order
 		fake_time = int(time.time())
@@ -1491,6 +1499,7 @@ class ptvDB:
 		else:
 			media_entries = [r[0] for r in media_entries]
 	
+		#logging.debug("feed has %i items" % len(data['items']))
 		for item in data['items']:
 			#do a lot of normalizing
 			item['body'] = ''
@@ -1600,11 +1609,11 @@ class ptvDB:
 			if not item.has_key('date_parsed') or item['date_parsed'] is None:
 				item['date_parsed']=time.localtime()
 				
-			status = self._get_status(item, existing_entries, guid_quality, media_entries)
+			entry_hash = self._get_hash(item['guid'], item['title'], item['body'])
+			status = self._get_status(item, entry_hash, existing_entries, guid_quality, media_entries)
 			
 			if status[0]==NEW:
 				new_items = new_items+1
-				entry_hash = self._get_hash(item['guid'], item['title'], item['body'])
 				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
 						(feed_id,item['title'],item['creator'],item['body'],
 						default_read,fake_time-i, 
@@ -1623,7 +1632,6 @@ class ptvDB:
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
-				entry_hash = self._get_hash(item['guid'], item['title'], item['body'])
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, hash=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
 								 int(time.mktime(item['date_parsed'])),item['guid'],
@@ -1668,12 +1676,6 @@ class ptvDB:
 		if result:
 			#combine with EXISTing entries
 			no_delete + [r[0] for r in result]
-		#if len(no_delete) > 0:
-		#	qmarks = "?,"*(len(no_delete)-1)+"?"
-		#	self._db_execute(self._c, """UPDATE entries SET old=0 WHERE rowid in (""" +
-		#					 qmarks + ')', tuple(no_delete))
-		
-		#self._db.commit()
 		
 		# anything not set above as new, mod, or exists is no longer in
 		# the xml and therefore could be deleted if we have more articles than 
@@ -1681,25 +1683,6 @@ class ptvDB:
 		
 		self._db_execute(self._c, """SELECT count(*) FROM entries WHERE feed_id=?""",(feed_id,))
 		all_entries = self._c.fetchone()[0]
-		#self._db_execute(self._c, """SELECT count(*) FROM entries WHERE old=1 AND feed_id=?""",(feed_id,))
-		#old_entries = self._c.fetchone()[0]
-		#if old_entries>0:
-		#	new_entries = all_entries - old_entries
-		#	if MAX_ARTICLES > 0: #zero means never delete
-		#		if new_entries >= MAX_ARTICLES:
-		#			#deleting all old because we got more than enough new
-		#			self._db_execute(self._c, """DELETE FROM entries WHERE old=1 AND feed_id=? and keep=0""",(feed_id,))
-		#		elif new_entries+old_entries > MAX_ARTICLES:
-		#			old_articles_to_keep = MAX_ARTICLES-new_entries
-		#			if old_articles_to_keep > 0:
-		#				old_articles_to_ditch = old_entries - old_articles_to_keep
-		#				self._db_execute(self._c, """SELECT rowid,title FROM entries WHERE old=1 AND feed_id=? AND keep=0 ORDER BY fakedate LIMIT ?""",(feed_id,old_articles_to_ditch))
-		#				ditchables = self._c.fetchall()
-		#				if ditchables is not None:
-		#					ditchables = [r[0] for r in ditchables]
-		#					qmarks = "?,"*(len(ditchables)-1)+"?"
-		#					self._db_execute(self._c, """DELETE FROM entries WHERE rowid IN (%s)""" % qmarks, tuple(ditchables))
-		
 		
 		if MAX_ARTICLES > 0:
 			if all_entries > MAX_ARTICLES:
@@ -1759,15 +1742,11 @@ class ptvDB:
 		
 		#should never be called on a filtered feed
 		
-		#self._db_execute(self._c, u'SELECT lastpoll, newatlast, pollfreq FROM feeds WHERE rowid=?',(feed_id,))
-		#last_time,newatlast,old_poll_freq = self._c.fetchone()
 		cur_time = int(time.time())
 		#this could suck if the program was just started, so only do it if the poll_freq seems correct
 		#however still update the db with the poll time
 		feed_updates['lastpoll'] = cur_time
 		feed_updates['newatlast'] = new_items
-		#self._db_execute(self._c, u'UPDATE feeds SET lastpoll=?, newatlast=? WHERE rowid=?',(cur_time,new_items,feed_id))
-		#self._db.commit()
 		if cur_time - feed['last_time'] < feed['old_poll_freq']/2:  #too soon to get a good reading.
 			return feed_updates
 		
@@ -1804,17 +1783,16 @@ class ptvDB:
 			poll_freq = 1800
 	
 		feed_updates['pollfreq'] = poll_freq
-		#self._db_execute(self._c, 'UPDATE feeds SET pollfreq=? WHERE rowid=?',(poll_freq,feed_id))
-		#self._db.commit()
 		return feed_updates
 		
-	def _get_status(self, item, existing_entries, guid_quality, media_entries):
+	def _get_status(self, item, new_hash, existing_entries, guid_quality, media_entries):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
 		GUID=1
 		LINK=2
 		TITLE=3
 		BODY=4
+		HASH=5
 
 		entry_id=-1
 		
@@ -1823,42 +1801,44 @@ class ptvDB:
 				'link': item['link'],
 				'title': item['title']}
 				
+		#debug_i = 0
 		for entry_item in existing_entries:
 			if guid_quality > 0.7: 
 				if str(entry_item[GUID]) == str(t_item['guid']):
 					entry_id = entry_item[ID]
-					old_hash = entry_item[BODY]
-					new_hash = t_item['body']
+					old_hash = entry_item[HASH]
+					#logging.debug("found match at %i (%f)" % (debug_i, debug_i / float(len(existing_entries))))
 					break
 			elif guid_quality > 0.1:
 				if str(entry_item[GUID]) == str(t_item['guid']):
 					if entry_item[TITLE] == t_item['title']:
 						entry_id = entry_item[ID]
-						old_hash = entry_item[BODY]
-						new_hash = t_item['body']
+						old_hash = entry_item[HASH]
+						#logging.debug("found match at %i (%f)" % (debug_i, debug_i / float(len(existing_entries))))
 						break
-			elif t_item['link']!='':
+			elif t_item['link'] != '':
 				if entry_item[LINK] == t_item['link']:
 					if entry_item[TITLE] == t_item['title']:
 						entry_id = entry_item[ID]
-						old_hash = entry_item[BODY]
-						new_hash = t_item['body']
+						old_hash = entry_item[HASH]
+						#logging.debug("found match at %i (%f)" % (debug_i, debug_i / float(len(existing_entries))))
 						break
 					elif entry_item[BODY] == t_item['body']:
 						entry_id = entry_item[ID]
-						old_hash = entry_item[TITLE]
-						new_hash = t_item['title']
+						old_hash = entry_item[HASH]
+						#logging.debug("found match at %i (%f)" % (debug_i, debug_i / float(len(existing_entries))))
 						break
 			elif entry_item[TITLE] == t_item['title']:
 				entry_id = entry_item[ID]
-				old_hash = entry_item[BODY]
-				new_hash = t_item['body']
+				old_hash = entry_item[HASH]
+				#logging.debug("found match at %i (%f)" % (debug_i, debug_i / float(len(existing_entries))))
 				break
 			elif entry_item[BODY] == t_item['body']:
 				entry_id = entry_item[ID]
-				old_hash = entry_item[TITLE]
-				new_hash = t_item['title']
+				old_hash = entry_item[HASH]
+				#logging.debug("found match at %i (%f)" % (debug_i, debug_i / float(len(existing_entries))))
 				break
+			#debug_i += 1
 
 		if entry_id == -1:
 			return (NEW, -1, [])
@@ -1900,6 +1880,7 @@ class ptvDB:
 				return (MODIFIED,entry_id,[])
 			return (EXISTS,entry_id, existing_media)
 		else:
+			#logging.debug("entry is modified")
 			return (MODIFIED,entry_id, [])
 			
 	def get_entry_media(self, entry_id):
