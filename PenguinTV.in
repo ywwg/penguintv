@@ -81,9 +81,9 @@ export PTV_PREFIX=$rundir
 if [ $HILDON -eq 1 ] ; then	
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	run-standalone.sh python2.5 ./penguintv.py
+	run-standalone.sh python2.5 ./penguintv.py $*
 else
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	/usr/bin/env python ./penguintv.py
+	/usr/bin/env python ./penguintv.py $*
 fi
