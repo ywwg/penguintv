@@ -39,8 +39,12 @@ else
 fi
 
 rundir=`dirname $0`
+cd $rundir
 
 if [ -f "./penguintv/penguintv.py" ] ; then
+	ptv_home="./penguintv"
+elif [ -f "../penguintv/penguintv.py" ] ; then
+	cd ..
 	ptv_home="./penguintv"
 elif [ -d "/usr/lib/python2.5/site-packages/penguintv" ] ; then
 	ptv_home="/usr/lib/python2.5/site-packages/penguintv"

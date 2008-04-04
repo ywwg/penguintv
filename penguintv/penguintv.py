@@ -805,8 +805,10 @@ class PenguinTVApp(gobject.GObject):
 		self.mediamanager.finish()
 		
 		self._article_sync.finish()
-		def article_sync_wait():
-			if self._article_sync.is_working():
+		def article_sync_wait(giveup):
+			if time.time() > giveup:
+				logging.warning("articlesync taking too long, quitting anyway")
+			elif self._article_sync.is_working():
 				return True
 				
 			#while threading.activeCount()>1:
@@ -821,7 +823,8 @@ class PenguinTVApp(gobject.GObject):
 				gtk.main_quit()
 			self._exiting = 2
 			return False
-		gobject.timeout_add(250, article_sync_wait)
+		toolong = time.time() + 120
+		gobject.timeout_add(250, article_sync_wait, toolong)
 	
 	def is_quit_complete(self):
 		return self._exiting > 1
