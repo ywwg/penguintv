@@ -394,7 +394,14 @@ class ArticleSync(gobject.GObject):
 		return self._conn.get_readstates_since(timestamp)
 		
 	@authenticated_func()
-	def get_readstates(self, entrylist):
+	def get_readstates(self, hashlist):
+		if len(hashlist) == 0:
+			return
+		logging.debug("getting readstates for %i entries" % len(hashlist))	
+		self._do_get_readstates(hashlist, cb=self.get_readstates_cb)
+		
+	@authenticated_func()
+	def get_readstates_for_entries(self, entrylist):
 		"""take an entrylist, build a list of hashes, ask for their readstates"""
 		
 		if len(entrylist) == 0:

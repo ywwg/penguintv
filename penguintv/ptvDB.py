@@ -2590,6 +2590,13 @@ class ptvDB:
 				retval += r
 			entrylist = entrylist[900:]
 		return [r[0] for r in retval]
+		
+	def get_unread_hashes(self):
+		self._db_execute(self._c, u'SELECT hash FROM entries WHERE read=0')
+		retval = self._c.fetchall()
+		if retval is None:
+			return []
+		return [r[0] for r in retval]
 	
 	def get_unread_entries(self, feed_id):
 		if self._filtered_entries.has_key(feed_id):

@@ -446,7 +446,7 @@ class PenguinTVApp(gobject.GObject):
 				self._polled = 0
 				self._polling_taskinfo = -1
 				self._poll_message = ""
-				self._article_sync.get_readstates(self._poll_new_entries)
+				self._article_sync.get_readstates_for_entries(self._poll_new_entries)
 				self._poll_new_entries = []
 				self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 				self.main_window.display_status_message(_("Polling Error"),MainWindow.U_POLL)
@@ -509,10 +509,13 @@ class PenguinTVApp(gobject.GObject):
 			_do_authenticate()
 		
 	def _sync_articles_get(self):
-		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
+		#timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
 		# because clocks might be different, make it everything in the past day
-		timestamp -= 60 * 60 * 24
-		self._article_sync.get_readstates_since(timestamp)
+		#timestamp -= 60 * 60 * 24
+		#self._article_sync.get_readstates_since(timestamp)
+		
+		hashlist = self.db.get_unread_hashes()
+		self._article_sync.get_readstates(hashlist)
 
 	def __got_readstates_cb(self, o, viewlist):
 		if self._exiting:
@@ -910,6 +913,7 @@ class PenguinTVApp(gobject.GObject):
 		return False
 		
 	def poll_finished_cb(self, total):
+		"""only called over dbus when poller.py finishes"""
 		#self.main_window.display_status_message(_("Feeds Updated"))
 		#gobject.timeout_add(2000, self.main_window.display_status_message, "")
 		self.update_disk_usage()
@@ -917,7 +921,7 @@ class PenguinTVApp(gobject.GObject):
 			self._auto_download_unviewed()
 		self._gui_updater.set_completed(self._polling_taskinfo)
 		#logging.debug("done polling multiple 2, updating readstates")
-		#self._gui_updater.queue(self._article_sync.get_readstates, self._poll_new_entries)
+		#self._gui_updater.queue(self._article_sync.get_readstates_for_entries, self._poll_new_entries)
 		#self._poll_new_entries = []
 	
 	@utils.db_except()
@@ -1576,7 +1580,7 @@ class PenguinTVApp(gobject.GObject):
 		def _refresh_cb(update_data, success):
 			self._threaded_emit('feed-polled', feed, update_data)
 			if update_data.has_key('new_entryids'):
-				self._gui_updater.queue(self._article_sync.get_readstates, update_data['new_entryids'])
+				self._gui_updater.queue(self._article_sync.get_readstates_for_entries, update_data['new_entryids'])
 			if info['lastpoll'] == 0 and success:
 				self._first_poll_marking(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
@@ -1857,7 +1861,6 @@ class PenguinTVApp(gobject.GObject):
 		self.set_media_storage_location(val)
 		
 	def set_media_storage_location(self, location):
-		logging.debug("look a new setting for location")
 		#try:
 		old_dir, remap_dir = self.mediamanager.set_media_dir(location)
 		#except:
@@ -2362,7 +2365,7 @@ class PenguinTVApp(gobject.GObject):
 					self._polled = 0
 					self._polling_taskinfo = -1
 					self._poll_message = ""
-					self._gui_updater.queue(self._article_sync.get_readstates, self._poll_new_entries)
+					self._gui_updater.queue(self._article_sync.get_readstates_for_entries, self._poll_new_entries)
 					self._poll_new_entries = []
 					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 					self.main_window.display_status_message(_("Trouble connecting to the internet"),MainWindow.U_POLL)
@@ -2390,7 +2393,7 @@ class PenguinTVApp(gobject.GObject):
 			self._polling_taskinfo = -1
 			self._poll_message = ""
 			logging.debug("done polling multiple 1, updating readstates")
-			self._article_sync.get_readstates(self._poll_new_entries)
+			self._article_sync.get_readstates_for_entries(self._poll_new_entries)
 			self._poll_new_entries = []
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
