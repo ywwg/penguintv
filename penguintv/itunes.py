@@ -83,7 +83,7 @@ class itunesHandler(saxutils.DefaultHandler):
 		self.url = ""
 		self._in_key = None
 		self._in_value = None
-		self._last_value = None
+		self._last_key = None
 
 	def startElement(self, name, attrs):
 		if name == 'key':
@@ -93,12 +93,11 @@ class itunesHandler(saxutils.DefaultHandler):
 
 	def endElement(self, name):
 		if name == 'key':
-			if self._in_key is not None:
-				if self._in_key == 'feedURL':
-					self.url = self._last_value
-				self._in_key = None
+			self._last_key = self._in_key
+			self._in_key = None
 		elif name == 'string':
-			self._last_value = self._in_value
+			if self._last_key == 'feedURL':
+				self.url = self._in_value
 			self._in_value = None
 				
 	def characters(self, ch):
