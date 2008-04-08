@@ -50,7 +50,10 @@ try:
 	import utils
 	USER_AGENT = "PenguinTV/%s +http://penguintv.sourceforge.net/" % utils.VERSION
 except:
-	USER_AGENT = "PenguinTV +http://penguintv.sourceforge.net/" 
+	USER_AGENT = "PenguinTV +http://penguintv.sourceforge.net/"
+	
+import gettext
+_ = gettext.gettext
 	
 # HTTP "Accept" header to send to servers when downloading feeds.  If you don't
 # want to send an Accept header, set this to None.
@@ -1627,7 +1630,7 @@ class _HTMLSanitizer(_BaseHTMLProcessor):
       'rel', 'rev', 'rows', 'rowspan', 'rules', 'scope', 'selected', 'shape', 'size',
       'span', 'src', 'start', 'summary', 'tabindex', 'target', 'title', 'type',
       'usemap', 'valign', 'value', 'vspace', 'width']
-
+      
     unacceptable_elements_with_end_tag = ['script', 'applet']
 
     def reset(self):
@@ -1638,6 +1641,11 @@ class _HTMLSanitizer(_BaseHTMLProcessor):
         if not tag in self.acceptable_elements:
             if tag in self.unacceptable_elements_with_end_tag:
                 self.unacceptablestack += 1
+            if tag == 'embed':
+                for key, value in attrs:
+                    if key == 'type' and value == 'application/x-shockwave-flash':
+                        if not self.unacceptablestack:
+                            _BaseHTMLProcessor.handle_data(self, _('<i>&lt;Note: There is a Flash applet in the original page for this entry.&gt;</i>'))
             return
         attrs = self.normalize_attrs(attrs)
         attrs = [(key, value) for key, value in attrs if key in self.acceptable_attributes]
