@@ -1710,6 +1710,7 @@ class MainWindow(gobject.GObject):
 		self._update_notebook_tabs(len(progresses)+len(queued)+len(paused))
 		
 	def _update_notebook_tabs(self, number):
+		#logging.debug("updating notebook tabs (%i)" % number)
 		if number == 0:
 			self._notebook.hide_page(N_DOWNLOADS)
 		else:

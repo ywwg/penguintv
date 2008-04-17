@@ -86,11 +86,11 @@ except:
 #except:
 #	missing_something.append("Need gnome python bindings")
 	
-try:
-	from xml.sax import saxutils
-	test = saxutils.DefaultHandler
-except:
-	missing_something.append("Need python-xml")
+#try:
+#	from xml.sax import saxutils
+#	test = saxutils.DefaultHandler
+#except:
+#	missing_something.append("Need python-xml")
 
 moz_lib_dir = ""
 if os.environ.has_key('MOZILLA_FIVE_HOME'):

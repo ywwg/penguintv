@@ -472,7 +472,8 @@ class PenguinTVApp(gobject.GObject):
 		
 		def authenticate_cb(result):
 			if result:
-				self._sync_articles_get()
+				self._sync_articles_put()
+				#self._sync_articles_get()
 				self.window_preferences.set_sync_status(_("Logged in"))
 			else:
 				self.window_preferences.set_sync_status(_("Not Logged in"))
@@ -507,6 +508,13 @@ class PenguinTVApp(gobject.GObject):
 			gobject.timeout_add(500, _do_authenticate)
 		else:
 			_do_authenticate()
+			
+	def _sync_articles_put(self):
+		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+		self._article_sync.submit_readstates_since(timestamp, self.__put_readstates_cb)
+		
+	def __put_readstates_cb(self, success):
+		self._sync_articles_get()
 		
 	def _sync_articles_get(self):
 		#timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()) - (60 * 60 * 24))
@@ -530,8 +538,12 @@ class PenguinTVApp(gobject.GObject):
 		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 		
 	def __sent_readstates_cb(self, o):
-		#logging.debug("SENT BATCH, GCONF STAMPING=========")
-		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+		def __do():
+			#logging.debug("SENT BATCH, GCONF STAMPING=========")
+			self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
+			return False
+		gobject.idle_add(__do)
+		
 
 	#def _submit_new_readstates(self):
 	#	def _submit_cb(result):

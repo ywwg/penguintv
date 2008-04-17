@@ -357,8 +357,7 @@ class ArticleSync(gobject.GObject):
 			return
 			
 		def submit_cb(success):
-			self.emit('server-error', 'Problem submitting readstates')
-			return False
+			return success
 	
 		readstates = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}
@@ -382,7 +381,19 @@ class ArticleSync(gobject.GObject):
 	
 	@threaded_func()
 	def _do_submit_readstates(self, readstates):
-		return self._conn.submit_readstates(readstates)
+		logging.debug("submitting readstates")
+		retval = self._conn.submit_readstates(readstates)
+		
+		if not DEBUG:
+			gtk.gdk.threads_enter()
+		if retval:
+			self.emit('sent-readstates')
+		else:
+			self.emit('server-error', 'Problem submitting readstates')
+		if not DEBUG:
+			gtk.gdk.threads_leave()
+		logging.debug("finished submitting readstates")
+		return retval
 		
 	@authenticated_func()
 	def get_readstates_since(self, timestamp):
