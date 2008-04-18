@@ -357,7 +357,7 @@ class ArticleSync(gobject.GObject):
 			return
 			
 		def submit_cb(success):
-			return success
+			return False
 	
 		readstates = self._get_readstates_list(self._readstates_diff)
 		self._readstates_diff = {}

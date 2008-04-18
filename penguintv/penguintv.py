@@ -539,10 +539,11 @@ class PenguinTVApp(gobject.GObject):
 		
 	def __sent_readstates_cb(self, o):
 		def __do():
-			#logging.debug("SENT BATCH, GCONF STAMPING=========")
+			logging.debug("SENT BATCH, GCONF STAMPING=========")
 			self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 			return False
 		gobject.idle_add(__do)
+		return False
 		
 
 	#def _submit_new_readstates(self):
