@@ -836,6 +836,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.finish(majorsearchwait=False)	
 		
 			if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
+				logging.info('main_quit')
 				gtk.main_quit()
 			self._exiting = 2
 			return False
