@@ -2660,9 +2660,13 @@ def setup_database():
 		db.close()
 	except:
 		logging.debug("Didn't get sqlite the easy way, trying the hard way")
-		db = ptvDB.ptvDB()
-		db_ver, latest_ver = db.get_version_info()
-		db.finish(vacuumok=False)
+		try:
+			db = ptvDB.ptvDB()
+			db_ver, latest_ver = db.get_version_info()
+			db.finish(vacuumok=False)
+		except Exception, e:
+			logging.error("Couldn't open database: %s", str(e))
+			return False
 		
 	def upgrade_db(dialog, cb):
 		try:

@@ -123,6 +123,8 @@ class ptvDB:
 	entry_flag_cache = {}
 	
 	def __init__(self, polling_callback=None, change_setting_cb=None):
+		self._exiting = False
+		self.searcher = None
 		self.home = utils.get_home()
 		
 		try:
@@ -132,6 +134,8 @@ class ptvDB:
 				os.mkdir(self.home)
 			except:
 				raise DBError, "error creating directories: "+self.home
+		if not os.access(self.home, os.R_OK | os.W_OK | os.X_OK):
+			raise DBError, "Insufficient access to "+self.home
 		self._initializing_db = False
 		try:	
 			#also check db connection in _process_feed
@@ -157,7 +161,6 @@ class ptvDB:
 		except:
 			raise DBError,"error connecting to database"
 			
-		self._exiting = False
 		self._cancel_poll_multiple = False
 		
 		self._c = self._db.cursor()
@@ -214,8 +217,8 @@ class ptvDB:
 			logging.error("Database error:" + str(command) + " " + str(args))
 			raise e
 				
-	def __del__(self):
-		self.finish()
+	#def __del__(self):
+	#	self.finish()
 		
 	def finish(self, vacuumok=True, majorsearchwait=False, correctthread=True):
 		#allow multiple finishes
@@ -223,7 +226,7 @@ class ptvDB:
 			return
 		self._exiting=True
 		self._cancel_poll_multiple = True
-		if utils.HAS_SEARCH:
+		if utils.HAS_SEARCH and self.searcher is not None:
 			if not majorsearchwait and self.searcher.is_indexing(only_this_thread=True):
 				logging.debug("not waiting for reindex")
 				self.searcher.finish(False)
