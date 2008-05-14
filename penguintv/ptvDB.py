@@ -271,7 +271,7 @@ class ptvDB:
 			return True	
 
 		try:
-			logging.debug("current database version is " + str(db_ver))
+			#logging.debug("current database version is " + str(db_ver))
 			if db_ver == 0:
 				self._migrate_database_one_two()
 			if db_ver < 2:
@@ -1463,7 +1463,7 @@ class ptvDB:
 			"""SELECT rowid,guid,link,title,description,hash FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",
 			(feed_id,)) 
 		existing_entries = self._c.fetchall()
-		logging.debug("existing entries: %i" % len(existing_entries))
+		#logging.debug("existing entries: %i" % len(existing_entries))
 		#print "got", len(existing_entries)
 		
 		#only use GUID if there are no dupes -- thanks peter's feed >-(

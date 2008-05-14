@@ -446,8 +446,9 @@ class PenguinTVApp(gobject.GObject):
 				self._polled = 0
 				self._polling_taskinfo = -1
 				self._poll_message = ""
-				self._article_sync.get_readstates_for_entries(self._poll_new_entries)
-				self._poll_new_entries = []
+				if not utils.RUNNING_HILDON:
+					self._article_sync.get_readstates_for_entries(self._poll_new_entries)
+					self._poll_new_entries = []
 				self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 				self.main_window.display_status_message(_("Polling Error"),MainWindow.U_POLL)
 				gobject.timeout_add(2000, self.main_window.display_status_message,"")
@@ -2379,8 +2380,9 @@ class PenguinTVApp(gobject.GObject):
 					self._polled = 0
 					self._polling_taskinfo = -1
 					self._poll_message = ""
-					self._gui_updater.queue(self._article_sync.get_readstates_for_entries, self._poll_new_entries)
-					self._poll_new_entries = []
+					if not utils.RUNNING_HILDON:
+						self._gui_updater.queue(self._article_sync.get_readstates_for_entries, self._poll_new_entries)
+						self._poll_new_entries = []
 					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 					self.main_window.display_status_message(_("Trouble connecting to the internet"),MainWindow.U_POLL)
 					gobject.timeout_add(2000, self.main_window.display_status_message,"")
@@ -2388,7 +2390,10 @@ class PenguinTVApp(gobject.GObject):
 				else:
 					update_data['polling_multiple'] = True
 					if update_data.has_key('new_entryids'):
-						self._poll_new_entries += update_data['new_entryids']
+						if utils.RUNNING_HILDON:
+							self._gui_updater.queue(self._article_sync.get_readstates_for_entries, update_data['new_entryids'])
+						else:
+							self._poll_new_entries += update_data['new_entryids']
 					self._threaded_emit('feed-polled', feed_id, update_data)
 					if update_data.has_key('first_poll'):
 						if update_data['first_poll']:
@@ -2406,9 +2411,10 @@ class PenguinTVApp(gobject.GObject):
 			self._polled = 0
 			self._polling_taskinfo = -1
 			self._poll_message = ""
-			logging.debug("done polling multiple 1, updating readstates")
-			self._article_sync.get_readstates_for_entries(self._poll_new_entries)
-			self._poll_new_entries = []
+			#logging.debug("done polling multiple 1, updating readstates")
+			if not utils.RUNNING_HILDON:
+				self._article_sync.get_readstates_for_entries(self._poll_new_entries)
+				self._poll_new_entries = []
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
 			
@@ -2655,7 +2661,7 @@ def setup_database():
 		if db_ver is None: db_ver = 0
 		else: db_ver = int(db_ver[0])
 		latest_ver = ptvDB.LATEST_DB_VER
-		print "got without object:",db_ver, latest_ver
+		#print "got without object:",db_ver, latest_ver
 		c.close()
 		db.close()
 	except:
@@ -2694,8 +2700,8 @@ def setup_database():
 	def destroy(widget, data):
 		gtk.main_quit()
 		
-	logging.info("Our database version: %i \nProgram version: %i" % \
-				(db_ver, latest_ver))
+	logging.info("Our database version: %i" % db_ver)
+	logging.info("Program version: %i" % latest_ver)
 	
 	if db_ver == latest_ver:
 		pass
@@ -2729,7 +2735,7 @@ Please upgrade back to the latest version of PenguinTV."""))
 		gtk.main()
 		return False
 	elif db_ver < latest_ver:
-		logging.error("""The database you are running is from a later version of PenguinTV than the version you are currently running.  Please upgrade back to the latest version of PenguinTV.  To avoid errors and corruption, PenguinTV will quit now.""")
+		logging.info("""The PenguinTV database is being upgraded. This may take a few minutes.""")
 		dialog = gtk.Dialog(title=_("Upgrading Database"), parent=None, flags=gtk.DIALOG_MODAL)
 		frame = gtk.Frame()
 		title = gtk.Label()

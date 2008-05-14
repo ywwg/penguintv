@@ -58,6 +58,9 @@ def correct_url(url, glade_prefix):
 			self.tries+=1
 			return (d.username, d.password)
 			
+	if url[0:5] == 'feed:':
+		url = 'http:' + url[5:]
+			
 	if utils.HAS_PYXML:
 		if itunes.is_itunes_url(url):
 			try:

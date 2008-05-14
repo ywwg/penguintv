@@ -52,6 +52,7 @@ class S3SyncClient(SqliteSyncClient):
 		
 		response = \
 			   self._conn.create_located_bucket(self._bucket, S3.Location.DEFAULT)
+
 		if response.http_response.status == 200:
 			return True
 		else:
