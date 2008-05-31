@@ -1,5 +1,6 @@
 # Released under the GNU Lesser General Public License, v2.1 or later
 # Copyright (c) 2002 Juri Pakaste <juri@iki.fi>
+# Changes and fixes copyright (c) 2008 Owen Williams
 # $Id: OPML.py,v 1.2 2006/04/04 21:46:10 ywwg Exp $
 
 from xml.sax import saxutils, make_parser, SAXParseException
@@ -9,6 +10,7 @@ from xml.sax.xmlreader import AttributesImpl
 from StringIO import StringIO
 import xml.sax._exceptions
 import sys
+import logging
 
 class OPML(dict):
     def __init__(self):
@@ -100,7 +102,18 @@ class OutlineList:
     def roots(self):
         return self._roots
 
-class OPMLHandler(saxutils.DefaultHandler):
+try:
+	from xml.sax.handler import ContentHandler
+	def_handler = ContentHandler
+except:
+	try:
+		from xml.sax.saxutils import DefaultHandler
+		def_handler = DefaultHandler
+	except Exception, e:
+		logging.error("couldn't get xml parsing")
+		raise e
+
+class OPMLHandler(def_handler):
     def __init__(self):
         self._outlines = OutlineList()
         self._opml = None

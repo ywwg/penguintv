@@ -104,10 +104,14 @@ else:
 			HAS_GNOMEVFS = False
 		
 	try:
-		from xml.sax.saxutils import DefaultHandler
+		from xml.sax.handler import ContentHandler
 		HAS_PYXML = True
 	except:
-		HAS_PYXML = False
+		try:
+			from xml.sax.saxutils import DefaultHandler
+			HAS_PYXML = True
+		except:
+			HAS_PYXML = False
 		
 	if GTK_OK:
 		if gtk.pygtk_version >= (2, 10, 0):

@@ -15,6 +15,7 @@ import sys
 import gzip
 import urllib
 import HTMLParser
+import logging
 
 from xml.sax import saxutils, make_parser
 from xml.sax.handler import feature_namespaces
@@ -77,8 +78,19 @@ class viewPodcastParser(HTMLParser.HTMLParser):
 					url = url[:url.find("'")]
 					url = "http" + url
 					self.url = url
-					
-class itunesHandler(saxutils.DefaultHandler):
+
+try:
+	from xml.sax.handler import ContentHandler
+	def_handler = ContentHandler
+except:
+	try:
+		from xml.sax.saxutils import DefaultHandler
+		def_handler = DefaultHandler
+	except Exception, e:
+		logging.error("couldn't get xml parsing")
+		raise e
+		
+class itunesHandler(def_handler):
 	def __init__(self):
 		self.url = ""
 		self._in_key = None
