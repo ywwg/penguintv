@@ -84,6 +84,7 @@ class EntryFormatter:
 		if item.has_key('link'):
 			ret.append('<a href="' + item['link'] + '">' + _("Full Entry...") + '</a>')
 		ret.append('</p></div>')
+		#print "\n".join(ret)
 		return "".join(ret)
 	
 	def htmlify_media(self, medium):

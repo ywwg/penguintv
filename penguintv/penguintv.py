@@ -945,6 +945,9 @@ class PenguinTVApp(gobject.GObject):
 		"""Automatically download any unviewed media.  Runs every five minutes 
 		when auto-polling, so make sure is good"""
 		
+		if self._exiting:
+			return
+		
 		download_list=self.db.get_media_for_download(False) #don't resume paused downloads
 		if len(download_list)==0:
 			return #no need to bother
