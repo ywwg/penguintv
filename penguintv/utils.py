@@ -136,7 +136,7 @@ else:
 #if RUNNING_HILDON:
 #	HAS_GSTREAMER = False
 	
-VERSION="3.60"
+VERSION="3.62"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
