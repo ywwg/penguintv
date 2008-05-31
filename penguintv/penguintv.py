@@ -1186,7 +1186,7 @@ class PenguinTVApp(gobject.GObject):
 			entry = self.db.get_entry(media['entry_id'])
 			feed_title = self.db.get_feed_title(entry['feed_id'])
 			if utils.is_known_media(media['file']):
-				self.player.play(media['file'], feed_title + " &#8211; " + entry['title'], media['media_id'], context=self._hildon_context)
+				self.player.play(media['file'], utils.my_quote(feed_title) + " &#8211; " + entry['title'], media['media_id'], context=self._hildon_context)
 			else:
 				if HAS_GNOME:
 					try:
@@ -1549,7 +1549,7 @@ class PenguinTVApp(gobject.GObject):
 		filelist=[]
 		if media:
 			for medium in media:
-				filelist.append([medium['file'], feed_title + " &#8211; " + entry['title'], medium['media_id']])
+				filelist.append([medium['file'], utils.my_quote(feed_title) + " &#8211; " + entry['title'], medium['media_id']])
 				if not entry['keep']:
 					self.db.set_media_viewed(medium['media_id'],True)
 		self.player.play_list(filelist, context=self._hildon_context)
@@ -1559,7 +1559,12 @@ class PenguinTVApp(gobject.GObject):
 	def play_unviewed(self):
 		playlist = self.db.get_unplayed_media(True) #set viewed
 		playlist.reverse()
-		self.player.play_list([[item[3],item[5] + " &#8211; " + item[4], item[0]] for item in playlist], context=self._hildon_context)
+		self.player.play_list([
+				[item[3],
+				utils.my_quote(item[5]) + " &#8211; " + item[4], 
+				item[0]] 
+			for item in playlist], 
+			context=self._hildon_context)
 		for row in playlist:
 			self.feed_list_view.update_feed_list(row[2],['readinfo'])
 			
@@ -2110,7 +2115,7 @@ class PenguinTVApp(gobject.GObject):
 						self.db.set_media_viewed(d.media['media_id'], True)
 					entry = self.db.get_entry(d.media['entry_id'])
 					feed_title = self.db.get_feed_title(entry['feed_id'])
-					self.player.play(d.media['file'], feed_title + " &#8211; " + entry['title'], d.media['media_id'], context=self._hildon_context)
+					self.player.play(d.media['file'], utils.my_quote(feed_title) + " &#8211; " + entry['title'], d.media['media_id'], context=self._hildon_context)
 				else:
 					entry = self.db.get_entry(d.media['entry_id'])
 					if not entry['keep']:
