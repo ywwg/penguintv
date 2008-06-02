@@ -103,7 +103,8 @@ class AddFeedDialog:
 	#ripped from straw
 	def set_location_automatically(self):
 		def _clipboard_cb(cboard, text, data=None):
-			if text:
+			if text.upper().startswith("FEED:") or \
+			   text.upper().startswith("HTTP"):
 				self._feed_url_widget.set_text(text)
 					        	
 		clipboard = gtk.clipboard_get(selection="CLIPBOARD")
