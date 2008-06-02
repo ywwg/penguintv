@@ -188,10 +188,12 @@ class TagEditorNG:
 			self._rename_tag(self._current_tag, new_name)
 			
 	def _tag_name_edited(self, renderer, path, new_text):
+		#FIXME: do we need to check if the new_name already exists?
 		model = self._tags_widget.get_model()
 		self._rename_tag(model[path][0], new_text)
 			
 	def _rename_tag(self, old_name, new_name):
+		#FIXME: do we need to check if the new_name already exists?
 		self._db.rename_tag(old_name, new_name)
 		self._app.emit('tags-changed', 1)
 		
