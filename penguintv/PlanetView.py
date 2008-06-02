@@ -789,10 +789,11 @@ class PlanetView(gobject.GObject):
 				
 		if len(keepers) > 0:
 			if self._state == S_SEARCH:
-				if feed_id == -1:
-					for item in keepers:
-						self.emit('entries-viewed', [(item['feed_id'], [item['entry_id']])])
-					return False
+				return False
+			#	if feed_id == -1:
+			#		for item in keepers:
+			#			self.emit('entries-viewed', [(item['feed_id'], [item['entry_id']])])
+			#		return False
 			self.emit('entries-viewed', [(feed_id, [e['entry_id'] for e in keepers])])
 		return False
 
