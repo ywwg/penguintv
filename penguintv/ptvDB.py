@@ -895,7 +895,7 @@ class ptvDB:
 			self._db_execute(self._c,  "SELECT last_insert_rowid()")
 			feed_id = self._c.fetchone()[0]
 			d={ 'title':_("Waiting for first poll"),
-				'description':_("This feed has not yet been polled successfully.  There might be an error with this feed.<br>"+str(url)),
+				'description':_("This feed has not yet been polled successfully.  There might be an error with this feed.<br>"+str(title)),
 			  }
 			self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep) VALUES (?, ?, NULL, ?, ?, 0, ?, ?, "http://", 0)',(feed_id,d['title'],d['description'],'0', int(time.time()), int(time.time())))
 			self._db.commit()
