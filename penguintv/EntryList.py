@@ -103,6 +103,8 @@ class EntryList(gobject.GObject):
 		self._handlers.append((app.disconnect, h_id))
 		h_id = app.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((app.disconnect, h_id))
+		h_id = app.connect('entries-unviewed', self.__entries_viewed_cb)
+		self._handlers.append((app.disconnect, h_id))
 		
 	def finalize(self):
 		for disconnector, h_id in self._handlers:

@@ -348,7 +348,16 @@ class MediaManager:
 	def stop_download(self, media_id):
 		if self.has_downloader(media_id):
 			downloader = self.get_downloader(media_id)
-			downloader.stop()
+			if downloader.status == QUEUED:
+				#if it's queued, we can stop it directly
+				#the threadpool will still hold on to the object, but 
+				#when it tries to run it will see that it has been stopped
+				downloader.stop()
+				self.update_playlist(downloader.media)
+				self.app_callback_finished(downloader)
+				self.downloads.remove(downloader)
+			else:
+				downloader.stop()
 			
 	def get_disk_usage(self):
 		size = 0

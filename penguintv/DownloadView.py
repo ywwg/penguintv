@@ -2,6 +2,7 @@
 
 import gtk
 import sets, time, os, glob
+import traceback
 
 import IconManager
 import MediaManager
@@ -190,9 +191,13 @@ class DownloadView:
 
 		for media_id in added:
 			item        = self._downloads[current_list.index(media_id)]
-			entry       = self._db.get_entry(item.media['entry_id'])
-			description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
-			size        = utils.format_size(item.total_size)
+			try:
+				entry       = self._db.get_entry(item.media['entry_id'])
+				description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
+				size        = utils.format_size(item.total_size)
+			except:
+				logging.warning("trouble getting entry updating downloads")
+				continue
 			if item.status == PAUSED:
 				description_markup = '<span color="#777"><i>'+utils.my_quote(description)+'</i></span>'
 				size_markup = '<span color="#777"><i>'+size+'</i></span>'
@@ -231,7 +236,6 @@ class DownloadView:
 		for medium in medialist:
 			print "stopping",medium['url']
 			self._app.do_cancel_download(medium)
-		self.update_downloads()
 		selection.unselect_all()
 		
 	def on_pause_toolbutton_clicked(self, widget):
@@ -239,14 +243,12 @@ class DownloadView:
 		tree,selected = selection.get_selected_rows()
 		for index in selected:
 			self._app.do_pause_download(self._downloads_liststore[index[0]][D_MEDIA_ID])
-		self.update_downloads()
 
 	def on_resume_toolbutton_clicked(self, widget):
 		selection = self._downloads_listview.get_selection()
 		tree,selected = selection.get_selected_rows()
 		for index in selected:
 			self._app.do_resume_download(self._downloads_liststore[index[0]][D_MEDIA_ID])
-		self.update_downloads()
 		
 	def on_download_list_row_activated(self, treeview, path, viewcolumn):
 		d = self._downloads[path[0]]

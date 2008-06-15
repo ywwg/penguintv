@@ -36,7 +36,9 @@ class BTDownloader(Downloader):
 		self._done_downloading = False
 				
 	def download(self,args_unused):
-		Downloader.download(self,args_unused)
+		if not Downloader.download(self,args_unused):
+			#stopped before we began
+			return 
 		params = ['--url' ,self.media['url']]+self._bt_params
 		
 		try:

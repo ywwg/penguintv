@@ -131,6 +131,9 @@ class PenguinTVApp(gobject.GObject):
 		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
 						   ([gobject.TYPE_PYOBJECT])),
+		'entries-unviewed': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_PYOBJECT])),
 		'render-ops-updated': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
 						   ([])),
@@ -1290,9 +1293,12 @@ class PenguinTVApp(gobject.GObject):
 		
 	@utils.db_except()	
 	def download_entry(self, entry_id):
+		entry = self.db.get_entry(entry_id)
 		self.mediamanager.download_entry(entry_id)
-		feed_id = self.db.get_entry(entry_id)['feed_id']
-		self.emit('entry-updated', entry_id, feed_id)
+		if entry['read']:
+			self.emit('entries-unviewed', [(entry['feed_id'], (entry_id,))])
+		#FIXME: oh yeah, bit of a hack
+		self.feed_list_view.update_feed_list(entry['feed_id'], update_what=['icon'], update_data={'icon':'gtk-execute'})
 
 	@utils.db_except()
 	def download_unviewed(self):
@@ -1394,13 +1400,10 @@ class PenguinTVApp(gobject.GObject):
 	def remove_feed(self, feed):		
 		#select entries and get all the media ids, and tell them all to cancel
 		#in case they are downloading
-		try:
-			for entry_id,title,date,read in self.db.get_entrylist(feed):
-				for medium in self.db.get_entry_media(entry_id):
-					if self.mediamanager.has_downloader(medium['media_id']):
-						self.mediamanager.stop_download(medium['media_id'])
-		except:
-			pass
+		for entry in self.db.get_entrylist(feed):
+			for medium in self.db.get_entry_media(entry[0]):
+				if self.mediamanager.has_downloader(medium['media_id']):
+					self.mediamanager.stop_download(medium['media_id'])
 		self.db.delete_feed(feed)
 		self.emit('feed-removed', feed)
 		self.update_disk_usage()
@@ -2002,14 +2005,14 @@ class PenguinTVApp(gobject.GObject):
 		self.update_disk_usage()
 		
 	@utils.db_except()
-	def delete_media(self, media_id, update_ui=True):
+	def delete_media(self, media_id, update_ui=True, entry_id=None):
 		"""Deletes specific media id"""
 		self.db.delete_media(media_id)
-		self.main_window.update_downloads()
 		self.mediamanager.generate_playlist()
-		self.db.set_media_viewed(media_id,True)
-		self.update_disk_usage()
+		self.db.set_media_viewed(media_id,True, entry_id)
 		if update_ui:
+			self.main_window.update_downloads()
+			self.update_disk_usage()
 			m = self.db.get_media(media_id)
 			self.emit('entry-updated', m['entry_id'], m['feed_id'])
 		
@@ -2048,28 +2051,13 @@ class PenguinTVApp(gobject.GObject):
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
 		   callback tells the thread to stop working.  how to make this better?"""
 		
-		d = None
-		try:   
-			d = self.mediamanager.get_downloader(item['media_id'])
-			self.mediamanager.stop_download(item['media_id'])
-		except:
-			pass
+		d = self.mediamanager.get_downloader(item['media_id'])
+		self.mediamanager.stop_download(item['media_id'])
 		self.db.set_media_download_status(item['media_id'],ptvDB.D_NOT_DOWNLOADED)
-		self.delete_media(item['media_id']) #marks as viewed
-		self.main_window.update_download_progress()
+		self.delete_media(item['media_id'], False, item['entry_id']) #marks as viewed
 		if self._exiting:
 			self.feed_list_view.filter_all() #to remove active downloads from the list
 			return
-		try:
-			feed_id = self.db.get_entry(item['entry_id'])['feed_id']
-			self.emit('entry-updated', item['entry_id'], feed_id)
-		except ptvDB.NoEntry:
-			logging.warning("noentry error, don't worry about it")
-			#print "downloads finished pop"
-			#taken care of in callbacks?
-			self.main_window.search_container.set_sensitive(False)
-			self._populate_feeds(self._done_populating, FeedList.DOWNLOADED)
-			self.feed_list_view.resize_columns()
 		self.feed_list_view.filter_all() #to remove active downloads from the list
 		if d is not None:
 			self.emit('download-finished', d)
@@ -2097,9 +2085,8 @@ class PenguinTVApp(gobject.GObject):
 		self.update_disk_usage()
 		if d.status==Downloader.FAILURE: 
 			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR)
-			self.main_window.update_download_progress() 
 		elif d.status==Downloader.STOPPED or d.status==Downloader.PAUSED:
-			self.main_window.update_download_progress()
+			pass
 		elif d.status==Downloader.FINISHED or d.status==Downloader.FINISHED_AND_PLAY:
 			if os.stat(d.media['file'])[6] < int(d.media['size']/2) and os.path.isfile(d.media['file']): #don't check dirs
 				self.db.set_entry_read(d.media['entry_id'],False)
@@ -2107,7 +2094,6 @@ class PenguinTVApp(gobject.GObject):
 				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)
 				d.status = Downloader.FAILURE
 			else:
-				self.main_window.update_download_progress()
 				if d.status==Downloader.FINISHED_AND_PLAY:
 					entry = self.db.get_entry(d.media['entry_id'])
 					if not entry['keep']:
@@ -2126,18 +2112,7 @@ class PenguinTVApp(gobject.GObject):
 		if self._exiting:
 			self.feed_list_view.filter_all() #to remove active downloads from the list
 			return
-		try:
-			feed_id = self.db.get_entry(d.media['entry_id'])['feed_id']
-			self.emit('entry-updated', d.media['entry_id'], feed_id)
-		except ptvDB.NoEntry:
-			logging.warning("noentry error")
-			#print "downloads finished pop"
-			#taken care of in callbacks?
-			self.main_window.search_container.set_sensitive(False)
-			self._populate_feeds(self._done_populating, FeedList.DOWNLOADED)
-			self.feed_list_view.resize_columns()
-		except:
-			logging.warning("some other error")
+		self.emit('entry-updated', d.media['entry_id'], d.media['feed_id'])
 		self.feed_list_view.filter_all() #to remove active downloads from the list
 			
 	@utils.db_except()

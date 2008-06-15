@@ -111,6 +111,8 @@ class EntryView(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entries-unviewed', self.__entries_viewed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('state-changed', self.__state_changed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-polled', self.__feed_polled_cb)

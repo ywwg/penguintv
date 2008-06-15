@@ -208,7 +208,7 @@ class ptvDB:
 		
 	def _db_execute(self, c, command, args=()):
 		#if "FROM FEEDS" in command.upper(): 
-		#	traceback.print_stack()
+		#traceback.print_stack()
 		#print command, args
 		try:
 			return c.execute(command, args)
@@ -2205,15 +2205,18 @@ class ptvDB:
 		self._db_execute(self._c, u'UPDATE media SET file=? WHERE rowid=?', (filename,media_id))
 		self._db.commit()
 		
-	def set_media_viewed(self, media_id, viewed):
+	def set_media_viewed(self, media_id, viewed, entry_id=None):
 		self._db_execute(self._c, u'UPDATE media SET viewed=? WHERE rowid=?',(int(viewed),media_id))
 		self._db.commit()
-		self._db_execute(self._c, u'SELECT entry_id FROM media WHERE rowid=?',(media_id,))
-		entry_id = self._c.fetchone()[0]
+		if entry_id is None:
+			self._db_execute(self._c, u'SELECT entry_id FROM media WHERE rowid=?',(media_id,))
+			entry_id = self._c.fetchone()[0]
 		
 		if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 	
 		if viewed==1:#check to see if this makes the whole entry viewed
+			if self.get_entry_keep(entry_id):
+				return
 			self._db_execute(self._c, u'SELECT viewed FROM media WHERE entry_id=?',(entry_id,))
 			list = self._c.fetchall()
 			if list:

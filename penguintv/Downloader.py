@@ -34,9 +34,12 @@ class Downloader:
 			
 	def download(self,args):
 		"""args is set by ThreadPool, and is unused"""
-		#print "The Downloader base class does not implement this method"
+		if self._stop_download:
+			return False
+		
 		self.running = True
 		self.status = DOWNLOADING
+		return True
 		
 	def _progress_callback(self):
 		if self._stop_download:

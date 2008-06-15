@@ -141,7 +141,11 @@ class ThreadPool:
 			if self.__tasks == []:
 				return (None, None, None)
 			else:
-				return self.__tasks.pop(0)
+				task, args, taskCallback = self.__tasks.pop(0)
+				if not callable(task):
+					logging.warning("task no longer callable, skipping")
+					return (None, None, None)
+				return (task, args, taskCallback)
 		finally:
 			self.__taskLock.release()
 	

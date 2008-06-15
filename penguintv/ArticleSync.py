@@ -428,6 +428,11 @@ class ArticleSync(gobject.GObject):
 		return self._conn.get_readstates(hashlist)
 		
 	def get_readstates_cb(self, readstates):
+		if readstates is None:
+			logging.debug("No readstates to report")
+			self.emit('got-readstates', [])
+			return False
+			
 		if len(readstates) == 0:
 			logging.debug("No readstates to report")
 			self.emit('got-readstates', [])

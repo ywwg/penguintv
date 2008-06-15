@@ -33,7 +33,9 @@ class HTTPDownloader(Downloader):
 		self._last_progress = 0
 		
 	def download(self,args_unused):
-		Downloader.download(self,args_unused)
+		if not Downloader.download(self,args_unused):
+			#stopped before we began, no callback
+			return
 		try:
 			os.makedirs(os.path.dirname(self.media['file']))
 		except OSError:

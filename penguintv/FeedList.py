@@ -180,6 +180,8 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entries-viewed', self.__entries_viewed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('entries-unviewed', self.__entries_unviewed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		
 		#init style
 		if self._fancy:
@@ -226,7 +228,7 @@ class FeedList(gobject.GObject):
 		for feed_id, id_list in viewlist:
 			self.mark_entries_read(len(id_list), feed_id)
 		
-	def __entries_unviewed_cb(self, app, feed_id, viewlist):
+	def __entries_unviewed_cb(self, app, viewlist):
 		for feed_id, id_list in viewlist:
 			self.mark_entries_read(0 - len(id_list), feed_id)
 		
@@ -462,6 +464,8 @@ class FeedList(gobject.GObject):
 		update_what is a bunch of strings saying what we want to update.  it will go to the
 		db for info unless the value is already in update_data"""
 		
+		#logging.debug("updating feed list: %s", str(update_what))
+		
 		if feed_id is None:
 			if self._last_feed is None:
 				return
@@ -483,6 +487,11 @@ class FeedList(gobject.GObject):
 			
 		need_filter = False #some updates will require refiltering. 
 		need_resize = False
+		
+		if update_what == ['icon'] and update_data.has_key('icon'):
+			#FIXME: hack for download notification
+			feed[STOCKID] = update_data['icon']
+			return
 		
 		if 'title' in update_what or 'icon' in update_what:
 			if not update_data.has_key('flag_list'):
@@ -1116,6 +1125,7 @@ class FeedList(gobject.GObject):
 		return title
 		
 	def _get_fancy_markedup_title(self, title, first_entry_title, unread, total, flag, feed_id, selected=None):
+		#logging.debug("fancy title: %s %s %i %i %i %i", title, first_entry_title, unread, total, flag, feed_id)
 		if selected is None:
 			selection = self._widget.get_selection()
 			model, iter = selection.get_selected()
@@ -1131,6 +1141,8 @@ class FeedList(gobject.GObject):
 			else:
 				title = utils.my_quote(title)+'\n<span size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
+				if unread == 0:
+					logging.warning("Flag says there are unviewed, but count says no")
 				title="<b>"+title+'</b>'
 		except:
 			return title
