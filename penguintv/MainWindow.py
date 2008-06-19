@@ -172,6 +172,7 @@ class MainWindow(gobject.GObject):
 		
 	def __download_finished_cb(self, app, d):
 		self._download_view.update_downloads()
+		self.update_download_progress()
 		
 	def __setting_changed_cb(self, app, typ, datum, value):
 		if datum == '/apps/penguintv/show_notifications':
