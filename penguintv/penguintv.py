@@ -2051,8 +2051,12 @@ class PenguinTVApp(gobject.GObject):
 		   for files that are downloading -- once when we ask it to stop downloading, and again when the
 		   callback tells the thread to stop working.  how to make this better?"""
 		
-		d = self.mediamanager.get_downloader(item['media_id'])
-		self.mediamanager.stop_download(item['media_id'])
+		d = None
+		try:
+			d = self.mediamanager.get_downloader(item['media_id'])
+			self.mediamanager.stop_download(item['media_id'])
+		except Exception, e:
+			pass  #download may not be active anymore, but that's ok
 		self.db.set_media_download_status(item['media_id'],ptvDB.D_NOT_DOWNLOADED)
 		self.delete_media(item['media_id'], False, item['entry_id']) #marks as viewed
 		if self._exiting:
@@ -2061,6 +2065,9 @@ class PenguinTVApp(gobject.GObject):
 		self.feed_list_view.filter_all() #to remove active downloads from the list
 		if d is not None:
 			self.emit('download-finished', d)
+		else:
+			feed_id = self.db.get_entry(item['entry_id'])['feed_id'] 	 
+	        self.emit('entry-updated', item['entry_id'], feed_id)
 		
 	@utils.db_except()
 	def do_pause_download(self, media_id):
