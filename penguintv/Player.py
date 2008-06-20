@@ -56,6 +56,10 @@ class Player:
 		assert self.using_internal_player()
 		return self._gst_player.get_queue()
 		
+	def unqueue(self, userdata):
+		if self.using_internal_player():
+			self._gst_player.unqueue(userdata=userdata)
+		
 	def play(self, f, title=None, userdata=None, force_external=False, context=None):
 		self.play_list([[f,title,userdata]], force_external, context)
 	

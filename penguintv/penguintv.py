@@ -2009,6 +2009,7 @@ class PenguinTVApp(gobject.GObject):
 		"""Deletes specific media id"""
 		self.db.delete_media(media_id)
 		self.mediamanager.generate_playlist()
+		self.player.unqueue(media_id)
 		self.db.set_media_viewed(media_id,True, entry_id)
 		if update_ui:
 			self.main_window.update_downloads()

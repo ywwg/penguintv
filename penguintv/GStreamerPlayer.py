@@ -353,8 +353,37 @@ class GStreamerPlayer(gobject.GObject):
 			#thanks gstfile.py
 			d = Discoverer(filename)
 			d.connect('discovered', self._on_type_discovered, filename, name, userdata)
-			d.discover()	
+			d.discover()
+			
+	def unqueue(self, filename=None, userdata=None):
+		model = self._queue_listview.get_model()
 		
+		iter_list = []
+		
+		if filename is not None:
+			logging.warning("UNTESTED CODE:")
+			it = model.get_iter_first()
+			while it is not None:
+				data = model.get(it, 0)[0]
+				logging.debug("%s %s" % (str(filename), str(data)))
+				if data == "file://" + filename:
+					iter_list.append(it)
+				it = model.iter_next(it)
+				
+			if len(iter_list) > 0:
+				self._remove_items(iter_list)
+				
+		if userdata is not None:
+			it = model.get_iter_first()
+			while it is not None:
+				data = model.get(it, 3)[0]
+				if data == userdata:
+					iter_list.append(it)
+				it = model.iter_next(it)
+				
+			if len(iter_list) > 0:
+				self._remove_items(iter_list)
+				
 	def relocate_media(self, old_dir, new_dir):
 		if old_dir[-1] == '/' or old_dir[-1] == '\\':
 			old_dir = old_dir[:-1]
@@ -560,16 +589,16 @@ class GStreamerPlayer(gobject.GObject):
 	
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()
-		
+		self._remove_items([model.get_iter(path) for path in paths])
+			
+	def _remove_items(self, iter_list):
+		model = self._queue_listview.get_model()
 		current_uri = model[self._current_index][0]
 		
-		iter_list = []
-		for path in paths:
-			if path[0] == self._current_index:
-				self.stop()
-			iter_list.append(model.get_iter(path))
-			
 		for i in iter_list:
+			if model.get_path(i)[0] == self._current_index:
+				print "stopping current"
+				self.stop()
 			model.remove(i)
 			
 		if len(model) == 0:
