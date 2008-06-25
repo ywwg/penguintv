@@ -105,8 +105,10 @@ class FtpSyncClient(SqliteSyncClient):
 			return False
 		
 	def _get_server_timestamp(self):
+		global timestamp
 		timestamp = None
 		def retr_cb(line):
+			global timestamp
 			timestamp = int(line)
 		
 		assert self._authenticated
@@ -124,8 +126,10 @@ class FtpSyncClient(SqliteSyncClient):
 		return -1
 		
 	def _db_exists(self):
+		global stamp_exists
 		stamp_exists = False
 		def dir_cb(line):
+			global stamp_exists
 			if STAMP_FILENAME in line:
 				stamp_exists = True
 		
@@ -138,25 +142,32 @@ class FtpSyncClient(SqliteSyncClient):
 			if stamp_exists:
 				self.__transfer_lock.release()
 				return True
+			time.sleep(0.25)
 		self.__transfer_lock.release()
 		return False
 		
 	def _do_download_db(self):
+		global data
 		if not self._check_connection():
 			return None
 			
 		self.__transfer_lock.acquire()
 		filesize = self._ftp.size(FILENAME)
+		#logging.debug("expecting to download: %s" % str(filesize))
 		if filesize is None:
 			return None
 		
 		data = ""
 		def retr_cb(line):
+			global data
+			#logging.debug("line: %i data: %i" % (len(line), len(data)))
 			data += line
 			
+		self._ftp.retrbinary('RETR %s' % FILENAME, retr_cb)
 		wait = 0
 		last_size = 0
 		while len(data) < filesize and wait < 30:
+			#logging.debug("size: %i wait: %i" % (len(data), wait))
 			if len(data) > last_size:
 				wait = 0
 				last_size = len(data)
@@ -164,6 +175,7 @@ class FtpSyncClient(SqliteSyncClient):
 			wait += 1
 		self.__transfer_lock.release()
 		if len(data) < filesize:
+			#logging.debug("got less than we expected")
 			return None
 		return data
 
