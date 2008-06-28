@@ -3,6 +3,7 @@
 import gtk
 import sets, time, os, glob
 import traceback
+import logging
 
 import IconManager
 import MediaManager
@@ -196,7 +197,7 @@ class DownloadView:
 				description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
 				size        = utils.format_size(item.total_size)
 			except:
-				logging.warning("trouble getting entry updating downloads")
+				logging.warning("trouble getting entry updating downloads: %s" % str(item))
 				continue
 			if item.status == PAUSED:
 				description_markup = '<span color="#777"><i>'+utils.my_quote(description)+'</i></span>'
