@@ -313,6 +313,7 @@ class FeedList(gobject.GObject):
 			if subset==DOWNLOADED:
 				flag = self._feedlist[i][FLAG]
 				if flag & ptvDB.F_DOWNLOADED==0 and flag & ptvDB.F_PAUSED==0:
+					print "not downloaded and not paused, skipping"
 					continue
 			elif subset==VISIBLE:
 				if not self._feedlist[i][VISIBLE]:
@@ -354,7 +355,10 @@ class FeedList(gobject.GObject):
 				print "WARNING: zero unread articles but flag says there should be some"
 				flag -= ptvDB.F_UNVIEWED
 				
-			visible = self._feedlist[i][VISIBLE]
+			if self.filter_setting == DOWNLOADED:
+				visible = bool(flag & ptvDB.F_DOWNLOADED)
+			else:
+				visible = self._feedlist[i][VISIBLE]
 			
 			if self._fancy:
 				if visible:
@@ -402,7 +406,8 @@ class FeedList(gobject.GObject):
 								 visible, 
 								 pollfail, 
 								 m_first_entry_title]
-			#self._filter_one(self._feedlist[i])
+			if self.filter_setting == DOWNLOADED and visible:	
+				self._feed_filter.refilter()			
 
 			self._app.main_window.update_progress_bar(float(j)/len(db_feedlist),MainWindow.U_LOADING)
 			yield True
@@ -1142,8 +1147,9 @@ class FeedList(gobject.GObject):
 				title = utils.my_quote(title)+'\n<span size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 				if unread == 0:
-					logging.warning("Flag says there are unviewed, but count says no")
-				title="<b>"+title+'</b>'
+					logging.warning("Flag says there are unviewed, but count says no.  not setting bold")
+				else:
+					title="<b>"+title+'</b>'
 		except:
 			return title
 		return title
