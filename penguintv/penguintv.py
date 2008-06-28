@@ -2068,7 +2068,7 @@ class PenguinTVApp(gobject.GObject):
 			self.emit('download-finished', d)
 		else:
 			feed_id = self.db.get_entry(item['entry_id'])['feed_id'] 	 
-	        self.emit('entry-updated', item['entry_id'], feed_id)
+			self.emit('entry-updated', item['entry_id'], feed_id)
 		
 	@utils.db_except()
 	def do_pause_download(self, media_id):
