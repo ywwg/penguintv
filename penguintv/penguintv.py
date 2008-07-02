@@ -1169,7 +1169,7 @@ class PenguinTVApp(gobject.GObject):
 			self.mediamanager.unpause_downloads()
 			self.mediamanager.download(item)
 			entry_id = self.db.get_entryid_for_media(item)
-			self.db.set_media_viewed(item,False)
+			#self.db.set_media_viewed(item,False)
 			feed_id = self.db.get_entry(entry_id)['feed_id']
 			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="resume" or action=="tryresume":
@@ -2353,7 +2353,8 @@ class PenguinTVApp(gobject.GObject):
 				updater, db = self._get_updater()
 				updater.queue(db.set_media_size,(d.media['media_id'], d.media['size']))
 		if self.main_window.changing_layout == False:
-			self._gui_updater.queue(self._entry_view.update_if_selected,(d.media['entry_id'],d.media['feed_id']))
+			#self._gui_updater.queue(self._entry_view.update_if_selected,(d.media['entry_id'],d.media['feed_id']))
+			self._gui_updater.queue(self._entry_view.progress_update,(d.media['entry_id'],d.media['feed_id']))
 			self._gui_updater.queue(self.main_window.update_download_progress)
 
 	def _finished_callback(self,downloader):

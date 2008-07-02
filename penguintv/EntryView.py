@@ -270,6 +270,9 @@ class EntryView(gobject.GObject):
 		elif not self._currently_blank:
 			return self._current_entry['entry_id']
 		return None
+		
+	def progress_update(self, entry_id, feed_id):
+		update_if_selected(entry_id, feed_id)
 	
 	def update_if_selected(self, entry_id, feed_id):
 		"""tests to see if this is the currently-displayed entry, 

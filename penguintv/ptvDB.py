@@ -209,7 +209,9 @@ class ptvDB:
 	def _db_execute(self, c, command, args=()):
 		#if "FROM FEEDS" in command.upper(): 
 		#traceback.print_stack()
-		#print command, args
+		#if "UPDATE" in command.upper():
+		#	print command, args
+		#	traceback.print_stack()
 		try:
 			return c.execute(command, args)
 		except Exception, e:
@@ -1891,7 +1893,7 @@ class ptvDB:
 			return (MODIFIED,entry_id, [])
 			
 	def get_entry_media(self, entry_id):
-		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype FROM media WHERE entry_id = ?""",(entry_id,))
+		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype FROM media WHERE entry_id = ? ORDER BY entry_id DESC""",(entry_id,))
 		dataList=self._c.fetchall()
 		
 		if dataList is None:
@@ -2191,6 +2193,32 @@ class ptvDB:
 		
 	def set_feed_link(self, feed_id, link):
 		self._db_execute(self._c, u'UPDATE feeds SET link=? WHERE rowid=?',(link,feed_id))
+		self._db.commit()
+		
+	def set_media(self, media_id, status=None, filename=None, size=None):
+		assert media_id is not None
+		
+		update_str = u'UPDATE media SET '
+		update_data = ()
+		
+		if status is not None:
+			update_str += u'download_status=?, download_date=?, '
+			update_data += (status, int(time.time()))
+		
+		if filename is not None:
+			update_str += u'file=?, '
+			update_data += (filename,)
+			
+		if size is not None:
+			update_str += u'length=?, '
+			update_data += (int(size),)
+			
+		assert len(update_data) > 0
+		
+		update_str = update_str[:-2] + u'WHERE rowid=?'
+		update_data += (media_id,)
+		
+		self._db_execute(self._c, update_str, update_data)
 		self._db.commit()
 				
 	def set_media_download_status(self, media_id, status):

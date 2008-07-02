@@ -264,8 +264,9 @@ class MediaManager:
 			self.downloads.append(downloader)
 			self.pool.queueTask(downloader.download)
 			
-		self.db.set_media_download_status(media['media_id'],1)
-		self.db.set_media_filename(media['media_id'],media['file'])
+		#self.db.set_media_download_status(media['media_id'],1)
+		#self.db.set_media_filename(media['media_id'],media['file'])
+		self.db.set_media(media['media_id'], status=1, filename=media['file'])
 		self.index=self.index+1
 		
 	def has_downloader(self, media_id):

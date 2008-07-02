@@ -269,7 +269,7 @@ class PlanetView(gobject.GObject):
 	def __render_ops_updated_cb(self, app):
 		self._convert_newlines = self._db.get_flags_for_feed(self._current_feed_id) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES
 		self._entry_store = {}
-		self._render_entries()		
+		self._render_entries(force=True)		
 			
 	def __size_changed_cb(self, screen):
 		"""Redraw after xrandr calls"""
@@ -418,6 +418,10 @@ class PlanetView(gobject.GObject):
 		self._state = newstate
 
 	#entryview functions
+	def progress_update(self, entry_id, feed_id):
+		if self._USING_AJAX:
+			self.update_if_selected(entry_id, feed_id)
+	
 	def update_if_selected(self, entry_id=None, feed_id=None):
 		self.update_entry_list(entry_id)
 		
@@ -671,20 +675,27 @@ class PlanetView(gobject.GObject):
 					item['media'] = media[item['entry_id']]
 				else:
 					item['media'] = []
+
+				item['new'] = not item['read']
+				if mark_read and not item.has_key('media'):
+					item['read'] = True
+				
+				if self._state == S_SEARCH:
+					item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+					self._entry_store[item['entry_id']] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
+				else:
+					self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 					
-			#combine them
-			entries += db_entries
-		
+		#only reformat if read status changes
 		for item in entries:
 			item['new'] = not item['read']
 			if mark_read and not item.has_key('media'):
 				item['read'] = True
-				
-			if self._state == S_SEARCH:
-				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
-				self._entry_store[item['entry_id']] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
-			else:
-				self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
+				if self._state == S_SEARCH:
+					item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+					self._entry_store[item['entry_id']] = (self._search_formatter.htmlify_item(item, self._convert_newlines),item)
+				else:
+					self._entry_store[item['entry_id']] = (self._entry_formatter.htmlify_item(item, self._convert_newlines),item)
 				
 	def _load_entry(self, entry_id, force=False):
 		if self._entry_store.has_key(entry_id) and not force:
@@ -710,6 +721,7 @@ class PlanetView(gobject.GObject):
 			new_format = self._entry_formatter.htmlify_item(item, self._convert_newlines)
 			if self._entry_store.has_key(entry_id):
 				if new_format == self._entry_store[entry_id][0]:
+					#if the new formatting is the same as the old, don't do anything different
 					self._entry_store[entry_id] = (new_format, item)
 					return self._entry_store[entry_id]
 			self._entry_store[entry_id] = (new_format, item)
