@@ -258,7 +258,7 @@ class PenguinTVApp(gobject.GObject):
 		self.db._db.close()
 		del self.db
 		self.db = ptvDB.ptvDB(self.polling_callback, self._emit_change_setting)
-		logging.debug("have new db, right? %s $s" % (str(self.db), str(self.db._c)))
+		logging.debug("have new db, right? %s %s" % (str(self.db), str(self.db._c)))
 	
 	@utils.db_except()
 	def post_show_init(self):
