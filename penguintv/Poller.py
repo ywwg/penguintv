@@ -6,6 +6,18 @@ import os
 import sys
 import logging
 import traceback
+
+try:
+	import hildon
+	RUNNING_HILDON = True
+except:
+	RUNNING_HILDON = False
+
+import socket
+if RUNNING_HILDON:
+	socket.setdefaulttimeout(15.0)
+else:
+	socket.setdefaulttimeout(5.0)
 logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.WARNING)
 
 import dbus
@@ -13,11 +25,6 @@ import dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 import gobject
 
-try:
-	import hildon
-	RUNNING_HILDON = True
-except:
-	RUNNING_HILDON = False
 	
 import ptvDB
 
