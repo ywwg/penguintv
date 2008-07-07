@@ -2600,6 +2600,9 @@ def do_commandline(remote_app=None, local_app=None):
 			remote_app.AddFeed(sys.argv[1])
 		else:
 			local_app.add_feed(sys.argv[1], sys.argv[1])
+			
+	if len(opts) == 0 and len(sys.argv) == 1:
+		usage()
 
 #def main():
 #	gtk.gdk.threads_init()

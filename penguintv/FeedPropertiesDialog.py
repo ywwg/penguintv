@@ -28,6 +28,9 @@ class FeedPropertiesDialog(gtk.Dialog):
 		for key in dir(self.__class__):
 			if key[:3] == 'on_':
 				self._xml.signal_connect(key, getattr(self,key))
+				
+		self.connect('delete-event', self.on_window_feed_properties_delete_event)
+				
 		self._title_widget = xml.get_widget('title_entry')
 		self._rss_widget = xml.get_widget('rss_entry')
 		self._link_widget = xml.get_widget('link_entry')
@@ -164,9 +167,9 @@ class FeedPropertiesDialog(gtk.Dialog):
 			self._xml.get_widget('b_markasread').set_active(True)
 		else:
 			self._xml.get_widget('b_markasread').set_active(False)
-		
+
 	def on_window_feed_properties_delete_event(self, widget, event):
-		return self._window.hide_on_delete()
+		return self.hide_on_delete()
 		
 	def on_b_autodownload_toggled(self, b_autodownload):
 		# reverse the polarity!
