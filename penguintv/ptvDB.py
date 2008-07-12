@@ -1215,7 +1215,6 @@ class ptvDB:
 			self._db_execute(self._c, "SELECT title,url FROM feeds WHERE rowid=?",(feed_id,))
 			result = self._c.fetchone()
 			feed['feed_id']=feed_id
-			feed['title']=result[0]
 			feed['url']=result[1]
 			feed['new_entries'], feed['new_entryids'] = \
 				self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
