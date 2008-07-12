@@ -705,9 +705,7 @@ class FeedList(gobject.GObject):
 		if self._fancy:
 			gobject.idle_add(self._load_details().next)
 		self._va.set_value(0)
-		showing_feed = self.get_selected()
-		if not self._app.entrylist_selecting_right_now() and showing_feed is not None:
-			self.emit('search-feed-selected', showing_feed)
+		self._widget.get_selection().unselect_all()
 		
 	def _unset_state(self, data=True):
 		if self._state == S_SEARCH:
