@@ -2570,7 +2570,7 @@ def do_commandline(remote_app=None, local_app=None):
 		else:
 			local_app.add_feed(sys.argv[1], sys.argv[1])
 			
-	if len(opts) == 0 and len(sys.argv) == 1:
+	if len(opts) == 0 and len(sys.argv) == 1 and local_app is None:
 		usage()
 
 #def main():
