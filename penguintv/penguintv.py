@@ -792,7 +792,7 @@ class PenguinTVApp(gobject.GObject):
 		##good breakpoint for gc analysis
 		#import code
 		#code.interact()
-	
+		
 		logging.info('ptv quitting')
 		self._exiting=1
 		self._entry_view.finish()
@@ -2253,37 +2253,6 @@ class PenguinTVApp(gobject.GObject):
 
 	def _done_populating_dont_sensitize(self):
 		self._gui_updater.queue(self.done_populating, False)
-		
-	def _get_feed_counts_cb(self, counts):
-		feed_dict = {}
-		for row1, row2 in zip(self.db.get_feedlist(), self.feed_list_view.get_feed_cache()):
-			#feed_id, title, url, feed_id, flag, unread, total, pollfail, firstentrytitle
-			row = row1 + row2
-			feed = {}
-			feed['feed_id'] = row[0]
-			feed['url'] = row[2]
-			feed['unread'] = row[5]
-			feed['title'] = row[1]
-			s = sha.new()
-			s.update(feed['url'])
-			feed_dict[s.hexdigest()] = feed
-	
-		for feedhash in counts.keys():
-			if feed_dict.has_key(feedhash):
-				if counts[feedhash] < feed_dict[feedhash]['unread']:
-					logging.debug("%s: server: %s local: %s" % \
-						(feed_dict[feedhash]['title'], counts[feedhash], 
-						 feed_dict[feedhash]['unread']))
-					unreads = self.db.get_unread_entries(feed_dict[feedhash]['feed_id'])
-					
-				elif counts[feedhash] > feed_dict[feedhash]['unread']:
-					logging.debug("%s: server: %s local: %s" % \
-						(feed_dict[feedhash]['title'], counts[feedhash], 
-						 feed_dict[feedhash]['unread']))
-					logging.debug("server has more unread, ignoring")
-				else:
-					logging.debug("%s: server and local agree" % feed_dict[feedhash]['title'])
-		return False
 		
 	def done_populating(self, sensitize=True):
 		self._unset_state(True) #force exit of done_loading state
