@@ -354,7 +354,10 @@ class PlanetView(gobject.GObject):
 		else:
 			for e,f in self._entrylist:
 				if e == entry_id:
-					self._load_entry(entry_id, True)
+					try:
+						self._load_entry(entry_id, True)
+					except ptvDB.NoEntry:
+						return
 					return
 			
 	def mark_as_viewed(self, entry_id=None):
@@ -494,7 +497,10 @@ class PlanetView(gobject.GObject):
 		i=self._first_entry-1
 		for entry_id, feed_id in entrylist[self._first_entry:self._last_entry]:
 			i+=1
-			entry_html, item = self._load_entry(entry_id)
+			try:
+				entry_html, item = self._load_entry(entry_id)
+			except ptvDB.NoEntry:
+				continue
 			if item.has_key('media'):
 				media_exists = True
 			#else:
@@ -834,7 +840,11 @@ class PlanetView(gobject.GObject):
 			return
 		
 		if entry_id > 0:
-			entry = self._load_entry(entry_id)[1]
+			try:
+				entry = self._load_entry(entry_id)[1]
+			except ptvDB.NoEntry:
+				return
+				
 			entry['flag'] = self._db.get_entry_flag(entry_id)
 			
 			if entry['flag'] & ptvDB.F_MEDIA:
