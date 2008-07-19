@@ -83,19 +83,19 @@ class DownloadView:
 		column.pack_start(renderer, True)
 		column.set_attributes(renderer, pixbuf=D_PIXBUF)
 		self._downloads_listview.append_column(column)
-		
-		column = gtk.TreeViewColumn(_('Description'))
-		column.set_resizable(True)
-		renderer = gtk.CellRendererText()
-		column.pack_start(renderer, True)
-		column.set_attributes(renderer, markup=D_DESCRIPTION_MARKUP)
-		self._downloads_listview.append_column(column)
-		
+
 		column = gtk.TreeViewColumn(_('Progress'))
 		column.set_resizable(True)
 		renderer = gtk.CellRendererProgress()
 		column.pack_start(renderer, True)
 		column.set_attributes(renderer, value=D_PROGRESS)
+		self._downloads_listview.append_column(column)
+				
+		column = gtk.TreeViewColumn(_('Description'))
+		column.set_resizable(True)
+		renderer = gtk.CellRendererText()
+		column.pack_start(renderer, True)
+		column.set_attributes(renderer, markup=D_DESCRIPTION_MARKUP)
 		self._downloads_listview.append_column(column)
 		
 		column = gtk.TreeViewColumn(_('Size'))
