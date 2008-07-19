@@ -582,6 +582,7 @@ class FeedList(gobject.GObject):
 			feed[POLLFAIL] = update_data['pollfail']
 			feed[STOCKID] = self._get_icon(flag)
 			if update_data['pollfail']:
+				#print update_data
 				if feed[STOCKID]=='gtk-harddisk' or feed[STOCKID]=='gnome-stock-blank':
 					feed[STOCKID]='gtk-dialog-error'
 			feed[FLAG] = flag	 
@@ -937,6 +938,9 @@ class FeedList(gobject.GObject):
 		return passed_filter
 			
 	def on_row_activated(self, treeview, path, view_column):
+		if utils.RUNNING_HILDON:
+			#much too easy to doubleclick on hildon, disable
+			return
 		index = path[0]
 		model = treeview.get_model()
 		link = self._db.get_feed_info(model[index][FEEDID])['link']
