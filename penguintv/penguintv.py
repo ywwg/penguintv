@@ -279,7 +279,8 @@ class PenguinTVApp(gobject.GObject):
 		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
 		
-		self._status_icon.set_parent(self.main_window.window)
+		if utils.HAS_STATUS_ICON:
+			self._status_icon.set_parent(self.main_window.window)
 		
 		#gconf
 		if utils.HAS_GCONF:

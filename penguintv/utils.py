@@ -133,8 +133,8 @@ else:
 	except:
 		HAS_GSTREAMER = False
 
-#if RUNNING_HILDON:
-#	HAS_GSTREAMER = False
+if RUNNING_HILDON:
+	HAS_STATUS_ICON = False
 	
 VERSION="3.62"
 #DEBUG
