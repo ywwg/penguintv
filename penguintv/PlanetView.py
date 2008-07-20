@@ -23,7 +23,11 @@ if not utils.RUNNING_SUGAR:
 else:
 	import hulahop
 	
-ENTRIES_PER_PAGE = 10
+
+if utils.RUNNING_HILDON:
+	ENTRIES_PER_PAGE = 5
+else:
+	ENTRIES_PER_PAGE = 10
 
 #states
 S_DEFAULT=0
