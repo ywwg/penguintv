@@ -136,7 +136,7 @@ else:
 if RUNNING_HILDON:
 	HAS_STATUS_ICON = False
 	
-VERSION="3.62"
+VERSION="3.65"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
