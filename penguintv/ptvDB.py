@@ -1115,8 +1115,9 @@ class ptvDB:
 		try:
 			#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 			#speed up feedparser
-			if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
-				feedparser._sanitizeHTML = lambda a, b: a
+			#must sanitize because some feeds have POPUPS!
+			if utils.RUNNING_SUGAR:
+				#feedparser._sanitizeHTML = lambda a, b: a
 				feedparser._resolveRelativeURIs = lambda a, b, c: a
 			if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
 				data = feedparser.parse(url)
@@ -1278,7 +1279,7 @@ class ptvDB:
 				
 				#speed up feedparser
 				if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
-					feedparser._sanitizeHTML = lambda a, b: a
+					#feedparser._sanitizeHTML = lambda a, b: a
 					feedparser._resolveRelativeURIs = lambda a, b, c: a
 				
 				if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
