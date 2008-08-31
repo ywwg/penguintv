@@ -46,34 +46,10 @@ class FeedPropertiesDialog(gtk.Dialog):
 		self._old_flags = 0
 		
 		self._feed_id=0
-		
-		if utils.RUNNING_HILDON:
-			self._hildon_inited = False
 				
 	def show(self):
 		if utils.RUNNING_HILDON:
-			if not self._hildon_inited:
-				#put in a scrolled viewport so the user can see all the prefs
-				parent = self._xml.get_widget('tab1_container')
-				contents = self._xml.get_widget('tab1_contents')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				
-				parent = self._xml.get_widget('tab2_container')
-				contents = self._xml.get_widget('tab2_contents')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				self._hildon_inited = True
+			self.resize(600,200)
 			self.show_all()
 		self.set_transient_for(self._app.main_window.get_parent())
 		self._xml.get_widget('notebook1').set_current_page(0)

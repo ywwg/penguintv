@@ -44,9 +44,6 @@ class AddFeedDialog:
 			self._feed_url_widget = combo.child
 			combo.connect('changed', self.on_sugar_combo_changed)
 			self._edit_tags_widget = None
-			
-		if utils.RUNNING_HILDON:
-			self._hildon_inited = False
 		
 	def extract_content(self):
 		box = self._xml.get_widget('add_feed_box')
@@ -58,30 +55,9 @@ class AddFeedDialog:
 				
 	def show(self, autolocation=True):
 		if utils.RUNNING_HILDON:
-			if not self._hildon_inited:
-				#put in a scrolled viewport so the user can see all the prefs
-				parent = self._xml.get_widget('tab1_container')
-				contents = self._xml.get_widget('tab1_contents')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				
-				parent = self._xml.get_widget('tab2_container')
-				contents = self._xml.get_widget('tab2_contents')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				self._hildon_inited = True
+			self._window.resize(600,200)
 			self._window.show_all()
-	
+			
 		self._feed_url_widget.grab_focus()
 		if self._window:
 			self._window.show()

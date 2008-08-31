@@ -107,6 +107,7 @@ class FeedList(gobject.GObject):
 		self._fancy = fancy
 		self.__widget_width = 0
 		self.__resetting_columns = False
+		self.__displayed_context_menu = False #for hildon
 		
 		#build list view
 		
@@ -165,6 +166,7 @@ class FeedList(gobject.GObject):
 		self._widget.get_selection().connect("changed", self._item_selection_changed)
 		self._widget.connect("row-activated", self.on_row_activated)
 		self._widget.connect("button-press-event", self._on_button_press_event)
+		self._widget.connect("button-release-event", self._on_button_release_event)
 		if utils.RUNNING_HILDON:
 			self._widget.tap_and_hold_setup(menu=self._get_context_menu(False))
 		
@@ -543,7 +545,7 @@ class FeedList(gobject.GObject):
 			feed[UNREAD]   = update_data['unread_count']
 			feed[TOTAL]    = len(update_data['flag_list'])
 
-			if utils.RUNNING_HILDON:
+			if utils.RUNNING_HILDON and not self._fancy:
 				readinfo_string = "(%d)" % (update_data['unread_count'],)
 			else:
 				readinfo_string = "(%d/%d)" % (update_data['unread_count'], len(update_data['flag_list']))
@@ -647,7 +649,7 @@ class FeedList(gobject.GObject):
 		if feed[UNREAD] > 0 and feed[FLAG] & ptvDB.F_UNVIEWED == 0:
 			feed[FLAG] += ptvDB.F_UNVIEWED
 		
-		if utils.RUNNING_HILDON:
+		if utils.RUNNING_HILDON and not self._fancy:
 			readinfo_string = "(%d)" % (feed[UNREAD],)
 		else:
 			readinfo_string = "(%d/%d)" % (feed[UNREAD], feed[TOTAL])
@@ -1045,7 +1047,12 @@ class FeedList(gobject.GObject):
 	def _on_button_press_event(self, widget, event):
 		if event.button==3: #right click
 			self.do_context_menu(widget, event)
-		elif event.button==1:
+			
+	def _on_button_release_event(self, widget, event):
+		if self.__displayed_context_menu:
+			self.__displayed_context_menu = False
+			return
+		if event.button==1:
 			self.emit('feed-clicked')
 			
 	def _get_context_menu(self, is_filter):
@@ -1107,6 +1114,9 @@ class FeedList(gobject.GObject):
 			menu.append(item)
 		
 		menu.show_all()
+		def realized(o):
+			self.__displayed_context_menu = True
+		menu.connect('realize', realized)
 		return menu
 
 	def do_context_menu(self, widget, event):

@@ -48,7 +48,6 @@ class PreferencesDialog:
 		self.limiter_hbox_widget = self.xml.get_widget("limiter_hbox")
 		
 		if utils.RUNNING_HILDON:
-			self._hildon_inited = False
 			self._hildon_chooser_button = gtk.Button("")
 			self._hildon_chooser_button.connect('clicked', self.hildon_choose_folder)
 			container = self.xml.get_widget("media_storage_container")
@@ -67,29 +66,7 @@ class PreferencesDialog:
 
 	def show(self):
 		if utils.RUNNING_HILDON:
-			if not self._hildon_inited:
-				#put in a scrolled viewport so the user can see all the prefs
-				parent = self.xml.get_widget('tab1_container2')
-				contents = self.xml.get_widget('prefs_vbox')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				
-				parent = self.xml.get_widget('tab2_container2')
-				contents = self.xml.get_widget('sync_contents')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				
-				self._hildon_inited = True
+			self._window.resize(600,200)
 			self._window.show_all()
 		elif utils.RUNNING_SUGAR:
 			self.auto_download_limiter_widget.hide()

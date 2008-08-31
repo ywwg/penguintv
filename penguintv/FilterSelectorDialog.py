@@ -76,9 +76,6 @@ class FilterSelectorDialog(gtk.Dialog):
 				
 		self._pane_position = 0
 		
-		if utils.RUNNING_HILDON:
-			self._hildon_inited = False
-		
 	def set_taglists(self, all_tags, favorite_tags):
 		self._all_tags_model.clear()
 		self._favorites_model.clear()
@@ -106,19 +103,8 @@ class FilterSelectorDialog(gtk.Dialog):
 		
 	def Show(self):
 		if utils.RUNNING_HILDON:
-			if not self._hildon_inited:
-				#put in a scrolled viewport so the user can see all the prefs
-				parent = self._xml.get_widget('container')
-				contents = self._xml.get_widget('contents')
-				scrolled = gtk.ScrolledWindow()
-				scrolled.set_size_request(650, 200)
-				scrolled.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-				viewport = gtk.Viewport()
-				contents.reparent(viewport)
-				scrolled.add(viewport)
-				parent.add(scrolled)
-				self._hildon_inited = True
 			self._all_tags_treeview.set_property('height-request', 150)
+			self.resize(600,200)
 	
 		context = self.create_pango_context()
 		style = self.get_style().copy()
