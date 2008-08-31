@@ -375,6 +375,12 @@ def my_quote(s):
 	s=string.replace(s,"&","&amp;")
 	return s
 	
+def get_hyphen():
+	if RUNNING_HILDON:
+		return "--"
+	else:
+		return "&#8211;"
+	
 def uniquer(seq, idfun=None):
 	if not seq:
 		return []
