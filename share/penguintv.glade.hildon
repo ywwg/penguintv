@@ -349,7 +349,7 @@ j@v2v.cc
     <property name="title" translatable="yes">Login Required</property>
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
     <child internal-child="vbox">
-      <widget class="GtkVBox" id="dialog-vbox1">
+      <widget class="GtkVBox" id="dialog-vbox2">
         <property name="visible">True</property>
         <child>
           <widget class="GtkVBox" id="vbox9">
@@ -459,7 +459,7 @@ j@v2v.cc
           </packing>
         </child>
         <child internal-child="action_area">
-          <widget class="GtkHButtonBox" id="dialog-action_area1">
+          <widget class="GtkHButtonBox" id="dialog-action_area2">
             <property name="visible">True</property>
             <property name="layout_style">GTK_BUTTONBOX_END</property>
             <child>
@@ -510,11 +510,11 @@ j@v2v.cc
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
-              <widget class="GtkVBox" id="tab1_container">
+              <widget class="GtkVBox" id="tab1_container1">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <child>
-                  <widget class="GtkAlignment" id="tab1_contents">
+                  <widget class="GtkAlignment" id="tab1_contents1">
                     <property name="visible">True</property>
                     <property name="left_padding">12</property>
                     <child>
@@ -526,7 +526,7 @@ j@v2v.cc
                         <property name="column_spacing">12</property>
                         <property name="row_spacing">6</property>
                         <child>
-                          <widget class="GtkEntry" id="edit_tags_widget">
+                          <widget class="GtkEntry" id="edit_tags_widget1">
                             <property name="visible">True</property>
                             <property name="can_focus">True</property>
                             <property name="invisible_char">*</property>
@@ -730,11 +730,11 @@ j@v2v.cc
               </packing>
             </child>
             <child>
-              <widget class="GtkVBox" id="tab2_container">
+              <widget class="GtkVBox" id="tab2_container1">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <child>
-                  <widget class="GtkVBox" id="tab2_contents">
+                  <widget class="GtkVBox" id="tab2_contents1">
                     <property name="visible">True</property>
                     <property name="border_width">12</property>
                     <property name="spacing">5</property>
@@ -755,7 +755,7 @@ j@v2v.cc
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkCheckButton" id="b_search">
+                      <widget class="GtkCheckButton" id="b_search1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="label" translatable="yes">Include this feed in search results</property>
@@ -772,7 +772,7 @@ j@v2v.cc
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkCheckButton" id="b_notifyupdates">
+                      <widget class="GtkCheckButton" id="b_notifyupdates1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="label" translatable="yes">Show notifications when this feed updates</property>
@@ -788,7 +788,7 @@ j@v2v.cc
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkCheckButton" id="b_noautoexpire">
+                      <widget class="GtkCheckButton" id="b_noautoexpire1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="tooltip" translatable="yes">If unchecked, media may be deleted to free up space</property>
@@ -805,7 +805,7 @@ j@v2v.cc
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkCheckButton" id="b_addnewlines">
+                      <widget class="GtkCheckButton" id="b_addnewlines1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="tooltip" translatable="yes">Convert newline characters to HTML paragraph breaks</property>
@@ -822,7 +822,7 @@ j@v2v.cc
                       </packing>
                     </child>
                     <child>
-                      <widget class="GtkCheckButton" id="b_markasread">
+                      <widget class="GtkCheckButton" id="b_markasread1">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="label" translatable="yes">Automatically mark new entries as read</property>
@@ -1100,7 +1100,7 @@ j@v2v.cc
             <property name="visible">True</property>
             <property name="layout_style">GTK_BUTTONBOX_END</property>
             <child>
-              <widget class="GtkButton" id="close_button">
+              <widget class="GtkButton" id="close_button1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
@@ -1148,7 +1148,7 @@ j@v2v.cc
           <widget class="GtkVBox" id="vbox26">
             <property name="visible">True</property>
             <child>
-              <widget class="GtkHPaned" id="hpaned">
+              <widget class="GtkHPaned" id="hpaned1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="border_width">10</property>
@@ -1506,7 +1506,7 @@ Tagged feeds will appear at the top of the list.</property>
             <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
             <property name="tab_border">0</property>
             <child>
-              <widget class="GtkVBox" id="tab1_container">
+              <widget class="GtkVBox" id="tab1_container2">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <child>
@@ -1944,7 +1944,7 @@ Tagged feeds will appear at the top of the list.</property>
               </widget>
             </child>
             <child>
-              <widget class="GtkLabel" id="label1">
+              <widget class="GtkLabel" id="label4">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <property name="label" translatable="yes">Main Options</property>
@@ -1955,7 +1955,7 @@ Tagged feeds will appear at the top of the list.</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkVBox" id="tab2_container">
+              <widget class="GtkVBox" id="tab2_container2">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <child>
@@ -2132,7 +2132,7 @@ Tagged feeds will appear at the top of the list.</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkLabel" id="label4">
+              <widget class="GtkLabel" id="label8">
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <property name="label" translatable="yes">Article Sync</property>
@@ -2157,7 +2157,7 @@ Tagged feeds will appear at the top of the list.</property>
               <placeholder/>
             </child>
             <child>
-              <widget class="GtkButton" id="button_close">
+              <widget class="GtkButton" id="button_close1">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="border_width">6</property>
@@ -2229,6 +2229,14 @@ Tagged feeds will appear at the top of the list.</property>
                     <property name="label" translatable="yes">_Favorite Tags...</property>
                     <property name="use_underline">True</property>
                     <signal name="activate" handler="on_edit_favorite_tags"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="Preferences">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Preferences...</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_preferences_activate"/>
                   </widget>
                 </child>
               </widget>
@@ -2343,7 +2351,7 @@ Tagged feeds will appear at the top of the list.</property>
                   </widget>
                 </child>
                 <child>
-                  <widget class="GtkImageMenuItem" id="download_unviewed">
+                  <widget class="GtkImageMenuItem" id="download_unviewed1">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes">Download _Unviewed Media</property>
                     <property name="use_underline">True</property>
@@ -2368,7 +2376,7 @@ Tagged feeds will appear at the top of the list.</property>
             <property name="use_underline">True</property>
             <signal name="activate" handler="on_go1_activate"/>
             <child>
-              <widget class="GtkMenu" id="go1_menu">
+              <widget class="GtkMenu" id="go1_menu1">
                 <child>
                   <widget class="GtkImageMenuItem" id="add_feed">
                     <property name="visible">True</property>
@@ -2610,80 +2618,83 @@ Tagged feeds will appear at the top of the list.</property>
           </packing>
         </child>
         <child>
-          <widget class="GtkHBox" id="filter_container">
-            <property name="visible">True</property>
-            <property name="spacing">3</property>
-            <child>
-              <widget class="GtkLabel" id="filter_label">
-                <property name="visible">True</property>
-                <property name="label" translatable="yes">Show:</property>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkEventBox" id="filter_selector_eventbox">
-                <property name="visible">True</property>
-                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                <property name="tooltip" translatable="yes">Show only feeds with this property or tag</property>
-                <child>
-                  <widget class="GtkComboBox" id="filter_selector_combo">
-                    <property name="visible">True</property>
-                    <property name="items" translatable="yes">All Feeds</property>
-                    <signal name="changed" handler="on_filter_changed"/>
-                  </widget>
-                </child>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="position">1</property>
-              </packing>
-            </child>
-            <child>
-              <widget class="GtkCheckButton" id="unread_filter">
-                <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="border_width">5</property>
-                <property name="label" translatable="yes">Hide Viewed</property>
-                <property name="use_underline">True</property>
-                <property name="response_id">0</property>
-                <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="on_unread_filter_toggled"/>
-              </widget>
-              <packing>
-                <property name="expand">False</property>
-                <property name="fill">False</property>
-                <property name="padding">6</property>
-                <property name="position">2</property>
-              </packing>
-            </child>
-          </widget>
-          <packing>
-            <property name="expand">False</property>
-            <property name="position">1</property>
-          </packing>
-        </child>
-        <child>
           <widget class="GtkHPaned" id="feed_pane">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <child>
-              <widget class="GtkScrolledWindow" id="feed_scrolled_window">
+              <widget class="GtkVBox" id="vbox2">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="shadow_type">GTK_SHADOW_IN</property>
                 <child>
-                  <widget class="GtkTreeView" id="feedlistview">
+                  <widget class="GtkHBox" id="filter_container">
+                    <property name="visible">True</property>
+                    <property name="spacing">3</property>
+                    <child>
+                      <widget class="GtkLabel" id="filter_label">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Show:</property>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkEventBox" id="filter_selector_eventbox">
+                        <property name="visible">True</property>
+                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                        <property name="tooltip" translatable="yes">Show only feeds with this property or tag</property>
+                        <child>
+                          <placeholder/>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkCheckButton" id="unread_filter">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="border_width">5</property>
+                        <property name="label" translatable="yes">Hide Viewed</property>
+                        <property name="use_underline">True</property>
+                        <property name="response_id">0</property>
+                        <property name="draw_indicator">True</property>
+                        <signal name="toggled" handler="on_unread_filter_toggled"/>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="padding">6</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                  </widget>
+                  <packing>
+                    <property name="expand">False</property>
+                  </packing>
+                </child>
+                <child>
+                  <widget class="GtkScrolledWindow" id="feed_scrolled_window">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="headers_visible">False</property>
-                    <signal name="popup_menu" handler="on_feedlistview_popup_menu"/>
-                    <signal name="drag_data_received" handler="on_feedlistview_drag_data_received"/>
+                    <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                    <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                    <property name="shadow_type">GTK_SHADOW_IN</property>
+                    <child>
+                      <widget class="GtkTreeView" id="feedlistview">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="headers_visible">False</property>
+                        <signal name="popup_menu" handler="on_feedlistview_popup_menu"/>
+                        <signal name="drag_data_received" handler="on_feedlistview_drag_data_received"/>
+                      </widget>
+                    </child>
                   </widget>
+                  <packing>
+                    <property name="position">1</property>
+                  </packing>
                 </child>
               </widget>
               <packing>
@@ -2705,7 +2716,7 @@ Tagged feeds will appear at the top of the list.</property>
             </child>
           </widget>
           <packing>
-            <property name="position">2</property>
+            <property name="position">1</property>
           </packing>
         </child>
       </widget>

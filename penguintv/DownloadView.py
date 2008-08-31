@@ -194,7 +194,7 @@ class DownloadView:
 			item        = self._downloads[current_list.index(media_id)]
 			try:
 				entry       = self._db.get_entry(item.media['entry_id'])
-				description = self._db.get_feed_title(entry['feed_id']) + " &#8211; "+ entry['title']
+				description = self._db.get_feed_title(entry['feed_id']) + " " + utils.get_hyphen() + " " + entry['title']
 				size        = utils.format_size(item.total_size)
 			except:
 				logging.warning("trouble getting entry updating downloads: %s" % str(item))

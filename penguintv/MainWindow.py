@@ -140,9 +140,13 @@ class MainWindow(gobject.GObject):
 		#most of the initialization is done on Show()
 		if utils.RUNNING_SUGAR:
 			gobject.idle_add(self.Show, window)
-
+	
 	def __link_activated_cb(self, o, link):
 		self._app.activate_link(link)
+		
+	def __feed_clicked_cb(self, o):
+		if utils.RUNNING_HILDON:
+			self.feed_pane.set_position(0)
 				
 	def __entrylistview_list_resized_cb(self, entrylistview, new_width):
 		if self.layout == "widescreen" and self.app_window is not None:			
@@ -546,8 +550,11 @@ class MainWindow(gobject.GObject):
 	def load_notebook(self):
 		self._notebook = NotebookManager()
 		self._notebook.set_property('tab-border',0)
-		label = gtk.Label(_('<span size="small">Feeds</span>'))
-		label.set_property('use-markup',True)
+		if utils.RUNNING_HILDON:
+			label = gtk.Label(_('Feeds'))
+		else:
+			label = gtk.Label(_('<span size="small">Feeds</span>'))
+			label.set_property('use-markup',True)
 		vbox = gtk.VBox()
 		self._notebook.append_page(vbox, label)
 		
@@ -558,12 +565,18 @@ class MainWindow(gobject.GObject):
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()
 			self.emit('player-show')
-		self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
-		self._player_label.set_property('use-markup',True)
+		if utils.RUNNING_HILDON:
+			self._player_label = gtk.Label(_('Player'))
+		else:
+			self._player_label = gtk.Label('<span size="small">'+_('Player')+'</span>')
+			self._player_label.set_property('use-markup',True)
 		self._notebook.append_page(p_vbox, self._player_label)
 		
-		self._downloads_label = gtk.Label(_('<span size="small">Downloads</span>'))
-		self._downloads_label.set_property('use-markup',True)
+		if utils.RUNNING_HILDON:
+			self._downloads_label = gtk.Label(_('Downloads'))
+		else:
+			self._downloads_label = gtk.Label(_('<span size="small">Downloads</span>'))
+			self._downloads_label.set_property('use-markup',True)
 		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._db, self._glade_prefix+'/penguintv.glade')
 		self._notebook.append_page(self._download_view.get_widget(), self._downloads_label)
 		
@@ -593,8 +606,10 @@ class MainWindow(gobject.GObject):
 		#dock_widget.add(self._layout_container)
 		
 		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
-		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
+		if utils.RUNNING_SUGAR:
 			fancy = False
+		elif utils.RUNNING_HILDON:
+			fancy = True
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
 		assert utils.HAS_MOZILLA
@@ -624,6 +639,7 @@ class MainWindow(gobject.GObject):
 				
 		#some more signals
 		self.feed_list_view.connect('link-activated', self.__link_activated_cb)
+		self.feed_list_view.connect('feed-clicked', self.__feed_clicked_cb)
 
 		if not self.layout.endswith("planet"):
 			self.entry_list_view.connect('entrylist-resized', self.__entrylistview_list_resized_cb)
@@ -642,16 +658,28 @@ class MainWindow(gobject.GObject):
 		
 		self._filter_container = components.get_widget('filter_container')
 		self._filter_unread_checkbox = components.get_widget('unread_filter')
-		self._filter_selector_combo = components.get_widget('filter_selector_combo')
 		self._filter_tree = gtk.TreeStore(str,      #filter displayable
 										  str,		#filter name
 										  int,      #seperator
 										  bool)     #visible
+		if utils.RUNNING_HILDON:
+			eventbox = components.get_widget('filter_selector_eventbox')
+			self._filter_selector_combo = gtk.ComboBox(self._filter_tree)
+			cell = gtk.CellRendererText()
+			cell.set_property("size-points", 24)
+			self._filter_selector_combo.pack_start(cell, True)
+			self._filter_selector_combo.add_attribute(cell, 'text', 0)
+			self._filter_selector_combo.connect('changed', self.on_filter_changed)
+			eventbox.add(self._filter_selector_combo)
+		else:
+			self._filter_selector_combo = components.get_widget('filter_selector_combo')
+		
 										  
 		filter_filter = self._filter_tree.filter_new()
 		filter_filter.set_visible_column(3)
-										  
-		self._filter_selector_combo.set_model(filter_filter)
+		
+		if not utils.RUNNING_HILDON:								  
+			self._filter_selector_combo.set_model(filter_filter)
 		self._filter_selector_combo.set_row_separator_func(lambda model,iter:model[iter][2]==1)
 		
 		self._filters = [] #text, text to display, type, tree path
@@ -689,12 +717,12 @@ class MainWindow(gobject.GObject):
 			self.entry_pane.set_position(val)
 		
 		if utils.RUNNING_HILDON:
-			f_p_default = 270
+			val = 840
 		else:
 			f_p_default = 370
-		val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', f_p_default)
-		if val < 10: val=50
-		self.feed_pane.set_position(val)
+			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', f_p_default)
+			if val < 10: val=50
+		self.feed_pane.connect('realize', self._on_feed_pane_realized, val)
 		
 		if not self.changing_layout:
 			self.set_active_filter(FeedList.ALL)
@@ -787,6 +815,9 @@ class MainWindow(gobject.GObject):
 				self.entry_pane.set_position(0)
 			else:
 				self.feed_pane.set_position(0)
+		else:
+			if self.feed_pane.get_position() > 0:
+				self.feed_pane.set_position(840)
 
 		self._notebook.set_keep_hidden(True)
 		self._widgetTree.get_widget('toolbar1').hide()
@@ -822,6 +853,9 @@ class MainWindow(gobject.GObject):
 			else:
 				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
 				self.feed_pane.set_position(val)
+		else:
+			if self.feed_pane.get_position() > 0:
+				self.feed_pane.set_position(840)
 			
 		self._notebook.set_keep_hidden(False)
 		
@@ -981,6 +1015,9 @@ class MainWindow(gobject.GObject):
 			
 	def on_export_opml_activate(self, event):
 		self._app.export_opml()
+		
+	def _on_feed_pane_realized(self, widget, val):
+		widget.set_position(val)
 		
 	def on_feedlistview_drag_data_received(self, widget, context, x, y, selection, targetType, time):
 		widget.emit_stop_by_name('drag-data-received')
@@ -1175,6 +1212,8 @@ class MainWindow(gobject.GObject):
 			elif keyname == 'F8':
 				if self._gstreamer_player is not None:
 					self._gstreamer_player.vol_down()
+			elif keyname == 'Escape':
+				self.feed_pane.set_position(840)
 		else: #regular desktop version..
 			if keyname == 'F11':
 				self.toggle_fullscreen()
@@ -1255,7 +1294,10 @@ class MainWindow(gobject.GObject):
 		#		player.play()
 		#	except:
 		#		pass #fails while loading
-		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
+		if utils.RUNNING_HILDON:
+			self._player_label.set_markup(_('Player (%d)') % player.get_queue_count())
+		else:
+			self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		#if self._state != S_MAJOR_DB_OPERATION:
 		#	tip = tooltips(self._player_label)
 		#	tip.display_notification("title", "text")
@@ -1265,7 +1307,10 @@ class MainWindow(gobject.GObject):
 			self._notebook.hide_page(N_PLAYER)
 			self.emit('player-hide')
 			player.stop()
-		self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
+		if utils.RUNNING_HILDON:
+			self._player_label.set_markup(_('Player (%d)') % player.get_queue_count())
+		else:
+			self._player_label.set_markup(_('<span size="small">Player (%d)</span>') % player.get_queue_count())
 		
 	def on_preferences_activate(self, event):
 		self._app.window_preferences.show()
@@ -1392,7 +1437,7 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.remove(self._layout_container)
 		
 		self._layout_dock.add(self.load_layout())
-		self.entry_view.post_show_init()#**#
+		self.entry_view.post_show_init()
 		if self.layout.endswith("planet"):
 			self._menu_widgettree.get_widget('entry_menu_item').hide()
 			self._menu_widgettree.get_widget('showkept_cb').show()
@@ -1717,7 +1762,10 @@ class MainWindow(gobject.GObject):
 		if number == 0:
 			self._notebook.hide_page(N_DOWNLOADS)
 		else:
-			self._downloads_label.set_markup(_('<span size="small">Downloads (%d)</span>') % number)
+			if utils.RUNNING_HILDON:
+				self._downloads_label.set_markup(_('Downloads (%d)') % number)
+			else:
+				self._downloads_label.set_markup(_('<span size="small">Downloads (%d)</span>') % number)
 			self._notebook.show_page(N_DOWNLOADS)
 				
 	def desensitize(self):

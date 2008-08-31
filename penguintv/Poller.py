@@ -18,7 +18,11 @@ if RUNNING_HILDON:
 	socket.setdefaulttimeout(15.0)
 else:
 	socket.setdefaulttimeout(5.0)
-logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.WARNING)
+
+try:
+	logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.WARNING)
+except:
+	pass
 
 import dbus
 import dbus.service

@@ -58,6 +58,9 @@ class FeedList(gobject.GObject):
 		'feed-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT])),
+        'feed-clicked': (gobject.SIGNAL_RUN_FIRST, 
+                           gobject.TYPE_NONE, 
+                           ([])),
 		'search-feed-selected': (gobject.SIGNAL_RUN_FIRST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_INT])),                  
@@ -185,8 +188,10 @@ class FeedList(gobject.GObject):
 		
 		#init style
 		if self._fancy:
-			if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
+			if utils.RUNNING_SUGAR:
 				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_SMALL_TOOLBAR)
+			elif utils.RUNNING_HILDON:
+				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_BUTTON)
 			else:
 				self._icon_renderer.set_property('stock-size',gtk.ICON_SIZE_LARGE_TOOLBAR)
 			self._widget.set_property('rules-hint', True)
@@ -252,7 +257,7 @@ class FeedList(gobject.GObject):
 			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title,url in db_feedlist:
 				if utils.RUNNING_HILDON:
-					title_m = '<span size="x-small">%s</span>' % title 	 
+					title_m = '<span size="large">%s</span>' % title 	 
 				elif self._fancy:
 					title_m = title+"\n"
 				else:
@@ -370,7 +375,11 @@ class FeedList(gobject.GObject):
 						m_details_loaded = True
 					else:
 						m_details_loaded = False
-				m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id) #, 
+				if utils.RUNNING_HILDON:
+					m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id , 
+								    64, 64, MIN_SIZE, MIN_SIZE)	
+				else:
+					m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id) #, 
 								    #MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 				model, iter = selection.get_selected()
 				try: sel = model[iter][FEEDID]
@@ -514,7 +523,11 @@ class FeedList(gobject.GObject):
 			flag = self._pick_important_flag(feed_id, update_data['flag_list'])				
 
 		if 'image' in update_what and self._fancy:
-			feed[PIXBUF] = self._icon_manager.get_icon_pixbuf(feed_id) #, 
+			if utils.RUNNING_HILDON:
+				feed[PIXBUF] = self._icon_manager.get_icon_pixbuf(feed_id, 
+							64, 64, MIN_SIZE, MIN_SIZE)
+			else:
+				feed[PIXBUF] = self._icon_manager.get_icon_pixbuf(feed_id) #, 
 							#MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 			
 		if 'readinfo' in update_what:
@@ -1032,6 +1045,8 @@ class FeedList(gobject.GObject):
 	def _on_button_press_event(self, widget, event):
 		if event.button==3: #right click
 			self.do_context_menu(widget, event)
+		elif event.button==1:
+			self.emit('feed-clicked')
 			
 	def _get_context_menu(self, is_filter):
 		menu = gtk.Menu()
@@ -1123,7 +1138,7 @@ class FeedList(gobject.GObject):
 		if utils.RUNNING_SUGAR:
 			title='<span size="x-small">'+title+'</span>'
 		elif utils.RUNNING_HILDON:
-			title='<span size="x-small">'+title+'</span>'
+			title='<span size="large">'+title+'</span>'
 		try:
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 					title="<b>"+utils.my_quote(title)+"</b>"
@@ -1143,10 +1158,18 @@ class FeedList(gobject.GObject):
 		if not title:
 			return _("Please wait...")
 		try:
-			if not selected:
-				title = utils.my_quote(title)+'\n<span color="#777777" size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
+			if utils.RUNNING_HILDON:
+				if not selected:
+					title = '<span size="large">'+utils.my_quote(title)+'</span>\n<span color="#777777"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
+				else:
+					title = '<span size="large">'+utils.my_quote(title)+'</span>\n<span><i>'+utils.my_quote(first_entry_title)+'</i></span>'
 			else:
-				title = utils.my_quote(title)+'\n<span size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
+				if not selected:
+					title = utils.my_quote(title)+'\n<span color="#777777" size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'
+				else:
+					title = utils.my_quote(title)+'\n<span size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'	
+			
+				
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 				if unread == 0:
 					logging.warning("Flag says there are unviewed, but count says no.  not setting bold")

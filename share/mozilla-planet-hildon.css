@@ -1,7 +1,7 @@
 body {
         margin-left: 2px;
         margin-right: 2px;
-        font-size: medium;
+        font-size: large;
 }
 
 .heading { 
@@ -13,7 +13,7 @@ body {
 }
 
 .feed_title {
-        font-size: x-large;
+        font-size: xx-large;
         font-weight: bold;
         text-align: center;
         padding: 6px;
@@ -40,13 +40,13 @@ body {
 }
 
 .stitle {
-	font-size: large; 
+	font-size: x-large; 
 	font-weight:bold; 
 	padding-bottom:20px;
 }
 
 .sdate {
-	font-size:8pt; 
+	font-size:12pt; 
 	color: #444;
 	font-style: italic;
 }

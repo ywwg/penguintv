@@ -69,7 +69,7 @@ class PreferencesDialog:
 		if utils.RUNNING_HILDON:
 			if not self._hildon_inited:
 				#put in a scrolled viewport so the user can see all the prefs
-				parent = self.xml.get_widget('tab1_container')
+				parent = self.xml.get_widget('tab1_container2')
 				contents = self.xml.get_widget('prefs_vbox')
 				scrolled = gtk.ScrolledWindow()
 				scrolled.set_size_request(650, 200)
@@ -79,7 +79,7 @@ class PreferencesDialog:
 				scrolled.add(viewport)
 				parent.add(scrolled)
 				
-				parent = self.xml.get_widget('tab2_container')
+				parent = self.xml.get_widget('tab2_container2')
 				contents = self.xml.get_widget('sync_contents')
 				scrolled = gtk.ScrolledWindow()
 				scrolled.set_size_request(650, 200)

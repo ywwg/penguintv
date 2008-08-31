@@ -548,11 +548,17 @@ class PlanetView(gobject.GObject):
 					<tbody>
 					<tr><td>""")
 		if self._first_entry > 0:
-			html.append(_('<a href="planet:up">Newer Entries</a>'))
+			if utils.RUNNING_HILDON:
+				html.append(_('<a href="planet:up" style="text-size: 20pt">Newer Entries</a>'))
+			else:
+				html.append(_('<a href="planet:up">Newer Entries</a>'))
 		
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
-			html.append(_('<a href="planet:down">Older Entries</a>'))
+			if utils.RUNNING_HILDON:
+				html.append(_('<a href="planet:down" style="text-size: 20pt">Older Entries</a>'))
+			else:
+				html.append(_('<a href="planet:down">Older Entries</a>'))
 			
 		html.append("</td></tr></tbody></table></div>")
 		
@@ -566,10 +572,16 @@ class PlanetView(gobject.GObject):
 					<tbody>
 					<tr><td>""")
 		if self._first_entry > 0:
-			html.append(_('<a href="planet:up">Newer Entries</a>'))
+			if utils.RUNNING_HILDON:
+				html.append(_('<a href="planet:up" style="text-size: 20pt">Newer Entries</a>'))
+			else:
+				html.append(_('<a href="planet:up">Newer Entries</a>'))
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
-			html.append(_('<a href="planet:down">Older Entries</a>'))
+			if utils.RUNNING_HILDON:
+				html.append(_('<a href="planet:down" style="text-size: 20pt">Older Entries</a>'))
+			else:
+				html.append(_('<a href="planet:down">Older Entries</a>'))
 		html.append("</td></tr></tbody></table></div>")
 		html.append("</body></html>")
 		
