@@ -180,9 +180,17 @@ data_files       = [('share/penguintv',		['share/penguintv.glade','share/default
 data_files += locales
 					
 if utils.RUNNING_HILDON:
-	data_files += [('share/applications/hildon/',['penguintv-hildon.desktop'])]
+	data_files += [('share/applications/hildon/',['penguintv-hildon.desktop']),
+					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
+					('share/icons/hicolor/64x64/hildon', ['share/pixmaps/64x64/penguintvicon.png']),
+					('share/icons/hicolor/40x40/hildon', ['share/pixmaps/40x40/penguintvicon.png']),
+					('share/icons/hicolor/26x26/hildon', ['share/pixmaps/26x26/penguintvicon.png'])]
 else:
-	data_files.append(('share/applications',	['penguintv.desktop']))
+	data_files += [('share/applications',	['penguintv.desktop']),
+					('share/icons/hicolor/scalable/apps', ['share/penguintvicon.png']),
+					('share/icons/hicolor/64x64/apps', ['share/pixmaps/64x64/penguintvicon.png']),
+					('share/icons/hicolor/40x40/apps', ['share/pixmaps/40x40/penguintvicon.png']),
+					('share/icons/hicolor/26x26/apps', ['share/pixmaps/26x26/penguintvicon.png'])]
 
 setup(name = "PenguinTV", 
 version = utils.VERSION,

@@ -1,0 +1,5 @@
+#!/bin/sh
+/usr/bin/maemo-select-menu-location penguintv-hildon.desktop Internet
+gtk-update-icon-cache -f /usr/share/icons/hicolor
+exit 0
+
