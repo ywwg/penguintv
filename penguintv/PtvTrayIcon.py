@@ -219,22 +219,8 @@ class PtvTrayIcon:
 		return playitem, pauseitem
 		
 	def __play_cb(self, obj):
-		def _expose_check_generator():
-			"""Wait for player to become exposed, then play"""
-			for i in range(0,10):
-				if self._app.player.internal_player_exposed():
-					self._app.player.control_internal("play")
-					yield True
-					break
-				yield False
-			yield False
-
 		if self._app.player.using_internal_player():
-			if not self._app.player.internal_player_exposed():
-				self._app.main_window.notebook_select_page(MainWindow.N_PLAYER)
-				gobject.timeout_add(200, _expose_check_generator().next)
-			else:
-				self._app.player.control_internal("play")
+			self._app.player.control_internal("play")
 			
 	def __pause_cb(self, obj):
 		if self._app.player.using_internal_player():

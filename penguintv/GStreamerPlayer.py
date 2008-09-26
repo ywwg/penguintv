@@ -25,7 +25,7 @@ import gettext
 import logging
 logging.basicConfig(level=logging.DEBUG)
 
-locale.setlocale(locale.LC_ALL, '')
+#locale.setlocale(locale.LC_ALL, '')
 _=gettext.gettext
 
 if os.environ.has_key('SUGAR_PENGUINTV'):

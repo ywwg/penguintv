@@ -33,7 +33,7 @@ except:
 
 from subprocess import Popen, PIPE, STDOUT
 
-locale.setlocale(locale.LC_ALL, '')
+#locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')

@@ -1,4 +1,7 @@
 #!/usr/bin/env python2.5
+
+# this file is for building a maemo deb file ONLY
+
 import glob
 import os, os.path
 import sys

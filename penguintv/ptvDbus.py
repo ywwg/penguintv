@@ -48,3 +48,38 @@ class ptvDbus(dbus.service.Object):
 		if self._app.is_exiting():
 			return False
 		return True
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def Play(self):
+		if self._app.is_exiting():
+			return False
+		self._app.player.control_internal("play")
+		return True
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def Pause(self):
+		if self._app.is_exiting():
+			return False
+		self._app.player.control_internal("pause")
+		return True
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def Next(self):
+		if self._app.is_exiting():
+			return False
+		self._app.player.control_internal("next")
+		return True
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def Prev(self):
+		if self._app.is_exiting():
+			return False
+		self._app.player.control_internal("prev")
+		return True
+		
+	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
+	def PlayPause(self):
+		if self._app.is_exiting():
+			return False
+		self._app.player.control_internal("playpause")
+		return True

@@ -64,7 +64,7 @@ try:
 except:
 	HAS_DBUS = False
 
-locale.setlocale(locale.LC_ALL, '')
+#locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
@@ -178,6 +178,7 @@ class PenguinTVApp(gobject.GObject):
 				remote_object = bus.get_object("com.ywwg.PenguinTV", "/PtvApp")
 				remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
 				if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv4.db"):
+					#shouldn't happen if this file is run with __main__
 					raise AlreadyRunning, remote_app
 			#initialize dbus object
 			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
@@ -264,7 +265,7 @@ class PenguinTVApp(gobject.GObject):
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
 		gst_player = self.main_window.get_gst_player()
-		self.player = Player.Player(gst_player)
+		self.player = Player.Player(self, gst_player)
 		if gst_player is not None:
 			gst_player.connect('item-not-supported', self._on_item_not_supported)
 			gst_player.connect('tick', self._on_gst_tick)
@@ -2536,6 +2537,11 @@ def usage():
 	print "penguintv command line options:"
 	print "   -o [filename]     Import an OPML file"
 	print "   -u [filename]     Add an RSS url"
+	print "   --play            Tell the media player to play"
+	print "   --pause           Tell the media player to pause"
+	print "   --playpause       Toggle between playing and pausing"
+	print "   --prev            Go to the previous track"
+	print "   --next            Go to the next track"
 	print "   [filename]        (alternate) Import an RSS url"
 	print "   -h | --help       This explanation"
 		
@@ -2543,7 +2549,7 @@ def do_commandline(remote_app=None, local_app=None):
 	assert remote_app is not None or local_app is not None
 
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help"])
+		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help","play","pause","prev","next","playpause"])
 	except getopt.GetoptError:
 		# print help information and exit:
 		usage()
@@ -2564,6 +2570,21 @@ def do_commandline(remote_app=None, local_app=None):
 					remote_app.AddFeed(a)
 				else:
 					local_app.add_feed(a, a)
+			elif o == '--play':
+				if remote_app is not None:
+					remote_app.Play()
+			elif o == '--pause':
+				if remote_app is not None:
+					remote_app.Pause()
+			elif o == '--next':
+				if remote_app is not None:
+					remote_app.Next()
+			elif o == '--prev':
+				if remote_app is not None:
+					remote_app.Prev()
+			elif o == '--playpause':
+				if remote_app is not None:
+					remote_app.PlayPause()
 				
 	if len(opts) == 0 and len(sys.argv) > 1:
 		if local_app is None:
@@ -2574,41 +2595,8 @@ def do_commandline(remote_app=None, local_app=None):
 	if len(opts) == 0 and len(sys.argv) == 1 and local_app is None:
 		usage()
 
-#def main():
-#	gtk.gdk.threads_init()
-#	gtk.window_set_auto_startup_notification(True)
-#	if HAS_GNOME:
-#		gnome.init("PenguinTV", utils.VERSION)
-#	try:
-#		app = PenguinTVApp()    # Instancing of the GUI
-#	except AlreadyRunning, e:
-#		do_commandline(remote_app=e.remote_app)
-#		sys.exit(0)
-#	
-#	app.main_window.Show() 
-#	## load-time testing
-#	#sys.exit(0)
-#	if utils.is_kde():
-#		try:
-#			from kdecore import KApplication, KCmdLineArgs, KAboutData
-#
-#			description = "test kde"
-#			version     = "1.0"
-#			aboutData   = KAboutData ("", "",\
-#			    version, description, KAboutData.License_GPL,\
-#			    "(C) 2004-2008 Owen Williams")
-#			KCmdLineArgs.init (sys.argv, aboutData)
-#			app = KApplication ()
-#			
-#		except:
-#			logging.error("Unable to initialize KDE")
-#			sys.exit(1)	
-#	do_commandline(local_app=app)
-#	gtk.main() 
-
 def do_quit(event, app):
 	app.do_quit()
-	
 	
 setup_success = True
 def setup_database():
@@ -2741,11 +2729,22 @@ to prevent crashes."""
 		sys.exit(1)
 		
 	gtk.gdk.threads_init()
+	
+	if HAS_DBUS:
+		bus = dbus.SessionBus()
+		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
+		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
+		if dubus_methods.NameHasOwner('com.ywwg.PenguinTV'):
+			remote_object = bus.get_object("com.ywwg.PenguinTV", "/PtvApp")
+			remote_app = dbus.Interface(remote_object, "com.ywwg.PenguinTV.AppInterface")
+			if remote_app.GetDatabaseName() == os.path.join(utils.get_home(), "penguintv4.db"):
+				do_commandline(remote_app=remote_app)
+				sys.exit(0)
 		
 	if not setup_database():
 		logging.error("Error initializing database")
 		sys.exit(1)
-	
+		
 	if HAS_GNOME:
 		logging.info("Have GNOME")
 		
@@ -2754,7 +2753,7 @@ to prevent crashes."""
 		try:
 			app = PenguinTVApp()    # Instancing of the GUI
 		except AlreadyRunning, e:
-			logging.info("PenguinTV is already running, executing command line only")
+			logging.info("PenguinTV is already running, why didn't we catch it?")
 			do_commandline(remote_app=e.remote_app)
 			sys.exit(0)
 		

@@ -1179,7 +1179,6 @@ class FeedList(gobject.GObject):
 				else:
 					title = utils.my_quote(title)+'\n<span size="x-small"><i>'+utils.my_quote(first_entry_title)+'</i></span>'	
 			
-				
 			if flag & ptvDB.F_UNVIEWED == ptvDB.F_UNVIEWED:
 				if unread == 0:
 					logging.warning("Flag says there are unviewed, but count says no.  not setting bold")

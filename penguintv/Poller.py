@@ -32,12 +32,12 @@ import gobject
 	
 import ptvDB
 
-logging.debug("poller startup")
 DBusGMainLoop(set_as_default=True)
 
 class Poller(dbus.service.Object):
 	def __init__(self, remote_app, mainloop, bus, object_path="/PtvPoller"):
 		dbus.service.Object.__init__(self, bus, object_path)
+		logging.debug("poller startup")
 		self._remote_app = remote_app
 		
 		self._db = ptvDB.ptvDB(self._polling_cb)

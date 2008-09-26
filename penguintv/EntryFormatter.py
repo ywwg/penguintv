@@ -273,7 +273,7 @@ class HTMLHighlightParser(HTMLParser.HTMLParser):
 		HTMLParser.HTMLParser.__init__(self)
 		highlight_terms = highlight_terms.replace('"','')
 		highlight_terms = highlight_terms.replace("'",'')
-		self.terms = [a.upper() for a in highlight_terms.split() if len(a)>2]
+		self.terms = [a.upper() for a in highlight_terms.split() if len(a)>2 and a.upper() not in ['AND','NOT']]
 		self.new_data = ""
 		self.style_start="""<span style="background-color: #ffff00">"""
 		self.style_end  ="</span>"

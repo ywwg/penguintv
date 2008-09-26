@@ -7,9 +7,12 @@ import os, os.path
 import urllib
 import logging
 from types import *
+from MainWindow import N_PLAYER
+import gobject
 
 class Player:
-	def __init__(self, gst_player=None):
+	def __init__(self, app, gst_player=None):
+		self._app = app
 		self._gst_player = gst_player
 		self.cmdline = 'totem --enqueue'
 		if utils.RUNNING_SUGAR:
@@ -45,10 +48,33 @@ class Player:
 		
 	def control_internal(self, action):
 		assert self.using_internal_player()
+		
+		def _expose_check_generator(q_action):
+			"""Wait for player to become exposed, then play"""
+			for i in range(0,10):
+				if self.internal_player_exposed():
+					self.control_internal(q_action)
+					yield True
+					break
+				yield False
+			yield False
+
+		if self.using_internal_player():
+			if not self.internal_player_exposed():
+				self._app.main_window.notebook_select_page(N_PLAYER)
+				gobject.timeout_add(200, _expose_check_generator(action).next)
+				return
+		
 		if action == "play":
 			self._gst_player.play()
 		elif action == "pause":
 			self._gst_player.pause()
+		elif action == "next":
+			self._gst_player.next()
+		elif action == "prev":
+			self._gst_player.prev()
+		elif action == "playpause":
+			self._gst_player.play_pause_toggle()
 		else:
 			print "unhandled action:",action
 		

@@ -29,7 +29,7 @@ import sha
 import socket
 socket.setdefaulttimeout(30.0)
 
-locale.setlocale(locale.LC_ALL, '')
+#locale.setlocale(locale.LC_ALL, '')
 gettext.install('penguintv', '/usr/share/locale')
 gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
