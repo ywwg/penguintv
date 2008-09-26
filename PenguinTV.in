@@ -5,42 +5,40 @@
 # GNU General Public License, version 2 or later
 #
 
-MOZ_LIB_DIR="##MOZ_LIB_DIR##"
+
+# run-moz code from Conduit (thanks!)
+
+## Work around https://bugs.launchpad.net/ubuntu/+source/firefox/+bug/26436
+## Note: This bug is also present in Mandriva and Fedora, for this reason, 
+## We will use run-mozilla in all cases
+##
+## Run mozilla takes care of settin up the appropriate environment variables
+## to run a program using mozilla libs
+
 
 HILDON=0
+RUNMOZ_DIR=""
 if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
 	HILDON=1
 	echo "Launching Hildon version"
 	export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
 	export LD_LIBRARY_PATH="/usr/lib/microb-engine"
 else
-	have_home=0
-	if [ x$MOZILLA_FIVE_HOME != "x" ] ; then
-		if [ -d $MOZILLA_FIVE_HOME ] ; then
-			echo "Using existing MOZILLA_FIVE_HOME: $MOZILLA_FIVE_HOME"
-			export LD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
-			have_home=1
-		else
-			echo "MOZILLA_FIVE_HOME set but invalid: $MOZILLA_FIVE_HOME"
-		fi
-	fi
-	
-	if [ $have_home -eq 0 ] ; then
-		home="$MOZ_LIB_DIR"
-		if [ ! -d $home ] ; then
-			echo "Thought mozilla was in $home, but path doesn't exist"
-			echo "Error finding MOZILLA_FIVE_HOME, please set it yourself"
-			exit 1
-		fi
-		echo Found gtkmozembed in $home
-		export MOZILLA_FIVE_HOME=$home
-		export LD_LIBRARY_PATH=$home
+	if [ "$WITH_MOZ_DIR"x = "x" ] ; then
+		for d in `ls -d  /usr/lib*/firefox* /usr/lib*/mozilla-firefox* /usr/lib*/xulrunner* 2> /dev/null | grep -v addons | grep -v devel | sort -r`
+		do
+			if [ -x $d/run-mozilla.sh ]; then
+			    echo INFO: FOUND FIREFOX LIBS AT $d
+			    WITH_MOZ_DIR="$d"
+			    break
+			fi
+		done
 	fi
 fi
-
+	
 rundir=`dirname $0`
 cd $rundir
-
+	
 if [ -f "./penguintv/penguintv.py" ] ; then
 	ptv_home="./penguintv"
 elif [ -f "../penguintv/penguintv.py" ] ; then
@@ -85,5 +83,12 @@ if [ $HILDON -eq 1 ] ; then
 else
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	/usr/bin/env python ./penguintv.py $*
+	if [ $WITH_MOZ_DIR = "" ] ; then
+		echo "WARNING: COULD NOT FIND FIREFOX LIBRARIES"
+		echo "WARNING: CONDUIT MAY CRASH UNEXPECTEDLY"
+		echo "Please export WITH_MOZ_DIR with the location of run-mozilla.sh to correct this issue"
+		/usr/bin/env python ./penguintv.py $*
+	else
+		$WITH_MOZ_DIR/run-mozilla.sh /usr/bin/env python ./penguintv.py $*
+	fi
 fi
