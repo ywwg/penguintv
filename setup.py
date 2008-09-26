@@ -92,46 +92,46 @@ except:
 #except:
 #	missing_something.append("Need python-xml")
 
-moz_lib_dir = ""
-if os.environ.has_key('MOZILLA_FIVE_HOME'):
-	moz_lib_dir = os.environ['MOZILLA_FIVE_HOME']
-else:
-	for moz in ("xulrunner-gtkmozembed", "firefox-gtkmozembed", "mozilla-gtkmozembed"):
-		sp = my_subProcess.subProcess("pkg-config --silence-errors --libs-only-L %s | sed 's/ //g'" % moz)
-		lib_dir = sp.read()
-		if lib_dir != 0:
-			lib_dir = lib_dir.replace("-L", "")
-			try:
-				os.stat(lib_dir)
-				moz_lib_dir = lib_dir
-				break
-			except:
-				pass
-				
-if moz_lib_dir == "":
-	if os.path.isfile("/usr/lib/libgtkembedmoz.so.0") and \
-	   os.path.isdir("/usr/lib/microb-engine"):
-		moz_lib_dir = "/usr/lib/microb-engine"
-
-if moz_lib_dir == "":
-	cmd = "ldd " + gtkmozembed.__file__ + "|grep libgtkembedmoz"
-	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	retval = p.wait()
-	stderr = p.stderr.read()
-	if retval == 0:
-		line = p.stdout.read()
-		lib_dir = line[line.find("/"):line.rfind("libgtkembedmoz.so")]
-		try:
-			os.stat(lib_dir)
-			moz_lib_dir = lib_dir
-		except:
-			pass
-				
-if moz_lib_dir == "":
-	print "Couldn't locate mozilla home.  Please set MOZILLA_FIVE_HOME and run setup again"
-	sys.exit(1)
-else:
-	print "Setting default MOZILLA_FIVE_HOME to", moz_lib_dir
+#moz_lib_dir = ""
+#if os.environ.has_key('MOZILLA_FIVE_HOME'):
+#	moz_lib_dir = os.environ['MOZILLA_FIVE_HOME']
+#else:
+#	for moz in ("xulrunner-gtkmozembed", "firefox-gtkmozembed", "mozilla-gtkmozembed"):
+#		sp = my_subProcess.subProcess("pkg-config --silence-errors --libs-only-L %s | sed 's/ //g'" % moz)
+#		lib_dir = sp.read()
+#		if lib_dir != 0:
+#			lib_dir = lib_dir.replace("-L", "")
+#			try:
+#				os.stat(lib_dir)
+#				moz_lib_dir = lib_dir
+#				break
+#			except:
+#				pass
+#				
+#if moz_lib_dir == "":
+#	if os.path.isfile("/usr/lib/libgtkembedmoz.so.0") and \
+#	   os.path.isdir("/usr/lib/microb-engine"):
+#		moz_lib_dir = "/usr/lib/microb-engine"
+#
+#if moz_lib_dir == "":
+#	cmd = "ldd " + gtkmozembed.__file__ + "|grep libgtkembedmoz"
+#	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#	retval = p.wait()
+#	stderr = p.stderr.read()
+#	if retval == 0:
+#		line = p.stdout.read()
+#		lib_dir = line[line.find("/"):line.rfind("libgtkembedmoz.so")]
+#		try:
+#			os.stat(lib_dir)
+#			moz_lib_dir = lib_dir
+#		except:
+#			pass
+#				
+#if moz_lib_dir == "":
+#	print "Couldn't locate mozilla home.  Please set MOZILLA_FIVE_HOME and run setup again"
+#	sys.exit(1)
+#else:
+#	print "Setting default MOZILLA_FIVE_HOME to", moz_lib_dir
 	
 code = subprocess.call(["which","msgfmt"])
 if code != 0:
@@ -151,7 +151,8 @@ except:
 f = open("PenguinTV.in", "r")
 f2 = open("./bin/PenguinTV", "w")
 for line in f.readlines():
-	f2.write(line.replace("##MOZ_LIB_DIR##", moz_lib_dir))
+	#f2.write(line.replace("##MOZ_LIB_DIR##", moz_lib_dir))
+	f2.write(line)
 f2.close()
 f.close()
 os.chmod("./bin/PenguinTV", 0775)
