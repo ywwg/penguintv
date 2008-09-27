@@ -176,6 +176,10 @@ if "build" in sys.argv or "install" in sys.argv:
 
 data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
 					('share/pixmaps',		['share/penguintvicon.png']),
+					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
+					('share/icons/hicolor/64x64/hildon', ['share/pixmaps/64x64/penguintvicon.png']),
+					('share/icons/hicolor/40x40/hildon', ['share/pixmaps/40x40/penguintvicon.png']),
+					('share/icons/hicolor/26x26/hildon', ['share/pixmaps/26x26/penguintvicon.png']),
 					('share/penguintv/pixmaps', ['share/pixmaps/ev_online.png', 'share/pixmaps/ev_offline.png', 'share/pixmaps/throbber.gif']),
 					('share/dbus-1/services', ['share/penguintv.service'])]
 data_files += locales
