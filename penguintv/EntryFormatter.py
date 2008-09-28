@@ -72,8 +72,8 @@ class EntryFormatter:
 			#ret.append('</div>')
 
 		if item.has_key('media'):
-			if item['media'] is not None:
-				for medium in item['media'].sort():
+			item['media'].sort()
+				for medium in item['media']:
 					ret += self.htmlify_media(medium)
 		ret.append('<div class="content">')
 		if item.has_key('description'):
