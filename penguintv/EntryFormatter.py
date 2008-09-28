@@ -73,8 +73,8 @@ class EntryFormatter:
 
 		if item.has_key('media'):
 			item['media'].sort()
-				for medium in item['media']:
-					ret += self.htmlify_media(medium)
+			for medium in item['media']:
+				ret += self.htmlify_media(medium)
 		ret.append('<div class="content">')
 		if item.has_key('description'):
 			if convert_newlines:
