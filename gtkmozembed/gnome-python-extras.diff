@@ -1,0 +1,74 @@
+--- configure.ac	2007-06-05 11:03:21.000000000 -0400
++++ configure.ac.mine	2008-01-09 12:05:00.000000000 -0500
+@@ -17,6 +17,7 @@
+ m4_define(gnome_python_required_version,      2.10.0)
+ m4_define(gtkhtml2_required_version,          2.3.1)
+ m4_define(mozilla_required_version,           1.2b)
++m4_define(gtkembedmoz_required_version,       0.10)
+ m4_define(firefox_required_version,           1.0)
+ m4_define(xulrunner_required_version,         1.8)
+ m4_define(libgda_required_version,            2.99.6)
+@@ -136,7 +137,8 @@
+ dnl should we build the gtkmozembed module?
+ build_gtkmozembed=false
+ AC_ARG_WITH(gtkmozembed, AS_HELP_STRING(
+-                         [--with-gtkmozembed=mozilla|firefox|xulrunner],
++                         
++[--with-gtkmozembed=mozilla-gtkmozembed|firefox-gtkmozembed|xulrunner-gtkmozembed|gtkembedmoz],
+                          [package that provides libgtkmozembed]),
+             [mozpackage=$withval], [mozpackage=any])
+ 
+@@ -144,29 +146,36 @@
+ 
+ PKG_CHECK_MODULES(GTKMOZEMBED, [xulrunner-gtkmozembed >= xulrunner_required_version
+                                 gtk+-2.0              >= gtk_required_version],
+-  [build_gtkmozembed=true; mozpackage=xulrunner],
++  [build_gtkmozembed=true; mozpackage=xulrunner-gtkmozembed],
+   [
+ PKG_CHECK_MODULES(GTKMOZEMBED, [firefox-gtkmozembed >= firefox_required_version
+                                 gtk+-2.0            >= gtk_required_version],
+-  [build_gtkmozembed=true; mozpackage=firefox],
++  [build_gtkmozembed=true; mozpackage=firefox-gtkmozembed],
+   [
+ PKG_CHECK_MODULES(GTKMOZEMBED, [mozilla-gtkmozembed >= mozilla_required_version
+                                 gtk+-2.0            >= gtk_required_version],
+-  [build_gtkmozembed=true; mozpackage=mozilla],
++  [build_gtkmozembed=true; mozpackage=mozilla-gtkmozembed],
++  [
++PKG_CHECK_MODULES(GTKMOZEMBED, [gtkembedmoz >= gtkmozembed_required_version
++                                gtk+-2.0            >= gtk_required_version],
++  [build_gtkmozembed=true; mozpackage=gtkembedmoz],
+   build_gtkmozembed=false)
+   ])
+   ])
++  ])
+ 
+ else
+ 
+ case $mozpackage in
+-     xulrunner) mozpackage_required_version=xulrunner_required_version ;;
+-     firefox) mozpackage_required_version=firefox_required_version ;;
+-     mozilla) mozpackage_required_version=mozilla_required_version ;;
+-     *) AC_MSG_ERROR([--with-gtkmozembed argument must be either 'mozilla', 'firefox', or 'xulrunner'])
++     xulrunner-gtkmozembed) mozpackage_required_version=xulrunner_required_version ;;
++     firefox-gtkmozembed) mozpackage_required_version=firefox_required_version ;;
++     mozilla-gtkmozembed) mozpackage_required_version=mozilla_required_version ;;
++     gtkembedmoz) mozpackage_required_version=gtkembedmoz_required_version ;;
++     *) AC_MSG_ERROR([--with-gtkmozembed argument must be either 'mozilla', 'firefox', 
++'xulrunner', or 'gtkembedmoz'])
+ esac
+ 
+-PKG_CHECK_MODULES(GTKMOZEMBED, [$mozpackage-gtkmozembed >= $mozpackage_required_version,
++PKG_CHECK_MODULES(GTKMOZEMBED, [$mozpackage >= $mozpackage_required_version,
+                                 gtk+-2.0                >= gtk_required_version],
+   build_gtkmozembed=true,
+   build_gtkmozembed=false)
+@@ -177,7 +186,7 @@
+ if test -n "$export_dynamic"; then
+   GTKMOZEMBED_LIBS=`echo $GTKMOZEMBED_LIBS | sed -e "s/$export_dynamic//"`
+ fi
+-MOZILLA_HOME="`$PKG_CONFIG --variable=libdir $mozpackage-gtkmozembed`"
++MOZILLA_HOME="`$PKG_CONFIG --variable=libdir $mozpackage`"
+ AC_SUBST(MOZILLA_HOME)
+ 
+ 

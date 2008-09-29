@@ -13,7 +13,7 @@ from subprocess import Popen, PIPE, STDOUT
 import packaging.py2deb as py2deb
 
 __modname__ = "penguintv"
-__version__ = "3.7"
+__version__ = "3.8"
 __build__ = "1" # Result is "0.5.8-1"
 
 PREFIX="/usr/"
@@ -33,7 +33,7 @@ p=py2deb.Py2deb(__modname__)
 p.description="A full-featured RSS reader with built-in podcast support"
 p.author="Owen Williams"
 p.mail="owen-maemo@ywwg.com"
-p.depends = "python2.5, python2.5-pycurl, python2.5-xml, gconf2, python2.5-gnome, python2.5-gobject, python2.5-gtk2, python2.5-gstreamer, python2.5-gnome-extras, python2.5-imaging"
+p.depends = "python2.5, python2.5-pycurl, python2.5-xml, gconf2, python2.5-gnome, python2.5-gobject, python2.5-gtk2, python2.5-gstreamer, python2.5-imaging"
 p.section="user/communication"
 p.arch="any"
 p.urgency="low"
@@ -52,6 +52,8 @@ p[PREFIX + "lib/python2.5/site-packages/penguintv/ptvbittorrent"] = pipedlist('p
 p[PREFIX + "lib/python2.5/site-packages/penguintv/trayicon"] = pipedlist('penguintv/trayicon/*.py')
 p[PREFIX + "lib/python2.5/site-packages/penguintv/ajax"] = pipedlist('penguintv/ajax/*.py')
 p[PREFIX + "lib/python2.5/site-packages/penguintv/amazon"] = pipedlist('penguintv/amazon/*.py')
+p[PREFIX + "lib/python2.5/site-packages/penguintv/ptvmozembed"] = ['penguintv/ptvmozembed/__init__.py|__init__.py',
+																   'penguintv/ptvmozembed/gtkmozembed.so|gtkmozembed.so']
 p[PREFIX + "bin"] = ["bin/PenguinTV|PenguinTV"]
 p[PREFIX + 'share/applications/hildon'] = ['penguintv-hildon.desktop']
 p[PREFIX + 'share/dbus-1/services'] = ['share/penguintv.service|penguintv.service']

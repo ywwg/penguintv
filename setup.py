@@ -61,7 +61,11 @@ missing_something = []
 try:
 	import gtkmozembed
 except:
-	missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
+	#maybe we built gtkmozembed for maemo with build-deb.sh
+	try:
+		from penguintv.gtkmozembed import gtkmozembed
+	except:
+		missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
 
 try:
 	import sqlite3

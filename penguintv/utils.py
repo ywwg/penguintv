@@ -69,7 +69,7 @@ else:
 		HAS_MOZILLA = True
 	except:
 		try:
-			from penguintv.gtkmozembed import gtkmozembed
+			from ptvmozembed import gtkmozembed
 			logging.info("Using PenguinTV-built gtkmozembed")
 			HAS_MOZILLA = True
 		except:

@@ -21,7 +21,7 @@ try:
 	import gtkmozembed
 except:
 	try:
-		from penguintv.gtkmozembed import gtkmozembed
+		from ptvmozembed import gtkmozembed
 	except:
 		pass
 	
