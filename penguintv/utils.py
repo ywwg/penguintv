@@ -13,6 +13,8 @@ import gettext
 import shutil
 import logging
 
+VERSION="3.8"
+
 try:
 	from sqlite3 import OperationalError as OperationalError
 except:
@@ -66,7 +68,12 @@ else:
 		import gtkmozembed
 		HAS_MOZILLA = True
 	except:
-		HAS_MOZILLA = False
+		try:
+			from penguintv.gtkmozembed import gtkmozembed
+			logging.info("Using PenguinTV-built gtkmozembed")
+			HAS_MOZILLA = True
+		except:
+			HAS_MOZILLA = False
 
 	HAS_SEARCH = False
 
@@ -136,7 +143,6 @@ else:
 if RUNNING_HILDON:
 	HAS_STATUS_ICON = False
 	
-VERSION="3.7"
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it

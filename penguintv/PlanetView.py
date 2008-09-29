@@ -19,7 +19,10 @@ if not utils.RUNNING_SUGAR:
 	try:
 		import gtkmozembed
 	except:
-		pass
+		try:
+			from penguintv.gtkmozembed import gtkmozembed
+		except:
+			pass
 else:
 	import hulahop
 	

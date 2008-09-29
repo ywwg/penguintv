@@ -20,7 +20,10 @@ try:
 	#or else random images don't load.  gtkmozembed is VERY picky!
 	import gtkmozembed
 except:
-	pass
+	try:
+		from penguintv.gtkmozembed import gtkmozembed
+	except:
+		pass
 	
 
 
