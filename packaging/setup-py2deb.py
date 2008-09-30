@@ -51,6 +51,7 @@ p[PREFIX + "lib/python2.5/site-packages/penguintv/ptvbittorrent"] = pipedlist('p
 p[PREFIX + "lib/python2.5/site-packages/penguintv/trayicon"] = pipedlist('penguintv/trayicon/*.py')
 p[PREFIX + "lib/python2.5/site-packages/penguintv/ajax"] = pipedlist('penguintv/ajax/*.py')
 p[PREFIX + "lib/python2.5/site-packages/penguintv/amazon"] = pipedlist('penguintv/amazon/*.py')
+p[PREFIX + "lib/python2.5/site-packages/penguintv/ptvmozembed"] = ["penguintv/ptvmozembed/__init__.py|__init__.py"]
 p[PREFIX + "bin"] = ["bin/PenguinTV|PenguinTV"]
 p[PREFIX + 'share/applications/hildon'] = ['penguintv-hildon.desktop']
 p[PREFIX + 'share/dbus-1/services'] = ['share/penguintv.service|penguintv.service']
