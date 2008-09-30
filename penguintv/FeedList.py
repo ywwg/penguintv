@@ -114,15 +114,17 @@ class FeedList(gobject.GObject):
 		self._feed_filter = self._feedlist.filter_new()
 		self._feed_filter.set_visible_column(VISIBLE)
 		self._widget.set_model(self._feed_filter)
-		self._widget.set_fixed_height_mode(True)
 		
 		# Icon Column
 		self._icon_renderer = gtk.CellRendererPixbuf()
 		self._icon_column = gtk.TreeViewColumn(_('Icon'))
 		self._icon_column.pack_start(self._icon_renderer, False)
 		self._icon_column.set_attributes(self._icon_renderer, stock_id=STOCKID)
-		self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
-		self._icon_column.set_min_width(32)
+		if utils.RUNNING_HILDON:
+			self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
+		else:
+			self._icon_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
+			self._icon_column.set_min_width(32)
 		self._widget.append_column(self._icon_column)
 		
 		# Feed Column
@@ -141,9 +143,7 @@ class FeedList(gobject.GObject):
 		self._articles_column = gtk.TreeViewColumn(_(''))
 		self._articles_column.set_resizable(False)
 		self._articles_column.pack_start(self._articles_renderer, False)
-		self._articles_column.set_attributes(self._articles_renderer, markup=READINFO)
-		# this would normally invalidate fixed height mode, but it gets reset to
-		# fixed when we resize columns
+		self._articles_column.set_attributes(self._articles_renderer, markup=READINFO)		
 		self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_AUTOSIZE)
 		self._articles_column.set_expand(False)
 		self._widget.append_column(self._articles_column)
@@ -464,7 +464,6 @@ class FeedList(gobject.GObject):
 		def _finish_resize():
 			self._articles_column.set_sizing(gtk.TREE_VIEW_COLUMN_FIXED)
 			self._articles_column.set_min_width(self._articles_column.get_width())
-			self._widget.set_fixed_height_mode(True)
 			self.__resetting_columns = False
 			return False
 			
