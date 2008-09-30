@@ -18,7 +18,7 @@ __build__ = "1" # Result is "0.5.8-1"
 
 PREFIX="/usr/"
 
-#changelog="".join(open("CHANGELOG","r").readlines())
+changelog="".join(open("ChangeLog","r").readlines())
 
 print "Building hildon version"
 cmd = "cp -f share/penguintv.glade.hildon share/penguintv.glade"
@@ -40,7 +40,6 @@ p.urgency="low"
 p.distribution="diablo"
 p.repository="extras-devel"
 p.postinst = "packaging/postinst"
-#p.changelog=changelog
 
 def pipedlist(glob_arg):
 	glob_list = glob.glob(glob_arg)
@@ -52,8 +51,6 @@ p[PREFIX + "lib/python2.5/site-packages/penguintv/ptvbittorrent"] = pipedlist('p
 p[PREFIX + "lib/python2.5/site-packages/penguintv/trayicon"] = pipedlist('penguintv/trayicon/*.py')
 p[PREFIX + "lib/python2.5/site-packages/penguintv/ajax"] = pipedlist('penguintv/ajax/*.py')
 p[PREFIX + "lib/python2.5/site-packages/penguintv/amazon"] = pipedlist('penguintv/amazon/*.py')
-p[PREFIX + "lib/python2.5/site-packages/penguintv/ptvmozembed"] = ['penguintv/ptvmozembed/__init__.py|__init__.py',
-																   'penguintv/ptvmozembed/gtkmozembed.so|gtkmozembed.so']
 p[PREFIX + "bin"] = ["bin/PenguinTV|PenguinTV"]
 p[PREFIX + 'share/applications/hildon'] = ['penguintv-hildon.desktop']
 p[PREFIX + 'share/dbus-1/services'] = ['share/penguintv.service|penguintv.service']
@@ -72,7 +69,7 @@ p[PREFIX + 'share/icons/hicolor/40x40/hildon'] = ["share/pixmaps/40x40/penguintv
 p[PREFIX + 'share/icons/hicolor/26x26/hildon'] = ["share/pixmaps/26x26/penguintvicon.png|penguintvicon.png"]
 
 print p
-print p.generate(__version__,__build__,tar=True,dsc=True,changes=True,build=False,src=True)
+print p.generate(__version__,__build__,tar=True,dsc=True,changes=True,build=False,src=True,changelog=changelog) #changelog=changelog
 
 print "Here begins the build of the .deb file"
 builddir = os.path.join("deb-build", "%s-%s" % (__modname__, __version__))

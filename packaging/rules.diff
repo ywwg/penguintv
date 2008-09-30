@@ -1,0 +1,49 @@
+--- ../../penguintv-3.8/debian/rules	2008-09-29 20:04:13.000000000 -0400
++++ rules	2008-09-29 22:53:35.000000000 -0400
+@@ -9,6 +9,11 @@
+ # Uncomment this to turn on verbose mode.
+ #export DH_VERBOSE=1
+ 
++# These are used for cross-compiling and for saving the configure script
++# from having to guess our platform (since we know it already)
++DEB_HOST_GNU_TYPE   ?= $(shell dpkg-architecture -qDEB_HOST_GNU_TYPE)
++DEB_BUILD_GNU_TYPE  ?= $(shell dpkg-architecture -qDEB_BUILD_GNU_TYPE)
++
+ CFLAGS = -Wall -g
+ 
+ ifneq (,$(findstring noopt,$(DEB_BUILD_OPTIONS)))
+@@ -21,6 +26,12 @@
+ configure-stamp:
+ 	dh_testdir
+ 	# Add here commands to configure the package.
++	mkdir -p debian/build-gtkmozembed
++	cd debian/build-gtkmozembed && PYTHON=/usr/bin/python2.5 ../../gtkmozembed/configure    \
++		--host=$(DEB_HOST_GNU_TYPE)	     \
++		--build=$(DEB_BUILD_GNU_TYPE)	   \
++		--prefix=/usr \
++		--with-gtkmozembed=gtkembedmoz
+ 
+ 	touch configure-stamp
+ 
+@@ -28,6 +39,7 @@
+ 
+ build-stamp: configure-stamp
+ 	dh_testdir
++	PYTHON=/usr/bin/python2.5 $(MAKE) -C debian/build-gtkmozembed
+ 	touch build-stamp
+ 
+ clean:
+@@ -40,7 +52,13 @@
+ 	dh_testdir
+ 	dh_testroot
+ 	dh_clean -k
++	
++	PYTHON=/usr/bin/python2.5 $(MAKE) -C debian/build-gtkmozembed install DESTDIR=$(CURDIR)/debian/tmp-gtkmozembed
++	
+ 	dh_installdirs
++	
++	mkdir -p "$(CURDIR)/debian/penguintv/usr/lib/python2.5/site-packages/penguintv/ptvmozembed"
++	cp -a "$(CURDIR)/debian/tmp-gtkmozembed/usr/lib/python2.5/site-packages/gtk-2.0/gtkmozembed.so" "$(CURDIR)/debian/penguintv/usr/lib/python2.5/site-packages/penguintv/ptvmozembed/gtkmozembed.so"
+ 
+ 	# ======================================================
+ 	#$(MAKE) DESTDIR="$(CURDIR)/debian/penguintv" install

@@ -1,0 +1,4 @@
+2008-09-29  Owen Williams  <owen-maemo@ywwg.com>
+
+	* (maemo) Build our own version of gtkmozembed and include in packaging
+

@@ -24,6 +24,10 @@ PenguinTV supports some other extra libraries but will run without them:
 Build with:
 python setup.py build
 
+Building on maemo:
+inside scratchbox, run ./build_maemo_deb.sh to build a debian package
+This will also build gtkmozembed support for python for inclusion in the package
+
 == Running without Installing ==
 
 after you've built penguintv, you can type

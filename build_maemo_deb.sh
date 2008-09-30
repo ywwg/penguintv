@@ -14,81 +14,35 @@ fi
 
 GPG_KEY="$1"
 
-echo "Building gtkmozembed first"
-if [ ! -d ./deb-build/gtkmozembed ] ; then
-	mkdir -p deb-build/gtkmozembed
+echo "Preparing gtkmozembed first"
+cd gtkmozembed
+if [ ! -f gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2 ] ; then
+	wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
+	if [ $? -ne 0 ] ; then
+		echo "error downloading python gnome extras:"
+		echo wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
+		exit 1
+	fi
 fi
 
-BUILD_MOZEMBED=1
-echo "testing gtkmozembed..."
-python2.5 -c "from penguintv.ptvmozembed import gtkmozembed"
+tar xfvj gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
 if [ $? -ne 0 ] ; then
-	echo "there was an error using the gtkmozembed module"
-else
-	BUILD_MOZEMBED=0
+	echo "error uncompressing python gnome extras"
+	exit 1
 fi
 
-if [ $BUILD_MOZEMBED == "1" ] ; then
-	cd gtkmozembed
-	if [ ! -f gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2 ] ; then
-		wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
-		if [ $? -ne 0 ] ; then
-			echo "error downloading python gnome extras:"
-			echo wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
-			exit 1
-		fi
-	fi
-
-	tar xfvj gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
-	if [ $? -ne 0 ] ; then
-		echo "error uncompressing python gnome extras"
-		exit 1
-	fi
-
-	cd gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"
-	cat ../gnome-python-extras.diff | patch -p 0
-	if [ $? -ne 0 ] ; then
-		echo "error patching python gnome extras"
-		exit 1
-	fi
-	
-	autoconf
-	if [ $? -ne 0 ] ; then
-		echo "error autoconfing python gnome extras"
-		exit 1
-	fi
-
-	PYTHON=python2.5 ./configure --prefix=`pwd`/../../deb-build/gtkmozembed --with-gtkmozembed=gtkembedmoz --disable-eggtray
-	if [ $? -ne 0 ] ; then
-		echo "error configuring python gnome extras"
-		exit 1
-	fi
-
-	PYTHON=python2.5 make
-	if [ $? -ne 0 ] ; then
-		echo "error building python gnome extras"
-		exit 1
-	fi
-
-	PYTHON=python2.5 make install
-	if [ $? -ne 0 ] ; then
-		echo "error installing python gnome extras locally"
-		exit 1
-	fi
-
-	cd ../..
-	cp deb-build/gtkmozembed/lib/python2.5/site-packages/gtk-2.0/gtkmozembed.* penguintv/ptvmozembed/
-
-	echo "testing gtkmozembed again..."
-	python2.5 -c "from penguintv.ptvmozembed import gtkmozembed"
-	if [ $? -ne 0 ] ; then
-		echo "there was an error using the gtkmozembed module"
-		exit 1
-	fi
+cd gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"
+cat ../gnome-python-extras.diff | patch -p 0
+if [ $? -ne 0 ] ; then
+	echo "error patching python gnome extras"
+	exit 1
 fi
 
-echo "gtkmozembed works"
+autoconf
+make distclean
+cd ../..
 
+#running py2deb gets most of it out of the way, but more work needs to be done
 ./packaging/setup-py2deb.py
 if [ $? -ne 0 ] ; then
 	echo "There was an error with the py2deb process, stopping"
@@ -101,6 +55,17 @@ for d in `find ./ -maxdepth 1 -type d | sort` ; do
 done
 cd $builddir
 
+
+#copy gnome-python-extras source which we extracted and patched above
+#also include the patch so people can see what I've done
+echo "copying gnome-python-extras source"
+mkdir gtkmozembed
+cp -a ../../gtkmozembed/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"/* gtkmozembed/
+cp ../../gtkmozembed/gnome-python-extras.diff gtkmozembed/
+cd debian
+cat ../../../packaging/rules.diff | patch -p 0
+cd ..
+
 # Set up icon which will appear in application manager
 iconfile=`tempfile`
 if [ ! -f $EMBEDDED_ICON ] ; then
@@ -110,6 +75,10 @@ fi
 
 #need to apt-get install sharutils for this stepp
 uuencode -m $EMBEDDED_ICON /dev/stdout > $iconfile
+if [ $? -ne 0 ] ; then
+	echo "error running uuencode.  Need sharutils?"
+	exit 1
+fi
 length=`cat $iconfile | wc -l`
 
 echo -e \\n"XB-Maemo-Icon-26:" >> debian/control
@@ -124,4 +93,7 @@ debsign -k$GPG_KEY *.changes
 if [ "$?" == "0" ] ; then
 	echo ""
 	echo "build complete, ready to upload to extras assistant.  Files are in deb-build/"
+else
+	echo "there was an error signing the package"
+	exit 1
 fi

@@ -66,6 +66,8 @@ except:
 		from penguintv.gtkmozembed import gtkmozembed
 	except:
 		missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
+		if HAS_HILDON:
+			missing_something.append("On Maemo, gtkmozembed is created by running ./build_maemo_deb.sh and creating a package")
 
 try:
 	import sqlite3
