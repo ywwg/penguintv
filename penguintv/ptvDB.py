@@ -3040,7 +3040,8 @@ class ptvDB:
 				store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', "")
 				if store_location != "":
 					self._offline_image_cache = OfflineImageCache.OfflineImageCache(os.path.join(store_location, "images"))
-					logging.error("could start image cache, no storage location")
+				else:
+					logging.error("could not start image cache, no storage location")
 		
 	#############convenience Functions####################3
 		

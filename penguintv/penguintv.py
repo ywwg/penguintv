@@ -2158,13 +2158,11 @@ class PenguinTVApp(gobject.GObject):
 		self.poll_on_startup = poll_on_startup
 		
 	def _gconf_set_cache_images(self, client, *args, **kwargs):
-		print "got cache click"
 		cache_images = client.get_bool('/apps/penguintv/cache_images_locally')
 		self.set_cache_images(cache_images)
 		self.window_preferences.set_cache_images(cache_images)
 	
 	def set_cache_images(self, cache_images):
-		print "setting db"
 		self.db.set_cache_images(cache_images)
 		
 	def _gconf_set_auto_download(self, client, *args, **kwargs):

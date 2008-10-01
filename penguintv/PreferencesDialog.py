@@ -255,7 +255,6 @@ class PreferencesDialog:
 			
 	def on_cache_images_toggled(self, event):
 		cache_images = self.cache_images_widget.get_active()
-		print "setting gconf"
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/cache_images_locally', cache_images)
 		if not utils.HAS_GCONF:
 			self._app.set_cache_images(cache_images)
