@@ -216,7 +216,8 @@ packages = ["penguintv",
 			"penguintv/ptvbittorrent", 
 			"penguintv/trayicon",
 			"penguintv/ajax",
-			"penguintv/amazon"])
+			"penguintv/amazon",
+			"penguintv/BeautifulSoup"])
 
 if "install" in sys.argv:
 	sp = my_subProcess.subProcess('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''')
