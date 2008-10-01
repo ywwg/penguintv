@@ -99,13 +99,13 @@ class EntryFormatter:
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
 				if self._ajax_url is None:
-					ret.append('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+					ret.append('<img src="file://' + utils.get_image_path("throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append('<i>'+_('Downloading %s...') % utils.format_size(medium['size'])+'</i> '+self._html_command('pause:',medium['media_id'])+' '+self._html_command('stop:',medium['media_id']))
 			elif medium.has_key('progress_message'): #downloading and we have a custom message
 				if self._ajax_url is None:
-					ret.append('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+					ret.append('<img src="file://' + utils.get_image_path("throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append('<p><i>'+medium['progress_message']+'</i></p>')
@@ -121,7 +121,7 @@ class EntryFormatter:
 					ret.append('''<table border="0" cellpadding="0" cellspacing="12pt">''')
 					ret.append('''<tr><td rowspan="2">''')
 					if self._ajax_url is None:
-						ret.append('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+						ret.append('<img src="file://' + utils.get_image_path("throbber.gif") + '"/>')
 					else:
 						ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 					ret.append("</td><td>")
@@ -140,7 +140,7 @@ class EntryFormatter:
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt">''')
 				ret.append('''<tr><td rowspan="2">''')
 				if self._ajax_url is None:
-					ret.append('<img src="file://' + os.path.join(utils.get_glade_prefix(), "pixmaps", "throbber.gif") + '"/>')
+					ret.append('<img src="file://' + utils.get_image_path("throbber.gif") + '"/>')
 				else:
 					ret.append('<img src="' + self._ajax_url + '/pixmaps/throbber.gif"/>')
 				ret.append("</td><td>")
