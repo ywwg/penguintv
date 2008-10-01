@@ -10,6 +10,8 @@
 #
 # Uses BeautifulSoup to rewrite html at render time to replace image tags with
 # locally cached urls.
+#
+# Need better checking of disk space, etc
 
 import urllib
 import os.path
@@ -19,6 +21,7 @@ import hashlib  #requires python2.5
 
 import gobject
 
+import utils
 import ThreadPool
 from BeautifulSoup.BeautifulSoup import BeautifulSoup
 
@@ -94,6 +97,34 @@ class OfflineImageCache:
 						logging.debug("(should we attempt to recache here?")
 				
 		return soup.prettify()
+		
+	def remove_cache(self, guid):
+		mapping_file = os.path.join(self._store_location, guid, "mapping.pickle")
+		if not os.path.isfile(mapping_file):
+			logging.warning("no mapping file, not deleting anything")
+			return
+			
+		try:
+			mapping = open(mapping_file, 'r')
+		except:
+			logging.error("error opening cache pickle for guid %s %s" % (str(guid), mapping_file))
+			return
+		
+		rewrite_hash = pickle.load(mapping)
+		mapping.close()
+	
+		os.remove(os.path.join(self._store_location, guid, "mapping.pickle"))
+	
+		for url in rewrite_hash.keys():
+			try:
+				os.remove(rewrite_hash[url][0])
+			except:
+				pass		
+				
+		try:
+			os.rmdir(os.path.join(self._store_location, guid))
+		except Exception, e:
+			logging.warning("error removing image cache folder (not empty?) %s" % str(e))
 		
 	def finish(self):
 		#logging.debug("OFFLINE IMAGE CACHE SHUTDOWN START")

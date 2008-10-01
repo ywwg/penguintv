@@ -1724,6 +1724,9 @@ class ptvDB:
 						ditchables = tuple([r[0] for r in ditchables])
 						qmarks = "?,"*(len(ditchables)-1)+"?"
 						self._db_execute(self._c, """DELETE FROM entries WHERE rowid IN (%s)""" % qmarks, ditchables)
+						if self._offline_image_cache is not None:
+							for e_id in ditchables:
+								self._offline_image_cache.remove_cache(e_id)
 			
 		#delete pre-poll entry
 		if feed['last_time'] == 0:
