@@ -1,10 +1,10 @@
 <opml version="1.1">
 <head><title>All</title></head>
 <body>
-	<outline xmlUrl="http://lugradio.org/episodes.ogg.rss" 
-	         text="LugRadio episodes (ogg)" 
-	         description="The world's premiere Linux and Free Software radio show" 
-	         title="LugRadio episodes (ogg)">
+	<outline xmlUrl="http://feeds.theonion.com/OnionNewsNetwork" 
+	         text="Onion News Network (Video)" 
+	         description="The Onion News Network is the 24-hour cable TV news choice for billions of viewers in 811 countries." 
+	         title="Onion News Network (Video)">
 	 </outline>
 	 <outline xmlUrl="http://rss.news.yahoo.com/rss/mostemailed" 
 	 		  text="Yahoo! News: Most Emailed" 
