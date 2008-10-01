@@ -36,6 +36,7 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 import IconManager
+import OfflineImageCache
 import utils
 if utils.HAS_LUCENE:
 	import Lucene
@@ -201,6 +202,13 @@ class ptvDB:
 			
 		self._icon_manager = IconManager.IconManager(self.home)
 		
+		self._offline_image_cache = None
+		cache_images = self.get_setting(BOOL, "/apps/penguintv/cache_images_locally", False)
+		if cache_images:
+			store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', "")
+			if store_location != "":
+				self._offline_image_cache = OfflineImageCache.OfflineImageCache(os.path.join(store_location, "images"))
+		
 		self._reindex_entry_list = []
 		self._reindex_feed_list = []
 		self._filtered_entries = {}
@@ -238,6 +246,9 @@ class ptvDB:
 					#don't do it threadedly or else we will interrupt it on the next line
 					self.reindex(threaded=False) #it's usually not much...
 				self.searcher.finish(True)
+				
+		if self._offline_image_cache is not None:
+			self._offline_image_cache.finish()
 				
 		#FIXME: lame, but I'm being lazy
 		#if randint(1,100) == 1:
@@ -1638,6 +1649,8 @@ class ptvDB:
 				self._reindex_entry_list.append(entry_id)
 				no_delete.append(entry_id)
 				new_entryids.append(entry_id)
+				if self._offline_image_cache is not None:
+					self._offline_image_cache.cache_html(str(entry_id), item['body'])
 			elif status[0]==EXISTS:
 				no_delete.append(status[1])
 			elif status[0]==MODIFIED:
@@ -1675,6 +1688,8 @@ class ptvDB:
 								media.setdefault('type', 'application/octet-stream')
 								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?', (status[1],))
+				if self._offline_image_cache is not None:
+					self._offline_image_cache.cache_html(str(status[1]), item['body'])
 				self._reindex_entry_list.append(status[1])
 				no_delete.append(status[1])
 			i+=1
@@ -1971,7 +1986,7 @@ class ptvDB:
 		self._db_execute(self._c, u'SELECT count(*) FROM media WHERE feed_id=?',(feed_id,))
 		return self._c.fetchone()[0]
 	
-	def get_entry(self, entry_id):
+	def get_entry(self, entry_id, ajax_url=None):
 		self._db_execute(self._c, """SELECT title, creator, link, description, feed_id, date, read, keep, guid, hash FROM entries WHERE rowid=? LIMIT 1""",(entry_id,))
 		result = self._c.fetchone()
 		
@@ -1990,9 +2005,13 @@ class ptvDB:
 			entry_dic['entry_id'] = entry_id
 		except TypeError: #this error occurs when feed or item is wrong
 			raise NoEntry, entry_id
+		
+		if self._offline_image_cache is not None:
+			entry_dic['description'] = self._offline_image_cache.rewrite_html(str(entry_id), entry_dic['description'], ajax_url)
+			
 		return entry_dic
 		
-	def get_entry_block(self, entry_list):
+	def get_entry_block(self, entry_list, ajax_url=None):
 		if len(entry_list) == 0:
 			return []
 		qmarks = "?,"*(len(entry_list)-1)+"?"
@@ -2014,6 +2033,10 @@ class ptvDB:
 			entry_dic['keep'] = entry[8]
 			entry_dic['guid'] = entry[9]
 			entry_dic['hash'] = entry[10]
+			
+			if self._offline_image_cache is not None:
+				entry_dic['description'] = self._offline_image_cache.rewrite_html(str(entry_dic['entry_id']), entry_dic['description'], ajax_url)
+
 			retval.append(entry_dic)
 		return retval
 		
@@ -3006,6 +3029,18 @@ class ptvDB:
 		if results is None:
 			return []
 		return [f[0] for f in results]
+		
+	def set_cache_images(self, cache):
+		if self._offline_image_cache is not None:
+			if not cache:
+				self._offline_image_cache.finish()
+				self._offline_image_cache = None
+		else:
+			if cache:
+				store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', "")
+				if store_location != "":
+					self._offline_image_cache = OfflineImageCache.OfflineImageCache(os.path.join(store_location, "images"))
+					logging.error("could start image cache, no storage location")
 		
 	#############convenience Functions####################3
 		

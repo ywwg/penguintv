@@ -47,6 +47,8 @@ class PreferencesDialog:
 		self.auto_download_limit_widget = self.xml.get_widget("auto_download_limit")
 		self.limiter_hbox_widget = self.xml.get_widget("limiter_hbox")
 		
+		self.cache_images_widget = self.xml.get_widget("cache_images")
+		
 		if utils.RUNNING_HILDON:
 			self._hildon_chooser_button = gtk.Button("")
 			self._hildon_chooser_button.connect('clicked', self.hildon_choose_folder)
@@ -154,6 +156,9 @@ class PreferencesDialog:
 	def set_show_notification_always(self, always):
 		self.show_notification_always.set_active(always)
 		
+	def set_cache_images(self, cache):
+		self.cache_images_widget.set_active(cache)
+		
 	def set_auto_download(self, auto_download):
 		self.auto_download_widget.set_active(auto_download)
 			
@@ -247,6 +252,13 @@ class PreferencesDialog:
 		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup',self.poll_on_startup.get_active())
 		if not utils.HAS_GCONF:
 			self._app.set_poll_on_startup(self.poll_on_startup.get_active())
+			
+	def on_cache_images_toggled(self, event):
+		cache_images = self.cache_images_widget.get_active()
+		print "setting gconf"
+		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/cache_images_locally', cache_images)
+		if not utils.HAS_GCONF:
+			self._app.set_cache_images(cache_images)
 			
 	def on_auto_download_toggled(self, event):
 		auto_download = self.auto_download_widget.get_active()

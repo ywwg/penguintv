@@ -14,6 +14,7 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 	_image_cache = SimpleImageCache.SimpleImageCache()
 
 	def __init__(self, request, client_address, server):
+		self._server = server
 		SimpleHTTPServer.SimpleHTTPRequestHandler.__init__(self, request, client_address, server)
 		
 	def do_GET(self):
@@ -54,4 +55,10 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				self.wfile.write("")
 		elif command == "pixmaps":
 			image_data = self._image_cache.get_image_from_file(os.path.join(utils.get_glade_prefix(), "pixmaps", arg))
+			self.wfile.write(image_data)
+		elif command == "cache":
+			#strip out possible ../../../ crap.  I think this is all I need?
+			securitize = [s for s in splitted if s not in ("/",".","..")]
+			filename = os.path.join(self._server.store_location, *securitize[2:])
+			image_data = self._image_cache.get_image_from_file(filename)
 			self.wfile.write(image_data)

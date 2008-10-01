@@ -293,6 +293,7 @@ class PenguinTVApp(gobject.GObject):
 			conf.add_dir('/apps/penguintv',gconf.CLIENT_PRELOAD_NONE)
 			conf.notify_add('/apps/penguintv/auto_resume',self._gconf_set_auto_resume)
 			conf.notify_add('/apps/penguintv/poll_on_startup',self._gconf_set_poll_on_startup)
+			conf.notify_add('/apps/penguintv/cache_images_locally',self._gconf_set_cache_images)
 			conf.notify_add('/apps/penguintv/bt_max_port',self._gconf_set_bt_maxport)
 			conf.notify_add('/apps/penguintv/bt_min_port',self._gconf_set_bt_minport)
 			conf.notify_add('/apps/penguintv/bt_ul_limit',self._gconf_set_bt_ullimit)
@@ -690,6 +691,9 @@ class PenguinTVApp(gobject.GObject):
 		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup', True)
 		self.poll_on_startup = val
 		self.window_preferences.set_poll_on_startup(val)
+		
+		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/cache_images_locally', False)
+		self.window_preferences.set_cache_images(val)
 		
 		val = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_download', False)
 		self._auto_download = val
@@ -2152,6 +2156,16 @@ class PenguinTVApp(gobject.GObject):
 	
 	def set_poll_on_startup(self, poll_on_startup):
 		self.poll_on_startup = poll_on_startup
+		
+	def _gconf_set_cache_images(self, client, *args, **kwargs):
+		print "got cache click"
+		cache_images = client.get_bool('/apps/penguintv/cache_images_locally')
+		self.set_cache_images(cache_images)
+		self.window_preferences.set_cache_images(cache_images)
+	
+	def set_cache_images(self, cache_images):
+		print "setting db"
+		self.db.set_cache_images(cache_images)
 		
 	def _gconf_set_auto_download(self, client, *args, **kwargs):
 		auto_download = client.get_bool('/apps/penguintv/auto_download')

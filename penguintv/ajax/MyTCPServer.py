@@ -3,7 +3,7 @@ import random
 import logging
 
 class MyTCPServer(SocketServer.ForkingTCPServer):
-	def __init__(self, server_address, RequestHandlerClass):
+	def __init__(self, server_address, RequestHandlerClass, store_location):
 		SocketServer.ForkingTCPServer.__init__(self, server_address, RequestHandlerClass)
 		
 		self._key = ""
@@ -11,6 +11,7 @@ class MyTCPServer(SocketServer.ForkingTCPServer):
 		
 		self._updates = []
 		self._quitting = False
+		self.store_location = store_location
 		
 	def serve_forever(self):
 		while 1:

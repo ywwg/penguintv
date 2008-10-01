@@ -206,12 +206,14 @@ class PlanetView(gobject.GObject):
 			logging.info("initializing ajax server")
 			import threading
 			from ajax import EntryInfoServer, MyTCPServer
+			
+			store_location = os.path.join(self._db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', ""), "images")
 
 			while True:
 				try:
 					if PlanetView.PORT == 8050:
 						break
-					self._update_server = MyTCPServer.MyTCPServer(('', PlanetView.PORT), EntryInfoServer.EntryInfoServer)
+					self._update_server = MyTCPServer.MyTCPServer(('', PlanetView.PORT), EntryInfoServer.EntryInfoServer, store_location)
 					break
 				except:
 					PlanetView.PORT += 1
@@ -220,12 +222,12 @@ class PlanetView(gobject.GObject):
 			t = threading.Thread(None, self._update_server.serve_forever, name="PTV AJAX Server Thread")
 			t.setDaemon(True)
 			t.start()
-			img_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()
-			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=img_url)
-			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, ajax_url=img_url)
+			self._ajax_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()
+			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=self._ajax_url)
+			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, ajax_url=self._ajax_url)
 		else:
 			logging.info("not using ajax")
-			img_url = None
+			self._ajax_url = None
 			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True)
 			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, basic_progress=True)
 		
@@ -703,7 +705,7 @@ class PlanetView(gobject.GObject):
 		#load the rest from db
 		if len(entry_list) > 0:
 			e_id_list = [r[0] for r in entry_list]
-			db_entries = self._db.get_entry_block(e_id_list)
+			db_entries = self._db.get_entry_block(e_id_list, self._ajax_url)
 			media = self._db.get_entry_media_block(e_id_list)
 		
 			for item in db_entries:
@@ -737,7 +739,7 @@ class PlanetView(gobject.GObject):
 		if self._entry_store.has_key(entry_id) and not force:
 			return self._entry_store[entry_id]
 		
-		item = self._db.get_entry(entry_id)
+		item = self._db.get_entry(entry_id, self._ajax_url)
 		media = self._db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
