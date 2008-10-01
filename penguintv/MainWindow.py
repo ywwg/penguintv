@@ -948,6 +948,9 @@ class MainWindow(gobject.GObject):
 	def on_connection_button_clicked(self, event):
 		self._app.toggle_net_connection()
 		
+	def pane_to_feeds(self):
+		self.feed_pane.set_position(840)
+		
 	def on_feed_add_clicked(self, event):
 		if self._state == S_MAJOR_DB_OPERATION:
 			logging.warning("Please wait until feeds have loaded before adding a new one")

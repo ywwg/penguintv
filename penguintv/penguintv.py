@@ -1292,6 +1292,9 @@ class PenguinTVApp(gobject.GObject):
 					webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 			else:
 				webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
+		elif action=="pane":
+			if parsed_url[2] == "back":
+				self.main_window.pane_to_feeds()
 		
 	@utils.db_except()	
 	def download_entry(self, entry_id):

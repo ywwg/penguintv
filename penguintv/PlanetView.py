@@ -545,6 +545,11 @@ class PlanetView(gobject.GObject):
 		
 		html.append(self._custom_message)
 		
+		if utils.RUNNING_HILDON:
+			html.append('<a href="pane:back"><img border="0" src="file://%s"/>%s</a>' % (
+					"/usr/share/icons/hicolor/26x26/hildon/qgn_list_hw_button_esc.png",
+					_("Back to Feeds")))
+					
 		html.append("""<div id="nav_bar"><table
 					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
  					border="0" cellpadding="2" cellspacing="0">
@@ -586,6 +591,12 @@ class PlanetView(gobject.GObject):
 			else:
 				html.append(_('<a href="planet:down">Older Entries</a>'))
 		html.append("</td></tr></tbody></table></div>")
+		
+		if utils.RUNNING_HILDON:
+			html.append('<a href="pane:back"><img border="0" src="file://%s"/>%s</a>' % (
+					"/usr/share/icons/hicolor/26x26/hildon/qgn_list_hw_button_esc.png",
+					_("Back to Feeds")))
+		
 		html.append("</body></html>")
 		
 		html = "".join(html)
