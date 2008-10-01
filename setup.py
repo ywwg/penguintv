@@ -63,7 +63,7 @@ try:
 except:
 	#maybe we built gtkmozembed for maemo with build-deb.sh
 	try:
-		from penguintv.gtkmozembed import gtkmozembed
+		from penguintv.ptvmozembed import gtkmozembed
 	except:
 		missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
 		if HAS_HILDON:
