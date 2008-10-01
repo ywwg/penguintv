@@ -139,7 +139,8 @@ class Py2deb(object):
                     url="",
                     author = os.environ["USERNAME"],
                     mail = os.environ["USERNAME"]+"@"+socket.gethostname(),
-                    postinst = ""
+                    postinst = "",
+                    build_depends = ""
                 ):
 
         self.name = name
@@ -155,6 +156,7 @@ class Py2deb(object):
         self.distribution = distribution
         self.urgency = urgency
         self.postinst = postinst
+        self.build_depends = build_depends
 
         self.__files={}
 
@@ -172,6 +174,7 @@ class Py2deb(object):
         distribution = self.distribution
         urgency = self.urgency
         postinst = self.postinst
+        build_depends = self.build_depends
 
         paths=self.__files.keys()
         paths.sort()
@@ -198,6 +201,7 @@ AUTHOR      : %(author)s
 MAIL        : %(mail)s
 ----------------------------------------------------------------------
 DEPENDS     : %(depends)s
+BUILDDEPENDS: %(build_depends)s
 ARCH        : %(arch)s
 SECTION     : %(section)s
 ----------------------------------------------------------------------
@@ -231,6 +235,7 @@ FILES :
         repository = self.repository
         distribution = self.distribution
         urgency = self.urgency
+        build_depends = self.build_depends
         files=self.__files
 
         if section not in Py2deb.SECTIONS:
@@ -343,7 +348,7 @@ FILES :
 Section: %(section)s
 Priority: extra
 Maintainer: %(author)s <%(mail)s>
-Build-Depends: debhelper (>= 5)
+Build-Depends: %(build_depends)s 
 Standards-Version: 3.7.2
 
 Package: %(name)s

@@ -40,6 +40,7 @@ p.urgency="low"
 p.distribution="diablo"
 p.repository="extras-devel"
 p.postinst = "packaging/postinst"
+p.build_depends = "debhelper (>= 5), python2.5, python2.5-dev, python2.5-imaging, python2.5-numeric, gnupg, python2.5-gstreamer, libosso-gnomevfs2-dev, libgtkmozembed-dev, python2.5-gtk2-dev, libgtk2.0-dev, python2.5-setuptools"
 
 def pipedlist(glob_arg):
 	glob_list = glob.glob(glob_arg)
