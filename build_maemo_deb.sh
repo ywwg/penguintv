@@ -88,7 +88,9 @@ cat $iconfile | sed -n '1d; $d; p' | sed 's/^/ /' >> debian/control
 #build the final package
 dpkg-buildpackage -rfakeroot -sa
 cd ..
-debsign -k$GPG_KEY *.changes
+for file in *.changes ; do
+	debsign -k$GPG_KEY $file
+done
 
 if [ "$?" == "0" ] ; then
 	echo ""
