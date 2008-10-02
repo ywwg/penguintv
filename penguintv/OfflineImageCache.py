@@ -88,16 +88,19 @@ class OfflineImageCache:
 		mapping.close()
 	
 		for result in img_tags:
-			if rewrite_hash.has_key(result['src']):
-				if rewrite_hash[result['src']][1] == UrlCacher.DOWNLOADED:
-					#if os.path.isfile(os.path.join(self._store_location, rewrite_hash[result['src']][0])):
-					if ajax_url is None:
-						result['src'] = "file://" + os.path.join(self._store_location, rewrite_hash[result['src']][0])
-					else:
-						result['src'] = ajax_url + "/cache/" + rewrite_hash[result['src']][0]
-					#else:
-					#	logging.warning("file not found, not replacing")
-					#	logging.debug("(should we attempt to recache here?")
+			# believe it or not, some img tags don't have a src, they have an id
+			# that points to CSS.  At least I think that's what's going on
+			if result.has_key('src'):
+				if rewrite_hash.has_key(result['src']):
+					if rewrite_hash[result['src']][1] == UrlCacher.DOWNLOADED:
+						#if os.path.isfile(os.path.join(self._store_location, rewrite_hash[result['src']][0])):
+						if ajax_url is None:
+							result['src'] = "file://" + os.path.join(self._store_location, rewrite_hash[result['src']][0])
+						else:
+							result['src'] = ajax_url + "/cache/" + rewrite_hash[result['src']][0]
+						#else:
+						#	logging.warning("file not found, not replacing")
+						#	logging.debug("(should we attempt to recache here?")
 				
 		return soup.prettify()
 		
@@ -152,7 +155,8 @@ class PageCacher:
 	def process(self):
 		# go through html and pull out images, feed them into cacher
 		for result in self._soup.findAll('img'):
-			self._cacher.queue_download(result['src'])
+			if result.has_key('src'):
+				self._cacher.queue_download(result['src'])
 		self._cacher.start_downloads()
 		
 	def _page_cached_cb(self):
