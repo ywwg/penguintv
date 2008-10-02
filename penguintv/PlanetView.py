@@ -550,7 +550,7 @@ class PlanetView(gobject.GObject):
 		html = []
 		html.append(self._build_header(media_exists))
 		
-		html.append(self._custom_message)
+		html.append(self._custom_message+"<br>")
 		
 		if utils.RUNNING_HILDON:
 			html.append('<a href="pane:back"><img border="0" src="file://%s"/>%s</a>' % (

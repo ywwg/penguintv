@@ -341,6 +341,7 @@ class PenguinTVApp(gobject.GObject):
 			except:
 				self._nm_interface = None
 				
+			
 			p = threading.Thread(None, self._get_poller)
 			p.start()
 		

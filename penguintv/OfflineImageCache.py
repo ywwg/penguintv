@@ -49,6 +49,7 @@ class OfflineImageCache:
 		self._cachers = {} # dict of urlcacher objects?
 		
 	def cache_html(self, guid, html):
+		guid = str(guid)
 		if self._cachers.has_key(guid):
 			if self._cachers[guid]:
 				#logging.debug("that cacher is already active, ignoring, %s" % str(guid))
@@ -59,9 +60,11 @@ class OfflineImageCache:
 		page_cacher.process()
 		
 	def _cache_cb(self, guid):
+		guid = str(guid)
 		self._cachers[guid] = False
 		
 	def rewrite_html(self, guid, html, ajax_url=None):
+		guid = str(guid)
 		soup = BeautifulSoup(html)
 		img_tags = soup.findAll('img')
 		
@@ -78,7 +81,7 @@ class OfflineImageCache:
 		try:
 			mapping = open(mapping_file, 'r')
 		except:
-			logging.error("error opening cache pickle for guid %s %s" % (str(guid), mapping_file))
+			logging.error("error opening cache pickle for guid %s %s" % (guid, mapping_file))
 			return
 		
 		rewrite_hash = pickle.load(mapping)
@@ -99,6 +102,7 @@ class OfflineImageCache:
 		return soup.prettify()
 		
 	def remove_cache(self, guid):
+		guid = str(guid)
 		mapping_file = os.path.join(self._store_location, guid, "mapping.pickle")
 		if not os.path.isfile(mapping_file):
 			logging.warning("no mapping file, not deleting anything")
@@ -107,7 +111,7 @@ class OfflineImageCache:
 		try:
 			mapping = open(mapping_file, 'r')
 		except:
-			logging.error("error opening cache pickle for guid %s %s" % (str(guid), mapping_file))
+			logging.error("error opening cache pickle for guid %s %s" % (guid, mapping_file))
 			return
 		
 		rewrite_hash = pickle.load(mapping)
@@ -133,7 +137,7 @@ class OfflineImageCache:
 		
 class PageCacher:
 	def __init__(self, guid, html, store_location, threadpool, finished_cb=None):
-		self._guid = guid
+		self._guid = str(guid)
 		self._store_location = store_location
 		self._threadpool = threadpool
 		self._finished_cb = finished_cb
@@ -170,7 +174,7 @@ class UrlCacher:
 	DOWNLOADED = 1
 
 	def __init__(self, guid, store_location, threadpool, finished_cb):
-		self._guid = guid
+		self._guid = str(guid)
 		self._store_location = store_location
 		self._threadpool = threadpool
 		self._finished_cb = finished_cb
