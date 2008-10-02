@@ -15,7 +15,6 @@ class PreferencesDialog:
 	def __init__(self,xml,app):
 		self.xml = xml
 		self._app = app
-		self._db = self._app.db
 		self._article_sync = None
 		self._window = xml.get_widget("window_preferences")
 		self._window.set_transient_for(self._app.main_window.get_parent())
@@ -64,7 +63,6 @@ class PreferencesDialog:
 		renderer = gtk.CellRendererText()
 		combo.pack_start(renderer)
 		combo.add_attribute(renderer, 'text', 0)
-		
 
 	def show(self):
 		if utils.RUNNING_HILDON:
@@ -103,7 +101,7 @@ class PreferencesDialog:
 			try:
 				logging.debug("look it changed hildon")
 				val = new_chooser.get_filename()
-				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
+				self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
 				if not utils.HAS_GCONF:
 					logging.debug("telling the app about the new setting")
 					self._app.set_media_storage_location(val)
@@ -215,15 +213,15 @@ class PreferencesDialog:
 	def select_refresh(self, radiobutton, new_val):
 		try:
 			if new_val == penguintv.REFRESH_AUTO:
-				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'auto')
+				self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'auto')
 				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('auto')
 			elif new_val == penguintv.REFRESH_SPECIFIED:
-				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'specified')
+				self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'specified')
 				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('specified')
 			else:
-				self._db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'never')
+				self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/feed_refresh_method', 'never')
 				if not utils.HAS_GCONF:
 					self._app.set_feed_refresh_method('never')
 		except AttributeError:
@@ -234,40 +232,40 @@ class PreferencesDialog:
 			val = int(self.feed_refresh_widget.get_text())
 		except ValueError:
 			return
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency',val)
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_refresh_frequency',val)
 		if not utils.HAS_GCONF:
 			self._app.set_polling_frequency(val)
 		
 	def on_auto_resume_toggled(self,event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_resume',self.autoresume.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_resume',self.autoresume.get_active())
 		if not utils.HAS_GCONF:
 			self._app.set_auto_resume(self.autoresume.get_active())
 			
 	def on_show_notification_always(self, event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always',self.show_notification_always.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always',self.show_notification_always.get_active())
 		if not utils.HAS_GCONF:
 			self._app.set_show_notification_always(self.show_notification_always.get_active())
 		
 	def on_poll_on_startup_toggled(self,event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup',self.poll_on_startup.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/poll_on_startup',self.poll_on_startup.get_active())
 		if not utils.HAS_GCONF:
 			self._app.set_poll_on_startup(self.poll_on_startup.get_active())
 			
 	def on_cache_images_toggled(self, event):
 		cache_images = self.cache_images_widget.get_active()
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/cache_images_locally', cache_images)
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/cache_images_locally', cache_images)
 		if not utils.HAS_GCONF:
 			self._app.set_cache_images(cache_images)
 			
 	def on_auto_download_toggled(self, event):
 		auto_download = self.auto_download_widget.get_active()
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download', auto_download)
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download', auto_download)
 		self.limiter_hbox_widget.set_sensitive(auto_download)
 		if not utils.HAS_GCONF:
 			self._app.set_auto_download(auto_download)
 		
 	def on_auto_download_limiter_toggled(self,event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download_limiter',self.auto_download_limiter_widget.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/auto_download_limiter',self.auto_download_limiter_widget.get_active())
 		if not utils.HAS_GCONF:
 			self._app.set_auto_download_limiter(self.auto_download_limiter_widget.get_active())
 		
@@ -277,7 +275,7 @@ class PreferencesDialog:
 #			print "from prefs, setting gconf to, "+str(limit)
 		except ValueError:
 			return
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit',limit)
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/auto_download_limit',limit)
 		if not utils.HAS_GCONF:
 			self._app.set_auto_download_limit(limit)
 		
@@ -286,7 +284,7 @@ class PreferencesDialog:
 			minport = int(self.min_port_widget.get_text())
 		except ValueError:
 			return
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_min_port',minport)
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_min_port',minport)
 		if not utils.HAS_GCONF:
 			self._app.set_bt_minport(minport)
 		
@@ -295,7 +293,7 @@ class PreferencesDialog:
 			maxport = int(self.max_port_widget.get_text())
 		except ValueError:
 			return
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_max_port',maxport)
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_max_port',maxport)
 		if not utils.HAS_GCONF:
 			self._app.set_bt_maxport(maxport)
 		
@@ -304,21 +302,21 @@ class PreferencesDialog:
 			val = int(self.ul_limit_widget.get_text())
 		except ValueError:
 			return
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit',val)
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/bt_ul_limit',val)
 		if not utils.HAS_GCONF:
 			self._app.set_bt_ullimit(val)
 			
 	def on_media_storage_chooser_file_set(self, widget):
 		logging.debug("look it changed")
 		val = widget.get_filename()
-		self._db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
+		self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
 		if not utils.HAS_GCONF:
 			logging.debug("telling the app about the new setting")
 			self._app.set_media_storage_location(val)
 			
 	def on_sync_enabled_checkbox_toggled(self, widget):
 		enabled = widget.get_active()
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', 
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', 
 			enabled)
 		if not utils.HAS_GCONF:
 			self._app.set_use_article_sync(enabled)
@@ -349,7 +347,7 @@ class PreferencesDialog:
 			self._add_sync_ui(plugin)
 			
 			#logging.debug("setting sync plugin to %s" % plugin)
-			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/article_sync_plugin', 
+			self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/article_sync_plugin', 
 				plugin)
 			return False
 				
@@ -374,7 +372,7 @@ class PreferencesDialog:
 		
 	def on_sync_readonly_check_toggled(self, widget):
 		enabled = widget.get_active()
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_readonly',
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_readonly',
 			enabled)
 		if not utils.HAS_GCONF:
 			self._app.set_article_sync_readonly(enabled)

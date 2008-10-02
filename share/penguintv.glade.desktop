@@ -320,11 +320,11 @@
   <widget class="GtkAboutDialog" id="aboutdialog1">
     <property name="border_width">5</property>
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
-    <property name="copyright" translatable="yes">(c)2007 Owen Williams</property>
+    <property name="copyright" translatable="yes">(c)2008 Owen Williams</property>
     <property name="comments" translatable="yes">Podcast and Video Blog aggregator for GTK+ and GNOME</property>
     <property name="website">http://penguintv.sourceforge.net</property>
     <property name="website_label" translatable="yes">PenguinTV Sourceforge Site</property>
-    <property name="authors">Owen Williams &lt;ywwg@usa.net&gt;
+    <property name="authors">Owen Williams &lt;owen@ywwg.com&gt;
 With help from:
 Daniel Arbuckle &lt;djarb@highenergymagic.org&gt;
 j@v2v.cc

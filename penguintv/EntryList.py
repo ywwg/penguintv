@@ -39,12 +39,12 @@ class EntryList(gobject.GObject):
                            ([gobject.TYPE_INT]))
     }	
 	
-	def __init__(self, widget_tree, app, feed_list_view, main_window, db):
+	def __init__(self, widget_tree, app, feed_list_view, main_window):
 		gobject.GObject.__init__(self)
 		self._widget = widget_tree.get_widget("entrylistview")
 		self._main_window = main_window
 		self._entrylist = gtk.ListStore(str, str, int, int, str, int, int, bool) #title, markeduptitle, entry_id, index, icon, flag, feed, visible
-		self._db = db
+		self._app = app
 		self._feed_id=None
 		self._last_entry=None
 		self._search_query = ""
@@ -171,7 +171,7 @@ class EntryList(gobject.GObject):
 			dont_autopane = False #it's a double negative, but it makes sense to me at the moment.
 		self._feed_id = feed_id
 		
-		db_entrylist = self._db.get_entrylist(feed_id)
+		db_entrylist = self._app.db.get_entrylist(feed_id)
 		selection = self._widget.get_selection()
 		if selected==-1:
 			rows = selection.get_selected_rows()
@@ -194,7 +194,7 @@ class EntryList(gobject.GObject):
 					self.__cancel_populating = False
 					break
 				i=i+1	
-				flag = self._db.get_entry_flag(entry_id)
+				flag = self._app.db.get_entry_flag(entry_id)
 				icon = self._get_icon(flag)
 				markeduptitle = self._get_markedup_title(title, flag)
 				self._entrylist.append([title, markeduptitle, entry_id, i, icon, flag, feed_id, True])
@@ -263,11 +263,11 @@ class EntryList(gobject.GObject):
 		
 	def update_entry_list(self, entry_id=None):
 		if entry_id is None:
-			if len(self._entrylist) != len(self._db.get_entrylist(self._feed_id)):
+			if len(self._entrylist) != len(self._app.db.get_entrylist(self._feed_id)):
 				self.populate_entries(self._feed_id)
 				return
 			for entry in self._entrylist:
-				entry[FLAG] = self._db.get_entry_flag(entry[ENTRY_ID])
+				entry[FLAG] = self._app.db.get_entry_flag(entry[ENTRY_ID])
 		 		entry[MARKEDUPTITLE] = self._get_markedup_title(entry[TITLE],entry[FLAG])
 		 		entry[ICON] = self._get_icon(entry[FLAG]) 
 		else:
@@ -275,7 +275,7 @@ class EntryList(gobject.GObject):
 				index = self.find_index_of_item(entry_id)
 				if index is not None:
 					entry = self._entrylist[index]
-					entry[FLAG] = self._db.get_entry_flag(entry_id)
+					entry[FLAG] = self._app.db.get_entry_flag(entry_id)
 				 	entry[MARKEDUPTITLE] = self._get_markedup_title(entry[TITLE],entry[FLAG])
 					entry[ICON] = self._get_icon(entry[FLAG]) 
 				else:
@@ -312,10 +312,10 @@ class EntryList(gobject.GObject):
 		for entry_id,title, fakedate, feed_id in entries:	
 			i+=1
 			try:
-				entry = self._db.get_entry(entry_id)
+				entry = self._app.db.get_entry(entry_id)
 			except ptvDB.NoEntry:
 				raise ptvDB.BadSearchResults, "Entry not found, possible out of date index"
-			flag = self._db.get_entry_flag(entry_id)
+			flag = self._app.db.get_entry_flag(entry_id)
 			icon = self._get_icon(flag)
 			markeduptitle = self._get_markedup_title(entry['title'], flag)
 			self._entrylist.append([entry['title'], markeduptitle, entry_id, i, icon, flag, feed_id, True])
@@ -416,7 +416,7 @@ class EntryList(gobject.GObject):
 	def on_row_activated(self, treeview, path, view_column):
 		index = path[0]
 		model = treeview.get_model()
-		item = self._db.get_entry(model[index][ENTRY_ID])
+		item = self._app.db.get_entry(model[index][ENTRY_ID])
 		self.emit('link-activated', item['link'])
 		
 	def do_context_menu(self, event):
@@ -466,7 +466,7 @@ class EntryList(gobject.GObject):
 			item.connect('activate',self._main_window.on_mark_entry_as_unviewed_activate)
 			menu.append(item)
 			
-		keep = self._db.get_entry_keep(selected['entry_id'])
+		keep = self._app.db.get_entry_keep(selected['entry_id'])
 		if keep:
 			item = gtk.MenuItem(_("_Don't Keep New"))
 			item.connect('activate',self._main_window.on_unkeep_entry_new_activate)

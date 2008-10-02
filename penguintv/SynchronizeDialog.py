@@ -18,7 +18,6 @@ else:
 class SynchronizeDialog:
 	def __init__(self, gladefile, app):
 		self._app = app
-		self._db = self._app.db
 		self._xml = gtk.glade.XML(gladefile, 'synchronize_window','penguintv')
 		self._dialog = self._xml.get_widget("synchronize_window")
 		self._preview_dialog = self._xml.get_widget("sync_preview_window")
@@ -47,10 +46,10 @@ class SynchronizeDialog:
 		self._preview_dialog = SynchronizeDialog.SyncPreview(gtk.glade.XML(gladefile, 'sync_preview_window','penguintv'), self._cancel_cb, self._sync_cb)
 		
 	def Show(self):
-		self._delete_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
-		self._move_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
-		self._audio_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
-		self._dest_dir = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
+		self._delete_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
+		self._move_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
+		self._audio_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
+		self._dest_dir = self._app.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
 		self._destination_entry.set_text(self._dest_dir)
 		self._cancel = False
 
@@ -66,7 +65,7 @@ class SynchronizeDialog:
 			stat = os.stat(self._dest_dir)
 			if not os.path.isdir(self._dest_dir):
 				return False				
-			self._db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir',self._dest_dir)
+			self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir',self._dest_dir)
 			return True
 		except:
 			return False
@@ -91,13 +90,13 @@ class SynchronizeDialog:
 		dialog.destroy()
 	
 	def on_delete_check_toggled(self, event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete',self._delete_check.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete',self._delete_check.get_active())
 		
 	def on_move_check_toggled(self, event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_move',self._move_check.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_move',self._move_check.get_active())
 
 	def on_audio_check_toggled(self, event):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only',self._audio_check.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only',self._audio_check.get_active())
 	
 	def on_sync_button_clicked(self, event):
 		if not self._check_dest_dir():
@@ -238,16 +237,16 @@ class SynchronizeDialog:
 		self._dialog.hide()
 		
 	def set_sync_delete(self, client, *args, **kwargs):
-		self._delete_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
+		self._delete_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
 		
 	def set_sync_move(self, client, *args, **kwargs):
-		self._move_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
+		self._move_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
 
 	def set_audio_only(self, client, *args, **kwargs):
-		self._audio_check.set_active(self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
+		self._audio_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
 		
 	def set_dest_dir(self, client, *args, **kwargs):
-		self._dest_dir = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
+		self._dest_dir = self._app.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
 		self._destination_entry.set_text(self._dest_dir)
 		
 	class SyncProgress:

@@ -72,11 +72,10 @@ class FeedList(gobject.GObject):
                            ([gobject.TYPE_INT]))
 	}
                            
-	def __init__(self, widget_tree, app, db, fancy=False):
+	def __init__(self, widget_tree, app, fancy=False):
 		gobject.GObject.__init__(self)
 		self._app = app
-		self._db = db
-		self._icon_manager = IconManager.IconManager(self._db.home)
+		self._icon_manager = IconManager.IconManager(self._app.db.home)
 		self._scrolled_window = widget_tree.get_widget('feed_scrolled_window')
 		self._va = self._scrolled_window.get_vadjustment()
 		self._widget = widget_tree.get_widget('feedlistview')
@@ -254,7 +253,7 @@ class FeedList(gobject.GObject):
 		#	self._articles_column.set_visible(False)
 		if len(self._feedlist)==0:
 			#first fill out rough feedlist
-			db_feedlist = self._db.get_feedlist()
+			db_feedlist = self._app.db.get_feedlist()
 			blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 			blank_pixbuf.fill(0xffffff00)			
 			for feed_id,title,url in db_feedlist:
@@ -286,8 +285,8 @@ class FeedList(gobject.GObject):
 		"""A generator that updates the feed list.  Called from populate_feeds"""	
 		selection = self._widget.get_selection()
 		#selected = self.get_selected()
-		feed_cache = self._db.get_feed_cache()
-		db_feedlist = self._db.get_feedlist()
+		feed_cache = self._app.db.get_feed_cache()
+		db_feedlist = self._app.db.get_feedlist()
 		
 		blank_pixbuf = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, 10,10)
 		blank_pixbuf.fill(0xffffff00)
@@ -341,14 +340,14 @@ class FeedList(gobject.GObject):
 					#bad cache, trigger test below
 					entry_count = None
 			else:
-				feed_info   = self._db.get_feed_verbose(feed_id)
+				feed_info   = self._app.db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
 				entry_count = feed_info['entry_count']
 				m_first_entry_title = ""
 			if entry_count==0 or entry_count is None: #this is a good indication that the cache is bad
-				feed_info   = self._db.get_feed_verbose(feed_id)
+				feed_info   = self._app.db.get_feed_verbose(feed_id)
 				unviewed    = feed_info['unread_count']
 				flag        = feed_info['important_flag']
 				pollfail    = feed_info['poll_fail']
@@ -370,7 +369,7 @@ class FeedList(gobject.GObject):
 			if self._fancy:
 				if visible:
 					if len(m_first_entry_title) == 0:
-						m_first_entry_title = self._db.get_first_entry_title(feed_id, True)
+						m_first_entry_title = self._app.db.get_first_entry_title(feed_id, True)
 					m_details_loaded = True
 				else:
 					if len(m_first_entry_title) > 0:
@@ -511,7 +510,7 @@ class FeedList(gobject.GObject):
 		
 		if 'title' in update_what or 'icon' in update_what:
 			if not update_data.has_key('flag_list'):
-				update_data['flag_list'] = self._db.get_entry_flags(feed_id)
+				update_data['flag_list'] = self._app.db.get_entry_flags(feed_id)
 						
 			updated=0
 			unviewed=0
@@ -533,9 +532,9 @@ class FeedList(gobject.GObject):
 							#MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 			
 		if 'readinfo' in update_what:
-			#db_unread_count = self._db.get_unread_count(feed_id) #need it always for FIXME below
+			#db_unread_count = self._app.db.get_unread_count(feed_id) #need it always for FIXME below
 			if not update_data.has_key('unread_count'):
-				update_data['unread_count'] = self._db.get_unread_count(feed_id)#, db_unread_count)
+				update_data['unread_count'] = self._app.db.get_unread_count(feed_id)#, db_unread_count)
 			if update_data['unread_count'] > 0:
 				if feed[FLAG] & ptvDB.F_UNVIEWED==0:
 					feed[FLAG] = feed[FLAG] + ptvDB.F_UNVIEWED
@@ -563,13 +562,13 @@ class FeedList(gobject.GObject):
 		if 'title' in update_what:
 			selected = self.get_selected()
 			if not update_data.has_key('title'):
-				update_data['title'] = self._db.get_feed_title(feed_id)
+				update_data['title'] = self._app.db.get_feed_title(feed_id)
 			old_title_len = len(feed[TITLE])
 			new_title_len = len(update_data['title'])
 			
 			# don't update feed[TITLE] yet, we need these data first
 			if self._fancy:
-				try: feed[FIRSTENTRYTITLE] = self._db.get_first_entry_title(feed_id, True)
+				try: feed[FIRSTENTRYTITLE] = self._app.db.get_first_entry_title(feed_id, True)
 				except: feed[FIRSTENTRYTITLE] = ""
 				feed[MARKUPTITLE] = self._get_fancy_markedup_title(update_data['title'],feed[FIRSTENTRYTITLE],feed[UNREAD], feed[TOTAL], flag, feed[FEEDID])
 			else:
@@ -579,7 +578,7 @@ class FeedList(gobject.GObject):
 				feed[TITLE] = update_data['title']
 				try:
 					old_iter = self._feedlist.get_iter((self.find_index_of_item(feed_id),))
-					new_iter = self._feedlist.get_iter(([f[0] for f in self._db.get_feedlist()].index(feed_id),))
+					new_iter = self._feedlist.get_iter(([f[0] for f in self._app.db.get_feedlist()].index(feed_id),))
 					self._feedlist.move_after(old_iter,new_iter)
 					if selected == feed_id:
 						self._widget.scroll_to_cell((self.find_index_of_item(feed_id),))
@@ -593,7 +592,7 @@ class FeedList(gobject.GObject):
 			
 		if 'icon' in update_what:
 			if not update_data.has_key('pollfail'):
-				update_data['pollfail'] = self._db.get_feed_poll_fail(feed_id)
+				update_data['pollfail'] = self._app.db.get_feed_poll_fail(feed_id)
 			feed[POLLFAIL] = update_data['pollfail']
 			feed[STOCKID] = self._get_icon(flag)
 			if update_data['pollfail']:
@@ -776,7 +775,7 @@ class FeedList(gobject.GObject):
 		index = self.find_index_of_item(selected)
 		
 		if self.filter_setting > SEARCH:
-			feeds_with_tag = self._db.get_feeds_for_tag(self.filter_name)
+			feeds_with_tag = self._app.db.get_feeds_for_tag(self.filter_name)
 			
 		i=-1
 		for feed in self._feedlist:
@@ -788,13 +787,13 @@ class FeedList(gobject.GObject):
 				if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
 					passed_filter = True
 			elif self.filter_setting == NOTIFY:
-				opts = self._db.get_flags_for_feed(feed[FEEDID])
+				opts = self._app.db.get_flags_for_feed(feed[FEEDID])
 				if opts & ptvDB.FF_NOTIFYUPDATES:
 					passed_filter = True
 			elif self.filter_setting == ALL:
 				passed_filter = True
 			else:
-				#tags = self._db.get_tags_for_feed(feed[FEEDID])
+				#tags = self._app.db.get_tags_for_feed(feed[FEEDID])
 				#if tags:
 				#	if self.filter_name in tags:
 				#		passed_filter = True
@@ -846,13 +845,13 @@ class FeedList(gobject.GObject):
 			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
 				passed_filter = True
 		elif self.filter_setting == NOTIFY:
-			opts = self._db.get_flags_for_feed(feed[FEEDID])
+			opts = self._app.db.get_flags_for_feed(feed[FEEDID])
 			if opts & ptvDB.FF_NOTIFYUPDATES:
 				passed_filter = True
 		elif self.filter_setting == ALL:
 			passed_filter = True
 		else:
-			tags = self._db.get_tags_for_feed(feed[FEEDID])
+			tags = self._app.db.get_tags_for_feed(feed[FEEDID])
 			if tags:
 				if self.filter_name in tags:
 					passed_filter = True
@@ -899,7 +898,7 @@ class FeedList(gobject.GObject):
 
 			if (row[VISIBLE] or not visible_only) and not row[DETAILS_LOADED]:
 				then = time.time()
-				try: row[FIRSTENTRYTITLE] = self._db.get_first_entry_title(row[FEEDID], True)
+				try: row[FIRSTENTRYTITLE] = self._app.db.get_first_entry_title(row[FEEDID], True)
 				except: row[FIRSTENTRYTITLE] = ""
 				now = time.time()
 				if now - then > 2 and not visible_only:
@@ -940,13 +939,13 @@ class FeedList(gobject.GObject):
 			if flag & ptvDB.F_DOWNLOADED or flag & ptvDB.F_PAUSED:
 				passed_filter = True
 		elif self.filter_setting == NOTIFY:
-			opts = self._db.get_flags_for_feed(feed[FEEDID])
+			opts = self._app.db.get_flags_for_feed(feed[FEEDID])
 			if opts & ptvDB.FF_NOTIFYUPDATES:
 				passed_filter = True
 		elif self.filter_setting == ALL:
 			passed_filter = True
 		else:
-			tags = self._db.get_tags_for_feed(feed_id)
+			tags = self._app.db.get_tags_for_feed(feed_id)
 			if tags:
 				if self.filter_name in tags:
 					passed_filter = True
@@ -958,7 +957,7 @@ class FeedList(gobject.GObject):
 			return
 		index = path[0]
 		model = treeview.get_model()
-		link = self._db.get_feed_info(model[index][FEEDID])['link']
+		link = self._app.db.get_feed_info(model[index][FEEDID])['link']
 		if link is None:
 			dialog = gtk.Dialog(title=_("No Homepage"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("There is no homepage associated with this feed.  You can set one in the feed properties."))
@@ -1023,7 +1022,7 @@ class FeedList(gobject.GObject):
 		self._feedlist.clear()
 		
 	def add_feed(self, feed_id):
-		newlist = self._db.get_feedlist()
+		newlist = self._app.db.get_feedlist()
 		index = [f[0] for f in newlist].index(feed_id)
 		feed = newlist[index]
 		#print "-----------ADDFEED---------"
@@ -1125,7 +1124,7 @@ class FeedList(gobject.GObject):
 		if path is None: #nothing selected
 			return
 		selected = model[path[0]][FEEDID]
-		is_filter = self._db.is_feed_filter(selected)  
+		is_filter = self._app.db.is_feed_filter(selected)  
 
 		menu = self._get_context_menu(is_filter)
 

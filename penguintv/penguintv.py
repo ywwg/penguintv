@@ -156,7 +156,10 @@ class PenguinTVApp(gobject.GObject):
 		'state-changed':(gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE,
 						   ([gobject.TYPE_INT, gobject.TYPE_PYOBJECT])),
 		'online-status-changed':(gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-						   ([gobject.TYPE_BOOLEAN]))
+						   ([gobject.TYPE_BOOLEAN])),
+		'new-database': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_PYOBJECT])), 
 	}
 
 	def __init__(self, window=None):
@@ -259,7 +262,7 @@ class PenguinTVApp(gobject.GObject):
 		self.db._db.close()
 		del self.db
 		self.db = ptvDB.ptvDB(self.polling_callback, self._emit_change_setting)
-		logging.debug("have new db, right? %s %s" % (str(self.db), str(self.db._c)))
+		self.emit('new-database', self.db)
 	
 	@utils.db_except()
 	def post_show_init(self):

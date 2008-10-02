@@ -107,6 +107,7 @@ class ArticleSync(gobject.GObject):
 		if app is not None:
 			app.connect('entry-updated', self._entry_updated_cb)
 			app.connect('entries-viewed', self._entries_viewed_cb)
+			app.connect('new-database', self.__new_database_cb)
 			
 			self._db = app.db
 		else:
@@ -132,6 +133,9 @@ class ArticleSync(gobject.GObject):
 		def update_cb(success):
 			return False
 		gobject.timeout_add(20 * 60 * 1000, self.get_and_send, update_cb)
+		
+	def __new_database_cb(self, app, db):
+		self._db = db
 		
 	def set_entry_view(self, entry_view):
 		for disconnector, h_id in self._handlers:

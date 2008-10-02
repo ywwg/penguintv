@@ -76,7 +76,6 @@ class MainWindow(gobject.GObject):
 		self._app = app
 		self._window_inited = False
 		self._mm = self._app.mediamanager
-		self._db = self._app.db #this and app are always in the same thread
 		self._glade_prefix = glade_prefix
 		self._widgetTree = None
 		self._menu_widgettree = None
@@ -285,7 +284,7 @@ class MainWindow(gobject.GObject):
 			self.window.set_menu(menu)
 			
 			show_notifs_item = self._menu_widgettree.get_widget('show_notifications')
-			show_notifs_item.set_active(self._db.get_setting(ptvDB.BOOL, 
+			show_notifs_item.set_active(self._app.db.get_setting(ptvDB.BOOL, 
 		                           '/apps/penguintv/show_notifications', True))
 			
 			self.window.show_all()
@@ -490,10 +489,10 @@ class MainWindow(gobject.GObject):
 		self.app_window = self._widgetTree.get_widget('app')
 		
 		fancy_feedlist_item = self._menu_widgettree.get_widget('fancy_feed_display')
-		fancy_feedlist_item.set_active(self._db.get_setting(ptvDB.BOOL, 
+		fancy_feedlist_item.set_active(self._app.db.get_setting(ptvDB.BOOL, 
 		                               '/apps/penguintv/fancy_feedlist', True))
 		show_notifs_item = self._menu_widgettree.get_widget('show_notifications')
-		show_notifs_item.set_active(self._db.get_setting(ptvDB.BOOL, 
+		show_notifs_item.set_active(self._app.db.get_setting(ptvDB.BOOL, 
 		                           '/apps/penguintv/show_notifications', True))
 		self._widgetTree.get_widget(self.layout+"_layout").set_active(True)
 		self.app_window.set_icon_from_file(utils.get_image_path('penguintvicon.png'))
@@ -515,13 +514,13 @@ class MainWindow(gobject.GObject):
 		self._layout_dock.add(self.load_layout())
 
 		#sizing for the window comes from gconf
-		x = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
-		y = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y', 40)
+		x = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_x', 40)
+		y = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_position_y', 40)
 		if x < 0: x = 0
 		if y < 0: y = 0
 		self.app_window.move(x,y)
-		w = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 800)
-		h = self._db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
+		w = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_x', 800)
+		h = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/app_window_size_y', 500)
 		
 		def do_maximize():
 			self.app_window.maximize()
@@ -577,7 +576,7 @@ class MainWindow(gobject.GObject):
 		else:
 			self._downloads_label = gtk.Label(_('<span size="small">Downloads</span>'))
 			self._downloads_label.set_property('use-markup',True)
-		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._db, self._glade_prefix+'/penguintv.glade')
+		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._app.db, self._glade_prefix+'/penguintv.glade')
 		self._notebook.append_page(self._download_view.get_widget(), self._downloads_label)
 		
 		#self._notebook.set_show_tabs(False)
@@ -605,13 +604,13 @@ class MainWindow(gobject.GObject):
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
 		
-		fancy = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
+		fancy = self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', True)
 		if utils.RUNNING_SUGAR:
 			fancy = False
 		elif utils.RUNNING_HILDON:
 			fancy = True
 		
-		self.feed_list_view = FeedList.FeedList(components,self._app, self._db, fancy)
+		self.feed_list_view = FeedList.FeedList(components,self._app, fancy)
 		assert utils.HAS_MOZILLA
 		renderer = EntryFormatter.MOZILLA
 		
@@ -621,14 +620,14 @@ class MainWindow(gobject.GObject):
 		
 		if not self.layout.endswith("planet"):
 			self.entry_list_view = EntryList.EntryList(components, self._app, 
-			                                           self.feed_list_view, self, self._db)
+			                                           self.feed_list_view, self)
 			self.entry_view = EntryView.EntryView(components, self.feed_list_view, 
 										          self.entry_list_view, self._app, self, renderer)
 		else:
 			#self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
-			#							            self._app, self, self._db, renderer)
+			#							            self._app, self, self._app.db, renderer)
 			self.entry_view = PlanetView.PlanetView(components.get_widget('html_dock'), 
-													self, self._db, self._app.glade_prefix,
+													self, self._app.db, self._app.glade_prefix,
 													self.feed_list_view, self._app, 
 													renderer)
 			self.entry_list_view = self.entry_view
@@ -712,7 +711,7 @@ class MainWindow(gobject.GObject):
 		self._feedlist.drag_dest_set(gtk.DEST_DEFAULT_ALL, drop_types, gtk.gdk.ACTION_COPY)
 
 		if not self.layout.endswith("planet"):
-			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
+			val = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
 			if val < 10: val = 50
 			self.entry_pane.set_position(val)
 		
@@ -720,14 +719,14 @@ class MainWindow(gobject.GObject):
 			val = 840
 		else:
 			f_p_default = 370
-			val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', f_p_default)
+			val = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', f_p_default)
 			if val < 10: val=50
 		self.feed_pane.connect('realize', self._on_feed_pane_realized, val)
 		
 		if not self.changing_layout:
 			self.set_active_filter(FeedList.ALL)
 		
-			val = self._db.get_setting(ptvDB.STRING, '/apps/penguintv/default_filter')
+			val = self._app.db.get_setting(ptvDB.STRING, '/apps/penguintv/default_filter')
 			if val is not None:
 				try:
 					filter_index = [row[F_NAME] for row in self._filters].index(val)
@@ -808,8 +807,8 @@ class MainWindow(gobject.GObject):
 			self.search_container.hide_all()
 			
 		#elif self._notebook.get_current_page() == N_FEEDS:
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
-		self._db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
 		if not utils.RUNNING_HILDON:
 			if self.layout.endswith('planet'):
 				self.entry_pane.set_position(0)
@@ -848,10 +847,10 @@ class MainWindow(gobject.GObject):
 		#elif self._notebook.get_current_page() == N_FEEDS:
 		if not utils.RUNNING_HILDON:
 			if self.layout.endswith('planet'):
-				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
+				val = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', 370)
 				self.entry_pane.set_position(val)
 			else:
-				val = self._db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
+				val = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
 				self.feed_pane.set_position(val)
 		else:
 			if self.feed_pane.get_position() > 0:
@@ -929,7 +928,7 @@ class MainWindow(gobject.GObject):
 	def on_add_feed_filter_activate(self,event):
 		selected = self.feed_list_view.get_selected()
 		if selected:
-			title = self._db.get_feed_title(selected)
+			title = self._app.db.get_feed_title(selected)
 			dialog = FeedFilterDialog.FeedFilterDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_feed_filter",'penguintv'),self._app)
 			dialog.show()
 			dialog.set_pointed_feed(selected,title)
@@ -964,7 +963,7 @@ class MainWindow(gobject.GObject):
 		selected = self.feed_list_view.get_selected()
 		if selected:
 			#title, description, url, link
-			feed_info = self._db.get_feed_info(selected)
+			feed_info = self._app.db.get_feed_info(selected)
 			if self._feed_properties_dialog is None:
 				self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
 			self._feed_properties_dialog.set_feedid(selected)
@@ -973,8 +972,8 @@ class MainWindow(gobject.GObject):
 			self._feed_properties_dialog.set_description(feed_info['description'])
 			self._feed_properties_dialog.set_link(feed_info['link'])
 			self._feed_properties_dialog.set_last_poll(feed_info['lastpoll'])
-			self._feed_properties_dialog.set_tags(self._db.get_tags_for_feed(selected))
-			self._feed_properties_dialog.set_flags(self._db.get_flags_for_feed(selected))
+			self._feed_properties_dialog.set_tags(self._app.db.get_tags_for_feed(selected))
+			self._feed_properties_dialog.set_flags(self._app.db.get_flags_for_feed(selected))
 			if self._app.feed_refresh_method == penguintv.REFRESH_AUTO:
 				self._feed_properties_dialog.set_next_poll(feed_info['lastpoll']+feed_info['pollfreq'])
 			else:
@@ -985,7 +984,7 @@ class MainWindow(gobject.GObject):
 		selected = self.feed_list_view.get_selected()
 		if selected:
 			#title, description, url, link
-			feed_info = self._db.get_feed_info(selected)
+			feed_info = self._app.db.get_feed_info(selected)
 			self._feed_filter_properties_dialog.set_feed_id(selected)
 			self._feed_filter_properties_dialog.set_pointed_feed_id(feed_info['feed_pointer'])
 			self._feed_filter_properties_dialog.set_filter_name(feed_info['title'])
@@ -1336,7 +1335,7 @@ class MainWindow(gobject.GObject):
 		
 	def on_refresh_visible_feeds_activate(self, event):
 		if self._active_filter_index > FeedList.SEARCH:
-			feeds = self._db.get_feeds_for_tag(self._active_filter_name)
+			feeds = self._app.db.get_feeds_for_tag(self._active_filter_name)
 			self._app.do_poll_multiple(None, ptvDB.A_IGNORE_ETAG, feeds, 
 					message=_("Refreshing %s..." % self._active_filter_name))
 		elif utils.RUNNING_HILDON:
@@ -1425,10 +1424,10 @@ class MainWindow(gobject.GObject):
 		
 	def on_fancy_feed_display_activate(self, menuitem):
 		self.feed_list_view.set_fancy(menuitem.get_active())
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', menuitem.get_active())
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/fancy_feedlist', menuitem.get_active())
 		
 	def on_show_notifications_activate(self, menuitem):
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
 							 menuitem.get_active())
 				
 	def activate_layout(self, layout):
@@ -1576,7 +1575,7 @@ class MainWindow(gobject.GObject):
 		i=0 #we set i here so that searches and regular tags have incrementing ids
 		
 		builtin = _("All Feeds")
-		text = builtin+" ("+str(len(self._db.get_feedlist()))+")"
+		text = builtin+" ("+str(len(self._app.db.get_feedlist()))+")"
 		self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
 		self._filter_tree.append(None, [text, builtin, 0, True])
 		i += 1
@@ -1587,7 +1586,7 @@ class MainWindow(gobject.GObject):
 		i += 1
 		
 		builtin = _("Notifying Feeds")
-		text = builtin+" ("+str(len(self._db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)))+")"
+		text = builtin+" ("+str(len(self._app.db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)))+")"
 		self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
 		self._filter_tree.append(None, [text, builtin, 0, True])
 		i += 1
@@ -1598,7 +1597,7 @@ class MainWindow(gobject.GObject):
 			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
 			self._search_iter = self._filter_tree.append(None, [builtin, builtin, 0, False])
 	
-			tags = self._db.get_all_tags(ptvDB.T_SEARCH)	
+			tags = self._app.db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				has_search = True
 				for tag,favorite in tags:
@@ -1608,15 +1607,15 @@ class MainWindow(gobject.GObject):
 					if favorite > 0:
 						self._favorite_filters.append([favorite, tag,tag, i])
 		
-		tags = self._db.get_all_tags(ptvDB.T_TAG)
+		tags = self._app.db.get_all_tags(ptvDB.T_TAG)
 		if tags:
 			self._filter_tree.append(None, ["", "", 1, True])
 			for tag,favorite in tags:
 				i+=1
-				self._filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
+				self._filters.append([favorite, tag,tag+" ("+str(self._app.db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
 				completion_model.append([tag,_('tag: %s') % (tag,), i])
 				if favorite > 0:
-					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._db.get_count_for_tag(tag))+")", i])
+					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._app.db.get_count_for_tag(tag))+")", i])
 				
 		self._favorite_filters.sort()
 		self._favorite_filters = [f[1:] for f in self._favorite_filters]
@@ -1657,7 +1656,7 @@ class MainWindow(gobject.GObject):
 			i+=1
 			print t, i
 			if t != old_order[i-1]:
-				self._db.set_tag_favorite(t, i)
+				self._app.db.set_tag_favorite(t, i)
 		
 		if len(old_order) > 0:
 			i = len(old_order)-1
@@ -1666,13 +1665,13 @@ class MainWindow(gobject.GObject):
 		for t in tag_list[len(old_order):]:
 			print t, i
 			i+=1
-			self._db.set_tag_favorite(t, i)
+			self._app.db.set_tag_favorite(t, i)
 				
 		old = sets.Set(old_order)
 		new = sets.Set(tag_list)
 		removed = list(old.difference(new))
 		for t in removed:
-			self._db.set_tag_favorite(t, 0)
+			self._app.db.set_tag_favorite(t, 0)
 		self.update_filters()
 		
 	def _on_completion_match_selected(self, completion, model, iter, column):
@@ -1709,7 +1708,7 @@ class MainWindow(gobject.GObject):
 	def select_feed(self, feed_id):
 		#if we have a tag, pick the first one (really used just when adding
 		#feeds)
-		tags = self._db.get_tags_for_feed(feed_id)
+		tags = self._app.db.get_tags_for_feed(feed_id)
 		if len(tags) > 0:
 			if not self._active_filter_name in tags:
 				self.set_active_filter(FeedList.ALL)

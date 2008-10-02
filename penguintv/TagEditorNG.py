@@ -17,12 +17,12 @@ class TagEditorNG:
 	def __init__(self, xml, app):
 		self._xml = xml
 		self._app = app
-		self._db = self._app.db
 		self._current_tag = None
 		
 		self._app.connect("feed-added", self.__feed_added_cb)
 		self._app.connect("feed-removed", self.__feed_removed_cb)
 		self._app.connect("tags-changed", self.__tags_changed_cb)
+		self._handlers.append((app.disconnect, h_id))
 		
 	def show(self):
  		self._window = self._xml.get_widget("dialog_tag_editor_ng")
@@ -124,13 +124,13 @@ class TagEditorNG:
 
 	def _populate_lists(self):
 		self._feeds_model.clear()
-		for feed_id, title, url in self._db.get_feedlist():
+		for feed_id, title, url in self._app.db.get_feedlist():
 			self._feeds_model.append([feed_id, title, False, False, False])
 		self._feeds_model.append([-1, "None", False, True, False])
 
 		model = self._tags_widget.get_model()
 		model.clear()
-		for tag, favorite in self._db.get_all_tags():
+		for tag, favorite in self._app.db.get_all_tags():
 			model.append([tag])
 			
 	def _tags_widget_changed(self, event):
@@ -138,7 +138,7 @@ class TagEditorNG:
 		selected = self._tags_widget.get_selection().get_selected()
 		try:
 			self._current_tag = tags_model[selected[1]][0]
-			tagged_feeds = self._db.get_feeds_for_tag(self._current_tag)
+			tagged_feeds = self._app.db.get_feeds_for_tag(self._current_tag)
 		except:
 			self._current_tag = None
 			tagged_feeds = []
@@ -159,10 +159,10 @@ class TagEditorNG:
 		row[self.NEWLY_TOGGLED] = not row[self.NEWLY_TOGGLED]
 		
 		if row[self.TAGGED]:
-			self._db.add_tag_for_feed(row[self.FEEDID], self._current_tag)
+			self._app.db.add_tag_for_feed(row[self.FEEDID], self._current_tag)
 			self._app.emit('tags-changed', 1)
 		else:
-			self._db.remove_tag_from_feed(row[self.FEEDID], self._current_tag)
+			self._app.db.remove_tag_from_feed(row[self.FEEDID], self._current_tag)
 			self._app.emit('tags-changed', 1)
 			
 	def _on_button_rename_clicked(self, event):
@@ -194,7 +194,7 @@ class TagEditorNG:
 			
 	def _rename_tag(self, old_name, new_name):
 		#FIXME: do we need to check if the new_name already exists?
-		self._db.rename_tag(old_name, new_name)
+		self._app.db.rename_tag(old_name, new_name)
 		self._app.emit('tags-changed', 1)
 		
 		# resort
@@ -276,7 +276,7 @@ class TagEditorNG:
 		del dialog
 		if response == gtk.RESPONSE_ACCEPT:	
 			#remove from db	
-			self._db.remove_tag(self._current_tag)
+			self._app.db.remove_tag(self._current_tag)
 			self._app.emit('tags-changed', 1)
 			
 			#remove tag from our list

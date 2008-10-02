@@ -21,14 +21,13 @@ class PtvTrayIcon:
 		self._app.connect('app-loaded', self._app_loaded_cb)
 		self._app.connect('setting-changed', self.__setting_changed_cb)
 		
-		self._db = self._app.db
 		self._updates = []
 		self._updater_id = -1
 		self._notification_feeds = []
 		self._update_notification_feeds()
-		self._icon_manager = IconManager.IconManager(self._db.home)
+		self._icon_manager = IconManager.IconManager(self._app.db.home)
 		
-		self._show_notifications = self._db.get_setting(ptvDB.BOOL, 
+		self._show_notifications = self._app.db.get_setting(ptvDB.BOOL, 
 		                            '/apps/penguintv/show_notifications', True)
 		
 		#Set up the right click menu
@@ -73,7 +72,7 @@ class PtvTrayIcon:
 		self.manager.add_ui_from_string(menu)
 		menu = self.manager.get_widget('/Menubar/Menu/About').props.parent
 		
-		show_always = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always', True)
+		show_always = self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always', True)
 		
 		self._tray_icon = trayicon.TrayIcon.StatusTrayIcon(icon, menu, show_always)
 		self._tray_icon.connect('notification-clicked', self._notification_clicked_cb)
@@ -131,14 +130,14 @@ class PtvTrayIcon:
 		self._app.main_window.connect('player-hide', self.__gst_player_hide_cb)
 		
 	def _update_notification_feeds(self, obj=None):
-		self._notification_feeds = self._db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)
+		self._notification_feeds = self._app.db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)
 				
 	def _download_finished_cb(self, app, d):
 		if (d.status == FINISHED or d.status == FINISHED_AND_PLAY) and \
 		                                      self._show_notifications:
-			entry = self._db.get_entry(d.media['entry_id'])
+			entry = self._app.db.get_entry(d.media['entry_id'])
 			entry_title = utils.my_quote(entry['title'])
-			feed_title = self._db.get_feed_title(entry['feed_id'])
+			feed_title = self._app.db.get_feed_title(entry['feed_id'])
 			feed_title = utils.my_quote(feed_title)
 			icon = self._icon_manager.get_icon(entry['feed_id'])
 			
@@ -161,7 +160,7 @@ class PtvTrayIcon:
 		#	new_entries = 10
 		
 		if feed_id in self._notification_feeds and self._show_notifications:
-			entries = self._db.get_entrylist(feed_id)[0:new_entries]
+			entries = self._app.db.get_entrylist(feed_id)[0:new_entries]
 			entries = [(feed_id,e[0]) for e in entries]
 			entries.reverse()
 			if len(self._updates) >= 10:
@@ -177,8 +176,8 @@ class PtvTrayIcon:
 			self._updater_id = -1
 			return False
 		feed_id, entry_id = self._updates.pop(0)
-		feed_title = self._db.get_feed_title(feed_id)
-		entry = self._db.get_entry(entry_id)
+		feed_title = self._app.db.get_feed_title(feed_id)
+		entry = self._app.db.get_entry(entry_id)
 		icon = self._icon_manager.get_icon(feed_id)
 		
 		feed_title = utils.my_quote(feed_title)
@@ -207,7 +206,7 @@ class PtvTrayIcon:
 		
 	def __toggle_notifs_cb(self, toggleaction):
 		show_notifs = toggleaction.get_active()
-		self._db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
+		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/show_notifications',
 							 show_notifs)
 		self._show_notifications = show_notifs
 		if show_notifs == False:

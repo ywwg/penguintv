@@ -30,8 +30,7 @@ class DownloadView:
 	def __init__(self, app, mm, db, gladefile):
 		self._app = app
 		self._mm = mm
-		self._db = db
-		self._icon_manager = IconManager.IconManager(self._db.home)
+		self._icon_manager = IconManager.IconManager(self._app.db.home)
 		self._gladefile = gladefile
 		
 		self._downloads = []
@@ -193,8 +192,8 @@ class DownloadView:
 		for media_id in added:
 			item        = self._downloads[current_list.index(media_id)]
 			try:
-				entry       = self._db.get_entry(item.media['entry_id'])
-				description = self._db.get_feed_title(entry['feed_id']) + " " + utils.get_hyphen() + " " + entry['title']
+				entry       = self._app.db.get_entry(item.media['entry_id'])
+				description = self._app.db.get_feed_title(entry['feed_id']) + " " + utils.get_hyphen() + " " + entry['title']
 				size        = utils.format_size(item.total_size)
 			except:
 				logging.warning("trouble getting entry updating downloads: %s" % str(item))

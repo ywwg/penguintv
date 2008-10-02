@@ -156,6 +156,8 @@ class PlanetView(gobject.GObject):
 			self._handlers.append((self._app.disconnect, h_id))
 			h_id = self._app.connect('entries-unviewed', self.__entries_updated_cb)
 			self._handlers.append((self._app.disconnect, h_id))
+			h_id = app.connect('new-database', self.__new_database_cb)
+			self._handlers.append((app.disconnect, h_id))
 		screen = gtk.gdk.screen_get_default()
 		h_id = screen.connect('size-changed', self.__size_changed_cb)
 		self._handlers.append((screen.disconnect, h_id))
@@ -283,6 +285,9 @@ class PlanetView(gobject.GObject):
 	def __size_changed_cb(self, screen):
 		"""Redraw after xrandr calls"""
 		self._render_entries()
+		
+	def __new_database_cb(self, app, db):
+		self._db = db
 		
 	def grab_focus(self):
 		if utils.RUNNING_SUGAR:

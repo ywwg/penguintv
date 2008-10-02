@@ -46,7 +46,6 @@ class EntryView(gobject.GObject):
 				 app, main_window, renderer=EntryFormatter.MOZILLA):
 		gobject.GObject.__init__(self)
 		self._app = app
-		self._db = self._app.db
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
 		self._renderer = renderer
@@ -96,7 +95,7 @@ class EntryView(gobject.GObject):
 		
 		self._entry_formatter = EntryFormatter.EntryFormatter(self._mm)
 		self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True)
-		#self._auto_mark_viewed = self._db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
+		#self._auto_mark_viewed = self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/auto_mark_viewed', True)
 		
 		#signals
 		self._handlers = []
@@ -131,7 +130,7 @@ class EntryView(gobject.GObject):
 			for l in f.readlines(): self._css += l
 			f.close()
 			utils.init_gtkmozembed()
-			gtkmozembed.set_profile_path(self._db.home, 'gecko')
+			gtkmozembed.set_profile_path(self._app.db.home, 'gecko')
 			self._moz = gtkmozembed.MozEmbed()
 			self._moz.connect("open-uri", self._moz_link_clicked)
 			self._moz.connect("link-message", self._moz_link_message)
@@ -159,20 +158,20 @@ class EntryView(gobject.GObject):
 		self.display_item()
 		
 	def __entry_selected_cb(self, o, entry_id, feed_id):
-		item = self._db.get_entry(entry_id)
-		media = self._db.get_entry_media(entry_id)
+		item = self._app.db.get_entry(entry_id)
+		media = self._app.db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
 		else:
 			item['media']=[]
 		#if self._auto_mark_viewed:
-		#	if self._db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD:
+		#	if self._app.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD:
 		#		item['read'] = 1
 		self.display_item(item)
 
 	def __search_entry_selected_cb(self, o, entry_id, feed_id, search_query):
-		item = self._db.get_entry(entry_id)
-		media = self._db.get_entry_media(entry_id)
+		item = self._app.db.get_entry(entry_id)
+		media = self._app.db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
 		else:
@@ -246,7 +245,7 @@ class EntryView(gobject.GObject):
 				return False
 			return True
 				
-		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
+		moz_font = self._app.db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
 		#take just the beginning for the font name.  prepare for dense, unreadable code
 		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
@@ -291,8 +290,8 @@ class EntryView(gobject.GObject):
 		if entry_id != self._current_entry['entry_id'] or self._currently_blank:
 			return	
 		#assemble the updated info and display
-		item = self._db.get_entry(entry_id)
-		media = self._db.get_entry_media(entry_id)
+		item = self._app.db.get_entry(entry_id)
+		media = self._app.db.get_entry_media(entry_id)
 		if media:
 			item['media']=media
 		else:
@@ -354,10 +353,10 @@ class EntryView(gobject.GObject):
 			self._currently_blank = False
 			if self._convert_newlines[0] != item['feed_id']:
 				self._convert_newlines = (item['feed_id'], 
-				       self._db.get_flags_for_feed(item['feed_id']) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES)
+				       self._app.db.get_flags_for_feed(item['feed_id']) & ptvDB.FF_ADDNEWLINES == ptvDB.FF_ADDNEWLINES)
 			
 			if item['feed_id'] != self._auth_info[0] and self._auth_info[0] != -2:
-				feed_info = self._db.get_feed_info(item['feed_id'])
+				feed_info = self._app.db.get_feed_info(item['feed_id'])
 				if feed_info['auth_feed']:
 					self._auth_info = (item['feed_id'],feed_info['auth_userpass'], feed_info['auth_domain'])
 				else:
@@ -369,7 +368,7 @@ class EntryView(gobject.GObject):
 		if self._state == S_SEARCH:
 			formatter = self._search_formatter
 			if item is not None:
-				item['feed_title'] = self._db.get_feed_title(item['feed_id'])
+				item['feed_title'] = self._app.db.get_feed_title(item['feed_id'])
 		else:
 			formatter = self._entry_formatter
 	
