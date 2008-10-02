@@ -87,14 +87,14 @@ class OfflineImageCache:
 		for result in img_tags:
 			if rewrite_hash.has_key(result['src']):
 				if rewrite_hash[result['src']][1] == UrlCacher.DOWNLOADED:
-					if os.path.isfile(os.path.join(self._store_location, rewrite_hash[result['src']][0])):
-						if ajax_url is None:
-							result['src'] = "file://" + os.path.join(self._store_location, rewrite_hash[result['src']][0])
-						else:
-							result['src'] = ajax_url + "/cache/" + rewrite_hash[result['src']][0]
+					#if os.path.isfile(os.path.join(self._store_location, rewrite_hash[result['src']][0])):
+					if ajax_url is None:
+						result['src'] = "file://" + os.path.join(self._store_location, rewrite_hash[result['src']][0])
 					else:
-						logging.warning("file not found, not replacing")
-						logging.debug("(should we attempt to recache here?")
+						result['src'] = ajax_url + "/cache/" + rewrite_hash[result['src']][0]
+					#else:
+					#	logging.warning("file not found, not replacing")
+					#	logging.debug("(should we attempt to recache here?")
 				
 		return soup.prettify()
 		
