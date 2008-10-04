@@ -14,6 +14,7 @@ class SqliteSyncClient:
 		self._local_timestamp = 0
 		self._no_updates = False
 		self._readonly = False
+		self._bad_db = False
 		
 	def set_username(self, username):
 		if username == self._username:
@@ -86,12 +87,22 @@ class SqliteSyncClient:
 		if noclosedb is None:
 			db = self._get_db()
 			if db is None:
-				return False
+				self._sync_file = None
+				db = self._create_db()
 		else:
 			db = noclosedb
 		
+		try:
+			c = db.cursor()
+			c.execute(u'SELECT * FROM readinfo LIMIT 1')
+		except Exception, e:
+			logging.error("Bad Articlesync DB, recreating: %s" % str(e))
+			self._sync_file = None
+			db = self._create_db()
+			c = db.cursor()
+			
 		timestamp = int(time.time())
-		c = db.cursor()
+			
 		hashes = [r[0] for r in readstates]
 		existing = []
 		while len(hashes) > 0:
@@ -114,6 +125,7 @@ class SqliteSyncClient:
 			else:
 				c.execute(u'INSERT INTO readinfo (hash, timestamp, readstate) VALUES (?,?,?)',
 					(entry_hash, timestamp, readstate))
+					
 		db.commit()
 		c.close()
 		
@@ -127,18 +139,24 @@ class SqliteSyncClient:
 		"""takes a list of hashes, asks the db for their readstates
 		   
 		   returns a hash of entryhash:readstate"""
-		   
-		db = self._get_db()
-		if db is None:
-			return []
+		  
+		try: 
+			db = self._get_db()
+			c = db.cursor()
+		except Exception, e:
+			self._bad_db = True
+			return None
 			
-		c = db.cursor()
 		readstates = []
 		while len(hashlist) > 0:
 			subset = hashlist[:900]
 			qmarks = '?,'*(len(subset)-1)+'?'
-			c.execute(u'SELECT hash, readstate FROM readinfo WHERE hash IN ('+qmarks+')', \
-				tuple(subset))
+			try:
+				c.execute(u'SELECT hash, readstate FROM readinfo WHERE hash IN ('+qmarks+')', \
+					tuple(subset))
+			except Exception, e:
+				self._bad_db = True
+				return None
 			batch = c.fetchall()
 			if batch is None: 
 				batch = []
@@ -170,12 +188,19 @@ class SqliteSyncClient:
 			logging.debug("server timestamp is less than local, so clocks must be off. Using their time")
 			timestamp = server_timestamp
 		
-		db = self._get_db(server_timestamp)
-		if db is None:
-			return []
-			
-		c = db.cursor()
-		c.execute(u'SELECT hash, readstate FROM readinfo WHERE timestamp >= ?', (timestamp,))
+		
+		try: 
+			db = self._get_db(server_timestamp)
+			c = db.cursor()
+		except Exception, e:
+			self._bad_db = True
+			return None
+
+		try:
+			c.execute(u'SELECT hash, readstate FROM readinfo WHERE timestamp >= ?', (timestamp,))
+		except Exception, e:
+			self._bad_db = True
+			return None
 		new_hashes = c.fetchall()
 		#logging.debug("result: %s" % str(new_hashes))
 		c.execute(u'SELECT hash, readstate, timestamp FROM readinfo')
@@ -193,6 +218,10 @@ class SqliteSyncClient:
 		return new_hashes
 		
 	def _get_db(self, server_timestamp=None):
+		if self._bad_db:
+			self._bad_db = False
+			return self._create_db()
+			
 		if self._sync_file is None:
 			return self._download_db()
 			
@@ -208,7 +237,12 @@ class SqliteSyncClient:
 				% (server_timestamp, self._local_timestamp))
 			return self._download_db()
 		
-		return sqlite3.connect(self._sync_file)
+		try:
+			return sqlite3.connect(self._sync_file)
+		except Exception, e:
+			logging.error("error loading articlesync db: %s %s" % (type(e), str(e)))
+			self._bad_db = True
+			return None
 		
 	def _download_db(self):
 		self._no_updates = False
@@ -223,6 +257,7 @@ class SqliteSyncClient:
 			db_data = self._do_download_db()
 		except Exception, e:
 			logging.error("error downloading db: %s" % str(e))
+			self._bad_db = True
 			return None
 			
 		if self._sync_file is None:
@@ -237,9 +272,16 @@ class SqliteSyncClient:
 		except Exception, e:
 			logging.error("error getting timestamp: %s" % str(e))
 		
-		return sqlite3.connect(self._sync_file)
+		try:
+			return sqlite3.connect(self._sync_file)
+		except Exception, e:
+			#problem with the db, have to start over
+			logging.error("error loading articlesync db (2): %s %s" % (type(e), str(e)))
+			self._bad_db = True
+			return None
 		
 	def _create_db(self):
+		logging.debug("creating new db")
 		self._sync_file = tempfile.mkstemp(suffix='.db')[1]
 		db = sqlite3.connect(self._sync_file)
 		c = db.cursor()

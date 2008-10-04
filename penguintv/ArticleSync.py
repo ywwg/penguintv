@@ -4,7 +4,7 @@ import urlparse
 import threading
 import logging
 import sha
-import traceback
+#import traceback
 import time
 import gettext
 logging.basicConfig(level=logging.DEBUG)
@@ -45,7 +45,7 @@ def threaded_func():
 					retval = func(self, *args, **kwargs)
 				except Exception, e:
 					retval = None
-					logging.error("Article Sync caught error: %s" % str(e))
+					logging.error("Article Sync caught error: %s %s" % (type(e), str(e)))
 				self._operation_lock.release()
 				if type(retval) is tuple:
 					if DEBUG:
@@ -432,8 +432,13 @@ class ArticleSync(gobject.GObject):
 		return self._conn.get_readstates(hashlist)
 		
 	def get_readstates_cb(self, readstates):
+		def submit_cb(success):
+			return False
+			
 		if readstates is None:
-			logging.debug("No readstates to report")
+			logging.debug("Got none, must be new db, submitting last 2 weeks")
+			then = time.time() - (60*60*24*14)
+			self.submit_readstates_since(then, submit_cb)
 			self.emit('got-readstates', [])
 			return False
 			

@@ -196,7 +196,7 @@ class FtpSyncClient(SqliteSyncClient):
 			pass
 		
 		if int(time.time()) - self._last_conn_check < 30:
-			logging.debug("last connection was recent, assuming ok")
+			#logging.debug("last connection was recent, assuming ok")
 			return True
 			
 		#logging.debug("checking connection")
