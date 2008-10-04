@@ -362,12 +362,27 @@ class MediaManager:
 			
 	def get_disk_usage(self):
 		size = 0
-		try:
-			#filelist = glob.glob(self._media_dir+"/*")
-			for f in utils.GlobDirectoryWalker(os.path.join(self._media_dir, "")):
-				size = size+os.stat(f)[6]
-		except:
-			pass
+		if utils.RUNNING_HILDON:
+			#this is much faster on maemo, which sucks at mmc disk access
+			import subprocess
+			if not os.path.isdir(self._media_dir):
+				return 0
+
+			cmd = "du -sk %s" % self._media_dir
+			p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			retval = p.wait()
+			stderr = p.stderr.read()
+			if len(stderr) > 1 or retval != 0:
+				return 0
+			retval = p.stdout.read().split('\t')[0]
+			size = long(retval)*1024L
+		else:
+			try:
+				#filelist = glob.glob(self._media_dir+"/*")
+				for f in utils.GlobDirectoryWalker(self._media_dir):
+					size = size+os.stat(f)[6]
+			except:
+				pass
 		return size
 		
 	def generate_playlist(self):
