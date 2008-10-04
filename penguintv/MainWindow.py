@@ -1619,7 +1619,7 @@ class MainWindow(gobject.GObject):
 		builtin = _("Notifying Feeds")
 		text = builtin+" ("+str(len(self._app.db.get_feeds_for_flag(ptvDB.FF_NOTIFYUPDATES)))+")"
 		self._filters.append([0,builtin,text,ptvDB.T_BUILTIN])
-		self._filter_tree.append(None, [text, builtin, 0, True])
+		self._filter_tree.append(None, [text, builtin, 0, utils.HAS_STATUS_ICON])
 		i += 1
 		
 		builtin = _("Search Results")
