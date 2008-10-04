@@ -421,7 +421,7 @@ class PenguinTVApp(gobject.GObject):
 		sleep_time = 0.3
 		if utils.RUNNING_HILDON:
 			wait_time = 30
-			sleep_time = 5
+			sleep_time = 3
 		for i in range(0, wait_time):
 			if self._exiting:
 				break
@@ -2787,11 +2787,6 @@ to prevent crashes."""
 		
 		app.main_window.Show()
 		
-		##PROFILE
-		#import cProfile
-		#cProfile.run('gtk.main()', '/tmp/penguintv-prof')
-		#sys.exit(0)
-		
 		#import psyco
 		##psyco.log("/home/owen/Desktop/psyco.log")
 		##psyco.profile()
@@ -2824,4 +2819,9 @@ to prevent crashes."""
 		app.main_window.Show(window)
 		window.connect('delete-event', do_quit, app)
 	do_commandline(local_app=app)
+	
+	##PROFILE
+	#import cProfile
+	#cProfile.run('gtk.main()', '/tmp/penguintv-prof')
+	#sys.exit(0)
 	gtk.main()

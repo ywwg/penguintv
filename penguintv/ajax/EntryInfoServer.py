@@ -60,5 +60,11 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			#strip out possible ../../../ crap.  I think this is all I need?
 			securitize = [s for s in splitted if s not in ("/",".","..")]
 			filename = os.path.join(self._server.store_location, *securitize[2:])
-			image_data = self._image_cache.get_image_from_file(filename)
+			if utils.RUNNING_HILDON:
+				#not enough ram to cache it
+				f = open(filename, "rb")
+				image_data = f.read()
+				f.close()
+			else:
+				image_data = self._image_cache.get_image_from_file(filename)
 			self.wfile.write(image_data)

@@ -140,8 +140,9 @@ else:
 	except:
 		HAS_GSTREAMER = False
 
-#if RUNNING_HILDON:
-#	HAS_STATUS_ICON = False
+if RUNNING_HILDON:
+	#having a status icon causes tons of problems (causes hildonn UI to crash)
+	HAS_STATUS_ICON = False
 	
 #DEBUG
 #_USE_KDE_OVERRIDE=False
