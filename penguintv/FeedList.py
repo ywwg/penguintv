@@ -775,7 +775,7 @@ class FeedList(gobject.GObject):
 		index = self.find_index_of_item(selected)
 		
 		#stupid exception for when we don't have search
-		if self.filter_setting > SEARCH or (not utils.HAS_SEARCH and self.filter_setting == SEARCH):
+		if self.filter_setting > SEARCH:# or (not utils.HAS_SEARCH and self.filter_setting == SEARCH):
 			feeds_with_tag = self._app.db.get_feeds_for_tag(self.filter_name)
 			
 		i=-1

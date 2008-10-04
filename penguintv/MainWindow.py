@@ -700,8 +700,8 @@ class MainWindow(gobject.GObject):
 		filter_filter = self._filter_tree.filter_new()
 		filter_filter.set_visible_column(3)
 		
-		if not utils.RUNNING_HILDON:								  
-			self._filter_selector_combo.set_model(filter_filter)
+		#if not utils.RUNNING_HILDON:								  
+		self._filter_selector_combo.set_model(filter_filter)
 		self._filter_selector_combo.set_row_separator_func(lambda model,iter:model[iter][2]==1)
 		
 		self._filters = [] #text, text to display, type, tree path
@@ -1119,12 +1119,17 @@ class MainWindow(gobject.GObject):
 			self._active_filter_index = index
 			self._active_filter_path = model.get_path(it)
 			
-			if utils.HAS_SEARCH:
-				if index == FeedList.SEARCH:
-					self._filter_tree[FeedList.SEARCH][3] = True
-				else:
-					self._filter_tree[FeedList.SEARCH][3] = False
-				model.refilter()
+			if utils.HAS_SEARCH and index == FeedList.SEARCH:
+				self._filter_tree[FeedList.SEARCH][3] = True
+			else:
+				self._filter_tree[FeedList.SEARCH][3] = False
+				
+			if utils.HAS_STATUS_ICON:
+				self._filter_tree[FeedList.NOTIFY][3] = True
+			else:
+				self._filter_tree[FeedList.NOTIFY][3] = False
+
+			model.refilter()
 
 		self._activate_filter()
 		
@@ -1147,12 +1152,17 @@ class MainWindow(gobject.GObject):
 		
 	def set_active_filter(self, index):
 		model = self._filter_selector_combo.get_model()
-		if utils.HAS_SEARCH:
-			if index == FeedList.SEARCH:
-				self._filter_tree[FeedList.SEARCH][3] = True
-			else:
-				self._filter_tree[FeedList.SEARCH][3] = False
-			model.refilter()
+		if utils.HAS_SEARCH and index == FeedList.SEARCH:
+			self._filter_tree[FeedList.SEARCH][3] = True
+		else:
+			self._filter_tree[FeedList.SEARCH][3] = False
+		
+		if utils.HAS_STATUS_ICON:
+			self._filter_tree[FeedList.NOTIFY][3] = True
+		else:
+			self._filter_tree[FeedList.NOTIFY][3] = False
+			
+		model.refilter()
 
 		self._find_path(index)
 		it = model.get_iter(self._active_filter_path)
@@ -1612,12 +1622,13 @@ class MainWindow(gobject.GObject):
 		self._filter_tree.append(None, [text, builtin, 0, True])
 		i += 1
 		
+		builtin = _("Search Results")
+		self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
+		self._search_iter = self._filter_tree.append(None, [builtin, builtin, 0, False])
+		i += 1
+		
 		has_search = False
-		if utils.HAS_SEARCH:	
-			builtin = _("Search Results")
-			self._filters.append([0,builtin,builtin,ptvDB.T_BUILTIN])
-			self._search_iter = self._filter_tree.append(None, [builtin, builtin, 0, False])
-	
+		if utils.HAS_SEARCH:
 			tags = self._app.db.get_all_tags(ptvDB.T_SEARCH)	
 			if tags:
 				has_search = True

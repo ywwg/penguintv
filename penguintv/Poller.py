@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.5
+#!/usr/bin/env python
 #Out-of-process poller for PenguinTV
 #returns data over dbus
 
