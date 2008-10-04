@@ -10,7 +10,6 @@ except:
 	from pysqlite2 import dbapi2 as sqlite
 
 from math import floor,ceil
-import feedparser
 import time
 import string
 import urllib, urlparse
@@ -35,9 +34,9 @@ gettext.bindtextdomain('penguintv', '/usr/share/locale')
 gettext.textdomain('penguintv')
 _=gettext.gettext
 
+import utils
 import IconManager
 import OfflineImageCache
-import utils
 if utils.HAS_LUCENE:
 	import Lucene
 if utils.HAS_XAPIAN:
@@ -881,14 +880,14 @@ class ptvDB:
 		
 		try:
 			fd = open(os.path.join(self.home, 'feed_cache.pickle'), 'r')
+			cache = pickle.load(fd)
 		except:
-			logging.warning("feed_cache.pickle not found")
+			logging.warning("error loading feed_cache.pickle ")
 			return None
 			
 		
 		#self._db_execute(self._c, u'SELECT rowid, flag_cache, unread_count_cache, entry_count_cache, pollfail, first_entry_cache FROM feeds ORDER BY UPPER(TITLE)')
 		#cache = self._c.fetchall()
-		cache = pickle.load(fd)
 		self.set_setting(BOOL, "feed_cache_dirty", True)
 		self.cache_dirty=True
 		return cache
@@ -1124,6 +1123,7 @@ class ptvDB:
 			return (feed_id, arguments, total, -1)
 		
 		try:
+			import feedparser
 			#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 			#speed up feedparser
 			#must sanitize because some feeds have POPUPS!
@@ -1286,6 +1286,7 @@ class ptvDB:
 			#self._db_execute(self._c, """SELECT url,etag FROM feeds WHERE rowid=?""",(feed_id,))
 			#data = self._c.fetchone()
 			try:
+				import feedparser
 				#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
 				
 				#speed up feedparser
@@ -2193,6 +2194,7 @@ class ptvDB:
 			url=self._c.fetchone()[0]
 			
 			try:
+				import feedparser
 				feedparser.disableWellFormedCheck=1
 				data = feedparser.parse(url)
 			except:

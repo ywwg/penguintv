@@ -5,8 +5,6 @@ import sys, os, os.path
 import sets
 import logging
 
-import code
-
 import ptvDB
 import penguintv
 import Player
@@ -42,17 +40,18 @@ N_FEEDS     = 0
 N_PLAYER    = 1
 N_DOWNLOADS = 2
 
-#import EditTagsMultiDialog
-import TagEditorNG
-import AddSearchTagDialog
-import EditSearchesDialog
-import FeedFilterDialog
-import FeedPropertiesDialog
-import FeedFilterPropertiesDialog
-import SynchronizeDialog
-import FilterSelectorDialog
-import MainWindow, FeedList, EntryList, EntryView, PlanetView, DownloadView, EntryFormatter
+import FeedList, PlanetView, DownloadView, EntryFormatter
 
+if utils.HAS_SEARCH:
+	import FeedFilterPropertiesDialog
+	import AddSearchTagDialog
+	import EditSearchesDialog
+	import FeedFilterDialog
+
+if not utils.RUNNING_HILDON:
+	import SynchronizeDialog
+	import EntryList, EntryView
+	
 if utils.HAS_GSTREAMER:
 	import GStreamerPlayer
 
@@ -121,7 +120,8 @@ class MainWindow(gobject.GObject):
 			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._app)
-
+		
+		self._window_add_feed = None
 		self._filter_selector_dialog = None
 		self._feed_properties_dialog = None
 		
@@ -438,7 +438,10 @@ class MainWindow(gobject.GObject):
 		from sugar.graphics.toolbutton import ToolButton
 		from sugar.graphics.palette import Palette
 		
-		content = self._app.window_add_feed.extract_content()
+		if self._window_add_feed is None:
+			self.show_window_add_feed()
+			self.hide_window_add_feed()
+		content = self._window_add_feed.extract_content()
 		palette = Palette(_('Add Feed'))
 		palette.set_content(content)
 		self.sugar_add_button.set_palette(palette)
@@ -545,6 +548,18 @@ class MainWindow(gobject.GObject):
 		for key in dir(self.__class__): #python insaneness
 			if key[:3] == 'on_':
 				self._widgetTree.signal_connect(key, getattr(self, key))
+				
+	def show_window_add_feed(self):
+		import AddFeedDialog
+		if self._window_add_feed is None:
+			self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self._app) #MAGIC
+			self._window_add_feed.show_all()
+			
+	def hide_window_add_feed(self):
+		if self._window_add_feed is None:
+			self.show_window_add_feed()
+			
+		self._window_add_feed.hide()
 				
 	def load_notebook(self):
 		self._notebook = NotebookManager()
@@ -923,7 +938,7 @@ class MainWindow(gobject.GObject):
 			logging.warning("Please wait until feeds have loaded before adding a new one")
 			return 
 		self._notebook.set_current_page(N_FEEDS)
-		self._app.window_add_feed.show() #not modal / blocking
+		self.show_window_add_feed() #not modal / blocking
 		
 	def on_add_feed_filter_activate(self,event):
 		selected = self.feed_list_view.get_selected()
@@ -954,12 +969,13 @@ class MainWindow(gobject.GObject):
 		if self._state == S_MAJOR_DB_OPERATION:
 			logging.warning("Please wait until feeds have loaded before adding a new one")
 			return 
-		self._app.window_add_feed.show() #not modal / blocking
+		self.show_window_add_feed() #not modal / blocking
 	
 	#def on_feed_pane_expose_event(self, widget, event):
 	#	self.feed_list_view.resize_columns(self.feed_pane.get_position())
 	
 	def on_feed_properties_activate(self, event):
+		import FeedPropertiesDialog
 		selected = self.feed_list_view.get_selected()
 		if selected:
 			#title, description, url, link
@@ -1012,6 +1028,7 @@ class MainWindow(gobject.GObject):
 			
 	def on_edit_tags_for_all_activate(self, event):
 		"""Bring up mass tag creation window"""
+		import TagEditorNG
 		window_edit_tags_multi = TagEditorNG.TagEditorNG(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_editor_ng",'penguintv'), self._app)
 		window_edit_tags_multi.show()
 			
@@ -1063,6 +1080,7 @@ class MainWindow(gobject.GObject):
 		self._sync_dialog.on_sync_button_clicked(event)	
 				
 	def on_edit_favorite_tags(self, o=None):
+		import FilterSelectorDialog
 		if self._filter_selector_dialog is None:
 			self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
 		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)

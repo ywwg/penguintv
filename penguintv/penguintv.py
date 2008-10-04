@@ -27,10 +27,9 @@ except:
 	from pysqlite2 import dbapi2 as sqlite
 import threading
 import sys, os, os.path
-import gc
-#gc.set_debug(gc.DEBUG_STATS | gc.DEBUG_SAVEALL)
+
 import logging
-import traceback
+#import traceback
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -41,7 +40,7 @@ try:
 	HAS_GNOME=True
 except:
 	HAS_GNOME=False
-import webbrowser
+
 import time
 import sets
 import string
@@ -55,8 +54,6 @@ import gtk.glade
 import gobject
 import locale
 import gettext
-import getopt
-import sha
 try:
 	import dbus
 	import dbus.service
@@ -86,7 +83,6 @@ import Downloader
 import ArticleSync
 import Poller
 
-import AddFeedDialog
 import PreferencesDialog
 import MainWindow, FeedList
 
@@ -99,6 +95,9 @@ if utils.RUNNING_HILDON:
 	import HildonListener
 	import osso
 #	HAS_DBUS = False
+if not utils.RUNNING_HILDON:
+	import webbrowser
+	import gc
 
 CANCEL=0
 PAUSE=1
@@ -278,8 +277,7 @@ class PenguinTVApp(gobject.GObject):
 			hildon_listener = HildonListener.HildonListener(self, self.main_window.window, self._hildon_context)
 
 		#WINDOWS
-		self.window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self) #MAGIC
-		self.window_add_feed.hide()
+		#TODO: move this initialization till when we actually need these
 		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
 		
@@ -360,7 +358,8 @@ class PenguinTVApp(gobject.GObject):
 		
 		self.main_window.search_container.set_sensitive(False)
 		if utils.HAS_SEARCH:
-			if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
+			#if self.db.cache_dirty or self.db.searcher.needs_index: #assume index is bad as well or if it is bad
+			if self.db.searcher.needs_index: #if index is bad
 				self.main_window.search_entry.set_text(_("Please wait..."))
 				self.main_window.display_status_message(_("Reindexing Feeds..."))
 				self.db.doindex(self._sensitize_search)
@@ -396,7 +395,7 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('app-loaded')
 		self._app_loaded = True
 		self.db.done_initializing()
-		self.save_settings()
+		#self.save_settings()
 		return False #for idler	
 		
 	def _get_poller(self):
@@ -415,7 +414,7 @@ class PenguinTVApp(gobject.GObject):
 		sleep_time = 0.3
 		if utils.RUNNING_HILDON:
 			wait_time = 30
-			sleep_time = 1
+			sleep_time = 5
 		for i in range(0, wait_time):
 			if self._exiting:
 				break
@@ -1606,7 +1605,7 @@ class PenguinTVApp(gobject.GObject):
 			gst_player = self.main_window.get_gst_player()
 			if gst_player is not None:
 				if gst_player.has_video():
-					osso.DeviceState(self._hildon_context).display_state_on()
+					osso.DeviceState(self._hildon_context).display_blanking_pause()
 
 	@utils.db_except()
 	def refresh_feed(self, feed):
@@ -1966,7 +1965,7 @@ class PenguinTVApp(gobject.GObject):
 			updater.queue(db.poll_feed_trap_errors, (feed_id,self._db_add_feed_cb))
 		except ptvDB.FeedAlreadyExists, e:
 			self.main_window.select_feed(e.feed)
-		self.window_add_feed.hide()
+		self.main_window.hide_window_add_feed()
 		return feed_id
 		
 	def _db_add_feed_cb(self, feed, success):
@@ -2566,6 +2565,7 @@ def usage():
 		
 def do_commandline(remote_app=None, local_app=None):
 	assert remote_app is not None or local_app is not None
+	import getopt
 
 	try:
 		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help","play","pause","prev","next","playpause"])
