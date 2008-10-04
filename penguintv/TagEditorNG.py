@@ -22,7 +22,6 @@ class TagEditorNG:
 		self._app.connect("feed-added", self.__feed_added_cb)
 		self._app.connect("feed-removed", self.__feed_removed_cb)
 		self._app.connect("tags-changed", self.__tags_changed_cb)
-		self._handlers.append((app.disconnect, h_id))
 		
 	def show(self):
  		self._window = self._xml.get_widget("dialog_tag_editor_ng")
@@ -105,7 +104,10 @@ class TagEditorNG:
 		pane = self._xml.get_widget("hpaned")
 		pane.set_position(200)
 		
-		self._window.resize(500,600)
+		if utils.RUNNING_HILDON:
+			self._window.resize(650,300)
+		else:
+			self._window.resize(500,600)
 		self._window.show()
 		
 		self._populate_lists()
@@ -290,8 +292,26 @@ class TagEditorNG:
 			self._tags_widget.scroll_to_cell((0,))
 			selection.unselect_all()
 		
- 	def _on_button_close_clicked(self, event):
+	def _on_button_close_clicked(self, event):
  		self.hide()
+
+	def _on_editor_help_button_activate(self, event):
+ 		dialog = gtk.Dialog(title=_("Tag Editor Help"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		hbox = gtk.HBox()
+		hbox.set_spacing(12)
+		image = gtk.image_new_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG)
+		hbox.pack_start(image, False, False, 12)
+		label = gtk.Label(_("""Select a tag in the list on the left, and all the feeds with that tag will be marked on the right.  You may mark and unmark feeds to add or remove that tag from them.
+
+Tagged feeds will appear at the top of the list."""))
+		label.set_line_wrap(True)
+		hbox.pack_start(label, True, True, 0)
+		dialog.vbox.pack_start(hbox, True, True, 0)
+		dialog.show_all()
+		dialog.resize(400,-1)
+		response = dialog.run()
+		dialog.hide()
+		del dialog
  		
 	def on_dialog_tag_editor_ng_destroy_event(self, data1, data2):
 		self.hide()

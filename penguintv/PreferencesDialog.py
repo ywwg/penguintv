@@ -66,7 +66,7 @@ class PreferencesDialog:
 
 	def show(self):
 		if utils.RUNNING_HILDON:
-			self._window.resize(600,200)
+			self._window.resize(650,300)
 			self._window.show_all()
 		elif utils.RUNNING_SUGAR:
 			self.auto_download_limiter_widget.hide()

@@ -103,8 +103,9 @@ class FilterSelectorDialog(gtk.Dialog):
 		
 	def Show(self):
 		if utils.RUNNING_HILDON:
+			print "big dialog?"
 			self._all_tags_treeview.set_property('height-request', 150)
-			self.resize(600,200)
+			self.resize(650,300)
 	
 		context = self.create_pango_context()
 		style = self.get_style().copy()
@@ -128,7 +129,8 @@ class FilterSelectorDialog(gtk.Dialog):
 		self._pane_position = pango.PIXELS((widest_left+10)*char_width)
 		self._window_width  = pango.PIXELS((widest_left+widest_right+10)*char_width)+100
 		
-		self.resize(self._window_width,1)
+		if not utils.RUNNING_HILDON:
+			self.resize(self._window_width,1)
 		self._pane.set_position(self._pane_position)
 		self._favorites_treeview.columns_autosize()
 		self._all_tags_treeview.columns_autosize()
@@ -156,6 +158,22 @@ class FilterSelectorDialog(gtk.Dialog):
 	def _on_close_clicked(self, button):
 		self.Hide()
 		#self.destroy()
+		
+	def _on_help_button_activate(self, event):
+ 		dialog = gtk.Dialog(title=_("Tag Favorites Help"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		hbox = gtk.HBox()
+		hbox.set_spacing(12)
+		image = gtk.image_new_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG)
+		hbox.pack_start(image, False, False, 12)
+		label = gtk.Label(_("""You can drag tags from the righthand side to the favorites list on the left.  To remove a favorite, drag it from the lefthand side back to the right."""))
+		label.set_line_wrap(True)
+		hbox.pack_start(label, True, True, 0)
+		dialog.vbox.pack_start(hbox, True, True, 0)
+		dialog.show_all()
+		dialog.resize(400,-1)
+		response = dialog.run()
+		dialog.hide()
+		del dialog
 		
 	#def _on_dialog_tag_favorites_delete_event(self, widget, event):
 	#	return widget.hide_on_delete()

@@ -597,7 +597,8 @@ def init_gtkmozembed():
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
 	stderr = p.stderr.read()
-	if len(stderr) > 1 or retval == 0:
+	stdout = p.stdout.read()
+	if len(stderr) > 1 or len(stdout) > 0:
 		print """***ERROR initializing mozilla.  PenguinTV may crash shortly.  
 You may need to export LD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
 """

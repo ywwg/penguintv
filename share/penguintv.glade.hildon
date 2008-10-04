@@ -1020,7 +1020,7 @@ j@v2v.cc
       </widget>
     </child>
   </widget>
-  <widget class="GtkDialog" id="dialog_tag_favorites">
+ <widget class="GtkDialog" id="dialog_tag_favorites">
     <property name="title" translatable="yes">Edit Favorite Tags</property>
     <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
     <signal name="delete_event" handler="_on_dialog_tag_favorites_delete_event"/>
@@ -1028,107 +1028,54 @@ j@v2v.cc
       <widget class="GtkVBox" id="dialog-vbox3">
         <property name="visible">True</property>
         <child>
-          <widget class="GtkScrolledWindow" id="scrolledwindow7">
+          <widget class="GtkHPaned" id="hpaned">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
             <child>
-              <widget class="GtkViewport" id="viewport7">
+              <widget class="GtkScrolledWindow" id="scrolledwindow16">
                 <property name="visible">True</property>
-                <property name="resize_mode">GTK_RESIZE_QUEUE</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                <property name="shadow_type">GTK_SHADOW_IN</property>
                 <child>
-                  <widget class="GtkVBox" id="contents">
+                  <widget class="GtkTreeView" id="favorites_treeview">
                     <property name="visible">True</property>
-                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <child>
-                      <widget class="GtkHPaned" id="hpaned">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <child>
-                          <widget class="GtkScrolledWindow" id="scrolledwindow16">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                            <property name="shadow_type">GTK_SHADOW_IN</property>
-                            <child>
-                              <widget class="GtkTreeView" id="favorites_treeview">
-                                <property name="visible">True</property>
-                                <property name="can_focus">True</property>
-                                <signal name="drag_data_get" handler="_on_drag_data_get"/>
-                                <signal name="drag_begin" handler="_on_drag_begin"/>
-                                <signal name="drag_data_received" handler="_on_favorites_drag_data_received"/>
-                                <signal name="drag_end" handler="_on_drag_end"/>
-                              </widget>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="resize">False</property>
-                            <property name="shrink">True</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkScrolledWindow" id="scrolledwindow15">
-                            <property name="can_focus">True</property>
-                            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                            <property name="shadow_type">GTK_SHADOW_IN</property>
-                            <child>
-                              <widget class="GtkTreeView" id="all_tags_treeview">
-                                <property name="height_request">300</property>
-                                <property name="can_focus">True</property>
-                                <signal name="drag_data_get" handler="_on_drag_data_get"/>
-                                <signal name="drag_begin" handler="_on_drag_begin"/>
-                                <signal name="button_release_event" handler="_on_button_release_event"/>
-                                <signal name="drag_data_received" handler="_on_all_tags_drag_data_received"/>
-                                <signal name="drag_end" handler="_on_drag_end"/>
-                              </widget>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="resize">True</property>
-                            <property name="shrink">True</property>
-                          </packing>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkHBox" id="hbox57">
-                        <property name="visible">True</property>
-                        <signal name="realize" handler="_on_instruction_box_realize"/>
-                        <child>
-                          <widget class="GtkImage" id="info_icon">
-                            <property name="visible">True</property>
-                            <property name="icon_size">6</property>
-                            <property name="icon_name">stock_dialog-info</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label110">
-                            <property name="visible">True</property>
-                            <property name="label" translatable="yes">You can drag tags from the righthand side to the favorites list on the left.  To remove a favorite, drag it from the lefthand side back to the right.</property>
-                            <property name="wrap">True</property>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                      </widget>
-                      <packing>
-                        <property name="padding">12</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
+                    <property name="can_focus">True</property>
+                    <signal name="drag_data_get" handler="_on_drag_data_get"/>
+                    <signal name="drag_begin" handler="_on_drag_begin"/>
+                    <signal name="drag_data_received" handler="_on_favorites_drag_data_received"/>
+                    <signal name="drag_end" handler="_on_drag_end"/>
                   </widget>
                 </child>
               </widget>
+              <packing>
+                <property name="resize">False</property>
+                <property name="shrink">True</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkScrolledWindow" id="scrolledwindow15">
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                <property name="shadow_type">GTK_SHADOW_IN</property>
+                <child>
+                  <widget class="GtkTreeView" id="all_tags_treeview">
+                    <property name="height_request">300</property>
+                    <property name="can_focus">True</property>
+                    <signal name="drag_data_get" handler="_on_drag_data_get"/>
+                    <signal name="drag_begin" handler="_on_drag_begin"/>
+                    <signal name="button_release_event" handler="_on_button_release_event"/>
+                    <signal name="drag_data_received" handler="_on_all_tags_drag_data_received"/>
+                    <signal name="drag_end" handler="_on_drag_end"/>
+                  </widget>
+                </child>
+              </widget>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">True</property>
+              </packing>
             </child>
           </widget>
           <packing>
@@ -1140,6 +1087,17 @@ j@v2v.cc
             <property name="visible">True</property>
             <property name="layout_style">GTK_BUTTONBOX_END</property>
             <child>
+              <widget class="GtkButton" id="button1">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="label" translatable="yes">gtk-help</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">0</property>
+                <signal name="clicked" handler="_on_help_button_activate"/>
+              </widget>
+            </child>
+            <child>
               <widget class="GtkButton" id="close_button2">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -1149,6 +1107,9 @@ j@v2v.cc
                 <property name="response_id">-6</property>
                 <signal name="clicked" handler="_on_close_clicked"/>
               </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="apply_button">
@@ -1161,7 +1122,7 @@ j@v2v.cc
                 <signal name="clicked" handler="_on_apply_clicked"/>
               </widget>
               <packing>
-                <property name="position">1</property>
+                <property name="position">2</property>
               </packing>
             </child>
           </widget>
@@ -1173,7 +1134,7 @@ j@v2v.cc
         </child>
       </widget>
     </child>
-  </widget>
+  </widget>  
   <widget class="GtkDialog" id="dialog_tag_editor_ng">
     <property name="visible">True</property>
     <property name="title" translatable="yes">Tag Editor</property>
