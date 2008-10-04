@@ -243,8 +243,13 @@ class PenguinTVApp(gobject.GObject):
 		self._status_icon = None
 
 		if utils.HAS_STATUS_ICON:
-			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, 
-							         utils.get_image_path('penguintvicon.png'))	
+			if utils.RUNNING_HILDON:
+				icon = "/usr/share/icons/hicolor/26x26/hildon/penguintvicon.png"
+				if not os.path.isfile(icon):
+					icon = utils.get_image_path('penguintvicon.png')
+			else:
+				icon = utils.get_image_path('penguintvicon.png')
+			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, icon)	
 
 		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window, status_icon=self._status_icon) 
 		self.main_window.layout=window_layout
