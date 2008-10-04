@@ -1185,196 +1185,155 @@ j@v2v.cc
       <widget class="GtkVBox" id="dialog-vbox4">
         <property name="visible">True</property>
         <child>
-          <widget class="GtkVBox" id="vbox26">
+          <widget class="GtkHPaned" id="hpaned">
             <property name="visible">True</property>
+            <property name="can_focus">True</property>
+            <property name="border_width">10</property>
             <child>
-              <widget class="GtkHPaned" id="hpaned1">
+              <widget class="GtkVBox" id="vbox26">
                 <property name="visible">True</property>
-                <property name="can_focus">True</property>
-                <property name="border_width">10</property>
+                <property name="spacing">6</property>
                 <child>
-                  <widget class="GtkVBox" id="vbox26">
-                    <property name="visible">True</property>
-                    <property name="spacing">6</property>
-                    <child>
-                      <widget class="GtkScrolledWindow" id="scrolledwindow_tags">
-                        <property name="visible">True</property>
-                        <property name="can_focus">True</property>
-                        <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                        <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                        <property name="shadow_type">GTK_SHADOW_IN</property>
-                        <child>
-                          <widget class="GtkTreeView" id="treeview_tags">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkHBox" id="hbox58">
-                        <property name="visible">True</property>
-                        <child>
-                          <widget class="GtkButton" id="button_rename">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="response_id">0</property>
-                            <signal name="clicked" handler="_on_button_rename_clicked"/>
-                            <child>
-                              <widget class="GtkAlignment" id="alignment38">
-                                <property name="visible">True</property>
-                                <property name="xscale">0</property>
-                                <property name="yscale">0</property>
-                                <child>
-                                  <widget class="GtkHBox" id="hbox59">
-                                    <property name="visible">True</property>
-                                    <property name="spacing">2</property>
-                                    <child>
-                                      <widget class="GtkImage" id="image386">
-                                        <property name="visible">True</property>
-                                        <property name="stock">gtk-edit</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">False</property>
-                                      </packing>
-                                    </child>
-                                    <child>
-                                      <widget class="GtkLabel" id="label114">
-                                        <property name="visible">True</property>
-                                        <property name="label" translatable="yes">Re_name</property>
-                                        <property name="use_underline">True</property>
-                                      </widget>
-                                      <packing>
-                                        <property name="expand">False</property>
-                                        <property name="fill">False</property>
-                                        <property name="position">1</property>
-                                      </packing>
-                                    </child>
-                                  </widget>
-                                </child>
-                              </widget>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkLabel" id="label113">
-                            <property name="visible">True</property>
-                          </widget>
-                          <packing>
-                            <property name="fill">False</property>
-                            <property name="position">1</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkButton" id="button_remove">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="response_id">0</property>
-                            <signal name="clicked" handler="_on_button_remove_clicked"/>
-                            <child>
-                              <widget class="GtkImage" id="image387">
-                                <property name="visible">True</property>
-                                <property name="stock">gtk-remove</property>
-                              </widget>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                            <property name="position">2</property>
-                          </packing>
-                        </child>
-                        <child>
-                          <widget class="GtkButton" id="button_add">
-                            <property name="visible">True</property>
-                            <property name="can_focus">True</property>
-                            <property name="response_id">0</property>
-                            <signal name="clicked" handler="_on_button_add_clicked"/>
-                            <child>
-                              <widget class="GtkImage" id="image388">
-                                <property name="visible">True</property>
-                                <property name="stock">gtk-add</property>
-                              </widget>
-                            </child>
-                          </widget>
-                          <packing>
-                            <property name="expand">False</property>
-                            <property name="fill">False</property>
-                            <property name="position">3</property>
-                          </packing>
-                        </child>
-                      </widget>
-                      <packing>
-                        <property name="expand">False</property>
-                        <property name="position">1</property>
-                      </packing>
-                    </child>
-                  </widget>
-                  <packing>
-                    <property name="resize">False</property>
-                    <property name="shrink">True</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkScrolledWindow" id="scrolledwindow18">
+                  <widget class="GtkScrolledWindow" id="scrolledwindow_tags">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
                     <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
                     <property name="shadow_type">GTK_SHADOW_IN</property>
                     <child>
-                      <widget class="GtkTreeView" id="treeview_feeds">
+                      <widget class="GtkTreeView" id="treeview_tags">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                       </widget>
                     </child>
                   </widget>
-                  <packing>
-                    <property name="resize">True</property>
-                    <property name="shrink">True</property>
-                  </packing>
                 </child>
-              </widget>
-            </child>
-            <child>
-              <widget class="GtkHBox" id="hbox60">
-                <property name="visible">True</property>
-                <property name="border_width">12</property>
-                <signal name="realize" handler="_on_instruction_box_realize"/>
                 <child>
-                  <widget class="GtkImage" id="image389">
+                  <widget class="GtkHBox" id="hbox58">
                     <property name="visible">True</property>
-                    <property name="icon_size">6</property>
-                    <property name="icon_name">stock_dialog-info</property>
+                    <child>
+                      <widget class="GtkButton" id="button_rename">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="response_id">0</property>
+                        <signal name="clicked" handler="_on_button_rename_clicked"/>
+                        <child>
+                          <widget class="GtkAlignment" id="alignment38">
+                            <property name="visible">True</property>
+                            <property name="xscale">0</property>
+                            <property name="yscale">0</property>
+                            <child>
+                              <widget class="GtkHBox" id="hbox59">
+                                <property name="visible">True</property>
+                                <property name="spacing">2</property>
+                                <child>
+                                  <widget class="GtkImage" id="image386">
+                                    <property name="visible">True</property>
+                                    <property name="stock">gtk-edit</property>
+                                  </widget>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">False</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <widget class="GtkLabel" id="label114">
+                                    <property name="visible">True</property>
+                                    <property name="label" translatable="yes">Re_name</property>
+                                    <property name="use_underline">True</property>
+                                  </widget>
+                                  <packing>
+                                    <property name="expand">False</property>
+                                    <property name="fill">False</property>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </widget>
+                            </child>
+                          </widget>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkLabel" id="label113">
+                        <property name="visible">True</property>
+                      </widget>
+                      <packing>
+                        <property name="fill">False</property>
+                        <property name="position">1</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="button_remove">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="response_id">0</property>
+                        <signal name="clicked" handler="_on_button_remove_clicked"/>
+                        <child>
+                          <widget class="GtkImage" id="image387">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-remove</property>
+                          </widget>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">2</property>
+                      </packing>
+                    </child>
+                    <child>
+                      <widget class="GtkButton" id="button_add">
+                        <property name="visible">True</property>
+                        <property name="can_focus">True</property>
+                        <property name="response_id">0</property>
+                        <signal name="clicked" handler="_on_button_add_clicked"/>
+                        <child>
+                          <widget class="GtkImage" id="image388">
+                            <property name="visible">True</property>
+                            <property name="stock">gtk-add</property>
+                          </widget>
+                        </child>
+                      </widget>
+                      <packing>
+                        <property name="expand">False</property>
+                        <property name="fill">False</property>
+                        <property name="position">3</property>
+                      </packing>
+                    </child>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
-                    <property name="fill">False</property>
-                  </packing>
-                </child>
-                <child>
-                  <widget class="GtkLabel" id="label115">
-                    <property name="visible">True</property>
-                    <property name="label" translatable="yes">Select a tag in the list on the left, and all the feeds with that tag will be marked on the right.  You may mark and unmark feeds to add or remove that tag from them.
-
-Tagged feeds will appear at the top of the list.</property>
-                    <property name="wrap">True</property>
-                  </widget>
-                  <packing>
-                    <property name="expand">False</property>
-                    <property name="fill">False</property>
                     <property name="position">1</property>
                   </packing>
                 </child>
               </widget>
               <packing>
-                <property name="expand">False</property>
-                <property name="position">1</property>
+                <property name="resize">False</property>
+                <property name="shrink">True</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkScrolledWindow" id="scrolledwindow18">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+                <property name="shadow_type">GTK_SHADOW_IN</property>
+                <child>
+                  <widget class="GtkTreeView" id="treeview_feeds">
+                    <property name="visible">True</property>
+                    <property name="can_focus">True</property>
+                  </widget>
+                </child>
+              </widget>
+              <packing>
+                <property name="resize">True</property>
+                <property name="shrink">True</property>
               </packing>
             </child>
           </widget>
@@ -1387,6 +1346,17 @@ Tagged feeds will appear at the top of the list.</property>
             <property name="visible">True</property>
             <property name="layout_style">GTK_BUTTONBOX_END</property>
             <child>
+              <widget class="GtkButton" id="editor_help_button">
+                <property name="visible">True</property>
+                <property name="can_focus">True</property>
+                <property name="receives_default">True</property>
+                <property name="label" translatable="yes">gtk-help</property>
+                <property name="use_stock">True</property>
+                <property name="response_id">0</property>
+                <signal name="clicked" handler="_on_editor_help_button_activate"/>
+              </widget>
+            </child>
+            <child>
               <widget class="GtkButton" id="button_close">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
@@ -1396,6 +1366,9 @@ Tagged feeds will appear at the top of the list.</property>
                 <property name="response_id">-7</property>
                 <signal name="clicked" handler="_on_button_close_clicked"/>
               </widget>
+              <packing>
+                <property name="position">1</property>
+              </packing>
             </child>
           </widget>
           <packing>
