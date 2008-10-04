@@ -145,7 +145,7 @@ class MainWindow(gobject.GObject):
 		
 	def __feed_clicked_cb(self, o):
 		if utils.RUNNING_HILDON:
-			self.feed_pane.set_position(0)
+			self.feed_tabs.set_current_page(1)
 				
 	def __entrylistview_list_resized_cb(self, entrylistview, new_width):
 		if self.layout == "widescreen" and self.app_window is not None:			
@@ -538,10 +538,8 @@ class MainWindow(gobject.GObject):
 
 		if self.layout.endswith("planet"):
 			self._menu_widgettree.get_widget('entry_menu_item').hide()
-			self._menu_widgettree.get_widget('showkept_cb').show()
 		else:
 			self._menu_widgettree.get_widget('entry_menu_item').show()
-			self._menu_widgettree.get_widget('showkept_cb').hide()
 			
 		self.app_window.show_all()
 			
@@ -663,7 +661,12 @@ class MainWindow(gobject.GObject):
 		self.entry_view.connect('link-activated', self.__link_activated_cb)
 				
 		#major WIDGETS
-		self.feed_pane = components.get_widget('feed_pane')
+		if not utils.RUNNING_HILDON:
+			self.feed_pane = components.get_widget('feed_pane')
+		else:
+			self.feed_tabs = components.get_widget('feed_tabs')
+			self.feed_tabs.set_current_page(1)
+			self.feed_pane = None
 		self._feedlist = components.get_widget('feedlistview')
 		if self.layout.endswith("planet"):
 			self.entry_pane = self.feed_pane #cheat
@@ -730,13 +733,13 @@ class MainWindow(gobject.GObject):
 			if val < 10: val = 50
 			self.entry_pane.set_position(val)
 		
-		if utils.RUNNING_HILDON:
-			val = 840
-		else:
+		if not utils.RUNNING_HILDON:
 			f_p_default = 370
 			val = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', f_p_default)
 			if val < 10: val=50
-		self.feed_pane.connect('realize', self._on_feed_pane_realized, val)
+			
+		if self.feed_pane is not None:
+			self.feed_pane.connect('realize', self._on_feed_pane_realized, val)
 		
 		if not self.changing_layout:
 			self.set_active_filter(FeedList.ALL)
@@ -771,7 +774,8 @@ class MainWindow(gobject.GObject):
 		del self.entry_view
 				
 		#some widgets
-		del self.feed_pane
+		if self.feed_pane is not None:
+			del self.feed_pane
 		del self._feedlist
 		if not self.layout.endswith("planet"):
 			del self.entry_pane
@@ -822,16 +826,15 @@ class MainWindow(gobject.GObject):
 			self.search_container.hide_all()
 			
 		#elif self._notebook.get_current_page() == N_FEEDS:
-		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
-		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
+		if self.feed_pane is not None:
+			self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.feed_pane.get_position())
+		if self.entry_pane is not None:
+			self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.entry_pane.get_position())
 		if not utils.RUNNING_HILDON:
 			if self.layout.endswith('planet'):
 				self.entry_pane.set_position(0)
 			else:
 				self.feed_pane.set_position(0)
-		else:
-			if self.feed_pane.get_position() > 0:
-				self.feed_pane.set_position(840)
 
 		self._notebook.set_keep_hidden(True)
 		self._widgetTree.get_widget('toolbar1').hide()
@@ -867,9 +870,6 @@ class MainWindow(gobject.GObject):
 			else:
 				val = self._app.db.get_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', 370)
 				self.feed_pane.set_position(val)
-		else:
-			if self.feed_pane.get_position() > 0:
-				self.feed_pane.set_position(840)
 			
 		self._notebook.set_keep_hidden(False)
 		
@@ -963,7 +963,7 @@ class MainWindow(gobject.GObject):
 		self._app.toggle_net_connection()
 		
 	def pane_to_feeds(self):
-		self.feed_pane.set_position(840)
+		self.feed_tabs.set_current_page(1)
 		
 	def on_feed_add_clicked(self, event):
 		if self._state == S_MAJOR_DB_OPERATION:
@@ -1060,20 +1060,23 @@ class MainWindow(gobject.GObject):
 	def on_feeds_poll_clicked(self,event):
 		self._app.poll_feeds()
 		
-	def set_show_kept_menuitem(self, state):
-		self._menu_widgettree.get_widget('showkept_cb').set_active(state)
+	def set_hide_entries_menuitem(self, state):
+		self._menu_widgettree.get_widget('hide_viewed_entries_cb').set_active(state)
 		
-	def set_show_kept_visibility(self, state):
-		assert self.layout.endswith("planet")
-	
+	def set_hide_entries_visibility(self, state):
 		if state:
-			self._menu_widgettree.get_widget('showkept_cb').show()
+			self._menu_widgettree.get_widget('hide_viewed_entries_cb').show()
 		else:
-			self._menu_widgettree.get_widget('showkept_cb').hide()
+			self._menu_widgettree.get_widget('hide_viewed_entries_cb').hide()
 		
-	def on_showkept_cb_toggled(self, event):
-		assert self.layout.endswith("planet")
-		self.entry_list_view.set_show_kept(self._menu_widgettree.get_widget('showkept_cb').get_active())
+	def on_hide_entries_cb_toggled(self, event):
+		self.entry_list_view.set_hide_viewed(self._menu_widgettree.get_widget('hide_viewed_entries_cb').get_active())
+		
+	def on_hide_feeds_cb_toggled(self, checkbox):
+		status = checkbox.get_active()
+		self.feed_list_view.set_unread_toggle(status)
+		self._menu_widgettree.get_widget('hide_viewed_feeds_cb').set_active(status)
+		self._filter_unread_checkbox.set_active(status)
 		
 	def on_synchronize_button_clicked(self,event):
 		self._sync_dialog.hide()
@@ -1233,7 +1236,7 @@ class MainWindow(gobject.GObject):
 				if self._gstreamer_player is not None:
 					self._gstreamer_player.vol_down()
 			elif keyname == 'Escape':
-				self.feed_pane.set_position(840)
+				self.feed_tabs.set_current_page(0)
 		else: #regular desktop version..
 			if keyname == 'F11':
 				self.toggle_fullscreen()
@@ -1460,10 +1463,8 @@ class MainWindow(gobject.GObject):
 		self.entry_view.post_show_init()
 		if self.layout.endswith("planet"):
 			self._menu_widgettree.get_widget('entry_menu_item').hide()
-			self._menu_widgettree.get_widget('showkept_cb').show()
 		else:
 			self._menu_widgettree.get_widget('entry_menu_item').show()
-			self._menu_widgettree.get_widget('showkept_cb').hide()
 
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_SEARCH:
@@ -1481,9 +1482,6 @@ class MainWindow(gobject.GObject):
 		
 	def is_changing_layout(self):
 		return self.changing_layout
-		
-	def on_unread_filter_toggled(self, event): 	 
-		self.feed_list_view.set_unread_toggle(self._filter_unread_checkbox.get_active()) 	 
 		
 	def display_status_message(self, m, update_category=U_STANDARD):
 		"""displays a status message on the main status bar.  If this is a polling update or download

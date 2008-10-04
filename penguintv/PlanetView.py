@@ -84,7 +84,7 @@ class PlanetView(gobject.GObject):
 		self._custom_message = ""
 		self._search_query = None
 		self._filter_feed = None
-		self._show_kept = False
+		self._hide_viewed = False
 		self._ignore_next_event = False
 		self._USING_AJAX = False
 		
@@ -335,9 +335,9 @@ class PlanetView(gobject.GObject):
 		new_feed = False
 		if feed_id != self._current_feed_id:
 			new_feed = True
-			self._show_kept = False
-			self._main_window.set_show_kept_menuitem(self._show_kept)
-			self._main_window.set_show_kept_visibility(True)
+			#self._hide_viewed = False
+			#self._main_window.set_hide_entries_menuitem(self._hide_viewed)
+			#self._main_window.set_hide_entries_visibility(True)
 			self._current_feed_id = feed_id
 			self._first_entry = 0
 			self._entry_store={}
@@ -384,9 +384,9 @@ class PlanetView(gobject.GObject):
 		self._entrylist = [(e[0],e[3]) for e in entries]
 		self._convert_newlines = False
 		self._current_feed_id = -1
-		self._show_kept = False
-		self._main_window.set_show_kept_menuitem(self._show_kept)
-		self._main_window.set_show_kept_visibility(False)
+		self._hide_viewed = False
+		self._main_window.set_hide_entries_menuitem(self._hide_viewed)
+		self._main_window.set_hide_entries_visibility(False)
 		query = query.replace("*","")
 		self._search_query = query
 		try:
@@ -487,11 +487,12 @@ class PlanetView(gobject.GObject):
 			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
 		else:
 			entrylist = self._entrylist
-			if self._show_kept:
+			if self._hide_viewed:
 				newlist = []
-				kept = self._db.get_kept_entries(self._current_feed_id)
+				#kept = self._db.get_kept_entries(self._current_feed_id)
+				unviewed = self._db.get_unread_entries(self._current_feed_id)
 				for e,f in entrylist:
-					if e in kept:
+					if e in unviewed:
 						newlist.append((e,f))
 				entrylist = newlist
 			
@@ -544,8 +545,8 @@ class PlanetView(gobject.GObject):
 		gobject.timeout_add(2000, self._do_delayed_set_viewed, self._current_feed_id, self._first_entry, self._last_entry)
 			
 		#######build HTML#######	
-		cb_status = self._show_kept and "CHECKED" or "UNCHECKED"
-		cb_function = self._show_kept and "showkept:0" or "showkept:1"
+		#cb_status = self._hide_viewed and "CHECKED" or "UNCHECKED"
+		#cb_function = self._hide_viewed and "hideviewed:0" or "hideviewed:1"
 		
 		html = []
 		html.append(self._build_header(media_exists))
@@ -921,13 +922,13 @@ class PlanetView(gobject.GObject):
 				menu.append(separator)
 				
 		if self._state != S_SEARCH:
-			if self._show_kept:
+			if self._hide_viewed:
 				item = gtk.MenuItem(_("_Show All"))
-				item.connect('activate', self._toggle_show_kept)
+				item.connect('activate', self._toggle_hide_viewed)
 				menu.append(item)
 			else:
-				item = gtk.MenuItem(_("_Show Kept Entries"))
-				item.connect('activate', self._toggle_show_kept)
+				item = gtk.MenuItem(_("_Hide Viewed Entries"))
+				item.connect('activate', self._toggle_hide_viewed)
 				menu.append(item)
 			
 		menu.show_all()
@@ -948,18 +949,18 @@ class PlanetView(gobject.GObject):
 			
 		return True #don't load url please
 		
-	def set_show_kept(self, state):
-		if state == self._show_kept:
+	def set_hide_viewed(self, state):
+		if state == self._hide_viewed:
 			return
 				
-		self._toggle_show_kept()
+		self._toggle_hide_viewed()
 		
-	def _toggle_show_kept(self, e=None):
-		if self._show_kept:
-			self._show_kept = False
+	def _toggle_hide_viewed(self, e=None):
+		if self._hide_viewed:
+			self._hide_viewed = False
 		else:
-			self._show_kept = True
-		self._main_window.set_show_kept_menuitem(self._show_kept)
+			self._hide_viewed = True
+		self._main_window.set_hide_entries_menuitem(self._hide_viewed)
 		self._first_entry = 0
 		self._render_entries()
 		
@@ -996,7 +997,4 @@ class PlanetView(gobject.GObject):
 		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
 		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
 		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
-		
-
-					
 

@@ -13,7 +13,7 @@ import gettext
 import shutil
 import logging
 
-VERSION="3.8.8"
+VERSION="3.9.0"
 
 try:
 	from sqlite3 import OperationalError as OperationalError
@@ -140,8 +140,8 @@ else:
 	except:
 		HAS_GSTREAMER = False
 
-if RUNNING_HILDON:
-	HAS_STATUS_ICON = False
+#if RUNNING_HILDON:
+#	HAS_STATUS_ICON = False
 	
 #DEBUG
 #_USE_KDE_OVERRIDE=False

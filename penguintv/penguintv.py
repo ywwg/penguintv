@@ -395,6 +395,8 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('app-loaded')
 		self._app_loaded = True
 		self.db.done_initializing()
+		if utils.RUNNING_HILDON:
+			self.main_window.feed_tabs.set_current_page(0)
 		#self.save_settings()
 		return False #for idler	
 		
@@ -724,8 +726,10 @@ class PenguinTVApp(gobject.GObject):
 		
 	@utils.db_except()
 	def save_settings(self):
-		self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.main_window.feed_pane.get_position())
-		self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.main_window.entry_pane.get_position())
+		if self.main_window.feed_pane is not None:
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/feed_pane_position', self.main_window.feed_pane.get_position())
+		if self.main_window.entry_pane is not None:
+			self.db.set_setting(ptvDB.INT, '/apps/penguintv/entry_pane_position', self.main_window.entry_pane.get_position())
 		if self.main_window.app_window is not None:
 			if self.main_window.window_maximized == False:
 				x,y=self.main_window.app_window.get_position()

@@ -2257,14 +2257,23 @@ j@v2v.cc
             <signal name="activate" handler="on_view1_activate"/>
             <child>
               <widget class="GtkMenu" id="view1_menu">
+               <child>
+                  <widget class="GtkCheckMenuItem" id="hide_viewed_feeds_cb">
+                    <property name="visible">True</property>
+                    <property name="tooltip" translatable="yes">Hides feeds that have been completely viewed</property>
+                    <property name="label" translatable="yes">Hide Viewed _Feeds</property>
+                    <property name="use_underline">True</property>
+                    <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
+                  </widget>
+                </child>
                 <child>
-                  <widget class="GtkCheckMenuItem" id="showkept_cb">
+                  <widget class="GtkCheckMenuItem" id="hide_viewed_entries_cb">
                     <property name="visible">True</property>
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <property name="tooltip" translatable="yes">Shows only entries that have been marked "keep new"</property>
-                    <property name="label" translatable="yes">Show Kept Entries</property>
+                    <property name="tooltip" translatable="yes">Hides entries that have been viewed</property>
+                    <property name="label" translatable="yes">Hide Viewed _Entries</property>
                     <property name="use_underline">True</property>
-                    <signal name="toggled" handler="on_showkept_cb_toggled"/>
+                    <signal name="toggled" handler="on_hide_entries_cb_toggled"/>
                   </widget>
                 </child>
                 <child>
@@ -2624,9 +2633,11 @@ j@v2v.cc
           </packing>
         </child>
         <child>
-          <widget class="GtkHPaned" id="feed_pane">
+          <widget class="GtkNotebook" id="feed_tabs">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
+            <property name="show_tabs">False</property>
+            <property name="show_border">False</property>
             <child>
               <widget class="GtkVBox" id="vbox2">
                 <property name="visible">True</property>
@@ -2667,7 +2678,7 @@ j@v2v.cc
                         <property name="use_underline">True</property>
                         <property name="response_id">0</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_unread_filter_toggled"/>
+                        <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -2703,9 +2714,15 @@ j@v2v.cc
                   </packing>
                 </child>
               </widget>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label10">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">page 1</property>
+              </widget>
               <packing>
-                <property name="resize">False</property>
-                <property name="shrink">True</property>
+                <property name="type">tab</property>
+                <property name="tab_fill">False</property>
               </packing>
             </child>
             <child>
@@ -2716,8 +2733,32 @@ j@v2v.cc
                 </child>
               </widget>
               <packing>
-                <property name="resize">True</property>
-                <property name="shrink">True</property>
+                <property name="position">1</property>
+              </packing>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label11">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">page 2</property>
+              </widget>
+              <packing>
+                <property name="type">tab</property>
+                <property name="position">1</property>
+                <property name="tab_fill">False</property>
+              </packing>
+            </child>
+            <child>
+              <placeholder/>
+            </child>
+            <child>
+              <widget class="GtkLabel" id="label14">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">page 3</property>
+              </widget>
+              <packing>
+                <property name="type">tab</property>
+                <property name="position">2</property>
+                <property name="tab_fill">False</property>
               </packing>
             </child>
           </widget>
@@ -2728,4 +2769,5 @@ j@v2v.cc
       </widget>
     </child>
   </widget>
+
 </glade-interface>

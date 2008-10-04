@@ -50,6 +50,7 @@ class EntryList(gobject.GObject):
 		self._search_query = ""
 		self._search_results = []
 		self._state = S_DEFAULT
+		self._hide_viewed = False
 		self.__populating = False
 		self.__cancel_populating = False
 		self.presently_selecting = False
@@ -171,7 +172,11 @@ class EntryList(gobject.GObject):
 			dont_autopane = False #it's a double negative, but it makes sense to me at the moment.
 		self._feed_id = feed_id
 		
+		
 		db_entrylist = self._app.db.get_entrylist(feed_id)
+		if self._hide_viewed:
+			unviewed = self._app.db.get_unread_entries(feed_id)
+			db_entrylist = [e for e in db_entrylist if e[0] in unviewed]
 		selection = self._widget.get_selection()
 		if selected==-1:
 			rows = selection.get_selected_rows()
@@ -306,6 +311,10 @@ class EntryList(gobject.GObject):
 		if len(entries) == 0:
 			self.emit('no-entry-selected')
 			return
+			
+		self._hide_viewed = False
+		self._main_window.set_hide_entries_menuitem(self._hide_viewed)
+		self._main_window.set_hide_entries_visibility(False)
 		
 		i=-1
 
@@ -476,5 +485,29 @@ class EntryList(gobject.GObject):
 			item.connect('activate',self._main_window.on_keep_entry_new_activate)
 			menu.append(item)
 			
+		if self._state != S_SEARCH:
+			if self._hide_viewed:
+				item = gtk.MenuItem(_("_Show All"))
+				item.connect('activate', self._toggle_hide_viewed)
+				menu.append(item)
+			else:
+				item = gtk.MenuItem(_("_Hide Viewed Entries"))
+				item.connect('activate', self._toggle_hide_viewed)
+				menu.append(item)
+			
 		menu.show_all()
 		menu.popup(None,None,None, event.button,event.time)
+		
+	def set_hide_viewed(self, state):
+		if state == self._hide_viewed:
+			return
+				
+		self._toggle_hide_viewed()
+		
+	def _toggle_hide_viewed(self, e=None):
+		if self._hide_viewed:
+			self._hide_viewed = False
+		else:
+			self._hide_viewed = True
+		self._main_window.set_hide_entries_menuitem(self._hide_viewed)
+		self.populate_entries(self._feed_id)

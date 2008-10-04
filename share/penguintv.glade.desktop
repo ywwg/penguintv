@@ -1185,7 +1185,7 @@ j@v2v.cc
                 <property name="use_underline">True</property>
                 <property name="response_id">0</property>
                 <property name="draw_indicator">True</property>
-                <signal name="toggled" handler="on_unread_filter_toggled"/>
+                <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
@@ -1439,7 +1439,7 @@ j@v2v.cc
                         <property name="use_underline">True</property>
                         <property name="response_id">0</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_unread_filter_toggled"/>
+                        <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -1703,7 +1703,7 @@ j@v2v.cc
                         <property name="use_underline">True</property>
                         <property name="response_id">0</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_unread_filter_toggled"/>
+                        <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -3112,7 +3112,7 @@ j@v2v.cc
                         <property name="use_underline">True</property>
                         <property name="response_id">0</property>
                         <property name="draw_indicator">True</property>
-                        <signal name="toggled" handler="on_unread_filter_toggled"/>
+                        <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
                       </widget>
                       <packing>
                         <property name="expand">False</property>
@@ -3864,21 +3864,35 @@ j@v2v.cc
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkCheckMenuItem" id="fancy_feed_display">
+                      <widget class="GtkCheckMenuItem" id="hide_viewed_feeds_cb">
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Fancy Feed Display</property>
+                        <property name="tooltip" translatable="yes">Hides feeds that have been completely viewed</property>
+                        <property name="label" translatable="yes">Hide Viewed _Feeds</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_fancy_feed_display_activate"/>
+                        <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
                       </widget>
                     </child>
                     <child>
-                      <widget class="GtkCheckMenuItem" id="showkept_cb">
+                      <widget class="GtkCheckMenuItem" id="hide_viewed_entries_cb">
                         <property name="visible">True</property>
                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                        <property name="tooltip" translatable="yes">Shows only entries that have been marked "keep new"</property>
-                        <property name="label" translatable="yes">Show Kept Entries</property>
+                        <property name="tooltip" translatable="yes">Hides entries that have been viewed</property>
+                        <property name="label" translatable="yes">Hide Viewed _Entries</property>
                         <property name="use_underline">True</property>
-                        <signal name="toggled" handler="on_showkept_cb_toggled"/>
+                        <signal name="toggled" handler="on_hide_entries_cb_toggled"/>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkSeparatorMenuItem" id="separator2001">
+                        <property name="visible">True</property>
+                      </widget>
+                    </child>
+                    <child>
+                      <widget class="GtkCheckMenuItem" id="fancy_feed_display">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Fancy Feed _Display</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_fancy_feed_display_activate"/>
                       </widget>
                     </child>
                     <child>
@@ -3887,11 +3901,6 @@ j@v2v.cc
                         <property name="label" translatable="yes">Show _Notifications</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_show_notifications_activate"/>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkSeparatorMenuItem" id="separator2001">
-                        <property name="visible">True</property>
                       </widget>
                     </child>
                     <child>
