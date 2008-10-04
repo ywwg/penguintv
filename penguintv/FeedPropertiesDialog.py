@@ -55,7 +55,7 @@ class FeedPropertiesDialog(gtk.Dialog):
 		self._xml.get_widget('notebook1').set_current_page(0)
 		if not utils.HAS_SEARCH:
 			self._xml.get_widget('b_search').hide()
-		if utils.RUNNING_SUGAR:
+		if utils.RUNNING_SUGAR or not utils.HAS_STATUS_ICON:
 			self._xml.get_widget('b_notifyupdates').hide()
 		#if not utils.USE_TAGGING
 		#	self._edit_tags_widget.hide()

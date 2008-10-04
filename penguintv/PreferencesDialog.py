@@ -76,6 +76,8 @@ class PreferencesDialog:
 			self.xml.get_widget("button_close").hide()
 		elif self._window:
 			self._window.show_all()
+		if not utils.HAS_STATUS_ICON:
+			self.show_notification_always.hide()
 		        
 	def extract_content(self):
 		vbox = self.xml.get_widget('prefs_vbox')

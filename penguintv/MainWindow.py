@@ -289,6 +289,9 @@ class MainWindow(gobject.GObject):
 			
 			self.window.show_all()
 			
+			if not utils.HAS_STATUS_ICON:
+				show_notifs_item.hide()
+			
 			for key in dir(self.__class__): #python insaneness
 				if key[:3] == 'on_':
 					self._widgetTree.signal_connect(key, getattr(self, key))
@@ -307,6 +310,8 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('add_feed_filter').hide()
 			if not utils.HAS_MOZILLA:
 				self._widgetTree.get_widget('planet_layout').hide()
+			if not utils.HAS_STATUS_ICON:
+				self._widgetTree.get_widget('show_notifications').hide()
 			self.window = self.app_window
 			
 		self._notebook.show_only(N_FEEDS)
@@ -551,7 +556,7 @@ class MainWindow(gobject.GObject):
 		import AddFeedDialog
 		if self._window_add_feed is None:
 			self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self._app) #MAGIC
-			self._window_add_feed.show_all()
+			self._window_add_feed.show()
 			
 	def hide_window_add_feed(self):
 		if self._window_add_feed is None:
