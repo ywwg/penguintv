@@ -560,7 +560,7 @@ class MainWindow(gobject.GObject):
 				self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'hildon_dialog_add_feed.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
 			else:
 				self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialog_add_feed.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
-			self._window_add_feed.show()
+		self._window_add_feed.show()
 			
 	def hide_window_add_feed(self):
 		if self._window_add_feed is None:

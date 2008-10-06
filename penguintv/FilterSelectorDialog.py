@@ -74,6 +74,8 @@ class FilterSelectorDialog(gtk.Dialog):
 			if key[:3] == '_on':
 				self._xml.signal_connect(key, getattr(self, key))
 				
+		self.connect('delete-event', self._on_delete_event)
+				
 		self._pane_position = 0
 		
 	def set_taglists(self, all_tags, favorite_tags):
@@ -172,9 +174,9 @@ class FilterSelectorDialog(gtk.Dialog):
 		response = dialog.run()
 		dialog.hide()
 		del dialog
-		
-	#def _on_dialog_tag_favorites_delete_event(self, widget, event):
-	#	return widget.hide_on_delete()
+
+	def _on_delete_event(self, widget, event):
+		return self.hide_on_delete()
 		
 	def _on_drag_data_get(self, treeview, drag_context, selection_data, info, time):
 		selection = treeview.get_selection()
