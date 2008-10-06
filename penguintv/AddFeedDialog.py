@@ -55,7 +55,7 @@ class AddFeedDialog:
 				
 	def show(self, autolocation=True):
 		if utils.RUNNING_HILDON:
-			self._window.resize(600,200)
+			self._window.resize(650,300)
 			self._window.show_all()
 			
 		self._feed_url_widget.grab_focus()

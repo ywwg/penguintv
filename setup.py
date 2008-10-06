@@ -198,7 +198,7 @@ if utils.RUNNING_HILDON:
 					('share/icons/hicolor/40x40/hildon', ['share/pixmaps/40x40/penguintvicon.png']),
 					('share/icons/hicolor/26x26/hildon', ['share/pixmaps/26x26/penguintvicon.png']),
 					('share/penguintv/glade', ['share/glade/hildon.glade', 'share/glade/hildon_dialogs.glade', 
-											   'share/glade/hildon_planet.glade']),]
+											   'share/glade/hildon_dialog_add_feed.glade','share/glade/hildon_planet.glade']),]
 else:
 	data_files += [('share/applications',	['penguintv.desktop']),
 					('share/icons/hicolor/scalable/apps', ['share/penguintvicon.png']),
