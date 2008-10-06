@@ -181,6 +181,7 @@ if "build" in sys.argv or "install" in sys.argv:
 			sys.exit(1)
 
 data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
+					('share/penguintv/glade', ['share/glade/dialogs.glade']),
 					('share/pixmaps',		['share/penguintvicon.png']),
 					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
 					('share/icons/hicolor/64x64/hildon', ['share/pixmaps/64x64/penguintvicon.png']),
@@ -195,13 +196,18 @@ if utils.RUNNING_HILDON:
 					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
 					('share/icons/hicolor/64x64/hildon', ['share/pixmaps/64x64/penguintvicon.png']),
 					('share/icons/hicolor/40x40/hildon', ['share/pixmaps/40x40/penguintvicon.png']),
-					('share/icons/hicolor/26x26/hildon', ['share/pixmaps/26x26/penguintvicon.png'])]
+					('share/icons/hicolor/26x26/hildon', ['share/pixmaps/26x26/penguintvicon.png']),
+					('share/penguintv/glade', ['share/glade/hildon.glade', 'share/glade/hildon_dialogs.glade', 
+											   'share/glade/hildon_planet.glade']),]
 else:
 	data_files += [('share/applications',	['penguintv.desktop']),
 					('share/icons/hicolor/scalable/apps', ['share/penguintvicon.png']),
 					('share/icons/hicolor/64x64/apps', ['share/pixmaps/64x64/penguintvicon.png']),
 					('share/icons/hicolor/40x40/apps', ['share/pixmaps/40x40/penguintvicon.png']),
-					('share/icons/hicolor/26x26/apps', ['share/pixmaps/26x26/penguintvicon.png'])]
+					('share/icons/hicolor/26x26/apps', ['share/pixmaps/26x26/penguintvicon.png']),
+					('share/penguintv/glade', ['share/glade/desktop.glade',
+											   'share/glade/standard.glade', 'share/glade/widescreen.glade', 'share/glade/dialog_add_feed.glade', 'share/glade/extra_dialogs.glade', 
+											   'share/glade/planet.glade', 'share/glade/vertical.glade']),]
 
 setup(name = "PenguinTV", 
 version = utils.VERSION,
