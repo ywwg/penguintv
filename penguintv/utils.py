@@ -230,9 +230,9 @@ def get_glade_prefix():
 	return None
 	
 def get_image_path(filename):
-	for p in (os.path.join(GetPrefix(), 'share', 'pixmaps'),
+	for p in (get_share_prefix(),
+			  os.path.join(GetPrefix(), 'share', 'pixmaps'),
 			  os.path.join(GetPrefix(), 'share'), #in case the install is still in the source dirs
-			  get_share_prefix(),
 			  os.path.join(get_share_prefix(), 'pixmaps')):
 		try:
 			icon_file = os.path.join(p, filename)

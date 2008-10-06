@@ -57,16 +57,11 @@ p[PREFIX + "lib/python2.5/site-packages/penguintv/BeautifulSoup"] = pipedlist('p
 p[PREFIX + "bin"] = ["bin/PenguinTV|PenguinTV"]
 p[PREFIX + 'share/applications/hildon'] = ['penguintv-hildon.desktop']
 p[PREFIX + 'share/dbus-1/services'] = ['share/penguintv.service|penguintv.service']
-p[PREFIX + 'share/pixmaps'] = ['share/pixmaps/ev_online.png|ev_online.png', 
-							   'share/pixmaps/ev_offline.png|ev_offline.png', 
-							   'share/pixmaps/throbber.gif|throbber.gif']
-p[PREFIX + 'share/penguintv'] = ['share/penguintv.glade|penguintv.glade', 
-								 'share/defaultsubs.opml|defaultsubs.opml',
+p[PREFIX + 'share/pixmaps'] = ['share/penguintv/throbber.gif|throbber.gif']
+p[PREFIX + 'share/penguintv'] = ['share/defaultsubs.opml|defaultsubs.opml',
 								 'share/penguintvicon.png|penguintvicon.png',
-								 'share/mozilla.css|mozilla.css',
-								 'share/mozilla-planet.css|mozilla-planet.css',
 								 'share/mozilla-planet-hildon.css|mozilla-planet-hildon.css']
-p[PREFIX + 'share/penguintv/glade'] = pipedlist('share/glade/hildon*.glade') + ['share/glade/dialogs.glade']
+p[PREFIX + 'share/penguintv/glade'] = pipedlist('share/glade/hildon*.glade') + ['share/glade/dialogs.glade|dialogs.glade']
 p[PREFIX + 'share/icons/hicolor/scalable/hildon'] = ["share/penguintvicon.png|penguintvicon.png"]
 p[PREFIX + 'share/icons/hicolor/64x64/hildon'] = ["share/pixmaps/64x64/penguintvicon.png|penguintvicon.png"]
 p[PREFIX + 'share/icons/hicolor/40x40/hildon'] = ["share/pixmaps/40x40/penguintvicon.png|penguintvicon.png"]
