@@ -80,12 +80,11 @@ class OfflineImageCache:
 			
 		try:
 			mapping = open(mapping_file, 'r')
+			rewrite_hash = pickle.load(mapping)
+			mapping.close()
 		except:
 			logging.error("error opening cache pickle for guid %s %s" % (guid, mapping_file))
-			return
-		
-		rewrite_hash = pickle.load(mapping)
-		mapping.close()
+			return html
 	
 		for result in img_tags:
 			# believe it or not, some img tags don't have a src, they have an id
