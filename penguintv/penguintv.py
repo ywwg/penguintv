@@ -408,14 +408,10 @@ class PenguinTVApp(gobject.GObject):
 	def poller_ping_cb(self):
 		if self._exiting:
 			return False
-		
 		# -1 pid indicates we are already trying		
-		if self._remote_poller is None and \
-		   self._remote_poller_pid != -1:
+		if self._remote_poller is None and self._remote_poller_pid != -1:
 			p = threading.Thread(None, self._get_poller)
 			p.start()
-			#self._get_poller()
-
 		return True
 	
 	def _spawn_poller(self):
@@ -441,8 +437,12 @@ class PenguinTVApp(gobject.GObject):
 		for i in range(0, wait_time):
 			if self._exiting:
 				break
+			#sleep first to give Poller time to return its dbus call (which is
+			#what triggered this function
+			#don't want to deadlock mutual dbus calls
+			time.sleep(sleep_time)
 			gtk.gdk.threads_enter()
-			logging.debug("waiting for poller")
+			logging.debug("Trying for poller")
 			if dubus_methods.NameHasOwner('com.ywwg.PenguinTVPoller'):
 				o = bus.get_object("com.ywwg.PenguinTVPoller", "/PtvPoller")
 				poller = dbus.Interface(o, "com.ywwg.PenguinTVPoller.PollInterface")
@@ -459,7 +459,6 @@ class PenguinTVApp(gobject.GObject):
 				gtk.gdk.threads_leave()
 				break
 			gtk.gdk.threads_leave()
-			time.sleep(sleep_time)
 		if self._remote_poller is None:
 			logging.error("Unable to start remote poller.  Polling will be done in-process")	
 		else:

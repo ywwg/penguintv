@@ -19,10 +19,10 @@ if RUNNING_HILDON:
 else:
 	socket.setdefaulttimeout(5.0)
 
-try:
-	logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.WARNING)
-except:
-	pass
+#try:
+#	logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.DEBUG)
+#except:
+#	pass
 
 import dbus
 import dbus.service
@@ -45,7 +45,7 @@ class Poller(dbus.service.Object):
 		self._quitting = False
 		self._mainloop = mainloop
 		
-		gobject.timeout_add(5000, self._app_ping)
+		gobject.timeout_add(15000, self._app_ping)
 		
 	def _app_ping(self):
 		try:
@@ -53,7 +53,7 @@ class Poller(dbus.service.Object):
 				logging.debug("Poller exit, ping was false (app exiting)")
 				self.exit()
 		except Exception, e:
-			logging.debug("Poller exit, ping excpetion %s" % str(e))
+			logging.debug("ping exception %s" % str(e))
 			self.exit()
 		return True
 		
