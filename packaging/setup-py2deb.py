@@ -57,7 +57,7 @@ p[PREFIX + "lib/python2.5/site-packages/penguintv/BeautifulSoup"] = pipedlist('p
 p[PREFIX + "bin"] = ["bin/PenguinTV|PenguinTV"]
 p[PREFIX + 'share/applications/hildon'] = ['penguintv-hildon.desktop']
 p[PREFIX + 'share/dbus-1/services'] = ['share/penguintv.service|penguintv.service']
-p[PREFIX + 'share/pixmaps'] = ['share/penguintv/throbber.gif|throbber.gif']
+p[PREFIX + 'share/penguintv/pixmaps'] = ['share/pixmaps/throbber.gif|throbber.gif']
 p[PREFIX + 'share/penguintv'] = ['share/defaultsubs.opml|defaultsubs.opml',
 								 'share/penguintvicon.png|penguintvicon.png',
 								 'share/mozilla-planet-hildon.css|mozilla-planet-hildon.css']
