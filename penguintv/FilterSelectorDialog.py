@@ -103,7 +103,6 @@ class FilterSelectorDialog(gtk.Dialog):
 		
 	def Show(self):
 		if utils.RUNNING_HILDON:
-			print "big dialog?"
 			self._all_tags_treeview.set_property('height-request', 150)
 			self.resize(650,300)
 	
@@ -140,7 +139,6 @@ class FilterSelectorDialog(gtk.Dialog):
 		self.show_all()
 		
 		if utils.RUNNING_HILDON:
-			self._xml.get_widget('info_icon').hide()
 			self._pane_position = 250
 			self._pane.set_position(self._pane_position)
 		
