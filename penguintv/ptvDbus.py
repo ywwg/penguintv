@@ -45,9 +45,7 @@ class ptvDbus(dbus.service.Object):
 		
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def Ping(self):
-		if self._app.is_exiting():
-			return False
-		return True
+		return self._app.poller_ping_cb()
 		
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def Play(self):

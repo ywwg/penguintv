@@ -190,8 +190,7 @@ class PenguinTVApp(gobject.GObject):
 		self.connect('online-status-changed', self.__online_status_changed)
 		self.connect('state-changed', self._state_changed_cb)
 			
-		self.glade_prefix = utils.get_glade_prefix()
-		if self.glade_prefix is None:
+		if utils.get_share_prefix() is None:
 			logging.error("Error finding glade file.  Have you run python setup.py build?")
 			sys.exit()
 						
@@ -251,7 +250,7 @@ class PenguinTVApp(gobject.GObject):
 				icon = utils.get_image_path('penguintvicon.png')
 			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, icon)	
 
-		self.main_window = MainWindow.MainWindow(self, self.glade_prefix, use_internal_player, window=window, status_icon=self._status_icon) 
+		self.main_window = MainWindow.MainWindow(self, use_internal_player, window=window, status_icon=self._status_icon) 
 		self.main_window.layout=window_layout
 		
 		self._hildon_context = None
@@ -283,7 +282,7 @@ class PenguinTVApp(gobject.GObject):
 
 		#WINDOWS
 		#TODO: move this initialization till when we actually need these
-		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(self.glade_prefix+'/penguintv.glade', "window_preferences",'penguintv'),self) #MAGIC
+		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(os.path.join(utils.get_glade_prefix(),'dialogs.glade'), "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
 		
 		if utils.HAS_STATUS_ICON:
@@ -344,9 +343,7 @@ class PenguinTVApp(gobject.GObject):
 			except:
 				self._nm_interface = None
 				
-			
-			p = threading.Thread(None, self._get_poller)
-			p.start()
+			self._spawn_poller()
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
@@ -404,23 +401,39 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window.feed_tabs.set_current_page(0)
 		#self.save_settings()
 		return False #for idler	
+
+	def poller_ping_cb(self):
+		if self._exiting:
+			return False
 		
+		# -1 pid indicates we are already trying		
+		if self._remote_poller is None and \
+		   self._remote_poller_pid != -1:
+			p = threading.Thread(None, self._get_poller)
+			p.start()
+			#self._get_poller()
+
+		return True
+	
+	def _spawn_poller(self):
+		rundir = os.path.split(utils.__file__)[0]
+		if rundir == "": rundir = "./"
+		logging.debug("running poller: %s %s" % ('/usr/bin/env python2.5', os.path.join(rundir, 'Poller.py')))
+		subprocess.Popen(['/usr/bin/env', 'python2.5', 
+			os.path.join(rundir, 'Poller.py')])
+	
 	def _get_poller(self):
+		self._remote_poller_pid = -1
 		gtk.gdk.threads_enter()
 		bus = dbus.SessionBus()
 		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
 		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
 		gtk.gdk.threads_leave()
-		rundir = os.path.split(utils.__file__)[0]
-		if rundir == "": rundir = "./"
-		logging.debug("running poller: %s %s" % ('/usr/bin/env python2.5', os.path.join(rundir, 'Poller.py')))
-		subprocess.Popen(['/usr/bin/env', 'python2.5', 
-						  os.path.join(rundir, 'Poller.py')])
 		
 		wait_time = 10
 		sleep_time = 0.3
 		if utils.RUNNING_HILDON:
-			wait_time = 30
+			wait_time = 10
 			sleep_time = 3
 		for i in range(0, wait_time):
 			if self._exiting:

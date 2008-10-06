@@ -1,0 +1,451 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
+<!--*- mode: xml -*-->
+<glade-interface>
+  <widget class="GtkWindow" id="hildon_toolbar_holder">
+    <property name="title" translatable="yes">window1</property>
+    <child>
+      <widget class="GtkToolbar" id="toolbar1">
+        <property name="visible">True</property>
+        <property name="toolbar_style">GTK_TOOLBAR_BOTH_HORIZ</property>
+        <child>
+          <widget class="GtkToolButton" id="feed_add_button">
+            <property name="visible">True</property>
+            <property name="tooltip" translatable="yes">Add Feed</property>
+            <property name="stock_id">gtk-add</property>
+            <signal name="clicked" handler="on_feed_add_clicked"/>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolButton" id="feed_remove">
+            <property name="visible">True</property>
+            <property name="tooltip" translatable="yes">Remove Feed</property>
+            <property name="stock_id">gtk-remove</property>
+            <signal name="clicked" handler="on_remove_feed_activate"/>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolButton" id="feeds_poll">
+            <property name="visible">True</property>
+            <property name="tooltip" translatable="yes">Refresh Feeds</property>
+            <property name="stock_id">gtk-refresh</property>
+            <signal name="clicked" handler="on_refresh_visible_feeds_activate"/>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolButton" id="download_unviewed">
+            <property name="visible">True</property>
+            <property name="tooltip" translatable="yes">Download Unviewed Media</property>
+            <property name="stock_id">gtk-go-down</property>
+            <signal name="clicked" handler="on_download_unviewed_clicked"/>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkSeparatorToolItem" id="vseparator5">
+            <property name="visible">True</property>
+            <property name="sensitive">False</property>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="homogeneous">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolButton" id="preferences_toolbutton">
+            <property name="visible">True</property>
+            <property name="tooltip" translatable="yes">Preferences</property>
+            <property name="stock_id">gtk-preferences</property>
+            <signal name="clicked" handler="on_preferences_activate"/>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolItem" id="toolitem1">
+            <property name="visible">True</property>
+            <child>
+              <widget class="GtkSeparatorToolItem" id="vseparator1">
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="homogeneous">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolItem" id="toolitem5">
+            <property name="visible">True</property>
+            <child>
+              <widget class="GtkLabel" id="using_label2">
+                <property name="visible">True</property>
+                <property name="xalign">1</property>
+                <property name="label" translatable="yes">Using: </property>
+                <property name="justify">GTK_JUSTIFY_RIGHT</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="homogeneous">False</property>
+          </packing>
+        </child>
+        <child>
+          <widget class="GtkToolItem" id="toolitem6">
+            <property name="visible">True</property>
+            <child>
+              <widget class="GtkLabel" id="disk_usage">
+                <property name="visible">True</property>
+                <property name="label" translatable="yes">0 bytes</property>
+                <property name="justify">GTK_JUSTIFY_RIGHT</property>
+              </widget>
+            </child>
+          </widget>
+          <packing>
+            <property name="expand">False</property>
+            <property name="homogeneous">False</property>
+          </packing>
+        </child>
+      </widget>
+    </child>
+  </widget>
+  <widget class="GtkWindow" id="hildon_menu">
+    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+    <child>
+      <widget class="GtkMenuBar" id="hildon_menubar">
+        <property name="visible">True</property>
+        <child>
+          <widget class="GtkMenuItem" id="file_menu">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_File</property>
+            <property name="use_underline">True</property>
+            <child>
+              <widget class="GtkMenu" id="file2_menu">
+                <child>
+                  <widget class="GtkMenuItem" id="import_opml">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Import Subscriptions...</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_import_opml_activate"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="export_opml">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Export Subscriptions...</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_export_opml_activate"/>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+          </widget>
+        </child>
+        <child>
+          <widget class="GtkMenuItem" id="edit_menu">
+            <property name="visible">True</property>
+            <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+            <property name="label" translatable="yes">_Edit</property>
+            <property name="use_underline">True</property>
+            <child>
+              <widget class="GtkMenu" id="menu1">
+                <property name="visible">True</property>
+                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                <child>
+                      <widget class="GtkMenuItem" id="edit_tags_for_all">
+                        <property name="visible">True</property>
+                        <property name="label" translatable="yes">Tag Editor...</property>
+                        <property name="use_underline">True</property>
+                        <signal name="activate" handler="on_edit_tags_for_all_activate"/>
+                      </widget>
+                    </child>
+                <child>
+                  <widget class="GtkMenuItem" id="favorite_tags">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Favorite Tags...</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_edit_favorite_tags"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="Preferences">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Preferences...</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_preferences_activate"/>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+          </widget>
+        </child>
+        <child>
+          <widget class="GtkMenuItem" id="view_menu">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_View</property>
+            <property name="use_underline">True</property>
+            <signal name="activate" handler="on_view1_activate"/>
+            <child>
+              <widget class="GtkMenu" id="view1_menu">
+               <child>
+                  <widget class="GtkCheckMenuItem" id="hide_viewed_feeds_cb">
+                    <property name="visible">True</property>
+                    <property name="tooltip" translatable="yes">Hides feeds that have been completely viewed</property>
+                    <property name="label" translatable="yes">Hide Viewed _Feeds</property>
+                    <property name="use_underline">True</property>
+                    <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkCheckMenuItem" id="hide_viewed_entries_cb">
+                    <property name="visible">True</property>
+                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                    <property name="tooltip" translatable="yes">Hides entries that have been viewed</property>
+                    <property name="label" translatable="yes">Hide Viewed _Entries</property>
+                    <property name="use_underline">True</property>
+                    <signal name="toggled" handler="on_hide_entries_cb_toggled"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkCheckMenuItem" id="show_notifications">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Show _Notifications</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_show_notifications_activate"/>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+          </widget>
+        </child>
+        <child>
+          <widget class="GtkMenuItem" id="go_menu">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Go</property>
+            <property name="use_underline">True</property>
+            <child>
+              <widget class="GtkMenu" id="go1_menu">
+                <child>
+                  <widget class="GtkImageMenuItem" id="refresh_feeds">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Refresh Feeds</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_refresh_feeds_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image376">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-refresh</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkImageMenuItem" id="refresh_feeds_with_errors">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Refresh Feeds with _Errors</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_refresh_feeds_with_errors_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image377">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-refresh</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkImageMenuItem" id="refresh_visible_feeds">
+                    <property name="visible">True</property>
+                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                    <property name="tooltip" translatable="yes">Refreshes feeds with the current tag</property>
+                    <property name="label" translatable="yes">Refresh _Visible Feeds</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_refresh_visible_feeds_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="menu-item-image19">
+                        <property name="visible">True</property>
+                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                        <property name="stock">gtk-refresh</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="mark_all_viewed">
+                    <property name="visible">True</property>
+                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                    <property name="tooltip" translatable="yes">Mark all entries and media as viewed</property>
+                    <property name="label" translatable="yes">_Mark Everything as Viewed</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_mark_all_viewed_activate"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkSeparatorMenuItem" id="separator7">
+                    <property name="visible">True</property>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="resume_all">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Resume _All</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_resume_all_activate"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkImageMenuItem" id="download_unviewed1">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Download _Unviewed Media</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_download_unviewed_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image378">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-go-down</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+          </widget>
+        </child>
+        <child>
+          <widget class="GtkMenuItem" id="feed_menu">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">Fee_d</property>
+            <property name="use_underline">True</property>
+            <signal name="activate" handler="on_go1_activate"/>
+            <child>
+              <widget class="GtkMenu" id="go1_menu1">
+                <child>
+                  <widget class="GtkImageMenuItem" id="add_feed">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Add Feed...</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_add_feed_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image380">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-add</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkImageMenuItem" id="remove_feed">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Remove Feed</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_remove_feed_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image381">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-remove</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkImageMenuItem" id="refresh">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">Re_fresh</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_refresh_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image382">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-refresh</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkSeparatorMenuItem" id="separator10">
+                    <property name="visible">True</property>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="mark_feed_as_viewed">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Mark As Viewed</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_mark_feed_as_viewed_activate"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkMenuItem" id="delete_feed_media">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Delete All Media</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_delete_feed_media_activate"/>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkSeparatorMenuItem" id="separator13">
+                    <property name="visible">True</property>
+                  </widget>
+                </child>
+                <child>
+                  <widget class="GtkImageMenuItem" id="properties">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">_Properties</property>
+                    <property name="use_underline">True</property>
+                    <signal name="activate" handler="on_feed_properties_activate"/>
+                    <child internal-child="image">
+                      <widget class="GtkImage" id="image383">
+                        <property name="visible">True</property>
+                        <property name="stock">gtk-properties</property>
+                        <property name="icon_size">1</property>
+                      </widget>
+                    </child>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+          </widget>
+        </child>
+        <child>
+          <widget class="GtkMenuItem" id="help_menu">
+            <property name="visible">True</property>
+            <property name="label" translatable="yes">_Help</property>
+            <property name="use_underline">True</property>
+            <child>
+              <widget class="GtkMenu" id="help2_menu">
+                <child>
+                  <widget class="GtkImageMenuItem" id="about">
+                    <property name="visible">True</property>
+                    <property name="label" translatable="yes">gtk-about</property>
+                    <property name="use_underline">True</property>
+                    <property name="use_stock">True</property>
+                    <signal name="activate" handler="on_about_activate"/>
+                  </widget>
+                </child>
+              </widget>
+            </child>
+          </widget>
+        </child>
+      </widget>
+    </child>
+  </widget>
+</glade-interface>

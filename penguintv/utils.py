@@ -193,6 +193,16 @@ def GetPrefix():
 	return h
 	
 _glade_prefix = None
+_share_prefix = None
+
+def get_share_prefix():	
+	global _share_prefix
+
+	if _share_prefix is not None:
+		return _share_prefix
+	
+	get_glade_prefix()
+	return _share_prefix
 	
 def get_glade_prefix():
 	global _glade_prefix
@@ -202,16 +212,17 @@ def get_glade_prefix():
 	logging.debug("finding glade prefix")
 
 	import utils
-	for p in (os.path.join(GetPrefix(),"share","penguintv"),
-		  os.path.join(GetPrefix(),"share"),
+	for p in (os.path.join(GetPrefix(),"share","penguintv","glade"),
+		  os.path.join(GetPrefix(),"share","glade"),
 		  os.path.join(os.path.split(os.path.abspath(sys.argv[0]))[0],"share"),
 		  os.path.join(GetPrefix(),"share","sugar","activities","ptv","share"),
-		  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share'),
-		  "/usr/share/penguintv"):
+		  os.path.join(os.path.split(os.path.split(utils.__file__)[0])[0],'share','glade'),
+		  "/usr/share/penguintv/glade"):
 		try:
-			os.stat(os.path.join(p,"penguintv.glade"))
+			os.stat(os.path.join(p,"dialogs.glade"))
 			logging.debug("glade prefix found: %s" % (p,))
 			_glade_prefix = p
+			_share_prefix = '/'.join(p.split('/')[0:-1])
 			return _glade_prefix
 		except:
 			continue
@@ -220,8 +231,8 @@ def get_glade_prefix():
 def get_image_path(filename):
 	for p in (os.path.join(GetPrefix(), 'share', 'pixmaps'),
 			  os.path.join(GetPrefix(), 'share'), #in case the install is still in the source dirs
-			  get_glade_prefix(),
-			  os.path.join(get_glade_prefix(), 'pixmaps')):
+			  get_share_prefix(),
+			  os.path.join(get_share_prefix(), 'pixmaps')):
 		try:
 			icon_file = os.path.join(p, filename)
 			os.stat(icon_file)

@@ -68,7 +68,7 @@ def correct_url(url, glade_prefix):
 			except:
 				raise BadFeedURL,"Error trying to get itunes podcast"
 			
-	urllib._urlopener = my_url_opener(gtk.glade.XML(os.path.join(glade_prefix, 'penguintv.glade'), "dialog_login", 'penguintv'))
+	urllib._urlopener = my_url_opener(gtk.glade.XML(os.path.join(glade_prefix, 'dialogs.glade'), "dialog_login", 'penguintv'))
 	url_stream = None
 	try:
 		url_stream = urllib.urlopen(url)	

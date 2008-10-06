@@ -70,12 +70,12 @@ class MainWindow(gobject.GObject):
 						   ([]))
 	}
 
-	def __init__(self, app, glade_prefix, use_internal_player=False, window=None, status_icon=None):
+	def __init__(self, app, use_internal_player=False, window=None, status_icon=None):
 		gobject.GObject.__init__(self)
 		self._app = app
 		self._window_inited = False
 		self._mm = self._app.mediamanager
-		self._glade_prefix = glade_prefix
+		self._glade_prefix = utils.get_glade_prefix()
 		self._widgetTree = None
 		self._menu_widgettree = None
 		self.window_maximized = False
@@ -97,7 +97,7 @@ class MainWindow(gobject.GObject):
 		self._active_filter_index = FeedList.ALL
 		self._active_filter_path = (0,)
 		
-		if not utils.RUNNING_SUGAR:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			pixbuf = gtk.gdk.pixbuf_new_from_file(utils.get_image_path('ev_online.png'))
 			source = gtk.IconSource()
 			source.set_pixbuf(pixbuf)
@@ -116,10 +116,10 @@ class MainWindow(gobject.GObject):
 		
 		##other WINDOWS we open
 		if utils.HAS_SEARCH:
-			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_add_search_tag",'penguintv'),self._app)
-			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_filter_properties",'penguintv'),self._app)
+			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'extra_dialogs.glade'), "window_add_search_tag",'penguintv'),self._app)
+			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'extra_dialogs.glade'), "window_filter_properties",'penguintv'),self._app)
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
-			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'penguintv.glade'), self._app)
+			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'dialogs.glade'), self._app)
 		
 		self._window_add_feed = None
 		self._filter_selector_dialog = None
@@ -234,7 +234,7 @@ class MainWindow(gobject.GObject):
 			
 			self._connection_button = None
 			
-			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'toolbar_holder','penguintv')
+			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'toolbar_holder','penguintv')
 			self.toolbar = self._load_sugar_toolbar()
 			self.toolbar.show()
 			
@@ -268,7 +268,7 @@ class MainWindow(gobject.GObject):
 			self._connection_button = None
 			
 			logging.debug("Hildon: getting toolbar")
-			self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'hildon_toolbar_holder','penguintv')
+			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'hildon.glade'), 'hildon_toolbar_holder','penguintv')
 			self.toolbar = self._load_toolbar()
 			self.toolbar.unparent()
 			
@@ -279,7 +279,7 @@ class MainWindow(gobject.GObject):
 			self.window.add_toolbar(self.toolbar)
 			self._h_app.add_window(self.window)
 			
-			self._menu_widgettree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'hildon_menu','penguintv')
+			self._menu_widgettree = gtk.glade.XML(os.path.join(self._glade_prefix,'hildon.glade'), 'hildon_menu','penguintv')
 			menu = self._build_hildon_menu(self._menu_widgettree)
 			self.window.set_menu(menu)
 			
@@ -490,7 +490,7 @@ class MainWindow(gobject.GObject):
 			return self._progress.get_fraction()
 			
 	def _load_app_window(self):
-		self._widgetTree = gtk.glade.XML(self._glade_prefix+'/penguintv.glade', 'app','penguintv')
+		self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'desktop.glade'), 'app','penguintv')
 		self._menu_widgettree = self._widgetTree
 		
 		notebook_dock = self._widgetTree.get_widget('layout_dock')
@@ -555,7 +555,7 @@ class MainWindow(gobject.GObject):
 	def show_window_add_feed(self):
 		import AddFeedDialog
 		if self._window_add_feed is None:
-			self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_add_feed",'penguintv'),self._app) #MAGIC
+			self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
 			self._window_add_feed.show()
 			
 	def hide_window_add_feed(self):
@@ -594,7 +594,7 @@ class MainWindow(gobject.GObject):
 		else:
 			self._downloads_label = gtk.Label(_('<span size="small">Downloads</span>'))
 			self._downloads_label.set_property('use-markup',True)
-		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._app.db, self._glade_prefix+'/penguintv.glade')
+		self._download_view = DownloadView.DownloadView(self._app, self._mm, self._app.db, os.path.join(self._glade_prefix,'dialogs.glade'))
 		self._notebook.append_page(self._download_view.get_widget(), self._downloads_label)
 		
 		#self._notebook.set_show_tabs(False)
@@ -616,8 +616,8 @@ class MainWindow(gobject.GObject):
 		self._notebook.set_current_page(page)
 		
 	def load_layout(self):
-		components = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 
-		                           self.layout+'_layout_container','penguintv') #MAGIC
+		components = gtk.glade.XML(os.path.join(self._glade_prefix,self.layout+'.glade'), 
+		               self.layout+'_layout_container','penguintv') #MAGIC
 		self._layout_components = components
 		self._layout_container = components.get_widget(self.layout+'_layout_container')
 		#dock_widget.add(self._layout_container)
@@ -645,7 +645,7 @@ class MainWindow(gobject.GObject):
 			#self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
 			#							            self._app, self, self._app.db, renderer)
 			self.entry_view = PlanetView.PlanetView(components.get_widget('html_dock'), 
-													self, self._app.db, self._app.glade_prefix,
+													self, self._app.db, self._app.share_prefix,
 													self.feed_list_view, self._app, 
 													renderer)
 			self.entry_list_view = self.entry_view
@@ -901,7 +901,7 @@ class MainWindow(gobject.GObject):
 			gobject.idle_add(_unfullscreen_finish)
 	
 	def on_about_activate(self,event):
-		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "aboutdialog1",'penguintv')
+		widgets = gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "aboutdialog1",'penguintv')
 		about_box = widgets.get_widget('aboutdialog1')
 		about_box.set_name('PenguinTV')
 		about_box.set_version(utils.VERSION)
@@ -949,7 +949,7 @@ class MainWindow(gobject.GObject):
 		selected = self.feed_list_view.get_selected()
 		if selected:
 			title = self._app.db.get_feed_title(selected)
-			dialog = FeedFilterDialog.FeedFilterDialog(gtk.glade.XML(self._glade_prefix+'/penguintv.glade', "window_feed_filter",'penguintv'),self._app)
+			dialog = FeedFilterDialog.FeedFilterDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'extra_dialogs.glade'), "window_feed_filter",'penguintv'),self._app)
 			dialog.show()
 			dialog.set_pointed_feed(selected,title)
 			d = { 'title':title }
@@ -986,7 +986,7 @@ class MainWindow(gobject.GObject):
 			#title, description, url, link
 			feed_info = self._app.db.get_feed_info(selected)
 			if self._feed_properties_dialog is None:
-				self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "window_feed_properties",'penguintv'),self._app)
+				self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "window_feed_properties",'penguintv'),self._app)
 			self._feed_properties_dialog.set_feedid(selected)
 			self._feed_properties_dialog.set_title(feed_info['title'])
 			self._feed_properties_dialog.set_rss(feed_info['url'])
@@ -1034,7 +1034,7 @@ class MainWindow(gobject.GObject):
 	def on_edit_tags_for_all_activate(self, event):
 		"""Bring up mass tag creation window"""
 		import TagEditorNG
-		window_edit_tags_multi = TagEditorNG.TagEditorNG(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_editor_ng",'penguintv'), self._app)
+		window_edit_tags_multi = TagEditorNG.TagEditorNG(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "dialog_tag_editor_ng",'penguintv'), self._app)
 		window_edit_tags_multi.show()
 			
 	def on_export_opml_activate(self, event):
@@ -1090,7 +1090,7 @@ class MainWindow(gobject.GObject):
 	def on_edit_favorite_tags(self, o=None):
 		import FilterSelectorDialog
 		if self._filter_selector_dialog is None:
-			self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), "dialog_tag_favorites",'penguintv'),self)
+			self._filter_selector_dialog = FilterSelectorDialog.FilterSelectorDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "dialog_tag_favorites",'penguintv'),self)
 		self._filter_selector_dialog.set_taglists(self._filters, self._favorite_filters)
 		self._filter_selector_dialog.Show()
 	
@@ -1420,7 +1420,7 @@ class MainWindow(gobject.GObject):
 		self._app.set_state(penguintv.DEFAULT)
 		
 	def on_saved_searches_activate(self, event):
-		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'penguintv.glade'),self._app)
+		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'dialogs.glade'),self._app)
 		window_edit_saved_searches.show()
 		del window_edit_saved_searches
 		

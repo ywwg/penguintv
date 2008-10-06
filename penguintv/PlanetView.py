@@ -60,7 +60,7 @@ class PlanetView(gobject.GObject):
                            [])
     }	                       
 	
-	def __init__(self, dock_widget, main_window, db, glade_path, feed_list_view=None, app=None, renderer=EntryFormatter.MOZILLA):
+	def __init__(self, dock_widget, main_window, db, share_path, feed_list_view=None, app=None, renderer=EntryFormatter.MOZILLA):
 		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
@@ -119,14 +119,14 @@ class PlanetView(gobject.GObject):
 		
 		if self._renderer == EntryFormatter.MOZILLA:
 			if utils.RUNNING_SUGAR:
-				f = open(os.path.join(glade_path, "mozilla-planet-olpc.css"))
+				f = open(os.path.join(share_path, "mozilla-planet-olpc.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
 			else:
 				if utils.RUNNING_HILDON:
-					f = open(os.path.join(glade_path, "mozilla-planet-hildon.css"))
+					f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
 				else:
-					f = open(os.path.join(glade_path, "mozilla-planet.css"))
+					f = open(os.path.join(share_path, "mozilla-planet.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
 				

@@ -126,7 +126,7 @@ class EntryView(gobject.GObject):
 	def post_show_init(self):
 		html_dock = self._widget_tree.get_widget('html_dock')
 		if self._renderer==EntryFormatter.MOZILLA:
-			f = open (os.path.join(self._app.glade_prefix,"mozilla.css"))
+			f = open(os.path.join(utils.get_share_prefix(),"mozilla.css"))
 			for l in f.readlines(): self._css += l
 			f.close()
 			utils.init_gtkmozembed()
