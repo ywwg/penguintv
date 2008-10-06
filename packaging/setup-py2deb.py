@@ -66,8 +66,7 @@ p[PREFIX + 'share/penguintv'] = ['share/penguintv.glade|penguintv.glade',
 								 'share/mozilla.css|mozilla.css',
 								 'share/mozilla-planet.css|mozilla-planet.css',
 								 'share/mozilla-planet-hildon.css|mozilla-planet-hildon.css']
-p[PREFIX + 'share/penguintv/glade'] = pipedlist('share/glade/hildon*.glade')
-p[PREFIX + 'share/penguintv/glade'] += ['share/glade/dialogs.glade']
+p[PREFIX + 'share/penguintv/glade'] = pipedlist('share/glade/hildon*.glade') + ['share/glade/dialogs.glade']
 p[PREFIX + 'share/icons/hicolor/scalable/hildon'] = ["share/penguintvicon.png|penguintvicon.png"]
 p[PREFIX + 'share/icons/hicolor/64x64/hildon'] = ["share/pixmaps/64x64/penguintvicon.png|penguintvicon.png"]
 p[PREFIX + 'share/icons/hicolor/40x40/hildon'] = ["share/pixmaps/40x40/penguintvicon.png|penguintvicon.png"]
