@@ -101,7 +101,7 @@ class TagEditorNG:
 		
 		self._tags_widget.get_selection().connect('changed', self._tags_widget_changed)
 		
-		pane = self._xml.get_widget("hpaned")
+		pane = self._xml.get_widget("hpaned1")
 		pane.set_position(200)
 		
 		if utils.RUNNING_HILDON:

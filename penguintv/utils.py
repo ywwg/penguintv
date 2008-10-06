@@ -206,6 +206,7 @@ def get_share_prefix():
 	
 def get_glade_prefix():
 	global _glade_prefix
+	global _share_prefix
 	if _glade_prefix is not None:
 		return _glade_prefix
 

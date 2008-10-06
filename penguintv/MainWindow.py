@@ -119,7 +119,7 @@ class MainWindow(gobject.GObject):
 			self._window_add_search = AddSearchTagDialog.AddSearchTagDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'extra_dialogs.glade'), "window_add_search_tag",'penguintv'),self._app)
 			self._feed_filter_properties_dialog = FeedFilterPropertiesDialog.FeedFilterPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'extra_dialogs.glade'), "window_filter_properties",'penguintv'),self._app)
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
-			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'dialogs.glade'), self._app)
+			self._sync_dialog = SynchronizeDialog.SynchronizeDialog(os.path.join(self._glade_prefix,'extra_dialogs.glade'), self._app)
 		
 		self._window_add_feed = None
 		self._filter_selector_dialog = None
@@ -234,7 +234,8 @@ class MainWindow(gobject.GObject):
 			
 			self._connection_button = None
 			
-			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'penguintv.glade'), 'toolbar_holder','penguintv')
+			#TODO fixme
+			self._widgetTree = gtk.glade.XML(os.path.join(self._glade_prefix,'..','penguintv.glade'), 'toolbar_holder','penguintv')
 			self.toolbar = self._load_sugar_toolbar()
 			self.toolbar.show()
 			
@@ -555,7 +556,10 @@ class MainWindow(gobject.GObject):
 	def show_window_add_feed(self):
 		import AddFeedDialog
 		if self._window_add_feed is None:
-			self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
+			if utils.RUNNING_HILDON:
+				self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'hildon_dialogs.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
+			else:
+				self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialog_add_feed.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
 			self._window_add_feed.show()
 			
 	def hide_window_add_feed(self):
@@ -645,7 +649,7 @@ class MainWindow(gobject.GObject):
 			#self.entry_view = PlanetView.PlanetView(components, self.feed_list_view, 
 			#							            self._app, self, self._app.db, renderer)
 			self.entry_view = PlanetView.PlanetView(components.get_widget('html_dock'), 
-													self, self._app.db, self._app.share_prefix,
+													self, self._app.db, utils.get_share_prefix(),
 													self.feed_list_view, self._app, 
 													renderer)
 			self.entry_list_view = self.entry_view
@@ -986,7 +990,10 @@ class MainWindow(gobject.GObject):
 			#title, description, url, link
 			feed_info = self._app.db.get_feed_info(selected)
 			if self._feed_properties_dialog is None:
-				self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "window_feed_properties",'penguintv'),self._app)
+				if utils.RUNNING_HILDON:
+					self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'hildon_dialogs.glade'), "window_feed_properties",'penguintv'),self._app)
+				else:
+					self._feed_properties_dialog = FeedPropertiesDialog.FeedPropertiesDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialogs.glade'), "window_feed_properties",'penguintv'),self._app)
 			self._feed_properties_dialog.set_feedid(selected)
 			self._feed_properties_dialog.set_title(feed_info['title'])
 			self._feed_properties_dialog.set_rss(feed_info['url'])
@@ -1420,7 +1427,7 @@ class MainWindow(gobject.GObject):
 		self._app.set_state(penguintv.DEFAULT)
 		
 	def on_saved_searches_activate(self, event):
-		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'dialogs.glade'),self._app)
+		window_edit_saved_searches = EditSearchesDialog.EditSearchesDialog(os.path.join(self._glade_prefix,'extra_dialogs.glade'),self._app)
 		window_edit_saved_searches.show()
 		del window_edit_saved_searches
 		

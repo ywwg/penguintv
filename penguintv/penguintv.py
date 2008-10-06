@@ -282,7 +282,10 @@ class PenguinTVApp(gobject.GObject):
 
 		#WINDOWS
 		#TODO: move this initialization till when we actually need these
-		self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(os.path.join(utils.get_glade_prefix(),'dialogs.glade'), "window_preferences",'penguintv'),self) #MAGIC
+		if utils.RUNNING_HILDON:
+			self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(os.path.join(utils.get_glade_prefix(),'hildon_dialogs.glade'), "window_preferences",'penguintv'),self) #MAGIC
+		else:
+			self.window_preferences = PreferencesDialog.PreferencesDialog(gtk.glade.XML(os.path.join(utils.get_glade_prefix(),'dialogs.glade'), "window_preferences",'penguintv'),self) #MAGIC
 		self.window_preferences.hide()
 		
 		if utils.HAS_STATUS_ICON:
