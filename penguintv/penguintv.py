@@ -391,9 +391,10 @@ class PenguinTVApp(gobject.GObject):
 		if self._autoresume:
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
-		if self._firstrun:
-			self._import_default_feeds()
-		elif self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
+		# do this after we have the poller
+		#if self._firstrun:
+		#	self._import_default_feeds()
+		if not self._firstrun and self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 		
 		#gtk.gdk.threads_leave()
@@ -463,6 +464,12 @@ class PenguinTVApp(gobject.GObject):
 			logging.error("Unable to start remote poller.  Polling will be done in-process")	
 		else:
 			logging.debug("Got poller")
+			
+		# Now that we have the poller, do firstrun import
+		gtk.gdk.threads_enter()
+		if self._firstrun:
+			self._import_default_feeds()
+		gtk.gdk.threads_leave()
 			
 	def _check_poller(self):
 		if self._remote_poller is None:
@@ -941,6 +948,7 @@ class PenguinTVApp(gobject.GObject):
 				self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
 			self._polling_taskinfo = int(time.time())
 		else:	
+			logging.debug("Polling in-process")
 			updater, db = self._get_updater()
 			task_id = updater.queue(db.poll_multiple, (arguments,feeds))
 			if arguments & ptvDB.A_ALL_FEEDS==0:

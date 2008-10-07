@@ -14,7 +14,7 @@ import packaging.py2deb as py2deb
 
 __modname__ = "penguintv"
 __version__ = "3.9.1"
-__build__ = "1" # Result is "0.5.8-1"
+__build__ = "2" # Result is "0.5.8-1"
 
 PREFIX="/usr/"
 
