@@ -972,7 +972,7 @@ class MainWindow(gobject.GObject):
 		self._app.toggle_net_connection()
 		
 	def pane_to_feeds(self):
-		self.feed_tabs.set_current_page(1)
+		self.feed_tabs.set_current_page(0)
 		
 	def on_feed_add_clicked(self, event):
 		if self._state == S_MAJOR_DB_OPERATION:
