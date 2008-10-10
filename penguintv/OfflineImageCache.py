@@ -25,8 +25,10 @@ import utils
 import ThreadPool
 from BeautifulSoup.BeautifulSoup import BeautifulSoup
 
-
 DEBUG = False
+
+def guid_hash(guid):
+	return str(hash(guid) % 100)
 
 def threaded_callback():
 	def annotate(func):
@@ -71,7 +73,7 @@ class OfflineImageCache:
 		if len(img_tags) == 0:
 			return html
 	
-		mapping_file = os.path.join(self._store_location, guid, "mapping.pickle")
+		mapping_file = os.path.join(self._store_location, guid_hash(guid), guid, "mapping.pickle")
 		if not os.path.isfile(mapping_file):
 			if len(img_tags) > 0:
 				#logging.warning("Should be downloaded images, but couldn't open mapping.  Recaching")
@@ -105,7 +107,7 @@ class OfflineImageCache:
 		
 	def remove_cache(self, guid):
 		guid = str(guid)
-		mapping_file = os.path.join(self._store_location, guid, "mapping.pickle")
+		mapping_file = os.path.join(self._store_location, guid_hash(guid), guid, "mapping.pickle")
 		if not os.path.isfile(mapping_file):
 			logging.warning("no mapping file, not deleting anything")
 			return
@@ -119,18 +121,20 @@ class OfflineImageCache:
 		rewrite_hash = pickle.load(mapping)
 		mapping.close()
 	
-		os.remove(os.path.join(self._store_location, guid, "mapping.pickle"))
+		os.remove(mapping_file)
 	
 		for url in rewrite_hash.keys():
 			try:
-				os.remove(rewrite_hash[url][0])
-			except:
-				pass		
+				os.remove(os.path.join(self._store_location, guid_hash(guid), guid, rewrite_hash[url][0]))
+			except Exception, e:
+				logging.warning("error removing file: %s" % str(e))
 				
 		try:
-			os.rmdir(os.path.join(self._store_location, guid))
+			os.rmdir(os.path.join(self._store_location, guid_hash(guid), guid))
 		except Exception, e:
 			logging.warning("error removing image cache folder (not empty?) %s" % str(e))
+			logging.debug(glob.glob(os.path.join(self._store_location, guid_hash(guid), guid, "*")))
+			logging.debug(str(rewrite_hash))
 		
 	def finish(self):
 		#logging.debug("OFFLINE IMAGE CACHE SHUTDOWN START")
@@ -147,7 +151,7 @@ class PageCacher:
 		self._soup = BeautifulSoup(html)
 		self._cacher = UrlCacher(self._guid, self._store_location, self._threadpool, self._page_cached_cb)
 		try:
-			os.remove(os.path.join(self._store_location, self._guid, "mapping.pickle"))
+			os.remove(os.path.join(self._store_location, guid_hash(self._guid), self._guid, "mapping.pickle"))
 		except:
 			pass
 		
@@ -161,9 +165,9 @@ class PageCacher:
 	def _page_cached_cb(self):
 		rewrite_hash = self._cacher.get_rewrite_hash()
 		try:
-			mapping = open(os.path.join(self._store_location, self._guid, "mapping.pickle"), 'w')
+			mapping = open(os.path.join(self._store_location, guid_hash(self._guid), self._guid, "mapping.pickle"), 'w')
 		except:
-			logging.error("error writing mapping %s" % os.path.join(self._store_location, self._guid, "mapping.pickle"))
+			logging.error("error writing mapping %s" % os.path.join(self._store_location, guid_hash(self._guid), self._guid, "mapping.pickle"))
 			self._finished_cb(self._guid)
 			return
 		
@@ -191,7 +195,7 @@ class UrlCacher:
 		md5 = hashlib.md5()
 		md5.update(url)
 		extension = os.path.splitext(url)[1]
-		local_filename = os.path.join(self._guid, md5.hexdigest()) + extension
+		local_filename = os.path.join(guid_hash(self._guid), self._guid, md5.hexdigest()) + extension
 		
 		if os.path.isfile(local_filename):
 			#TODO: some sort of md5sum of the file?  or just assume it's ok?
@@ -215,9 +219,9 @@ class UrlCacher:
 		url, local_filename = args
 		
 		if not self._dir_checked:
-			if not os.path.exists(os.path.join(self._store_location, self._guid)):
+			if not os.path.exists(os.path.join(self._store_location, guid_hash(self._guid), self._guid)):
 				try:
-					os.makedirs(os.path.join(self._store_location, self._guid))
+					os.makedirs(os.path.join(self._store_location, guid_hash(self._guid), self._guid))
 				except:
 					pass
 			self._dir_checked = True
