@@ -15,9 +15,9 @@ except:
 
 import socket
 if RUNNING_HILDON:
-	socket.setdefaulttimeout(15.0)
+	socket.setdefaulttimeout(30.0)
 else:
-	socket.setdefaulttimeout(5.0)
+	socket.setdefaulttimeout(10.0)
 
 #try:
 #	logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.DEBUG)

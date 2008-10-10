@@ -478,8 +478,8 @@ class PenguinTVApp(gobject.GObject):
 		try:
 			#is the process still running?
 			os.kill(self._remote_poller_pid, 0)
-		except:
-			logging.error("We lost the poller")
+		except Exception, e:
+			logging.error("We lost the poller: %s" % str(e))
 			if self._polling_taskinfo != -1:
 				self._polled = 0
 				self._polling_taskinfo = -1
@@ -972,16 +972,12 @@ class PenguinTVApp(gobject.GObject):
 		return False
 		
 	def poll_finished_cb(self, total):
-		"""only called over dbus when poller.py finishes"""
-		#self.main_window.display_status_message(_("Feeds Updated"))
-		#gobject.timeout_add(2000, self.main_window.display_status_message, "")
-		self.update_disk_usage()
+		"""only called over dbus when poller.py finishes.  Keep this fast to
+		   prevent timeouts over dbus."""
+		self._gui_updater.queue(self.update_disk_usage)
 		if self._auto_download == True:
-			self._auto_download_unviewed()
+			self._gui_updater.queue(self._auto_download_unviewed)
 		self._gui_updater.set_completed(self._polling_taskinfo)
-		#logging.debug("done polling multiple 2, updating readstates")
-		#self._gui_updater.queue(self._article_sync.get_readstates_for_entries, self._poll_new_entries)
-		#self._poll_new_entries = []
 	
 	@utils.db_except()
 	def _auto_download_unviewed(self):
