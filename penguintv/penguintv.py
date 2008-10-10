@@ -566,19 +566,18 @@ class PenguinTVApp(gobject.GObject):
 
 	def __got_readstates_cb(self, o, viewlist):
 		if self._exiting:
-			logging.debug("got readstates, but no time to apply them")
+			#logging.debug("got readstates, but no time to apply them")
 			return
 		if len(viewlist) > 0:
 			self.mark_entrylist_viewstate(viewlist, True)
 			self.emit('entries-viewed', viewlist)
-		else:
-			logging.debug("stamping even though none found")
+		#else:
+		#	logging.debug("stamping even though none found")
 		#logging.debug("SETTING GCONF TIMESTAMP=========")
 		self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 		
 	def __sent_readstates_cb(self, o):
 		def __do():
-			logging.debug("SENT BATCH, GCONF STAMPING=========")
 			self.db.set_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 			return False
 		gobject.idle_add(__do)

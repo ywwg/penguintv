@@ -78,7 +78,7 @@ class SqliteSyncClient:
 			
 		logging.debug("ArticleSync Submitting %i readstates" % len(readstates))
 		if len(readstates) == 0:
-			logging.debug("(returning immediately)")
+			#logging.debug("(returning immediately)")
 			return True
 		
 		if do_upload and noclosedb is not None:
@@ -181,7 +181,7 @@ class SqliteSyncClient:
 		if self._no_updates:
 			#logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))
 			if server_timestamp == self._local_timestamp:
-				logging.debug("no updates last time, so no point checking")
+				#logging.debug("no updates last time, so no point checking")
 				return []
 				
 		if server_timestamp < self._local_timestamp:
@@ -212,7 +212,7 @@ class SqliteSyncClient:
 		if new_hashes is None:
 			new_hashes = []
 		if len(new_hashes) == 0:
-			logging.debug("No results, so if the server doesn't update next time we won't download it")
+			#logging.debug("No results, so if the server doesn't update next time we won't download it")
 			self._no_updates = True
 			return []
 		return new_hashes
@@ -233,8 +233,8 @@ class SqliteSyncClient:
 				return None
 			
 		if server_timestamp != self._local_timestamp:
-			logging.debug("sync time unexpectedly changed %i %i" \
-				% (server_timestamp, self._local_timestamp))
+			#logging.debug("sync time unexpectedly changed %i %i" \
+			#	% (server_timestamp, self._local_timestamp))
 			return self._download_db()
 		
 		try:
@@ -264,7 +264,7 @@ class SqliteSyncClient:
 			self._sync_file = tempfile.mkstemp(suffix='.db')[1]
 		fp = open(self._sync_file, 'wb')
 		fp.write(db_data)
-		logging.debug("Downloaded %i bytes" % fp.tell())
+		#logging.debug("Downloaded %i bytes" % fp.tell())
 		fp.close()
 		
 		try:
@@ -316,7 +316,7 @@ class SqliteSyncClient:
 		if not success:
 			logging.debug("error uploading readstate database")
 			return False
-		logging.debug("Uploaded %i bytes" % fp.tell())
+		#logging.debug("Uploaded %i bytes" % fp.tell())
 		fp.close()
 		self._local_timestamp = int(time.time())
 		#logging.debug("SETTING server TIMESTAMP3: %i" % self._local_timestamp)

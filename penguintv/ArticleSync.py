@@ -385,7 +385,7 @@ class ArticleSync(gobject.GObject):
 	
 	@threaded_func()
 	def _do_submit_readstates(self, readstates):
-		logging.debug("submitting readstates")
+		#logging.debug("submitting readstates")
 		retval = self._conn.submit_readstates(readstates)
 		
 		if not DEBUG:
@@ -396,7 +396,7 @@ class ArticleSync(gobject.GObject):
 			self.emit('server-error', 'Problem submitting readstates')
 		if not DEBUG:
 			gtk.gdk.threads_leave()
-		logging.debug("finished submitting readstates")
+		#logging.debug("finished submitting readstates")
 		return retval
 		
 	@authenticated_func()
@@ -459,8 +459,8 @@ class ArticleSync(gobject.GObject):
 		unread_entries = \
 			self._db.get_entries_for_hashes(read_hashes)
 		unread_entries.sort()
-		logging.debug("hash to entry conversion result: %i known %i unknown" \
-			% (len(unread_entries), len(readstates) - len(unread_entries)))
+		#logging.debug("hash to entry conversion result: %i known %i unknown" \
+		#	% (len(unread_entries), len(readstates) - len(unread_entries)))
 		viewlist = []
 		cur_feed_id = None
 		cur_list = []

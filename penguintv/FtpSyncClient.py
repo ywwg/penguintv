@@ -207,7 +207,7 @@ class FtpSyncClient(SqliteSyncClient):
 		except Exception, e:
 			#logging.debug("exception checking connection: %s" % str(e))
 			if not self._do_authenticate(tryreconnect=True):
-				logging.debug("can't reconnect")
+				#logging.debug("can't reconnect")
 				return False
-			logging.debug("reconnected")
+			#logging.debug("reconnected")
 			return True
