@@ -65,17 +65,21 @@ class OfflineImageCache:
 		guid = str(guid)
 		self._cachers[guid] = False
 		
-	def rewrite_html(self, guid, html, ajax_url=None):
-		guid = str(guid)
-		soup = BeautifulSoup(html)
-		img_tags = soup.findAll('img')
+	def rewrite_html(self, guid, html=None, ajax_url=None):
+		"""if we are not using ajax, then html is IGNORED and we go by the
+		cached copy.  html is sometimes used to see if there should be a 
+		cached copy at all, or if something goes wrong and we just need to
+		return unaltered html
+		"""
 		
-		if len(img_tags) == 0:
-			return html
-	
-		mapping_file = os.path.join(self._store_location, guid_hash(guid), guid, "mapping.pickle")
+		guid = str(guid)
+		cache_dir = os.path.join(self._store_location, guid_hash(guid), guid)
+		mapping_file = os.path.join(cache_dir, "mapping.pickle")
+		
 		if not os.path.isfile(mapping_file):
-			if len(img_tags) > 0:
+			# quick and dirty check.  are there images?  if not, plain
+			# html is fine
+			if html.lower().find('<img') >= 0:
 				#logging.warning("Should be downloaded images, but couldn't open mapping.  Recaching")
 				self.cache_html(guid, html)
 			return html
@@ -83,9 +87,21 @@ class OfflineImageCache:
 		try:
 			mapping = open(mapping_file, 'r')
 			rewrite_hash = pickle.load(mapping)
+			non_ajax_html = pickle.load(mapping)
 			mapping.close()
 		except:
 			logging.error("error opening cache pickle for guid %s %s" % (guid, mapping_file))
+			logging.error("If you have upgraded penguintv, you might need to delete your image cache")
+			return html
+				
+		if ajax_url is None:
+			return non_ajax_html
+			
+		#else, rewrite on the fly
+		soup = BeautifulSoup(html)
+		img_tags = soup.findAll('img')
+		
+		if len(img_tags) == 0:
 			return html
 	
 		for result in img_tags:
@@ -95,10 +111,7 @@ class OfflineImageCache:
 				if rewrite_hash.has_key(result['src']):
 					if rewrite_hash[result['src']][1] == UrlCacher.DOWNLOADED:
 						#if os.path.isfile(os.path.join(self._store_location, rewrite_hash[result['src']][0])):
-						if ajax_url is None:
-							result['src'] = "file://" + os.path.join(self._store_location, rewrite_hash[result['src']][0])
-						else:
-							result['src'] = ajax_url + "/cache/" + rewrite_hash[result['src']][0]
+						result['src'] = ajax_url + "/cache/" + rewrite_hash[result['src']][0]
 						#else:
 						#	logging.warning("file not found, not replacing")
 						#	logging.debug("(should we attempt to recache here?")
@@ -107,8 +120,15 @@ class OfflineImageCache:
 		
 	def remove_cache(self, guid):
 		guid = str(guid)
-		mapping_file = os.path.join(self._store_location, guid_hash(guid), guid, "mapping.pickle")
+		cache_dir = os.path.join(self._store_location, guid_hash(guid), guid)
+		mapping_file = os.path.join(cache_dir, "mapping.pickle")
+		
+		if not os.path.isdir(cache_dir):
+			# it was never cached I guess
+			return
+			
 		if not os.path.isfile(mapping_file):
+			# the dir exists, but not the file?
 			logging.warning("no mapping file, not deleting anything")
 			return
 			
@@ -125,23 +145,28 @@ class OfflineImageCache:
 	
 		for url in rewrite_hash.keys():
 			try:
-				os.remove(os.path.join(self._store_location, guid_hash(guid), guid, rewrite_hash[url][0]))
+				os.remove(os.path.join(cache_dir, rewrite_hash[url][0]))
 			except Exception, e:
 				logging.warning("error removing file: %s" % str(e))
 				
 		try:
-			os.rmdir(os.path.join(self._store_location, guid_hash(guid), guid))
+			os.rmdir(cache_dir)
 		except Exception, e:
 			logging.warning("error removing image cache folder (not empty?) %s" % str(e))
-			logging.debug(glob.glob(os.path.join(self._store_location, guid_hash(guid), guid, "*")))
+			logging.debug(glob.glob(os.path.join(cache_dir, "*")))
 			logging.debug(str(rewrite_hash))
 		
 	def finish(self):
-		#logging.debug("OFFLINE IMAGE CACHE SHUTDOWN START")
 		self._threadpool.joinAll(False, False)
-		#logging.debug("OFFLINE IMAGE CACHE SHUTDOWN DONE")
 		
 class PageCacher:
+	""" Take html and download all of the images to the store location.  Then
+		process the html and rewrite the tags to point to these images.  The
+		new html is then cached along with the image mapping in a pickle file.
+		
+		Note: this cached version of the html is only good for non-ajax use.
+		In the case of ajax, the urls need to be rewritten on the fly
+	"""
 	def __init__(self, guid, html, store_location, threadpool, finished_cb=None):
 		self._guid = str(guid)
 		self._store_location = store_location
@@ -150,8 +175,9 @@ class PageCacher:
 		
 		self._soup = BeautifulSoup(html)
 		self._cacher = UrlCacher(self._guid, self._store_location, self._threadpool, self._page_cached_cb)
+		self._cache_dir = os.path.join(self._store_location, guid_hash(self._guid), self._guid)
 		try:
-			os.remove(os.path.join(self._store_location, guid_hash(self._guid), self._guid, "mapping.pickle"))
+			os.remove(os.path.join(self._cache_dir, "mapping.pickle"))
 		except:
 			pass
 		
@@ -165,13 +191,29 @@ class PageCacher:
 	def _page_cached_cb(self):
 		rewrite_hash = self._cacher.get_rewrite_hash()
 		try:
-			mapping = open(os.path.join(self._store_location, guid_hash(self._guid), self._guid, "mapping.pickle"), 'w')
+			mapping = open(os.path.join(self._cache_dir, "mapping.pickle"), 'w')
 		except:
-			logging.error("error writing mapping %s" % os.path.join(self._store_location, guid_hash(self._guid), self._guid, "mapping.pickle"))
+			logging.error("error writing mapping %s" % os.path.join(self._cache_dir, "mapping.pickle"))
 			self._finished_cb(self._guid)
 			return
+			
+		img_tags = self._soup.findAll('img')
+			
+		for result in img_tags:
+			# believe it or not, some img tags don't have a src, they have an id
+			# that points to CSS.  At least I think that's what's going on
+			if result.has_key('src'):
+				if rewrite_hash.has_key(result['src']):
+					if rewrite_hash[result['src']][1] == UrlCacher.DOWNLOADED:
+						#if os.path.isfile(os.path.join(self._store_location, rewrite_hash[result['src']][0])):
+						result['src'] = "file://" + os.path.join(self._store_location, rewrite_hash[result['src']][0])
+						#	logging.warning("file not found, not replacing")
+						#	logging.debug("(should we attempt to recache here?")
+				
+		non_ajax_html = self._soup.prettify()
 		
 		pickle.dump(rewrite_hash, mapping)
+		pickle.dump(non_ajax_html, mapping)
 		mapping.close()
 		self._finished_cb(self._guid)
 		
@@ -217,11 +259,12 @@ class UrlCacher:
 			threaded"""
 		
 		url, local_filename = args
+		cache_dir = os.path.join(self._store_location, guid_hash(self._guid), self._guid)
 		
 		if not self._dir_checked:
-			if not os.path.exists(os.path.join(self._store_location, guid_hash(self._guid), self._guid)):
+			if not os.path.exists(cache_dir):
 				try:
-					os.makedirs(os.path.join(self._store_location, guid_hash(self._guid), self._guid))
+					os.makedirs(cache_dir)
 				except:
 					pass
 			self._dir_checked = True
