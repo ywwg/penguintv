@@ -1288,7 +1288,7 @@ class MainWindow(gobject.GObject):
 		entry = self.entry_list_view.get_selected()['entry_id']
 		self._app.activate_link("unkeep:%i" % (entry,))
 		
-	def on_mark_feed_as_viewed_activate(self,event):
+	def on_mark_feed_as_viewed_activate(self, button=None, event=None):
 		feed = self.feed_list_view.get_selected()
 		if feed:
 			self._app.mark_feed_as_viewed(feed)

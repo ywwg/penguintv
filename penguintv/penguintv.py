@@ -492,7 +492,7 @@ class PenguinTVApp(gobject.GObject):
 				gobject.timeout_add(2000, self.main_window.display_status_message,"")
 			self._remote_poller = None
 			self._remote_poller_pid = 0
-			return False
+			self._spawn_poller()
 		return True
 		
 	def _setup_article_sync(self):
@@ -940,7 +940,8 @@ class PenguinTVApp(gobject.GObject):
 				try:
 					self._remote_poller.poll_all(arguments, "FinishedCallback")
 				except:
-					self._remote_poller = None
+					#don't reset poller, maybe it just timed out. _check_poller
+					#will find out for sure
 					logging.debug("lost the poller, trying again with local poller")
 					return self.do_poll_multiple(was_setup, arguments, feeds, message)
 			else:
