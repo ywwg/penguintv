@@ -892,7 +892,7 @@ class PenguinTVApp(gobject.GObject):
 	def write_feed_cache(self):
 		self.db.set_feed_cache(self.feed_list_view.get_feed_cache())
 		
-	def do_poll_multiple(self, was_setup=None, arguments=0, feeds=None, message=None):
+	def do_poll_multiple(self, was_setup=None, arguments=0, feeds=None, message=None, local=False):
 		""""was_setup":  So do_poll_multiple is going to get called by timers 
 			and manually, and we needed some way of saying "I've got a new 
 			frequency, stop the old timer and start the new one."  so it 
@@ -934,7 +934,7 @@ class PenguinTVApp(gobject.GObject):
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(self._poll_message, MainWindow.U_POLL)
 		
-		if self._remote_poller is not None:
+		if self._remote_poller is not None and not local:
 			logging.debug("Using remote poller")
 			if feeds is None:
 				try:
@@ -943,7 +943,7 @@ class PenguinTVApp(gobject.GObject):
 					#don't reset poller, maybe it just timed out. _check_poller
 					#will find out for sure
 					logging.debug("lost the poller, trying again with local poller")
-					return self.do_poll_multiple(was_setup, arguments, feeds, message)
+					return self.do_poll_multiple(was_setup, arguments, feeds, message, local=True)
 			else:
 				self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
 			self._polling_taskinfo = int(time.time())
