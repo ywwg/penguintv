@@ -54,7 +54,7 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				logging.error("no icon found for: %s" % (arg,))
 				self.wfile.write("")
 		elif command == "pixmaps":
-			image_data = self._image_cache.get_image_from_file(os.path.join(utils.get_glade_prefix(), "pixmaps", arg))
+			image_data = self._image_cache.get_image_from_file(utils.get_image_path(arg))
 			self.wfile.write(image_data)
 		elif command == "cache":
 			#strip out possible ../../../ crap.  I think this is all I need?
