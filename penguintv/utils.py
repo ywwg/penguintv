@@ -13,7 +13,7 @@ import gettext
 import shutil
 import logging
 
-VERSION="3.9.2"
+VERSION="3.9.3"
 
 try:
 	from sqlite3 import OperationalError as OperationalError
