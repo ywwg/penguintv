@@ -14,6 +14,7 @@
 # Need better checking of disk space, etc
 
 import urllib
+import urlparse
 import os.path
 import pickle
 import logging
@@ -236,7 +237,8 @@ class UrlCacher:
 	
 		md5 = hashlib.md5()
 		md5.update(url)
-		extension = os.path.splitext(url)[1]
+		filename = urlparse.urlparse(url)[2]
+		extension = os.path.splitext(filename)[1]
 		local_filename = os.path.join(guid_hash(self._guid), self._guid, md5.hexdigest()) + extension
 		
 		if os.path.isfile(local_filename):

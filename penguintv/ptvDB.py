@@ -161,6 +161,11 @@ class ptvDB:
 		except:
 			raise DBError,"error connecting to database"
 			
+		db_ver = self.get_version_info()[0]
+		if db_ver == -1:
+			logging.info("database will need init")
+			self._initializing_db = True
+			
 		self._cancel_poll_multiple = False
 		
 		self._c = self._db.cursor()
@@ -204,7 +209,7 @@ class ptvDB:
 		self._image_cache = None
 		cache_images = self.get_setting(BOOL, "/apps/penguintv/cache_images_locally", False)
 		if cache_images:
-			store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', "")
+			store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
 			if store_location != "":
 				self._image_cache = OfflineImageCache.OfflineImageCache(os.path.join(store_location, "images"))
 		
@@ -279,6 +284,7 @@ class ptvDB:
 		db_ver = self.get_version_info()[0]
 		if db_ver == -1:
 			logging.info("initializing database")
+			self._initializing_db = True
 			self._init_database()
 			return True	
 
@@ -309,10 +315,10 @@ class ptvDB:
 		#	print "indexing for the first time"
 		#	self.searcher.Do_Index_Threaded()
 		
-		self._check_settings_location()
-			
-		self.fix_tags()
-		self._fix_indexes()
+		if not utils.RUNNING_HILDON:
+			self._check_settings_location()
+			self.fix_tags()
+			self._fix_indexes()
 		return False
 		
 	def done_initializing(self):
@@ -812,6 +818,7 @@ class ptvDB:
 					
 	def get_setting(self, type, datum, default=None, force_db=False):
 		if utils.HAS_GCONF and self._initializing_db:
+			logging.debug("we are initing db, returning and setting default: %s %s" % (datum, str(default)))
 			return default #always return default, gconf LIES
 		if utils.HAS_GCONF and datum[0] == '/' and not force_db:
 			if   type == BOOL:
@@ -3044,7 +3051,7 @@ class ptvDB:
 				self._image_cache = None
 		else:
 			if cache:
-				store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', "")
+				store_location = self.get_setting(STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
 				if store_location != "":
 					self._image_cache = OfflineImageCache.OfflineImageCache(os.path.join(store_location, "images"))
 				else:

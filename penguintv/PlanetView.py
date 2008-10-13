@@ -209,7 +209,7 @@ class PlanetView(gobject.GObject):
 			import threading
 			from ajax import EntryInfoServer, MyTCPServer
 			
-			store_location = os.path.join(self._db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', ""), "images")
+			store_location = os.path.join(self._db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', ""), os.path.join(utils.get_home(), "media", "images"))
 
 			while True:
 				try:

@@ -205,7 +205,7 @@ class PenguinTVApp(gobject.GObject):
 		# Clean media status on startup, not exit, in case of crash.
 		self.db.clean_media_status()
 		
-		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', '~/.penguintv/media')
+		media_dir = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
 		media_dir = media_dir.replace("\"","")
 		self.mediamanager = MediaManager.MediaManager(self, media_dir, self._progress_callback, self._finished_callback)
 		self._polled=0      #Used for updating the polling progress bar
@@ -392,8 +392,8 @@ class PenguinTVApp(gobject.GObject):
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
 		# do this after we have the poller
-		#if self._firstrun:
-		#	self._import_default_feeds()
+		if self._firstrun and not utils.RUNNING_HILDON:
+			self._import_default_feeds()
 		if not self._firstrun and self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 		
@@ -465,11 +465,12 @@ class PenguinTVApp(gobject.GObject):
 		else:
 			logging.debug("Got poller")
 			
-		# Now that we have the poller, do firstrun import
-		gtk.gdk.threads_enter()
-		if self._firstrun:
-			self._import_default_feeds()
-		gtk.gdk.threads_leave()
+		if utils.RUNNING_HILDON:
+			# Now that we have the poller, do firstrun import
+			gtk.gdk.threads_enter()
+			if self._firstrun:
+				self._import_default_feeds()
+			gtk.gdk.threads_leave()
 			
 	def _check_poller(self):
 		if self._remote_poller is None:
@@ -2664,6 +2665,7 @@ def setup_database():
 		#print "got without object:",db_ver, latest_ver
 		c.close()
 		db.close()
+		return True
 	except:
 		logging.debug("Didn't get sqlite the easy way, trying the hard way")
 		try:
