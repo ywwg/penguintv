@@ -347,6 +347,7 @@ class PenguinTVApp(gobject.GObject):
 				self._nm_interface = None
 				
 			self._spawn_poller()
+			gobject.timeout_add(20000, self._check_poller)
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
@@ -409,13 +410,16 @@ class PenguinTVApp(gobject.GObject):
 	def poller_ping_cb(self):
 		if self._exiting:
 			return False
-		# -1 pid indicates we are already trying		
-		if self._remote_poller is None and self._remote_poller_pid != -1:
+		# -2 pid means we are ready to grab
+		# -1 pid indicates we are already trying to grab
+		# 0 pid indicates no poller, dead poller, or no other status.
+		if self._remote_poller is None and self._remote_poller_pid == -2:
 			p = threading.Thread(None, self._get_poller)
 			p.start()
 		return True
 	
 	def _spawn_poller(self):
+		self._remote_poller_pid = -2
 		rundir = os.path.split(utils.__file__)[0]
 		if rundir == "": rundir = "./"
 		logging.debug("running poller: %s %s" % ('/usr/bin/env python2.5', os.path.join(rundir, 'Poller.py')))
@@ -423,6 +427,7 @@ class PenguinTVApp(gobject.GObject):
 			os.path.join(rundir, 'Poller.py')])
 	
 	def _get_poller(self):
+		self._remote_poller = None
 		self._remote_poller_pid = -1
 		gtk.gdk.threads_enter()
 		bus = dbus.SessionBus()
@@ -443,7 +448,7 @@ class PenguinTVApp(gobject.GObject):
 			#don't want to deadlock mutual dbus calls
 			time.sleep(sleep_time)
 			gtk.gdk.threads_enter()
-			logging.debug("Trying for poller")
+			logging.debug("Getting poller")
 			if dubus_methods.NameHasOwner('com.ywwg.PenguinTVPoller'):
 				o = bus.get_object("com.ywwg.PenguinTVPoller", "/PtvPoller")
 				poller = dbus.Interface(o, "com.ywwg.PenguinTVPoller.PollInterface")
@@ -453,7 +458,6 @@ class PenguinTVApp(gobject.GObject):
 					else:
 						self._remote_poller = poller
 						self._remote_poller_pid = self._remote_poller.get_pid()
-						gobject.timeout_add(20000, self._check_poller)
 				except:
 					gtk.gdk.threads_leave()
 					break
@@ -473,27 +477,30 @@ class PenguinTVApp(gobject.GObject):
 			gtk.gdk.threads_leave()
 			
 	def _check_poller(self):
-		if self._remote_poller is None:
-			logging.debug("Not checking, more poller anyway")
-			return False
-		try:
-			#is the process still running?
-			os.kill(self._remote_poller_pid, 0)
-		except Exception, e:
-			logging.error("We lost the poller: %s" % str(e))
-			if self._polling_taskinfo != -1:
-				self._polled = 0
-				self._polling_taskinfo = -1
-				self._poll_message = ""
-				if not utils.RUNNING_HILDON:
-					self._article_sync.get_readstates_for_entries(self._poll_new_entries)
-					self._poll_new_entries = []
-				self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
-				self.main_window.display_status_message(_("Polling Error"),MainWindow.U_POLL)
-				gobject.timeout_add(2000, self.main_window.display_status_message,"")
-			self._remote_poller = None
-			self._remote_poller_pid = 0
+		if self._remote_poller_pid < 0:
+			logging.debug("Not checking, no poller anyway (maybe it hasn't started up)")
+		elif self._remote_poller_pid == 0:
+			logging.debug("No poller, spawning it")
 			self._spawn_poller()
+		else:
+			try:
+				#is the process still running?
+				os.kill(self._remote_poller_pid, 0)
+			except Exception, e:
+				logging.error("We lost the poller: %s" % str(e))
+				if self._polling_taskinfo != -1:
+					self._polled = 0
+					self._polling_taskinfo = -1
+					self._poll_message = ""
+					if not utils.RUNNING_HILDON:
+						self._article_sync.get_readstates_for_entries(self._poll_new_entries)
+						self._poll_new_entries = []
+					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
+					self.main_window.display_status_message(_("Polling Error"),MainWindow.U_POLL)
+					gobject.timeout_add(2000, self.main_window.display_status_message,"")
+				self._remote_poller = None
+				self._remote_poller_pid = 0
+				self._spawn_poller()
 		return True
 		
 	def _setup_article_sync(self):
@@ -946,7 +953,11 @@ class PenguinTVApp(gobject.GObject):
 					logging.debug("lost the poller, trying again with local poller")
 					return self.do_poll_multiple(was_setup, arguments, feeds, message, local=True)
 			else:
-				self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
+				try:
+					self._remote_poller.poll_multiple(arguments, feeds, "FinishedCallback")
+				except:
+					logging.debug("lost the poller, trying again with local poller (2)")
+					return self.do_poll_multiple(was_setup, arguments, feeds, message, local=True)
 			self._polling_taskinfo = int(time.time())
 		else:	
 			logging.debug("Polling in-process")

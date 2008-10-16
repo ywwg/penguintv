@@ -19,8 +19,8 @@ class ptvDbus(dbus.service.Object):
 		if utils.RUNNING_SUGAR:
 			self.sugar_add_button.popup()
 		else:
-			self._app.window_add_feed.show(False)
-		self._app.window_add_feed.set_location(url)
+			self._app.main_window.show_window_add_feed(False)
+		self._app.main_window.set_window_add_feed_location(url)
 
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def ImportOpml(self, filename):

@@ -553,20 +553,24 @@ class MainWindow(gobject.GObject):
 			if key[:3] == 'on_':
 				self._widgetTree.signal_connect(key, getattr(self, key))
 				
-	def show_window_add_feed(self):
+	def show_window_add_feed(self, autolocation=True):
 		import AddFeedDialog
 		if self._window_add_feed is None:
 			if utils.RUNNING_HILDON:
 				self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'hildon_dialog_add_feed.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
 			else:
 				self._window_add_feed = AddFeedDialog.AddFeedDialog(gtk.glade.XML(os.path.join(self._glade_prefix,'dialog_add_feed.glade'), "window_add_feed",'penguintv'),self._app) #MAGIC
-		self._window_add_feed.show()
+		self._window_add_feed.show(autolocation)
 			
 	def hide_window_add_feed(self):
 		if self._window_add_feed is None:
 			self.show_window_add_feed()
 			
 		self._window_add_feed.hide()
+		
+	def set_window_add_feed_location(self, url):
+		assert self._window_add_feed is not None
+		self._window_add_feed.set_location(url)
 				
 	def load_notebook(self):
 		self._notebook = NotebookManager()

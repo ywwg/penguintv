@@ -153,6 +153,7 @@ class OfflineImageCache:
 		try:
 			os.rmdir(cache_dir)
 		except Exception, e:
+			import glob
 			logging.warning("error removing image cache folder (not empty?) %s" % str(e))
 			logging.debug(glob.glob(os.path.join(cache_dir, "*")))
 			logging.debug(str(rewrite_hash))

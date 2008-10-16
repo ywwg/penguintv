@@ -161,6 +161,8 @@ class ptvDB:
 		except:
 			raise DBError,"error connecting to database"
 			
+		self._c = self._db.cursor()
+		
 		db_ver = self.get_version_info()[0]
 		if db_ver == -1:
 			logging.info("database will need init")
@@ -168,7 +170,6 @@ class ptvDB:
 			
 		self._cancel_poll_multiple = False
 		
-		self._c = self._db.cursor()
 		self._c.execute('PRAGMA synchronous="NORMAL"')
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
 			self._c.execute('PRAGMA cache_size=6000')
@@ -269,7 +270,8 @@ class ptvDB:
 	def get_version_info(self):
 		try:
 			self._db_execute(self._c, u'SELECT rowid FROM feeds LIMIT 1')
-		except:
+		except Exception, e:
+			logging.debug("db except: %s" % str(e))
 			return (-1, LATEST_DB_VER)
 		self._db_execute(self._c, u'SELECT value FROM settings WHERE data="db_ver"')
 		db_ver = self._c.fetchone()
