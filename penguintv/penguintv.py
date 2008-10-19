@@ -435,11 +435,11 @@ class PenguinTVApp(gobject.GObject):
 		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
 		gtk.gdk.threads_leave()
 		
-		wait_time = 10
+		wait_time = 5
 		sleep_time = 0.3
 		if utils.RUNNING_HILDON:
-			wait_time = 10
-			sleep_time = 3
+			wait_time = 5
+			sleep_time = 2
 		for i in range(0, wait_time):
 			if self._exiting:
 				break
@@ -465,7 +465,8 @@ class PenguinTVApp(gobject.GObject):
 				break
 			gtk.gdk.threads_leave()
 		if self._remote_poller is None:
-			logging.error("Unable to start remote poller.  Polling will be done in-process")	
+			logging.error("Unable to start remote poller.  Polling will be done in-process")
+			self._remote_poller_pid = 0	
 		else:
 			logging.debug("Got poller")
 			
