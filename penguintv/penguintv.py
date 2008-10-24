@@ -1588,6 +1588,7 @@ class PenguinTVApp(gobject.GObject):
 				self.mark_feed_as_viewed(f)
 				self.main_window.update_progress_bar(i/len(feedlist), MainWindow.U_LOADING)
 				yield True
+			self._unset_state(True) #force exit of done_loading state
 			self.set_state(DEFAULT)
 			self.main_window.update_progress_bar(-1)
 			self.main_window.display_status_message("")
@@ -1692,11 +1693,12 @@ class PenguinTVApp(gobject.GObject):
 		self.emit('state-changed', new_state, data)
 	
 	@utils.db_except()
-	def _state_changed_cb(self, app, new_state, data):	
+	def _state_changed_cb(self, app, new_state, data):
 		if self._state == new_state:
 			return	
 			
 		if new_state == DEFAULT and self._state == MAJOR_DB_OPERATION:
+			logging.error("possible programming error: must unset major_db_op manually (self._unset_state(True))")
 			#self.main_window.set_state(new_state, data)
 			return #do nothing
 
