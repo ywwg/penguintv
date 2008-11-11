@@ -151,12 +151,13 @@ class OfflineImageCache:
 				logging.warning("error removing file: %s" % str(e))
 				
 		try:
-			os.rmdir(cache_dir)
+			#os.rmdir(cache_dir)
+			utils.deltree(cache_dir)
 		except Exception, e:
-			import glob
-			logging.warning("error removing image cache folder (not empty?) %s" % str(e))
-			logging.debug(glob.glob(os.path.join(cache_dir, "*")))
-			logging.debug(str(rewrite_hash))
+			#import glob
+			logging.warning("error removing image cache folder %s" % str(e))
+			#logging.debug(glob.glob(os.path.join(cache_dir, "*")))
+			#logging.debug(str(rewrite_hash))
 		
 	def finish(self):
 		self._threadpool.joinAll(False, False)
