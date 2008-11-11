@@ -270,6 +270,7 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def post_show_init(self):
 		"""After we have Show()n the main window, set up some more stuff"""
+		
 		gst_player = self.main_window.get_gst_player()
 		self.player = Player.Player(self, gst_player)
 		if gst_player is not None:
@@ -388,7 +389,6 @@ class PenguinTVApp(gobject.GObject):
 		#crash protection: if we crash, we'll have resetted selected_feed to 0
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_feed', 0)
 		self.db.set_setting(ptvDB.INT, '/apps/penguintv/selected_entry', 0)
-
 		if self._autoresume:
 			gobject.idle_add(self.resume_resumable)
 		self.update_disk_usage()
@@ -414,6 +414,7 @@ class PenguinTVApp(gobject.GObject):
 		# -1 pid indicates we are already trying to grab
 		# 0 pid indicates no poller, dead poller, or no other status.
 		if self._remote_poller is None and self._remote_poller_pid == -2:
+			logging.debug("poller ping, getting it")
 			p = threading.Thread(None, self._get_poller)
 			p.start()
 		return True
@@ -430,6 +431,7 @@ class PenguinTVApp(gobject.GObject):
 		self._remote_poller = None
 		self._remote_poller_pid = -1
 		gtk.gdk.threads_enter()
+		logging.debug("getting bus")
 		bus = dbus.SessionBus()
 		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
 		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')
@@ -448,7 +450,7 @@ class PenguinTVApp(gobject.GObject):
 			#don't want to deadlock mutual dbus calls
 			time.sleep(sleep_time)
 			gtk.gdk.threads_enter()
-			logging.debug("Getting poller")
+			logging.debug("Getting poller now")
 			if dubus_methods.NameHasOwner('com.ywwg.PenguinTVPoller'):
 				o = bus.get_object("com.ywwg.PenguinTVPoller", "/PtvPoller")
 				poller = dbus.Interface(o, "com.ywwg.PenguinTVPoller.PollInterface")
@@ -1315,6 +1317,7 @@ class PenguinTVApp(gobject.GObject):
 			quoted_url = urllib.quote(parsed_url[1]+parsed_url[2])
 			#however don't quote * (yahoo news don't like it quoted)
 			quoted_url = string.replace(quoted_url,"%2A","*")
+			quoted_url = string.replace(quoted_url,"%2B","+")
 			uri = parsed_url[0]+"://"+quoted_url+parameters+http_arguments+anchor
 			if utils.RUNNING_SUGAR:
 				from sugar.activity import activityfactory
