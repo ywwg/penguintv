@@ -1646,7 +1646,7 @@ class MainWindow(gobject.GObject):
 				for tag,favorite in tags:
 					i+=1
 					self._filters.append([favorite, tag,tag,ptvDB.T_SEARCH])
-					completion_model.append([tag,_('tag: %s') % (tag,), i])
+					completion_model.append([tag,_('tag: %s') % (tag,), i - 1])
 					if favorite > 0:
 						self._favorite_filters.append([favorite, tag,tag, i])
 		
@@ -1656,7 +1656,7 @@ class MainWindow(gobject.GObject):
 			for tag,favorite in tags:
 				i+=1
 				self._filters.append([favorite, tag,tag+" ("+str(self._app.db.get_count_for_tag(tag))+")",ptvDB.T_TAG])
-				completion_model.append([tag,_('tag: %s') % (tag,), i])
+				completion_model.append([tag,_('tag: %s') % (tag,), i - 1])
 				if favorite > 0:
 					self._favorite_filters.append([favorite, tag,tag+" ("+str(self._app.db.get_count_for_tag(tag))+")", i])
 				
