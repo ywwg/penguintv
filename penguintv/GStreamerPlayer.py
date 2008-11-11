@@ -249,7 +249,10 @@ class GStreamerPlayer(gobject.GObject):
 		self._layout_dock.add(main_vbox)
 		
 		#Gstreamer init
-		self._pipeline = gst.element_factory_make("playbin", "ptv_bin")
+		try:
+			self._pipeline = gst.element_factory_make("playbin2", "ptv_bin")
+		except:
+			self._pipeline = gst.element_factory_make("playbin", "ptv_bin")
 		#use default audio sink, but get our own video sink
 		self._v_sink = self._get_video_sink()
 		self._pipeline.set_property('video-sink',self._v_sink)
@@ -558,6 +561,27 @@ class GStreamerPlayer(gobject.GObject):
 			self._pipeline.set_property('volume', old_vol - 1)
 							
 	###handlers###
+	
+	def _on_gst_message(self, bus, message):
+		#print str(message)
+		if message.type == gst.MESSAGE_STATE_CHANGED:
+			prev, new, pending = message.parse_state_changed()
+			if new == gst.STATE_PLAYING:
+				if not self._resized_pane:
+					self._resize_pane()
+		if message.type == gst.MESSAGE_EOS:
+			model = self._queue_listview.get_model()
+			if self._current_index < len(model) - 1:
+				self.next()
+			else:
+				self.stop()
+		elif message.type == gst.MESSAGE_ERROR:
+			gerror, debug = message.parse_error()
+			logging.error("GSTREAMER ERROR: %s" % debug)
+			if not RUNNING_HILDON:
+				self._error_dialog.show_error(debug)
+		
+
 		
 	def _on_play_clicked(self, b): self.play()
 		
@@ -920,25 +944,6 @@ class GStreamerPlayer(gobject.GObject):
 			return "%i:%.2i" % (minutes,seconds)
 			
 		self._time_label.set_text(nano_to_string(self._media_position)+" / "+nano_to_string(self._media_duration))
-		
-	def _on_gst_message(self, bus, message):
-		#print str(message)
-		if message.type == gst.MESSAGE_STATE_CHANGED:
-			prev, new, pending = message.parse_state_changed()
-			if new == gst.STATE_PLAYING:
-				if not self._resized_pane:
-					self._resize_pane()
-		if message.type == gst.MESSAGE_EOS:
-			model = self._queue_listview.get_model()
-			if self._current_index < len(model) - 1:
-				self.next()
-			else:
-				self.stop()
-		elif message.type == gst.MESSAGE_ERROR:
-			gerror, debug = message.parse_error()
-			logging.error("GSTREAMER ERROR: %s" % debug)
-			if not RUNNING_HILDON:
-				self._error_dialog.show_error(debug)
 		
 	#def _on_sync_message(self, bus, message):
 	#	if message.structure is None:
