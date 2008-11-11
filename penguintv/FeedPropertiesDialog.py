@@ -5,7 +5,7 @@ import penguintv
 import utils
 from ptvDB import FeedAlreadyExists, FF_NOAUTODOWNLOAD, FF_NOSEARCH, \
 				  FF_NOAUTOEXPIRE, FF_NOTIFYUPDATES, FF_ADDNEWLINES, \
-				  FF_MARKASREAD 
+				  FF_MARKASREAD, FF_NOKEEPDELETED 
 import gtk
 import time, datetime
 from math import floor
@@ -143,6 +143,11 @@ class FeedPropertiesDialog(gtk.Dialog):
 			self._xml.get_widget('b_markasread').set_active(True)
 		else:
 			self._xml.get_widget('b_markasread').set_active(False)
+			
+		if flags & FF_NOKEEPDELETED == FF_NOKEEPDELETED:
+			self._xml.get_widget('b_nokeepdeleted').set_active(True)
+		else:
+			self._xml.get_widget('b_nokeepdeleted').set_active(False)
 
 	def on_window_feed_properties_delete_event(self, widget, event):
 		return self.hide_on_delete()
@@ -191,6 +196,16 @@ class FeedPropertiesDialog(gtk.Dialog):
 		else:
 			if self._cur_flags & FF_NOAUTOEXPIRE == FF_NOAUTOEXPIRE:
 				self._cur_flags -= FF_NOAUTOEXPIRE
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+				
+	def on_b_nokeepdeleted_toggled(self, b_nokeepdeleted):
+		if b_nokeepdeleted.get_active():
+			if not self._cur_flags & FF_NOKEEPDELETED == FF_NOKEEPDELETED:
+				self._cur_flags += FF_NOKEEPDELETED
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+		else:
+			if self._cur_flags & FF_NOKEEPDELETED == FF_NOKEEPDELETED:
+				self._cur_flags -= FF_NOKEEPDELETED
 				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
 				
 	def on_b_addnewlines_toggled(self, b_addnewlines):

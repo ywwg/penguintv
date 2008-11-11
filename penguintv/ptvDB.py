@@ -116,6 +116,7 @@ FF_NOAUTOEXPIRE   = 4
 FF_NOTIFYUPDATES  = 8
 FF_ADDNEWLINES    = 16
 FF_MARKASREAD     = 32
+FF_NOKEEPDELETED  = 64
 
 DB_FILE="penguintv4.db"
 
@@ -1711,7 +1712,7 @@ class ptvDB:
 		result = self._c.fetchall()
 		if result:
 			#combine with EXISTing entries
-			no_delete + [r[0] for r in result]
+			no_delete += [r[0] for r in result]
 		
 		# anything not set above as new, mod, or exists is no longer in
 		# the xml and therefore could be deleted if we have more articles than 
@@ -1720,7 +1721,20 @@ class ptvDB:
 		self._db_execute(self._c, """SELECT count(*) FROM entries WHERE feed_id=?""",(feed_id,))
 		all_entries = self._c.fetchone()[0]
 		
-		if MAX_ARTICLES > 0:
+		nokeepdeleted = int(feed['flags'] & FF_NOKEEPDELETED == FF_NOKEEPDELETED)
+		if nokeepdeleted:
+			if len(no_delete) > 0:
+				qmarks = "?,"*(len(no_delete)-1)+"?"
+				self._db_execute(self._c, 
+					"""DELETE FROM entries WHERE rowid NOT IN (%s) AND keep=0 AND feed_id=?""" % qmarks,
+					tuple(no_delete) + (feed_id,))
+				ditchables = self._c.fetchall()
+			else:
+				self._db_execute(self._c, 
+					"""DELETE FROM entries WHERE keep=0 AND feed_id=?""",
+					(feed_id,))
+				ditchables = self._c.fetchall()
+		elif MAX_ARTICLES > 0:
 			if all_entries > MAX_ARTICLES:
 				if len(no_delete) > 0:
 					qmarks = "?,"*(len(no_delete)-1)+"?"
@@ -1731,6 +1745,7 @@ class ptvDB:
 					self._db_execute(self._c, """SELECT rowid FROM entries WHERE keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""",
 						(feed_id, all_entries - MAX_ARTICLES))
 					ditchables = self._c.fetchall()
+					
 				if ditchables is not None:
 					if len(ditchables) > 0:
 						ditchables = tuple([r[0] for r in ditchables])

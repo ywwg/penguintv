@@ -17,7 +17,8 @@ import HTMLParser
 import utils
 import AddFeedUtils
 from ptvDB import FF_NOAUTODOWNLOAD, FF_NOSEARCH, FF_NOAUTOEXPIRE, \
-                  FF_NOTIFYUPDATES, FF_ADDNEWLINES, FF_MARKASREAD
+                  FF_NOTIFYUPDATES, FF_ADDNEWLINES, FF_MARKASREAD, \
+                  FF_NOKEEPDELETED
 import LoginDialog
 if utils.HAS_PYXML:
 	import itunes
@@ -134,6 +135,8 @@ class AddFeedDialog:
 				flags += FF_ADDNEWLINES
 			if self._xml.get_widget('b_markasread').get_active():
 				flags += FF_MARKASREAD
+			if self._xml.get_widget('b_nokeepdeleted').get_active():
+				flags += FF_NOKEEPDELETED
 	
 		tags=[]
 		if len(self._edit_tags_widget.get_text()) > 0:
