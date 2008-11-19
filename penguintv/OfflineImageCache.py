@@ -18,6 +18,7 @@ import urlparse
 import os.path
 import pickle
 import logging
+import glob
 import hashlib  #requires python2.5
 
 import gobject
@@ -74,8 +75,8 @@ class OfflineImageCache:
 		"""
 		
 		guid = str(guid)
-		cache_dir = os.path.join(self._store_location, guid_hash(guid), guid)
-		mapping_file = os.path.join(cache_dir, "mapping.pickle")
+		cache_dir = os.path.join(self._store_location, guid_hash(guid))
+		mapping_file = os.path.join(cache_dir, guid + "-" + "mapping.pickle")
 		
 		if not os.path.isfile(mapping_file):
 			# quick and dirty check.  are there images?  if not, plain
@@ -121,8 +122,8 @@ class OfflineImageCache:
 		
 	def remove_cache(self, guid):
 		guid = str(guid)
-		cache_dir = os.path.join(self._store_location, guid_hash(guid), guid)
-		mapping_file = os.path.join(cache_dir, "mapping.pickle")
+		cache_dir = os.path.join(self._store_location, guid_hash(guid))
+		mapping_file = os.path.join(cache_dir, guid + "-" + "mapping.pickle")
 		
 		if not os.path.isdir(cache_dir):
 			# it was never cached I guess
@@ -152,10 +153,12 @@ class OfflineImageCache:
 				
 		try:
 			#os.rmdir(cache_dir)
-			utils.deltree(cache_dir)
+			#utils.deltree(cache_dir)
+			for f in glob.glob(os.path.join(cache_dir, guid + "-*")):
+				os.remove(f)
 		except Exception, e:
 			#import glob
-			logging.warning("error removing image cache folder %s" % str(e))
+			logging.warning("error while removing image cache %s" % str(e))
 			#logging.debug(glob.glob(os.path.join(cache_dir, "*")))
 			#logging.debug(str(rewrite_hash))
 		
@@ -178,9 +181,9 @@ class PageCacher:
 		
 		self._soup = BeautifulSoup(html)
 		self._cacher = UrlCacher(self._guid, self._store_location, self._threadpool, self._page_cached_cb)
-		self._cache_dir = os.path.join(self._store_location, guid_hash(self._guid), self._guid)
+		self._cache_dir = os.path.join(self._store_location, guid_hash(self._guid))
 		try:
-			os.remove(os.path.join(self._cache_dir, "mapping.pickle"))
+			os.remove(os.path.join(self._cache_dir, self._guid + "-" + "mapping.pickle"))
 		except:
 			pass
 		
@@ -194,9 +197,9 @@ class PageCacher:
 	def _page_cached_cb(self):
 		rewrite_hash = self._cacher.get_rewrite_hash()
 		try:
-			mapping = open(os.path.join(self._cache_dir, "mapping.pickle"), 'w')
+			mapping = open(os.path.join(self._cache_dir, self._guid + "-" + "mapping.pickle"), 'w')
 		except:
-			logging.error("error writing mapping %s" % os.path.join(self._cache_dir, "mapping.pickle"))
+			logging.error("error writing mapping %s" % os.path.join(self._cache_dir, self._guid + "-" + "mapping.pickle"))
 			self._finished_cb(self._guid)
 			return
 			
@@ -241,7 +244,7 @@ class UrlCacher:
 		md5.update(url)
 		filename = urlparse.urlparse(url)[2]
 		extension = os.path.splitext(filename)[1]
-		local_filename = os.path.join(guid_hash(self._guid), self._guid, md5.hexdigest()) + extension
+		local_filename = os.path.join(guid_hash(self._guid), self._guid + "-" + md5.hexdigest()) + extension
 		
 		if os.path.isfile(local_filename):
 			#TODO: some sort of md5sum of the file?  or just assume it's ok?
@@ -263,7 +266,7 @@ class UrlCacher:
 			threaded"""
 		
 		url, local_filename = args
-		cache_dir = os.path.join(self._store_location, guid_hash(self._guid), self._guid)
+		cache_dir = os.path.join(self._store_location, guid_hash(self._guid))
 		
 		if not self._dir_checked:
 			if not os.path.exists(cache_dir):
