@@ -50,7 +50,7 @@ class MediaManager:
 		self.index=0
 		#should this be lucene compatible?
 		if utils.RUNNING_HILDON:
-			max_downloads = 2
+			max_downloads = 1
 		else:
 			max_downloads = 5
 		self.pool = ThreadPool.ThreadPool(max_downloads, "MediaManager")
