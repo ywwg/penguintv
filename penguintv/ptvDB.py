@@ -82,6 +82,7 @@ F_PAUSED      = 2
 F_MEDIA       = 1
 
 #arguments for poller
+A_POOLED_POLL    = 64 # if this is set, don't do housework after each poll
 A_ERROR_FEEDS    = 32
 A_DO_REINDEX     = 16
 A_ALL_FEEDS      = 8
@@ -119,6 +120,8 @@ FF_MARKASREAD     = 32
 FF_NOKEEPDELETED  = 64
 
 DB_FILE="penguintv4.db"
+
+STRIPPER_REGEX = re.compile('<.*?>')
 
 class ptvDB:
 	entry_flag_cache = {}
@@ -217,6 +220,7 @@ class ptvDB:
 		
 		self._reindex_entry_list = []
 		self._reindex_feed_list = []
+		self._image_cache_list = []
 		self._filtered_entries = {}
 		self._parse_list = []
 		
@@ -698,15 +702,16 @@ class ptvDB:
 		
 	def _get_hash(self, guid, title, description):
 		s = sha.new()
-		try:
-			p = utils.StrippingParser()
-			p.feed(guid + title + description)
-			#p.cleanup()
-			p.close()
-			s.update(p.result)
-		except:
-			logging.debug("hashing error, just using raw text")
-			s.update(guid + title + description)
+		#try:
+			#p = utils.StrippingParser()
+			#p.feed(guid + title + description)
+			##p.cleanup()
+			#p.close()
+			#s.update(p.result)
+		text = STRIPPER_REGEX.sub('', ' '.join((guid, title, description)))
+		#except:
+		#	logging.debug("hashing error, just using raw text")
+		#	s.update(guid + title + description)
 		return s.hexdigest()
 		
 	def _fix_indexes(self):
@@ -1105,6 +1110,7 @@ class ptvDB:
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
 		self.reindex()
+		self.cache_images()
 		self._cancel_poll_multiple = False
 		gc.collect()
 		#if not utils.RUNNING_HILDON:
@@ -1165,7 +1171,7 @@ class ptvDB:
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
 			
-			result, new_entryids = self.poll_feed(feed_id, args, preparsed=data)
+			result, new_entryids = self.poll_feed(feed_id, args | A_POOLED_POLL, preparsed=data)
 
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
@@ -1660,22 +1666,25 @@ class ptvDB:
 						media.setdefault('type', 'application/octet-stream')
 						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 				self._reindex_entry_list.append(entry_id)
+				self._image_cache_list.append(entry_id)
 				no_delete.append(entry_id)
 				new_entryids.append(entry_id)
-				if self._image_cache is not None:
-					self._image_cache.cache_html(str(entry_id), item['body'])
+				#if self._image_cache is not None:
+				#	self._image_cache.cache_html(str(entry_id), item['body'])
 			elif status[0]==EXISTS:
-				no_delete.append(status[1])
+				entry_id = status[1]
+				no_delete.append(entry_id)
 			elif status[0]==MODIFIED:
+				entry_id = status[1]
 				self._db_execute(self._c, u'UPDATE entries SET title=?, creator=?, description=?, date=?, guid=?, link=?, hash=? WHERE rowid=?',
 								 (item['title'],item['creator'],item['body'], 
 								 int(time.mktime(item['date_parsed'])),item['guid'],
-								 item['link'], entry_hash, status[1]))
-				if self.entry_flag_cache.has_key(status[1]): del self.entry_flag_cache[status[1]]
+								 item['link'], entry_hash, entry_id))
+				if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
 				if item.has_key('enclosures'):
 					#self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
-					#				(status[1],D_NOT_DOWNLOADED,D_ERROR))
-					self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=?', (status[1],))
+					#				(entry_id,D_NOT_DOWNLOADED,D_ERROR))
+					self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=?', (entry_id,))
 					db_enc = self._c.fetchall()
 					db_enc = [c_i[0] for c_i in db_enc]
 					f_enc = [f_i['url'] for f_i in item['enclosures']]
@@ -1699,12 +1708,13 @@ class ptvDB:
 								#if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
 								media.setdefault('type', 'application/octet-stream')
-								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (status[1], media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
-								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?', (status[1],))
-				if self._image_cache is not None:
-					self._image_cache.cache_html(str(status[1]), item['body'])
-				self._reindex_entry_list.append(status[1])
-				no_delete.append(status[1])
+								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
+								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?', (entry_id,))
+				#if self._image_cache is not None:
+				#	self._image_cache.cache_html(str(entry_id), item['body'])
+				self._reindex_entry_list.append(entry_id)
+				self._image_cache_list.append(entry_id)
+				no_delete.append(entry_id)
 			i+=1
 
 		#don't call anything old that has media...
@@ -1769,9 +1779,11 @@ class ptvDB:
 
 		perform_feed_updates(feed_updates, feed_id)
 		
-		if arguments & A_DO_REINDEX:
-			if new_items > 0:
-				self.reindex()
+		if arguments & A_POOLED_POLL == 0:
+			if arguments & A_DO_REINDEX:
+				if new_items > 0:
+					self.reindex()
+			self.cache_images()
 		return (new_items, new_entryids)
 		
 	def _set_new_update_freq(self, feed, new_items):
@@ -3039,6 +3051,15 @@ class ptvDB:
 			logging.warning("reindex failure.  wait til next time I guess: %s" % str(e))
 		self._reindex_feed_list = []
 		self._reindex_entry_list = []
+		
+	def cache_images(self):
+		"""goes through _image_cache_list and caches everything"""
+
+		if self._image_cache is not None:
+			while len(self._image_cache_list) > 0:
+				entry_id = self._image_cache_list.pop(0)
+				body = self.get_entry(entry_id)['description']
+				self._image_cache.cache_html(str(entry_id), body)
 		
 	def _resolve_pointed_feed(self, feed_id):
 		self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(feed_id,))

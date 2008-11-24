@@ -30,7 +30,7 @@ from BeautifulSoup.BeautifulSoup import BeautifulSoup
 DEBUG = False
 
 def guid_hash(guid):
-	return str(hash(guid) % 100)
+	return str(hash(guid) % 20)
 
 def threaded_callback():
 	def annotate(func):
@@ -61,7 +61,6 @@ class OfflineImageCache:
 			
 		self._cachers[guid] = True
 		page_cacher = PageCacher(guid, html, self._store_location, self._threadpool, self._cache_cb)
-		page_cacher.process()
 		
 	def _cache_cb(self, guid):
 		guid = str(guid)
@@ -178,17 +177,25 @@ class PageCacher:
 		self._store_location = store_location
 		self._threadpool = threadpool
 		self._finished_cb = finished_cb
+		self._soup = None
 		
-		self._soup = BeautifulSoup(html)
 		self._cacher = UrlCacher(self._guid, self._store_location, self._threadpool, self._page_cached_cb)
 		self._cache_dir = os.path.join(self._store_location, guid_hash(self._guid))
 		try:
 			os.remove(os.path.join(self._cache_dir, self._guid + "-" + "mapping.pickle"))
 		except:
 			pass
+			
+		self._threadpool.queueTask(self._get_soup, html, taskCallback=self.process)
 		
-	def process(self):
+	def _get_soup(self, html):
+		return BeautifulSoup(html)
+		
+	def process(self, soup):
 		# go through html and pull out images, feed them into cacher
+		
+		self._soup = soup
+
 		for result in self._soup.findAll('img'):
 			if result.has_key('src'):
 				self._cacher.queue_download(result['src'])

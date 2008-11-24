@@ -20,7 +20,9 @@ else:
 	socket.setdefaulttimeout(10.0)
 
 #try:
-#	logging.basicConfig(filename="/tmp/poller", filemode="a", level=logging.DEBUG)
+#	import tempfile
+#	logfile = tempfile.mkstemp(prefix='poller-',suffix='.log')[1]
+#	logging.basicConfig(filename=logfile, filemode="a", level=logging.DEBUG)
 #except:
 #	pass
 
