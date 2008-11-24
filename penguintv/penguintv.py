@@ -431,7 +431,6 @@ class PenguinTVApp(gobject.GObject):
 		self._remote_poller = None
 		self._remote_poller_pid = -1
 		gtk.gdk.threads_enter()
-		logging.debug("getting bus")
 		bus = dbus.SessionBus()
 		dubus = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/dbus')
 		dubus_methods = dbus.Interface(dubus, 'org.freedesktop.DBus')

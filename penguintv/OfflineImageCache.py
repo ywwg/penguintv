@@ -130,7 +130,7 @@ class OfflineImageCache:
 			
 		if not os.path.isfile(mapping_file):
 			# the dir exists, but not the file?
-			logging.warning("no mapping file, not deleting anything")
+			#logging.warning("no mapping file, not deleting anything")
 			return
 			
 		try:

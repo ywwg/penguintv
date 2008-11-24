@@ -221,6 +221,7 @@ class ptvDB:
 		self._reindex_entry_list = []
 		self._reindex_feed_list = []
 		self._image_cache_list = []
+		self._image_uncache_list = []
 		self._filtered_entries = {}
 		self._parse_list = []
 		
@@ -256,6 +257,8 @@ class ptvDB:
 					#don't do it threadedly or else we will interrupt it on the next line
 					self.reindex(threaded=False) #it's usually not much...
 				self.searcher.finish(True)
+				
+		self.cache_images()
 				
 		if self._image_cache is not None:
 			self._image_cache.finish()
@@ -1102,7 +1105,8 @@ class ptvDB:
 		pool.joinAll(False,True) #just to make sure I guess
 		del pool
 		self.reindex()
-		self.cache_images()
+		if not self._exiting:
+			self.cache_images()
 		self._cancel_poll_multiple = False
 		gc.collect()
 		#if not utils.RUNNING_HILDON:
@@ -1660,12 +1664,11 @@ class ptvDB:
 						media.setdefault('length', 0)
 						media.setdefault('type', 'application/octet-stream')
 						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
+						
 				self._reindex_entry_list.append(entry_id)
 				self._image_cache_list.append(entry_id)
 				no_delete.append(entry_id)
 				new_entryids.append(entry_id)
-				#if self._image_cache is not None:
-				#	self._image_cache.cache_html(str(entry_id), item['body'])
 			elif status[0]==EXISTS:
 				entry_id = status[1]
 				no_delete.append(entry_id)
@@ -1705,8 +1708,7 @@ class ptvDB:
 								media.setdefault('type', 'application/octet-stream')
 								self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, download_date, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 								self._db_execute(self._c, u'UPDATE entries SET read=0 WHERE rowid=?', (entry_id,))
-				#if self._image_cache is not None:
-				#	self._image_cache.cache_html(str(entry_id), item['body'])
+				
 				self._reindex_entry_list.append(entry_id)
 				self._image_cache_list.append(entry_id)
 				no_delete.append(entry_id)
@@ -1756,9 +1758,8 @@ class ptvDB:
 						ditchables = tuple([r[0] for r in ditchables])
 						qmarks = "?,"*(len(ditchables)-1)+"?"
 						self._db_execute(self._c, """DELETE FROM entries WHERE rowid IN (%s)""" % qmarks, ditchables)
-						if self._image_cache is not None:
-							for e_id in ditchables:
-								self._image_cache.remove_cache(e_id)
+						for e_id in ditchables:
+							self._image_uncache_list.append(e_id)
 			
 		#delete pre-poll entry
 		if feed['last_time'] == 0:
@@ -3055,6 +3056,10 @@ class ptvDB:
 				entry_id = self._image_cache_list.pop(0)
 				body = self.get_entry(entry_id)['description']
 				self._image_cache.cache_html(str(entry_id), body)
+				
+			while len(self._image_uncache_list) > 0:
+				entry_id = self._image_uncache_list.pop(0)
+				self._image_cache.remove_cache(entry_id)
 		
 	def _resolve_pointed_feed(self, feed_id):
 		self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(feed_id,))
