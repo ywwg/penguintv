@@ -248,10 +248,13 @@ class SqliteSyncClient:
 		self._no_updates = False
 		
 		try:
-			if not self._db_exists():
-				return self._create_db()
+			assert self._db_exists()
+			#if not self._db_exists():
+			#	return self._create_db()
 		except Exception, e:
-			logging.error("error checking for db: %s" % str(e))
+			logging.error("no db found: %s" % str(e))
+			self._bad_db = True
+			return None
 			
 		try:
 			db_data = self._do_download_db()
