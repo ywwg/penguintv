@@ -6,7 +6,6 @@ import os,sys,time, pwd, os.path
 import subprocess
 import string
 import urllib
-import HTMLParser
 import string
 import locale
 import gettext
@@ -21,17 +20,22 @@ except:
 	from pysqlite2.dbapi2 import OperationalError as OperationalError
 
 try:
-	import gtk
-	GTK_OK = True
-except:
-	GTK_OK = False
-	
-try:
 	import hildon
 	logging.debug("Detected hildon environment")
 	RUNNING_HILDON = True
 except:
 	RUNNING_HILDON = False
+
+try:
+	if RUNNING_HILDON:
+		GTK_OK = False
+	else:
+		import gtk
+		GTK_OK = True
+except:
+	GTK_OK = False
+	
+
 
 from subprocess import Popen, PIPE, STDOUT
 
@@ -64,16 +68,17 @@ if RUNNING_SUGAR:
 	except:
 		HAS_GSTREAMER = False
 else:
-	try:
-		import gtkmozembed
-		HAS_MOZILLA = True
-	except:
+	if GTK_OK:
 		try:
-			from ptvmozembed import gtkmozembed
-			logging.info("Using PenguinTV-built gtkmozembed")
+			import gtkmozembed
 			HAS_MOZILLA = True
 		except:
-			HAS_MOZILLA = False
+			try:
+				from ptvmozembed import gtkmozembed
+				logging.info("Using PenguinTV-built gtkmozembed")
+				HAS_MOZILLA = True
+			except:
+				HAS_MOZILLA = False
 
 	HAS_SEARCH = False
 
@@ -120,7 +125,7 @@ else:
 		except:
 			HAS_PYXML = False
 		
-	if GTK_OK:
+	if GTK_OK and not RUNNING_HILDON:
 		if gtk.pygtk_version >= (2, 10, 0):
 			HAS_STATUS_ICON = True
 		else:
@@ -143,6 +148,7 @@ else:
 if RUNNING_HILDON:
 	#having a status icon causes tons of problems (causes hildonn UI to crash)
 	HAS_STATUS_ICON = False
+	HAS_MOZILLA = True
 	
 #DEBUG
 #_USE_KDE_OVERRIDE=False
@@ -153,13 +159,12 @@ HAS_LUCENE = False
 if not HAS_XAPIAN:
 	HAS_SEARCH = False
 	
-if GTK_OK:
-	if HAS_XAPIAN:
-		logging.info("Using Xapian search engine")
-	elif HAS_LUCENE:
-		logging.info("Using Lucene search engine")
-	else:
-		logging.info("xapian or lucene not found, search disabled")
+if HAS_XAPIAN:
+	logging.info("Using Xapian search engine")
+elif HAS_LUCENE:
+	logging.info("Using Lucene search engine")
+else:
+	logging.info("xapian or lucene not found, search disabled")
 	
 # Pynotify is still broken, forget it
 HAS_PYNOTIFY = False
@@ -471,60 +476,7 @@ def is_file_media(filename):
 #	def get_fed_data(self):
 #		return ''.join(self.fed)
 
-#http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/52281
-class StrippingParser(HTMLParser.HTMLParser):
-
-    # These are the HTML tags that we will leave intact
-    #valid_tags = ('b', 'a', 'i', 'br', 'p')
-    valid_tags = ('b', 'i', 'p')
-
-    from htmlentitydefs import entitydefs # replace entitydefs from sgmllib
-    
-    def __init__(self):
-        HTMLParser.HTMLParser.__init__(self)
-        self.result = ""
-        self.endTagList = [] 
-        
-    def handle_data(self, data):
-        if data:
-            self.result = self.result + data
-
-    def handle_charref(self, name):
-        self.result = "%s&#%s;" % (self.result, name)
-        
-    def handle_entityref(self, name):
-        if self.entitydefs.has_key(name): 
-            x = ';'
-        else:
-            # this breaks unstandard entities that end with ';'
-            x = ''
-        self.result = "%s&%s%s" % (self.result, name, x)
-    
-    #def handle_starttag(self, tag, attrs):
-    #    """ Delete all tags except for legal ones """
-    #    if tag in self.valid_tags:
-    #        #self.result = self.result + '<' + tag
-    #        for k, v in attrs:
-    #            if string.lower(k[0:2]) != 'on' and string.lower(v[0:10]) != 'javascript':
-    #                self.result = '%s %s="%s"' % (self.result, k, v)
-    #        #endTag = '</%s>' % tag
-    #        #self.endTagList.insert(0,endTag)    
-    #      	#self.result = self.result + '>'
-                
-    #def handle_endtag(self, tag):
-    #    if tag in self.valid_tags:
-    #    	
-    #        #self.result = "%s</%s>" % (self.result, tag)
-    #        #remTag = '</%s>' % tag
-    #        #try:
-    #        #	self.endTagList.remove(remTag)
-    #        #except:
-    #        #	pass
-
-    #def cleanup(self):
-    #    """ Append missing closing tags """
-    #    for j in range(len(self.endTagList)):
-    #            self.result = self.result + self.endTagList[j]    
+ 
         
 #usage:
 #def strip(s):

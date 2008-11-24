@@ -702,16 +702,8 @@ class ptvDB:
 		
 	def _get_hash(self, guid, title, description):
 		s = sha.new()
-		#try:
-			#p = utils.StrippingParser()
-			#p.feed(guid + title + description)
-			##p.cleanup()
-			#p.close()
-			#s.update(p.result)
 		text = STRIPPER_REGEX.sub('', ' '.join((guid, title, description)))
-		#except:
-		#	logging.debug("hashing error, just using raw text")
-		#	s.update(guid + title + description)
+		s.update(text)
 		return s.hexdigest()
 		
 	def _fix_indexes(self):
@@ -1568,20 +1560,22 @@ class ptvDB:
 				item['title']=item['description'][0:35]	
 				html_begin = string.find(item['title'],'<')
 				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
-					p = utils.StrippingParser()
-					p.feed(item['description'])
-					#p.cleanup()
-					p.close()
-					item['title']=p.result[0:35]
+					#p = utils.StrippingParser()
+					#p.feed(item['description'])
+					##p.cleanup()
+					#p.close()
+					#item['title']=p.result[0:35]
+					item['title'] = STRIPPER_REGEX.sub('', item['description'])[:35]
 			elif item['title']=="":
 				item['title']=item['description'][0:35]
 				html_begin = string.find(item['title'],'<')
 				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
-					p = utils.StrippingParser()
-					p.feed(item['description'])
-					#p.cleanup()
-					p.close()
-					item['title']=p.result[0:35]
+					#p = utils.StrippingParser()
+					#p.feed(item['description'])
+					##p.cleanup()
+					#p.close()
+					#item['title']=p.result[0:35]
+					item['title'] = STRIPPER_REGEX.sub('', item['description'])[:35]
 			
 				elif html_begin > 5: #in case there's html within 35 chars...
 					item['title']=item['title'][0:html_begin-1] #strip
@@ -1593,11 +1587,12 @@ class ptvDB:
 					item['title'] = item['title'].strip()
 			
 			try:
-				p = utils.StrippingParser()
-				p.feed(item['title'])
-				#p.cleanup()
-				p.close()
-				item['title'] = p.result				
+				#p = utils.StrippingParser()
+				#p.feed(item['title'])
+				##p.cleanup()
+				#p.close()
+				#item['title'] = p.result	
+				item['title'] = STRIPPER_REGEX.sub('', item['title'])			
 			except:
 				pass
 
