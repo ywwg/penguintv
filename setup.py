@@ -180,7 +180,7 @@ if "build" in sys.argv or "install" in sys.argv:
 			print "There was an error building the MO file for locale "+this_locale
 			sys.exit(1)
 
-data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
+data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/gtkhtml.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
 					('share/penguintv/glade', ['share/glade/dialogs.glade']),
 					('share/pixmaps',		['share/penguintvicon.png']),
 					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
