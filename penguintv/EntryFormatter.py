@@ -15,12 +15,13 @@ GTKHTML=0
 MOZILLA=1
 
 class EntryFormatter:
-	def __init__(self, mm=None, with_feed_titles=False, indicate_new=False, basic_progress=False, ajax_url=None):
+	def __init__(self, mm=None, with_feed_titles=False, indicate_new=False, basic_progress=False, ajax_url=None, renderer=MOZILLA):
 		self._mm = mm
 		self._with_feed_titles = with_feed_titles
 		self._indicate_new = indicate_new
 		self._basic_progress = basic_progress
 		self._ajax_url = ajax_url
+		self._renderer = renderer
 		
 	def htmlify_item(self, item, convert_newlines=False):
 		""" Take an item as returned from ptvDB and turn it into an HTML page.  Very messy at times,
@@ -31,11 +32,20 @@ class EntryFormatter:
 		#ret.append('<div class="heading">')
 		if self._indicate_new:
 			if item['new']:
-				ret.append("""<div class="entry_new" oncontextmenu="javascript:parent.location='rightclick:%i'">""" % item['entry_id'])
+				javascript = ""
+				if self._renderer == MOZILLA:
+					javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
+				ret.append("""<div class="entrynew" %s>""" % javascript)
 			else:
-				ret.append("""<div class="entry_old" oncontextmenu="javascript:parent.location='rightclick:%i'">""" % item['entry_id'])
+				javascript = ""
+				if self._renderer == MOZILLA:
+					javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
+				ret.append("""<div class="entryold" %s>""" % javascript)
 		else:
-			ret.append("""<div class="entry" oncontextmenu="javascript:parent.location='rightclick:%i'">""" % item['entry_id'])
+			javascript = ""
+			if self._renderer == MOZILLA:
+				javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
+			ret.append("""<div class="entrynew" %s>""" % javascript)
 
 		ret.append('''<table style="text-align: left; width: 100%;" border="0" cellpadding="0" cellspacing="0"><tr><td>''')
 
@@ -56,11 +66,20 @@ class EntryFormatter:
 		ret.append('</td><td style="text-align: right;">')
 
 		if not utils.RUNNING_SUGAR:
-			cb_status = item['keep'] and "CHECKED" or "UNCHECKED"
-			cb_function = item['keep'] and "unkeep" or "keep"
-	
-			ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s:%i'" %s="yes"><a href="%s:%i">%s</a></form>''' % 
+			if self._renderer == MOZILLA:
+				cb_status = item['keep'] and "CHECKED" or "UNCHECKED"
+				cb_function = item['keep'] and "unkeep" or "keep"
+		
+				ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s:%i'" %s="yes"><a href="%s:%i">%s</a></form>''' % 
 			           (cb_function, item['entry_id'], cb_status, cb_function, item['entry_id'], _('Keep New')))
+			elif self._renderer == GTKHTML:
+				cb_function = item['keep'] and "unkeep" or "keep"
+				if not item['keep']:
+					link_name = _('Keep New')
+				else:
+					link_name = _("Don't Keep New")
+				ret.append('''<a href="%s:%i">%s</a>''' % 
+			           (cb_function, item['entry_id'], link_name))
 
 		ret.append('</td></tr></table>')
 
@@ -86,7 +105,7 @@ class EntryFormatter:
 			ret.append('<a href="' + item['link'] + '">' + _("Full Entry...") + '</a>')
 		ret.append('</p></div>')
 		#print "\n".join(ret)
-		return "".join(ret)
+		return "\n".join(ret)
 	
 	def htmlify_media(self, medium):
 		ret = []

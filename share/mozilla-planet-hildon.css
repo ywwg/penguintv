@@ -12,14 +12,14 @@ body {
 	margin:6px; 
 }
 
-.feed_title {
+.feedtitle {
         font-size: xx-large;
         font-weight: bold;
         text-align: center;
         padding: 6px;
 }
 
-.entry_new {
+.entrynew {
       border-width: 3px;
       border-style: solid;
       border-color: #333;
@@ -29,7 +29,7 @@ body {
       overflow: auto;
 }
 
-.entry_old {
+.entryold {
       border-width: 2px;
       border-style: solid;
       border-color: #777;

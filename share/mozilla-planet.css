@@ -17,14 +17,14 @@ body {
      //border-style: solid;
 //}
 
-.feed_title {
+.feedtitle {
         font-size: x-large;
         font-weight: bold;
         text-align: center;
         padding: 12pt;
 }
 
-.entry_new {
+.entrynew {
       border-width: 3px;
       border-style: solid;
       border-color: #333;
@@ -34,7 +34,7 @@ body {
       overflow: auto;
 }
 
-.entry_old {
+.entryold {
       border-width: 2px;
       border-style: solid;
       border-color: #777;

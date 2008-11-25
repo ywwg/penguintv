@@ -639,10 +639,11 @@ class MainWindow(gobject.GObject):
 		self.feed_list_view = FeedList.FeedList(components,self._app, fancy)
 		assert utils.HAS_MOZILLA
 		renderer = EntryFormatter.MOZILLA
+		#renderer = EntryFormatter.GTKHTML
 		
-		if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
-			self.layout = "standard"
-			return self.load_layout()	
+		#if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
+		#	self.layout = "standard"
+		#	return self.load_layout()	
 		
 		if not self.layout.endswith("planet"):
 			self.entry_list_view = EntryList.EntryList(components, self._app, 

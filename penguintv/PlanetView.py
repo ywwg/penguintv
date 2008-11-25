@@ -15,7 +15,11 @@ import EntryFormatter
 import ptvDB
 import utils
 
-if not utils.RUNNING_SUGAR:
+if utils.RUNNING_HILDON:
+	pass
+if utils.RUNNING_SUGAR:
+	import hulahop
+else:
 	try:
 		import gtkmozembed
 	except:
@@ -23,9 +27,6 @@ if not utils.RUNNING_SUGAR:
 			from ptvmozembed import gtkmozembed
 		except:
 			pass
-else:
-	import hulahop
-	
 
 if utils.RUNNING_HILDON:
 	ENTRIES_PER_PAGE = 5
@@ -77,7 +78,6 @@ class PlanetView(gobject.GObject):
 		self._renderer = renderer
 		self._css = ""
 		self._current_feed_id = -1
-		self._moz_realized = False
 		self._feed_title=""
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
@@ -118,6 +118,7 @@ class PlanetView(gobject.GObject):
                 style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
 		if self._renderer == EntryFormatter.MOZILLA:
+			self._moz_realized = False
 			if utils.RUNNING_SUGAR:
 				f = open(os.path.join(share_path, "mozilla-planet-olpc.css"))
 				for l in f.readlines(): self._css += l
@@ -129,6 +130,13 @@ class PlanetView(gobject.GObject):
 					f = open(os.path.join(share_path, "mozilla-planet.css"))
 				for l in f.readlines(): self._css += l
 				f.close()
+		elif self._renderer == EntryFormatter.GTKHTML:
+			f = open(os.path.join(share_path, "gtkhtml.css"))
+			#f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
+			for l in f.readlines(): self._css += l
+			f.close()
+			self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
+			self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
 				
 		#signals
 		self._handlers = []
@@ -202,6 +210,27 @@ class PlanetView(gobject.GObject):
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
+		elif self._renderer == EntryFormatter.GTKHTML:
+			import gtkhtml2
+			import SimpleImageCache
+			self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
+			htmlview = gtkhtml2.View()
+			self._document = gtkhtml2.Document()
+			self._document.connect("link-clicked", self._gtkhtml_link_clicked)
+			htmlview.connect("on_url", self._gtkhtml_on_url)
+			self._document.connect("request-url", self._gtkhtml_request_url)
+			htmlview.get_vadjustment().set_value(0)
+			htmlview.get_hadjustment().set_value(0)
+			self._scrolled_window.set_hadjustment(htmlview.get_hadjustment())
+			self._scrolled_window.set_vadjustment(htmlview.get_vadjustment())
+			
+			self._document.clear()
+			htmlview.set_document(self._document)		
+			self._scrolled_window.add(htmlview)
+			self._htmlview = htmlview
+			#self._document_lock = threading.Lock()
+			self._image_cache = SimpleImageCache.SimpleImageCache()
+			
 		self.display_item()
 		self._html_dock.show_all()
 		if self._USING_AJAX:
@@ -225,13 +254,13 @@ class PlanetView(gobject.GObject):
 			t.setDaemon(True)
 			t.start()
 			self._ajax_url = "http://localhost:"+str(PlanetView.PORT)+"/"+self._update_server.get_key()
-			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=self._ajax_url)
-			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, ajax_url=self._ajax_url)
+			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, ajax_url=self._ajax_url, renderer=self._renderer)
+			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, ajax_url=self._ajax_url, renderer=self._renderer)
 		else:
 			logging.info("not using ajax")
 			self._ajax_url = None
-			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True)
-			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, basic_progress=True)
+			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True, renderer=self._renderer)
+			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, basic_progress=True, renderer=self._renderer)
 		
 	def set_entry_view(self, entry_view):
 		pass
@@ -472,7 +501,7 @@ class PlanetView(gobject.GObject):
 			except:
 				logging.error('error closing planetview server')
 		self._render("<html><body></body></html")
-		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON:
+		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON and self._renderer == EntryFormatter.MOZILLA:
 			gtkmozembed.pop_startup()
 					
 	#protected functions
@@ -579,7 +608,7 @@ class PlanetView(gobject.GObject):
 		html.append("</td></tr></tbody></table></div>")
 		
 		if self._state != S_SEARCH:
-			html.append('<div class="feed_title">'+self._feed_title+"</div>")
+			html.append('<div class="feedtitle">'+self._feed_title+"</div>")
 		html += entries
 			
 		html.append("""<div id="nav_bar"><table
@@ -613,18 +642,18 @@ class PlanetView(gobject.GObject):
 	def _build_header(self, media_exists):
 		if self._renderer == EntryFormatter.MOZILLA:
 			html = ["""<html><head>
-				    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-					<style type="text/css">
-				    body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
-				    %s
-				    </style>
-				    <title>title</title>""" % (self._background_color,
-											   self._foreground_color,
-											   self._moz_font, 
-											   self._moz_size, 
-											   self._css)] 
-			html.append("""<script type="text/javascript"><!--""")
+			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+				<style type="text/css">
+			    body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
+			    %s
+			    </style>
+			    <title>title</title>""" % (self._background_color,
+										   self._foreground_color,
+										   self._moz_font, 
+										   self._moz_size, 
+										   self._css)] 
 			if self._USING_AJAX:
+				html.append("""<script type="text/javascript"><!--""")
 				html.append("""
 	            
 	            var xmlHttp
@@ -696,6 +725,14 @@ class PlanetView(gobject.GObject):
 			
 			html.append("--> </script>")
 			html.append("""</head><body><span id="errorMsg"></span><br>""")
+		else:
+			html = ["""<html><head>
+			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<style type="text/css">
+%s
+</style>
+			    <title>title</title>""" % self._css] 
+			html.append("""</head><body>""")
 			
 		return "\n".join(html)
 		
@@ -809,17 +846,26 @@ class PlanetView(gobject.GObject):
 		#logging.debug("="*80)
 		#logging.debug(html)
 		#logging.debug("="*80)
-		if self._moz_realized or utils.RUNNING_SUGAR:
-			if self._USING_AJAX:
-				self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
-			else:
-				self._moz.open_stream("file:///","text/html")
-			while len(html)>60000:
-				part = html[0:60000]
-				html = html[60000:]
-				self._moz.append_data(part, long(len(part)))
-			self._moz.append_data(html, long(len(html)))
-			self._moz.close_stream()
+		if self._renderer == EntryFormatter.MOZILLA:
+			if self._moz_realized or utils.RUNNING_SUGAR:
+				if self._USING_AJAX:
+					self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+				else:
+					self._moz.open_stream("file:///","text/html")
+				while len(html)>60000:
+					part = html[0:60000]
+					html = html[60000:]
+					self._moz.append_data(part, long(len(part)))
+				self._moz.append_data(html, long(len(html)))
+				self._moz.close_stream()
+		elif self._renderer == EntryFormatter.GTKHTML:
+			self._document.clear()
+			self._document.open_stream("text/html")
+			self._document.write_stream(html)
+			#print "="*80
+			#print html
+			#print "="*80
+			self._document.close_stream()
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
 		if (feed_id, first_entry, last_entry) != \
@@ -975,6 +1021,23 @@ class PlanetView(gobject.GObject):
 	def _moz_link_message(self, data):
 		if not utils.RUNNING_HILDON:
 			self._main_window.display_status_message(self._moz.get_link_message())
+			
+	def _gtkhtml_link_clicked(self, document, link):
+		print "link clicked:", link
+		link = link.strip()
+		self.emit('link-activated', link)
+	
+	def _gtkhtml_on_url(self, view, url):
+		if url == None:
+			url = ""
+		self._main_window.display_status_message(url)
+	
+	def _gtkhtml_request_url(self, document, url, stream):
+		try:
+			stream.write(self._image_cache.get_image(url))
+			stream.close()
+		except Exception, ex:
+			stream.close()
 	
 	def _gconf_reset_moz_font(self, client, *args, **kwargs):
 		self._reset_moz_font()
