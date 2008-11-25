@@ -18,7 +18,7 @@ import utils
 
 if utils.RUNNING_HILDON:
 	pass
-if utils.RUNNING_SUGAR:
+elif utils.RUNNING_SUGAR:
 	import hulahop
 else:
 	try:
@@ -620,13 +620,13 @@ class PlanetView(gobject.GObject):
 					<tr><td>""")
 		if self._first_entry > 0:
 			if utils.RUNNING_HILDON:
-				html.append(_('<a href="planet:up" style="text-size: 20pt">Newer Entries</a>'))
+				html.append(_('<a href="planet:up" style="font-size: 20pt">Newer Entries</a>'))
 			else:
 				html.append(_('<a href="planet:up">Newer Entries</a>'))
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
 			if utils.RUNNING_HILDON:
-				html.append(_('<a href="planet:down" style="text-size: 20pt">Older Entries</a>'))
+				html.append(_('<a href="planet:down" style="font-size: 20pt">Older Entries</a>'))
 			else:
 				html.append(_('<a href="planet:down">Older Entries</a>'))
 		html.append("</td></tr></tbody></table></div>")
