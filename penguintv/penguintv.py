@@ -935,6 +935,10 @@ class PenguinTVApp(gobject.GObject):
 				self._polling_taskinfo = -1
 			else:
 				return True
+				
+		if utils.RUNNING_HILDON and was_setup is not None:
+			if self.mediamanager.get_download_count() > 0:
+				logging.debug("delaying poll until downloads are complete")
 		
 		if message is None:
 			self._poll_message = _("Polling Feeds...")
