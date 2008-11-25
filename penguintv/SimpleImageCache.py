@@ -53,7 +53,12 @@ class SimpleImageCache:
 	def _get_http_image(self, url):
 		d = SimpleImageCache.downloader()
 		c = pycurl.Curl()
-		c.setopt(pycurl.URL, url)
+		try:
+			c.setopt(pycurl.URL, str(url).strip())
+		except Exception, e:
+			logging.error("Error downloading file: %s %s" % (url,str(e)))
+			return None
+			
 		c.setopt(pycurl.WRITEFUNCTION, d.body_callback)
 		c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
 		c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts

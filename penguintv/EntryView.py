@@ -15,15 +15,16 @@ from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, MAJOR_DB_OPERATION
 import EntryFormatter
 import Downloader
 
-try:
-	#not good enough to load it below.  need to load it module-wide
-	#or else random images don't load.  gtkmozembed is VERY picky!
-	import gtkmozembed
-except:
+if not utils.RUNNING_HILDON:
 	try:
-		from ptvmozembed import gtkmozembed
+		#not good enough to load it below.  need to load it module-wide
+		#or else random images don't load.  gtkmozembed is VERY picky!
+		import gtkmozembed
 	except:
-		pass
+		try:
+			from ptvmozembed import gtkmozembed
+		except:
+			pass
 	
 
 
