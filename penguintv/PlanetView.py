@@ -7,6 +7,7 @@
 
 import logging
 import os, os.path
+import threading
 
 import gobject
 import gtk
@@ -213,6 +214,7 @@ class PlanetView(gobject.GObject):
 		elif self._renderer == EntryFormatter.GTKHTML:
 			import gtkhtml2
 			import SimpleImageCache
+			import threading
 			self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
 			htmlview = gtkhtml2.View()
 			self._document = gtkhtml2.Document()
@@ -228,7 +230,7 @@ class PlanetView(gobject.GObject):
 			htmlview.set_document(self._document)		
 			self._scrolled_window.add(htmlview)
 			self._htmlview = htmlview
-			#self._document_lock = threading.Lock()
+			self._document_lock = threading.Lock()
 			self._image_cache = SimpleImageCache.SimpleImageCache()
 			
 		self.display_item()
@@ -859,13 +861,53 @@ class PlanetView(gobject.GObject):
 				self._moz.append_data(html, long(len(html)))
 				self._moz.close_stream()
 		elif self._renderer == EntryFormatter.GTKHTML:
+			self._document_lock.acquire()
+			p = EntryFormatter.HTMLimgParser()
+			p.feed(html)
+			uncached=0
+			for url in p.images:
+				if self._image_cache.is_cached(url)==False:
+					uncached+=1
+			if uncached>0:
+				self._document.clear()
+				self._document.open_stream("text/html")
+				d = { 	"background_color": self._background_color,
+						"loading": _("Loading images...")}
+				self._document.write_stream("""<html><style type="text/css">
+            body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
+				self._document.close_stream()
+				image_loader_thread = threading.Thread(None, self._gtkhtml_do_download_images, None, (html, p.images))
+				image_loader_thread.start()
+				self._document_lock.release()
+				return #so we don't bother rescrolling, below
+			else:
+				self._document.clear()
+				self._document.open_stream("text/html")
+				self._document.write_stream(html)
+				self._document.close_stream()
+				self._document_lock.release()
+				
+	def _gtkhtml_do_download_images(self, html, images):
+		self._document_lock.acquire()
+		for url in images:
+			self._image_cache.get_image(url)
+		gobject.idle_add(self._gtkhtml_images_loaded, self._current_feed_id, self._first_entry, html)
+		self._document_lock.release()
+		
+	def _gtkhtml_images_loaded(self, feed_id, first_entry, html):
+		#if we're changing, nevermind.
+		#also make sure entry is the same and that we shouldn't be blanks
+		if feed_id == self._current_feed_id and first_entry == self._first_entry:
+			print "writing"
+			va = self._scrolled_window.get_vadjustment()
+			ha = self._scrolled_window.get_hadjustment()
 			self._document.clear()
 			self._document.open_stream("text/html")
 			self._document.write_stream(html)
-			#print "="*80
-			#print html
-			#print "="*80
 			self._document.close_stream()
+		else:
+			print "not the same"
+		return False
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
 		if (feed_id, first_entry, last_entry) != \

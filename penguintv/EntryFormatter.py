@@ -1,5 +1,5 @@
 import os, os.path
-import htmllib, HTMLParser
+import htmllib, HTMLParser, formatter
 import time
 import logging
 import traceback

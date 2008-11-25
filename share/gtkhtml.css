@@ -26,7 +26,6 @@ body {
       background-color: #f5f7fa;
       margin-top: 12pt;
       padding: 6pt;
-      overflow: auto;
 }
 
 .entryold {
@@ -36,7 +35,6 @@ body {
       background-color: #e0e3e8;
       margin-top: 12pt;
       padding: 6pt;
-      overflow: auto;
 }
 
 .stitle {

@@ -43,11 +43,18 @@ class SimpleImageCache:
 		cache = self._check_cache(url)
 		if cache is not None:
 			return cache
-
+			
+		if url[0:4] == "file":
+			filename = url.split("file://")[1]
+			return self.get_image_from_file(filename)
+		else:
+			return self._get_http_image(url)
+			
+	def _get_http_image(self, url):
 		d = SimpleImageCache.downloader()
 		c = pycurl.Curl()
-		c.setopt(c.URL, url)
-		c.setopt(c.WRITEFUNCTION, d.body_callback)
+		c.setopt(pycurl.URL, url)
+		c.setopt(pycurl.WRITEFUNCTION, d.body_callback)
 		c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
 		c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
 		c.setopt(pycurl.FOLLOWLOCATION, 1)
