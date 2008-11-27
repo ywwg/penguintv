@@ -277,16 +277,16 @@ class EntryFormatter:
 		ret.append("""</td></tr></table>""")
 		return "\n".join(ret)
 
-class HTMLimgParser(htmllib.HTMLParser):
-	def __init__(self):
-		htmllib.HTMLParser.__init__(self, formatter.NullFormatter())
-		self.images=[]
-		
-	def do_img(self, attributes):
-		for name, value in attributes:
-			if name == 'src':
-				new_image = value
-				self.images.append(new_image)
+#class HTMLimgParser(htmllib.HTMLParser):
+#	def __init__(self):
+#		htmllib.HTMLParser.__init__(self, formatter.NullFormatter())
+#		self.images=[]
+#		
+#	def do_img(self, attributes):
+#		for name, value in attributes:
+#			if name == 'src':
+#				new_image = value
+#				self.images.append(new_image)
 				
 class HTMLHighlightParser(HTMLParser.HTMLParser):
 	def __init__(self, highlight_terms):

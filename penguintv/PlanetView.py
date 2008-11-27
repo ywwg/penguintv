@@ -8,6 +8,7 @@
 import logging
 import os, os.path
 import threading
+import re
 
 import gobject
 import gtk
@@ -37,6 +38,8 @@ else:
 #states
 S_DEFAULT=0
 S_SEARCH=1
+
+IMG_REGEX = re.compile("<img.*?src=[\",\'](.*?)[\",\'].*?>", re.IGNORECASE|re.DOTALL)
 
 class PlanetView(gobject.GObject):
 	"""PlanetView implementes the api for entrylist and entryview, so that the main program doesn't
@@ -862,10 +865,9 @@ class PlanetView(gobject.GObject):
 				self._moz.close_stream()
 		elif self._renderer == EntryFormatter.GTKHTML:
 			self._document_lock.acquire()
-			p = EntryFormatter.HTMLimgParser()
-			p.feed(html)
+			imgs = IMG_REGEX.findall(html)
 			uncached=0
-			for url in p.images:
+			for url in imgs:
 				if self._image_cache.is_cached(url)==False:
 					uncached+=1
 			if uncached>0:
@@ -876,7 +878,7 @@ class PlanetView(gobject.GObject):
 				self._document.write_stream("""<html><style type="text/css">
             body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
 				self._document.close_stream()
-				image_loader_thread = threading.Thread(None, self._gtkhtml_do_download_images, None, (html, p.images))
+				image_loader_thread = threading.Thread(None, self._gtkhtml_do_download_images, None, (html, imgs))
 				image_loader_thread.start()
 				self._document_lock.release()
 				return #so we don't bother rescrolling, below
@@ -898,15 +900,12 @@ class PlanetView(gobject.GObject):
 		#if we're changing, nevermind.
 		#also make sure entry is the same and that we shouldn't be blanks
 		if feed_id == self._current_feed_id and first_entry == self._first_entry:
-			print "writing"
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			self._document.clear()
 			self._document.open_stream("text/html")
 			self._document.write_stream(html)
 			self._document.close_stream()
-		else:
-			print "not the same"
 		return False
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):

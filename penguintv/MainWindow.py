@@ -637,7 +637,6 @@ class MainWindow(gobject.GObject):
 			fancy = True
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, fancy)
-		#assert utils.HAS_MOZILLA
 		#renderer = EntryFormatter.MOZILLA
 		#renderer = EntryFormatter.GTKHTML
 		if utils.RUNNING_HILDON:
