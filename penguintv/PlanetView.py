@@ -1024,6 +1024,10 @@ class PlanetView(gobject.GObject):
 		
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
+		self._link_clicked(link)
+		return True #don't load url please
+		
+	def _link_clicked(self, link):
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE
 			self._render_entries(mark_read=True)
@@ -1034,8 +1038,6 @@ class PlanetView(gobject.GObject):
 			self._do_context_menu(int(link.split(':')[1]))
 		else:
 			self.emit('link-activated', link)
-			
-		return True #don't load url please
 		
 	def set_hide_viewed(self, state):
 		if state == self._hide_viewed:
@@ -1065,9 +1067,8 @@ class PlanetView(gobject.GObject):
 			self._main_window.display_status_message(self._moz.get_link_message())
 			
 	def _gtkhtml_link_clicked(self, document, link):
-		print "link clicked:", link
 		link = link.strip()
-		self.emit('link-activated', link)
+		self._link_clicked(link)
 	
 	def _gtkhtml_on_url(self, view, url):
 		if url == None:
