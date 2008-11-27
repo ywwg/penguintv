@@ -9,6 +9,7 @@ class SimpleImageCache:
 	
 	def __init__(self):
 		self.image_dict={}
+		self.image_list=[]
 		
 	def is_cached(self, url):
 		if self.image_dict.has_key(url):
@@ -17,7 +18,8 @@ class SimpleImageCache:
 		
 	def _check_cache(self, url):
 		if len(self.image_dict) > 100:  #flush it every so often
-			self.image_dict.popitem()
+			url_to_delete = self.image_list.pop(0)
+			self.image_dict.pop(url_to_delete)
 		if self.image_dict.has_key(url):
 			return self.image_dict[url]
 		return None
@@ -31,10 +33,12 @@ class SimpleImageCache:
 		try:
 			f = open(filename, "rb")
 			self.image_dict[url]=f.read()
+			self.image_list.append(url)
 			f.close()
 		except Exception, e:
 			logging.error("Error retrieving local file: %s" % (str(e),))
 			self.image_dict[url] = ""
+			self.image_list.append(url)
 			
 		return self.image_dict[url]
 		
@@ -67,7 +71,9 @@ class SimpleImageCache:
 			c.close()
 		except:
 			self.image_dict[url]=""
+			self.image_list.append(url)
 		self.image_dict[url]=d.contents
+		self.image_list.append(url)
 		return d.contents
 			
 	class downloader:
