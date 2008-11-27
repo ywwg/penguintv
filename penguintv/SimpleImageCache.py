@@ -17,8 +17,7 @@ class SimpleImageCache:
 		
 	def _check_cache(self, url):
 		if len(self.image_dict) > 100:  #flush it every so often
-			del self.image_dict
-			self.image_dict = {}
+			self.image_dict.popitem()
 		if self.image_dict.has_key(url):
 			return self.image_dict[url]
 		return None
