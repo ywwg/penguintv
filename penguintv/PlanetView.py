@@ -144,6 +144,7 @@ class PlanetView(gobject.GObject):
 			self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
 			self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
 			self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
+			#self._image_lock = threading.Lock()
 			self._dl_total = 0
 			self._dl_count = 0
 				
@@ -901,8 +902,6 @@ class PlanetView(gobject.GObject):
 				for url in imgs:
 					if not self._image_cache.is_cached(url):
 						self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, self._current_feed_id, self._first_entry), self._gtkhtml_image_dl_cb)
-						#image_loader_thread = threading.Thread(None, self._gtkhtml_do_download_images, None, (html, imgs))
-						#image_loader_thread.start()
 				self._image_pool.queueTask(self._gtkhtml_download_done, (self._current_feed_id, self._first_entry, html))
 			else:
 				self._document.clear()
@@ -932,7 +931,7 @@ class PlanetView(gobject.GObject):
 		
 		count = 0
 		last_count = self._dl_count
-		while feed_id == self._current_feed_id and first_entry == self._first_entry and count < (10 * 4):
+		while feed_id == self._current_feed_id and first_entry == self._first_entry and count < (10 * 2):
 			if last_count != self._dl_count:
 				#if downloads are still coming in, reset counter
 				last_count = self._dl_count
@@ -941,7 +940,8 @@ class PlanetView(gobject.GObject):
 				gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
 				return
 			count += 1
-			time.sleep(0.25)
+			time.sleep(0.5)
+		gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
 
 		
 	def _gtkhtml_images_loaded(self, feed_id, first_entry, html):

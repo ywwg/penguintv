@@ -67,7 +67,7 @@ class SimpleImageCache:
 			return self._get_http_image(url)
 			
 	def _get_http_image(self, url):
-		d = SimpleImageCache.downloader(url)
+		d = SimpleImageCache.Downloader(url)
 		d.download()
 		self._update_lock.acquire()
 		image = self.image_dict[url] = d.contents
@@ -75,11 +75,11 @@ class SimpleImageCache:
 		self._update_lock.release()
 		return image
 			
-	class downloader:
+	class Downloader:
 		def __init__(self, url):
 			self._url = url
 			self.contents = ''
-			
+		
 		def download(self):
 			c = pycurl.Curl()
 			try:
@@ -87,16 +87,17 @@ class SimpleImageCache:
 			except Exception, e:
 				logging.error("Error downloading file: %s %s" % (self._url,str(e)))
 				return ""
-			
+		
 			c.setopt(pycurl.WRITEFUNCTION, self.body_callback)
 			c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
 			c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
 			c.setopt(pycurl.FOLLOWLOCATION, 1)
+			c.setopt(pycurl.NOSIGNAL, 1) #multithread ok
 			try:
 				c.perform()
 				c.close()
 			except:
 				self.contents = ""
-			
+		
 		def body_callback(self, buf):
 			self.contents = self.contents + buf
