@@ -67,23 +67,8 @@ class SimpleImageCache:
 			return self._get_http_image(url)
 			
 	def _get_http_image(self, url):
-		d = SimpleImageCache.downloader()
-		c = pycurl.Curl()
-		try:
-			c.setopt(pycurl.URL, str(url).strip())
-		except Exception, e:
-			logging.error("Error downloading file: %s %s" % (url,str(e)))
-			return None
-			
-		c.setopt(pycurl.WRITEFUNCTION, d.body_callback)
-		c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
-		c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
-		c.setopt(pycurl.FOLLOWLOCATION, 1)
-		try:
-			c.perform()
-			c.close()
-		except:
-			return None
+		d = SimpleImageCache.downloader(url)
+		d.download()
 		self._update_lock.acquire()
 		image = self.image_dict[url] = d.contents
 		self.image_list.append(url)
@@ -91,8 +76,27 @@ class SimpleImageCache:
 		return image
 			
 	class downloader:
-		def __init__(self):
+		def __init__(self, url):
+			self._url = url
 			self.contents = ''
-
+			
+		def download(self):
+			c = pycurl.Curl()
+			try:
+				c.setopt(pycurl.URL, str(self._url).strip())
+			except Exception, e:
+				logging.error("Error downloading file: %s %s" % (self._url,str(e)))
+				return ""
+			
+			c.setopt(pycurl.WRITEFUNCTION, self.body_callback)
+			c.setopt(pycurl.CONNECTTIMEOUT, 7) #aggressive timeouts
+			c.setopt(pycurl.TIMEOUT, 20) #aggressive timeouts
+			c.setopt(pycurl.FOLLOWLOCATION, 1)
+			try:
+				c.perform()
+				c.close()
+			except:
+				self.contents = ""
+			
 		def body_callback(self, buf):
 			self.contents = self.contents + buf

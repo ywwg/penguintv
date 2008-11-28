@@ -957,6 +957,14 @@ class PlanetView(gobject.GObject):
 			self._document.close_stream()
 			self._document_lock.release()
 		return False
+		
+	def _gtkhtml_request_url(self, document, url, stream):
+		try:
+			image = self._image_cache.get_image(url)
+			stream.write(image)
+			stream.close()
+		except Exception, ex:
+			stream.close()
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
 		if (feed_id, first_entry, last_entry) != \
@@ -1127,13 +1135,6 @@ class PlanetView(gobject.GObject):
 		if url == None:
 			url = ""
 		self._main_window.display_status_message(url)
-	
-	def _gtkhtml_request_url(self, document, url, stream):
-		try:
-			stream.write(self._image_cache.get_image(url))
-			stream.close()
-		except Exception, ex:
-			stream.close()
 	
 	def _gconf_reset_moz_font(self, client, *args, **kwargs):
 		self._reset_moz_font()
