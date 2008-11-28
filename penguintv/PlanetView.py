@@ -9,6 +9,7 @@ import logging
 import os, os.path
 import threading
 import re
+import time
 
 import gobject
 import gtk
@@ -16,6 +17,7 @@ import gtk
 import EntryFormatter
 import ptvDB
 import utils
+import ThreadPool
 
 if utils.RUNNING_HILDON:
 	pass
@@ -141,6 +143,9 @@ class PlanetView(gobject.GObject):
 			f.close()
 			self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
 			self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
+			self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
+			self._dl_total = 0
+			self._dl_count = 0
 				
 		#signals
 		self._handlers = []
@@ -374,6 +379,8 @@ class PlanetView(gobject.GObject):
 			#self._main_window.set_hide_entries_visibility(True)
 			self._current_feed_id = feed_id
 			self._first_entry = 0
+			if self._renderer == EntryFormatter.GTKHTML:
+				self._gtkhtml_reset_image_dl()
 			self._entry_store={}
 			feed_info = self._db.get_feed_info(feed_id)
 			if feed_info['auth_feed']:
@@ -442,6 +449,8 @@ class PlanetView(gobject.GObject):
 		self._entry_store={}
 		self._entrylist = []
 		self._convert_newlines = False
+		if self._renderer == EntryFormatter.GTKHTML:
+			self._gtkhtml_reset_image_dl()
 		self._render("<html><body></body></html")
 		if self._USING_AJAX:
 			self._update_server.clear_updates()
@@ -508,6 +517,9 @@ class PlanetView(gobject.GObject):
 		self._render("<html><body></body></html")
 		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON and self._renderer == EntryFormatter.MOZILLA:
 			gtkmozembed.pop_startup()
+		if self._renderer == EntryFormatter.GTKHTML:
+			self._image_pool.joinAll(False, False)
+			del self._image_pool
 					
 	#protected functions
 	def _render_entries(self, mark_read=False, force=False):
@@ -515,6 +527,8 @@ class PlanetView(gobject.GObject):
 
 		if self._first_entry < 0:
 			self._first_entry = 0
+			if self._renderer == EntryFormatter.GTKHTML:
+				self._gtkhtml_reset_image_dl()
 			
 		if self._filter_feed is not None:
 			assert self._state == S_SEARCH
@@ -868,20 +882,28 @@ class PlanetView(gobject.GObject):
 			imgs = IMG_REGEX.findall(html)
 			uncached=0
 			for url in imgs:
-				if self._image_cache.is_cached(url)==False:
+				if not self._image_cache.is_cached(url):
 					uncached+=1
-			if uncached>0:
+					
+			if uncached > 0:
 				self._document.clear()
 				self._document.open_stream("text/html")
 				d = { 	"background_color": self._background_color,
 						"loading": _("Loading images...")}
 				self._document.write_stream("""<html><style type="text/css">
-            body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
+		        body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
 				self._document.close_stream()
-				image_loader_thread = threading.Thread(None, self._gtkhtml_do_download_images, None, (html, imgs))
-				image_loader_thread.start()
 				self._document_lock.release()
-				return #so we don't bother rescrolling, below
+				
+				self._dl_count = 0
+				self._dl_total = uncached
+				
+				for url in imgs:
+					if not self._image_cache.is_cached(url):
+						self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, self._current_feed_id, self._first_entry), self._gtkhtml_image_dl_cb)
+						#image_loader_thread = threading.Thread(None, self._gtkhtml_do_download_images, None, (html, imgs))
+						#image_loader_thread.start()
+				self._image_pool.queueTask(self._gtkhtml_download_done, (self._current_feed_id, self._first_entry, html))
 			else:
 				self._document.clear()
 				self._document.open_stream("text/html")
@@ -889,12 +911,38 @@ class PlanetView(gobject.GObject):
 				self._document.close_stream()
 				self._document_lock.release()
 				
-	def _gtkhtml_do_download_images(self, html, images):
-		self._document_lock.acquire()
-		for url in images:
-			self._image_cache.get_image(url)
-		gobject.idle_add(self._gtkhtml_images_loaded, self._current_feed_id, self._first_entry, html)
-		self._document_lock.release()
+	def _gtkhtml_reset_image_dl(self):
+		assert self._renderer == EntryFormatter.GTKHTML
+		self._image_pool.joinAll(False, False)
+		self._dl_count = 0
+		self._dl_total = 0
+				
+	def _gtkhtml_do_download_image(self, args):
+		url, feed_id, first_entry = args
+		self._image_cache.get_image(url)
+		return (feed_id, first_entry)
+		
+	def _gtkhtml_image_dl_cb(self, args):
+		feed_id, first_entry = args
+		if feed_id == self._current_feed_id and first_entry == self._first_entry:
+			self._dl_count += 1
+			
+	def _gtkhtml_download_done(self, args):
+		feed_id, first_entry, html = args
+		
+		count = 0
+		last_count = self._dl_count
+		while feed_id == self._current_feed_id and first_entry == self._first_entry and count < (10 * 4):
+			if last_count != self._dl_count:
+				#if downloads are still coming in, reset counter
+				last_count = self._dl_count
+				count = 0
+			if self._dl_count >= self._dl_total:
+				gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
+				return
+			count += 1
+			time.sleep(0.25)
+
 		
 	def _gtkhtml_images_loaded(self, feed_id, first_entry, html):
 		#if we're changing, nevermind.
@@ -902,10 +950,12 @@ class PlanetView(gobject.GObject):
 		if feed_id == self._current_feed_id and first_entry == self._first_entry:
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
+			self._document_lock.acquire()
 			self._document.clear()
 			self._document.open_stream("text/html")
 			self._document.write_stream(html)
 			self._document.close_stream()
+			self._document_lock.release()
 		return False
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
@@ -1029,9 +1079,13 @@ class PlanetView(gobject.GObject):
 	def _link_clicked(self, link):
 		if link == "planet:up":
 			self._first_entry -= ENTRIES_PER_PAGE
+			if self._renderer == EntryFormatter.GTKHTML:
+				self._gtkhtml_reset_image_dl()
 			self._render_entries(mark_read=True)
 		elif link == "planet:down":
 			self._first_entry += ENTRIES_PER_PAGE
+			if self._renderer == EntryFormatter.GTKHTML:
+				self._gtkhtml_reset_image_dl()
 			self._render_entries(mark_read=True)
 		elif link.startswith("rightclick"):
 			self._do_context_menu(int(link.split(':')[1]))

@@ -1,8 +1,11 @@
 # Written by Owen Williams
 # see LICENSE for license information
 import logging
+import threading
 
 import pycurl
+
+__MAX_IMAGES__ = 250
 
 class SimpleImageCache:
 	"""Dead simple.  we keep all of the images _in_ram_ with a dictionary. OH YEAH"""
@@ -10,6 +13,7 @@ class SimpleImageCache:
 	def __init__(self):
 		self.image_dict={}
 		self.image_list=[]
+		self._update_lock = threading.Lock()
 		
 	def is_cached(self, url):
 		if self.image_dict.has_key(url):
@@ -17,11 +21,17 @@ class SimpleImageCache:
 		return False
 		
 	def _check_cache(self, url):
-		if len(self.image_dict) > 100:  #flush it every so often
+		self._update_lock.acquire()
+		if len(self.image_dict) > __MAX_IMAGES__:  #flush it every so often
+			
 			url_to_delete = self.image_list.pop(0)
 			self.image_dict.pop(url_to_delete)
+			
 		if self.image_dict.has_key(url):
-			return self.image_dict[url]
+			image = self.image_dict[url]
+			self._update_lock.release() 
+			return image
+		self._update_lock.release()
 		return None
 		
 	def get_image_from_file(self, filename):
@@ -32,15 +42,19 @@ class SimpleImageCache:
 			
 		try:
 			f = open(filename, "rb")
-			self.image_dict[url]=f.read()
+			self._update_lock.acquire()
+			image = self.image_dict[url] = f.read()
 			self.image_list.append(url)
+			self._update_lock.release()
 			f.close()
 		except Exception, e:
 			logging.error("Error retrieving local file: %s" % (str(e),))
-			self.image_dict[url] = ""
+			self._update_lock.acquire()
+			image = self.image_dict[url] = ""
 			self.image_list.append(url)
+			self._update_lock.release()
 			
-		return self.image_dict[url]
+		return image
 		
 	def get_image(self, url):
 		cache = self._check_cache(url)
@@ -70,11 +84,15 @@ class SimpleImageCache:
 			c.perform()
 			c.close()
 		except:
+			self._update_lock.acquire()
 			self.image_dict[url]=""
 			self.image_list.append(url)
-		self.image_dict[url]=d.contents
+			self._update_lock.release()
+		self._update_lock.acquire()
+		image = self.image_dict[url] = d.contents
 		self.image_list.append(url)
-		return d.contents
+		self._update_lock.release()
+		return image
 			
 	class downloader:
 		def __init__(self):

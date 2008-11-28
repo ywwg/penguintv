@@ -644,7 +644,7 @@ class MainWindow(gobject.GObject):
 		else:
 			assert utils.HAS_MOZILLA
 			renderer = EntryFormatter.MOZILLA
-		
+		#
 		#if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
 		#	self.layout = "standard"
 		#	return self.load_layout()	
