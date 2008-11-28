@@ -16,17 +16,18 @@ class SimpleImageCache:
 		self._update_lock = threading.Lock()
 		
 	def is_cached(self, url):
+		self._update_lock.acquire()
 		if self.image_dict.has_key(url):
+			self._update_lock.release()
 			return True
+		self._update_lock.release()
 		return False
 		
 	def _check_cache(self, url):
 		self._update_lock.acquire()
 		if len(self.image_dict) > __MAX_IMAGES__:  #flush it every so often
-			
 			url_to_delete = self.image_list.pop(0)
 			self.image_dict.pop(url_to_delete)
-			
 		if self.image_dict.has_key(url):
 			image = self.image_dict[url]
 			self._update_lock.release() 
@@ -39,21 +40,19 @@ class SimpleImageCache:
 		cache = self._check_cache(url)
 		if cache is not None:
 			return cache
-			
+
+		self._update_lock.acquire()
 		try:
 			f = open(filename, "rb")
-			self._update_lock.acquire()
 			image = self.image_dict[url] = f.read()
 			self.image_list.append(url)
-			self._update_lock.release()
 			f.close()
 		except Exception, e:
 			logging.error("Error retrieving local file: %s" % (str(e),))
-			self._update_lock.acquire()
 			image = self.image_dict[url] = ""
 			self.image_list.append(url)
-			self._update_lock.release()
-			
+
+		self._update_lock.release()			
 		return image
 		
 	def get_image(self, url):
@@ -84,10 +83,7 @@ class SimpleImageCache:
 			c.perform()
 			c.close()
 		except:
-			self._update_lock.acquire()
-			self.image_dict[url]=""
-			self.image_list.append(url)
-			self._update_lock.release()
+			return None
 		self._update_lock.acquire()
 		image = self.image_dict[url] = d.contents
 		self.image_list.append(url)
