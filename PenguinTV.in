@@ -21,8 +21,8 @@ RUNMOZ_DIR=""
 if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
 	HILDON=1
 	echo "Launching Hildon version"
-	export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
-	export LD_LIBRARY_PATH="/usr/lib/microb-engine"
+	#export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
+	#export LD_LIBRARY_PATH="/usr/lib/microb-engine"
 else
 	if [ "$WITH_MOZ_DIR"x = "x" ] ; then
 		for d in `ls -d  /usr/lib*/firefox* /usr/lib*/mozilla-firefox* /usr/lib*/xulrunner* 2> /dev/null | grep -v addons | grep -v devel | sort -r`
@@ -79,7 +79,7 @@ export PTV_PREFIX=$rundir
 if [ $HILDON -eq 1 ] ; then	
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	run-standalone.sh python2.5 ./penguintv.py $*
+	run-standalone.sh /usr/bin/python ./penguintv.py $*
 else
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
