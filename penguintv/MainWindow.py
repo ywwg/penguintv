@@ -310,7 +310,7 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('reindex_searches').hide()
 				self._widgetTree.get_widget('add_feed_filter').hide()
 			#if not utils.HAS_MOZILLA:
-			self._widgetTree.get_widget('planet_layout').hide()
+				#self._widgetTree.get_widget('planet_layout').hide()
 			if not utils.HAS_STATUS_ICON:
 				self._widgetTree.get_widget('show_notifications').hide()
 			self.window = self.app_window
