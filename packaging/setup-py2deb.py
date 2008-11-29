@@ -10,10 +10,11 @@ import shutil
 import subprocess
 from subprocess import Popen, PIPE, STDOUT
 
-import packaging.py2deb as py2deb
+#import packaging.py2deb as py2deb
+import py2deb
 
 __modname__ = "penguintv"
-__version__ = "3.9.3"
+__version__ = "3.9.4"
 __build__ = "1" # Result is "0.5.8-1"
 
 PREFIX="/usr/"
@@ -60,7 +61,8 @@ p[PREFIX + 'share/dbus-1/services'] = ['share/penguintv.service|penguintv.servic
 p[PREFIX + 'share/penguintv/pixmaps'] = ['share/pixmaps/throbber.gif|throbber.gif']
 p[PREFIX + 'share/penguintv'] = ['share/defaultsubs.opml|defaultsubs.opml',
 								 'share/penguintvicon.png|penguintvicon.png',
-								 'share/mozilla-planet-hildon.css|mozilla-planet-hildon.css']
+								 'share/mozilla-planet-hildon.css|mozilla-planet-hildon.css',
+								 'share/gtkhtml.css|gtkhtml.css']
 p[PREFIX + 'share/penguintv/glade'] = pipedlist('share/glade/hildon*.glade') + ['share/glade/dialogs.glade|dialogs.glade']
 p[PREFIX + 'share/icons/hicolor/scalable/hildon'] = ["share/penguintvicon.png|penguintvicon.png"]
 p[PREFIX + 'share/icons/hicolor/64x64/hildon'] = ["share/pixmaps/64x64/penguintvicon.png|penguintvicon.png"]

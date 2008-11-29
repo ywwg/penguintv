@@ -102,6 +102,7 @@ share/penguintv.service
 share/mozilla.css
 share/mozilla-planet.css
 share/mozilla-planet-hildon.css
+share/gtkhtml.css
 share/pixmaps/ev_online.png
 share/pixmaps/ev_offline.png
 share/pixmaps/throbber.gif
