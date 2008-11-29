@@ -275,7 +275,7 @@ class EntryView(gobject.GObject):
 		return None
 		
 	def progress_update(self, entry_id, feed_id):
-		update_if_selected(entry_id, feed_id)
+		self.update_if_selected(entry_id, feed_id)
 	
 	def update_if_selected(self, entry_id, feed_id):
 		"""tests to see if this is the currently-displayed entry, 
