@@ -1,5 +1,6 @@
-2008-10-04  Owen Williams  <owen-maemo@ywwg.com>
+2008-11-29  Owen Williams  <owen@ywwg-1330>
 
-	* (maemo) Improve load time and UI of maemo version
+	* (maemo) Use gtkhtml instead of mozilla on maemo to reduce RAM usage
+
 
 
