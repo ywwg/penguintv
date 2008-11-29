@@ -19,11 +19,14 @@ from utils import format_size
 
 import utils
 
-try:
-	import gnome
-	HAS_GNOME = True
-except:
+if utils.RUNNING_HILDON:
 	HAS_GNOME = False
+else:
+	try:
+		import gnome
+		HAS_GNOME = True
+	except:
+		HAS_GNOME = False
 
 from penguintv import DOWNLOAD_ERROR, DOWNLOAD_PROGRESS, DOWNLOAD_WARNING, DOWNLOAD_QUEUED
 from Downloader import QUEUED, DOWNLOADING, FINISHED, FINISHED_AND_PLAY, STOPPED, FAILURE, PAUSED
@@ -188,8 +191,12 @@ class MediaManager:
 		return str(self.id_time)+"+"+str(self.time_appendix)
 		
 	def show_downloads(self):
+		url = "file://"+self._media_dir+"/"+utils.get_dated_dir()
 		if HAS_GNOME:
-			gnome.url_show("file://"+self._media_dir+"/"+utils.get_dated_dir())
+			gnome.url_show(url)
+		else:
+			import webbrowser
+			webbrowser.open_new_tab(url)
 		
 	def download_entry(self, entry_id, queue=False, resume=False):
 		"""queues a download

@@ -28,12 +28,12 @@ except:
 
 try:
 	if RUNNING_HILDON:
-		GTK_OK = False
+		DO_GTK_CHECKS = False
 	else:
 		import gtk
-		GTK_OK = True
+		DO_GTK_CHECKS = True
 except:
-	GTK_OK = False
+	DO_GTK_CHECKS = False
 	
 
 
@@ -68,7 +68,7 @@ if RUNNING_SUGAR:
 	except:
 		HAS_GSTREAMER = False
 else:
-	if GTK_OK:
+	if DO_GTK_CHECKS:
 		try:
 			import gtkmozembed
 			HAS_MOZILLA = True
@@ -105,15 +105,16 @@ else:
 		except:
 			HAS_GCONF = False
 		
-	try:
-		import gnomevfs
-		HAS_GNOMEVFS = True
-	except:
+	if DO_GTK_CHECKS:
 		try:
-			from gnome import gnomevfs
+			import gnomevfs
 			HAS_GNOMEVFS = True
 		except:
-			HAS_GNOMEVFS = False
+			try:
+				from gnome import gnomevfs
+				HAS_GNOMEVFS = True
+			except:
+				HAS_GNOMEVFS = False
 		
 	try:
 		from xml.sax.handler import ContentHandler
@@ -125,7 +126,7 @@ else:
 		except:
 			HAS_PYXML = False
 		
-	if GTK_OK and not RUNNING_HILDON:
+	if DO_GTK_CHECKS and not RUNNING_HILDON:
 		if gtk.pygtk_version >= (2, 10, 0):
 			HAS_STATUS_ICON = True
 		else:
@@ -149,6 +150,7 @@ if RUNNING_HILDON:
 	#having a status icon causes tons of problems (causes hildonn UI to crash)
 	HAS_STATUS_ICON = False
 	HAS_MOZILLA = True
+	HAS_GNOMEVFS = False
 	
 #DEBUG
 #_USE_KDE_OVERRIDE=False

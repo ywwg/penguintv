@@ -34,12 +34,6 @@ import logging
 logging.basicConfig(level=logging.DEBUG)
 
 import urllib
-try:
-	import gnome
-	import gnome.ui
-	HAS_GNOME=True
-except:
-	HAS_GNOME=False
 
 import time
 import sets
@@ -85,6 +79,16 @@ import Poller
 
 import PreferencesDialog
 import MainWindow, FeedList
+
+if utils.RUNNING_HILDON:
+	HAS_GNOME = False
+else:
+	try:
+		import gnome
+		import gnome.ui
+		HAS_GNOME=True
+	except:
+		HAS_GNOME=False
 
 if utils.HAS_STATUS_ICON:
 	import PtvTrayIcon

@@ -53,7 +53,7 @@ class HTTPDownloader(Downloader):
 			curl.setopt(pycurl.FOLLOWLOCATION, 1)
 			curl.setopt(pycurl.MAXREDIRS, 5)
 			curl.setopt(pycurl.CONNECTTIMEOUT, 30)
-			curl.setopt(pycurl.NOSIGNAL, 1)
+			curl.setopt(pycurl.NOSIGNAL, 1) #makes downloading thread-safe
 			curl.setopt(pycurl.WRITEDATA, fp)
 			curl.setopt(pycurl.PROGRESSFUNCTION, self._wrap_progress_callback)
 			curl.setopt(pycurl.NOPROGRESS, 0)
