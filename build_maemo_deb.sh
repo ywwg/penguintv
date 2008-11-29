@@ -42,6 +42,8 @@ autoconf
 make distclean
 cd ../..
 
+cp PenguinTV.in bin/PenguinTV
+
 #running py2deb gets most of it out of the way, but more work needs to be done
 ./packaging/setup-py2deb.py
 if [ $? -ne 0 ] ; then

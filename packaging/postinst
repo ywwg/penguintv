@@ -1,9 +1,6 @@
 #!/bin/sh
 
-#don't ask for location if upgrading
-if [ "$1"x != "configure"x ] ; then
-	/usr/bin/maemo-select-menu-location penguintv-hildon.desktop Internet
-fi
+/usr/bin/maemo-select-menu-location penguintv-hildon.desktop Internet
 gtk-update-icon-cache -f /usr/share/icons/hicolor
 exit 0
 
