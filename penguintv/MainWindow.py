@@ -213,9 +213,9 @@ class MainWindow(gobject.GObject):
 	def Show(self, dock_widget = None):
 		"""shows the main window. if given a widget, it will put itself in the widget.  otherwise load a regular
 		application window"""
-		if not utils.HAS_MOZILLA and self.layout.endswith("planet"):
-			logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
-			self.layout = "standard"
+		#if not utils.HAS_MOZILLA and self.layout.endswith("planet"):
+		#	logging.warning("requested planet layout, but can't use because gtkmozembed isn't installed correctly (won't import)")
+		#	self.layout = "standard"
 		if utils.RUNNING_SUGAR:  #if we are in OLPC mode and just have to supply a widget...
 			self._status_view = None
 			self._disk_usage_widget = None
@@ -309,8 +309,8 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('separator11').hide()
 				self._widgetTree.get_widget('reindex_searches').hide()
 				self._widgetTree.get_widget('add_feed_filter').hide()
-			if not utils.HAS_MOZILLA:
-				self._widgetTree.get_widget('planet_layout').hide()
+			#if not utils.HAS_MOZILLA:
+			self._widgetTree.get_widget('planet_layout').hide()
 			if not utils.HAS_STATUS_ICON:
 				self._widgetTree.get_widget('show_notifications').hide()
 			self.window = self.app_window
