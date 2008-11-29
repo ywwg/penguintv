@@ -46,8 +46,6 @@ if utils.HAS_GCONF:
 		import gconf
 	except:
 		from gnome import gconf
-if utils.HAS_PYXML:
-	import OPML
 if utils.RUNNING_SUGAR: # or utils.RUNNING_HILDON:
 	USING_FLAG_CACHE = False
 else:
@@ -2921,6 +2919,7 @@ class ptvDB:
 	def export_OPML(self,stream):
 		if not utils.HAS_PYXML:
 			return
+		import OPML
 		self._db_execute(self._c, u'SELECT title, description, url FROM feeds ORDER BY UPPER(title)')
 		result = self._c.fetchall()
 		dataList = []
@@ -2954,6 +2953,7 @@ class ptvDB:
 			yield (-1,0)
 			return
 		if opml:
+			import OPML
 			try:
 				p = OPML.parse(stream)
 			except:
