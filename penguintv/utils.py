@@ -149,7 +149,7 @@ else:
 if RUNNING_HILDON:
 	#having a status icon causes tons of problems (causes hildonn UI to crash)
 	HAS_STATUS_ICON = False
-	HAS_MOZILLA = True
+	HAS_MOZILLA = False
 	HAS_GNOMEVFS = False
 	
 #DEBUG

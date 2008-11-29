@@ -2796,10 +2796,11 @@ Please upgrade back to the latest version of PenguinTV."""))
 	return True
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
-	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
-		print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 
+	if not utils.HAS_MOZILLA:
+		if not os.environ.has_key('MOZILLA_FIVE_HOME'):
+			print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 
 to prevent crashes."""
-		sys.exit(1)
+			sys.exit(1)
 		
 	gtk.gdk.threads_init()
 	
