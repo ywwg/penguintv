@@ -146,7 +146,7 @@ class OfflineImageCache:
 	
 		for url in rewrite_hash.keys():
 			try:
-				os.remove(os.path.join(cache_dir, rewrite_hash[url][0]))
+				os.remove(os.path.join(self._store_location, rewrite_hash[url][0]))
 			except Exception, e:
 				logging.warning("error removing file: %s" % str(e))
 				
