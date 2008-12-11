@@ -399,7 +399,7 @@ class MainWindow(gobject.GObject):
 		self._sugar_remove_button = ToolButton('gtk-remove')
 		vbox = gtk.VBox()
 		#vbox.set_size_request(300, 200)
-		label = gtk.Label(_('Really delete feed?'))
+		label = gtk.Label(_('Really remove feed?'))
 		vbox.pack_start(label)
 		hbox = gtk.HBox()
 		expander_label = gtk.Label(' ')
@@ -1410,8 +1410,8 @@ class MainWindow(gobject.GObject):
 		if selected:
 			self._notebook.set_current_page(N_FEEDS)
 			if not override:
-				dialog = gtk.Dialog(title=_("Really Delete Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_DELETE, gtk.RESPONSE_ACCEPT))
-				label = gtk.Label(_("Are you sure you want to delete this feed, all its entries, and all its media?  \nThis operation cannot be undone."))
+				dialog = gtk.Dialog(title=_("Really Remove Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_DELETE, gtk.RESPONSE_ACCEPT))
+				label = gtk.Label(_("Are you sure you want to remove this feed, all its entries, and all its media?  \nThis operation cannot be undone."))
 				dialog.vbox.pack_start(label, True, True, 0)
 				label.show()
 				dialog.set_transient_for(self._app.main_window.get_parent())

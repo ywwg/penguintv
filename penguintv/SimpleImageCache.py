@@ -39,6 +39,7 @@ class SimpleImageCache:
 		url = "file://" + filename
 		cache = self._check_cache(url)
 		if cache is not None:
+			#logging.debug("cached")
 			return cache
 
 		self._update_lock.acquire()
@@ -61,9 +62,11 @@ class SimpleImageCache:
 			return cache
 			
 		if url[0:4] == "file":
-			filename = url.split("file://")[1]
+			#logging.debug("local")
+			filename = url[7:]
 			return self.get_image_from_file(filename)
 		else:
+			#logging.debug("remote")
 			return self._get_http_image(url)
 			
 	def _get_http_image(self, url):

@@ -71,7 +71,9 @@ def correct_url(url, glade_prefix):
 	urllib._urlopener = my_url_opener(gtk.glade.XML(os.path.join(glade_prefix, 'dialogs.glade'), "dialog_login", 'penguintv'))
 	url_stream = None
 	try:
+		#logging.debug("opening url: %s" % url)
 		url_stream = urllib.urlopen(url)	
+		#logging.debug("done")
 	except socket.timeout:
 		raise BadFeedURL,"The website took too long to respond, and the connection timed out."
 	except IOError, e:
