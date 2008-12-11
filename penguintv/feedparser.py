@@ -57,7 +57,10 @@ _ = gettext.gettext
 	
 # HTTP "Accept" header to send to servers when downloading feeds.  If you don't
 # want to send an Accept header, set this to None.
-ACCEPT_HEADER = "application/atom+xml,application/rdf+xml,application/rss+xml,application/x-netcdf,application/xml;q=0.9,text/xml;q=0.2,*/*;q=0.1"
+#ACCEPT_HEADER = "application/atom+xml,application/rdf+xml,application/rss+xml,application/x-netcdf,application/xml;q=0.9,text/xml;q=0.2,*/*;q=0.1"
+#OWEN EDIT:
+#current.com and other sites don't like this, just turn it off
+ACCEPT_HEADER = None
 
 # List of preferred XML parsers, by SAX driver name.  These will be tried first,
 # but if they're not installed, Python will keep searching through its own list
