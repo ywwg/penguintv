@@ -15,7 +15,7 @@ import py2deb
 
 __modname__ = "penguintv"
 __version__ = "3.9.4"
-__build__ = "1" # Result is "0.5.8-1"
+__build__ = "2" # Result is "0.5.8-1"
 
 PREFIX="/usr/"
 
@@ -35,7 +35,7 @@ p.description="A full-featured RSS reader with built-in podcast support"
 p.author="Owen Williams"
 p.mail="owen-maemo@ywwg.com"
 p.depends = "python2.5, python2.5-pycurl, python2.5-xml, gconf2, python2.5-gnome, python2.5-gobject, python2.5-gtk2, python2.5-gstreamer, python2.5-imaging"
-p.section="user/communication"
+p.section="user/network"
 p.arch="any"
 p.urgency="low"
 p.distribution="diablo"

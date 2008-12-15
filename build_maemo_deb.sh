@@ -9,38 +9,47 @@ GPE_MICRO_VERSION="1"
 
 if [ "$1"x == "x" ] ; then
 	echo "Need a GPG key to sign with (with 0x) (try gpg --list-keys, use the 8 digit hex num)"
+	echo "also, can add --disable-gtkmozembed"
 	exit 1
 fi
 
 GPG_KEY="$1"
 
-echo "Preparing gtkmozembed first"
-cd gtkmozembed
-if [ ! -f gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2 ] ; then
-	wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
+BUILD_MOZ=1
+if [ "$2"x == "--disable-gtkmozembed"x ] ; then
+	echo "Disabling gtkmozembed"
+	BUILD_MOZ=0
+fi
+
+if [ $BUILD_MOZ == 1 ] ; then
+	echo "Preparing gtkmozembed first"
+	cd gtkmozembed
+	if [ ! -f gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2 ] ; then
+		wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
+		if [ $? -ne 0 ] ; then
+			echo "error downloading python gnome extras:"
+			echo wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
+			exit 1
+		fi
+	fi
+	
+	tar xfvj gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
 	if [ $? -ne 0 ] ; then
-		echo "error downloading python gnome extras:"
-		echo wget ftp://ftp.gnome.org/pub/gnome/sources/gnome-python-extras/"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
+		echo "error uncompressing python gnome extras"
 		exit 1
 	fi
+	
+	cd gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"
+	cat ../gnome-python-extras.diff | patch -p 0
+	if [ $? -ne 0 ] ; then
+		echo "error patching python gnome extras"
+		exit 1
+	fi
+	
+	autoconf
+	make distclean
+	cd ../..
 fi
-
-tar xfvj gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION".tar.bz2
-if [ $? -ne 0 ] ; then
-	echo "error uncompressing python gnome extras"
-	exit 1
-fi
-
-cd gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"
-cat ../gnome-python-extras.diff | patch -p 0
-if [ $? -ne 0 ] ; then
-	echo "error patching python gnome extras"
-	exit 1
-fi
-
-autoconf
-make distclean
-cd ../..
 
 cp PenguinTV.in bin/PenguinTV
 
@@ -57,16 +66,17 @@ for d in `find ./ -maxdepth 1 -type d | sort` ; do
 done
 cd $builddir
 
-
-#copy gnome-python-extras source which we extracted and patched above
-#also include the patch so people can see what I've done
-echo "copying gnome-python-extras source"
-mkdir gtkmozembed
-cp -a ../../gtkmozembed/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"/* gtkmozembed/
-cp ../../gtkmozembed/gnome-python-extras.diff gtkmozembed/
-cd debian
-cat ../../../packaging/rules.diff | patch -p 0
-cd ..
+if [ $BUILD_MOZ == 1 ] ; then
+	#copy gnome-python-extras source which we extracted and patched above
+	#also include the patch so people can see what I've done
+	echo "copying gnome-python-extras source"
+	mkdir gtkmozembed
+	cp -a ../../gtkmozembed/gnome-python-extras-"$GPE_MAJOR_VERSION"."$GPE_MINOR_VERSION"."$GPE_MICRO_VERSION"/* gtkmozembed/
+	cp ../../gtkmozembed/gnome-python-extras.diff gtkmozembed/
+	cd debian
+	cat ../../../packaging/rules.diff | patch -p 0
+	cd ..
+fi
 
 # Set up icon which will appear in application manager
 iconfile=`tempfile`
