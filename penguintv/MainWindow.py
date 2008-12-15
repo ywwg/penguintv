@@ -1410,7 +1410,7 @@ class MainWindow(gobject.GObject):
 		if selected:
 			self._notebook.set_current_page(N_FEEDS)
 			if not override:
-				dialog = gtk.Dialog(title=_("Really Remove Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_DELETE, gtk.RESPONSE_ACCEPT))
+				dialog = gtk.Dialog(title=_("Really Remove Feed?"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_CANCEL, gtk.RESPONSE_REJECT, gtk.STOCK_REMOVE, gtk.RESPONSE_ACCEPT))
 				label = gtk.Label(_("Are you sure you want to remove this feed, all its entries, and all its media?  \nThis operation cannot be undone."))
 				dialog.vbox.pack_start(label, True, True, 0)
 				label.show()
