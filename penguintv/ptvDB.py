@@ -1372,6 +1372,7 @@ class ptvDB:
 					errno = e[0]
 					if errno in (#-2, # Name or service not known 
 								-3, #failure in name resolution   
+								101, #Network is unreachable
 								114, #Operation already in progress
 								11):  #Resource temporarily unavailable
 						raise IOError(e)	
@@ -1383,6 +1384,7 @@ class ptvDB:
 			#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 			#self._db.commit()
 			perform_feed_updates(feed_updates, feed_id)
+			#logging.debug("empty: %s"  % str(data))
 			raise FeedPollError,(feed_id,"empty feed")
 			
 		#else...
