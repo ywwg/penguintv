@@ -234,6 +234,7 @@ class UrlCacher:
 	FAIL = -1
 	NOT_DOWNLOADED = 0
 	DOWNLOADED = 1
+	RETRY_LIMIT = 1
 
 	def __init__(self, guid, store_location, threadpool, finished_cb):
 		self._guid = str(guid)
@@ -268,7 +269,7 @@ class UrlCacher:
 	def get_rewrite_hash(self):
 		return self._cache_status.copy()
 	
-	def _download_image(self, args):
+	def _download_image(self, args, retry=0):
 		""" downloads an image at url, and stores it as local filename.
 			threaded"""
 		
@@ -287,8 +288,11 @@ class UrlCacher:
 			urllib.urlretrieve(url, os.path.join(self._store_location, local_filename))
 		except:
 			#TODO: any need to check if we have to delete half-dled file?
-			return (url, False)
-			
+			if retry >= RETRY_LIMIT:
+				return (url, False)
+			else:
+				return self._download_image(args, retry+1)
+
 		return (url, True)
 		
 	@threaded_callback()

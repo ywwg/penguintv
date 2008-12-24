@@ -1124,9 +1124,9 @@ class ptvDB:
 		
 		#save ram by not piling up polled data
 		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
-			parse_list_limit = 2
+			parse_list_limit = 10
 		else:
-			parse_list_limit = 5
+			parse_list_limit = 50
 		
 		while len(self._parse_list) > parse_list_limit and not self._exiting:
 			time.sleep(1)
