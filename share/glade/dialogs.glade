@@ -655,7 +655,7 @@ j@v2v.cc
           </packing>
         </child>
         <child>
-          <widget class="GtkScrolledWindow" id="scrolledwindow17">
+          <widget class="GtkScrolledWindow" id="d_v_scrolledwindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
             <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
