@@ -10,6 +10,9 @@ import MediaManager
 import ptvDB
 import utils
 
+if utils.RUNNING_HILDON:
+	import hildon
+
 from Downloader import PAUSED, STOPPED, QUEUED
 
 D_MEDIA_ID           = 0
@@ -62,6 +65,10 @@ class DownloadView:
 			widget_tree.get_widget('pause_toolbutton').set_icon_name('stock-media-pause')
 			widget_tree.get_widget('resume_toolbutton').set_stock_id(None)
 			widget_tree.get_widget('resume_toolbutton').set_icon_name('stock-go-down')
+
+		if utils.RUNNING_HILDON:
+			sw = widget_tree.get_widget('d_v_scrolledwindow')
+			hildon.hildon_helper_set_thumb_scrollbar(sw, True)
 				
 		self._widget = widget_tree.get_widget('download_view')
 		self._resume_button = widget_tree.get_widget('resume_toolbutton')

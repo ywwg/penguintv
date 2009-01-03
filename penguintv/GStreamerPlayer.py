@@ -110,6 +110,8 @@ class GStreamerPlayer(gobject.GObject):
 		s_w = gtk.ScrolledWindow()
 		s_w.set_shadow_type(gtk.SHADOW_IN)
 		s_w.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
+		if RUNNING_HILDON:
+			hildon.hildon_helper_set_thumb_scrollbar(s_w, True)
 		self._queue_listview = gtk.TreeView()
 		model = gtk.ListStore(str, str, str, gobject.TYPE_PYOBJECT) #uri, title to display, current track indicator, user data
 		self._queue_listview.set_model(model)

@@ -427,8 +427,8 @@ class PenguinTVApp(gobject.GObject):
 		self._remote_poller_pid = -2
 		rundir = os.path.split(utils.__file__)[0]
 		if rundir == "": rundir = "./"
-		logging.debug("running poller: %s %s" % ('/usr/bin/env python2.5', os.path.join(rundir, 'Poller.py')))
-		subprocess.Popen(['/usr/bin/env', 'python2.5', 
+		logging.debug("running poller: %s %s" % ('/usr/bin/env python', os.path.join(rundir, 'Poller.py')))
+		subprocess.Popen(['/usr/bin/env', 'python', 
 			os.path.join(rundir, 'Poller.py')])
 	
 	def _get_poller(self):

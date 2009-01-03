@@ -15,7 +15,8 @@ import utils
 import IconManager
 import MainWindow
 
-
+if utils.RUNNING_HILDON:
+	import hildon
 
 NONE=-1 #unused, needs a value
 ALL=0
@@ -77,6 +78,8 @@ class FeedList(gobject.GObject):
 		self._app = app
 		self._icon_manager = IconManager.IconManager(self._app.db.home)
 		self._scrolled_window = widget_tree.get_widget('feed_scrolled_window')
+		if utils.RUNNING_HILDON:
+			hildon.hildon_helper_set_thumb_scrollbar(self._scrolled_window, True)
 		self._va = self._scrolled_window.get_vadjustment()
 		self._widget = widget_tree.get_widget('feedlistview')
 		self._entry_list_widget = widget_tree.get_widget('entrylistview')
