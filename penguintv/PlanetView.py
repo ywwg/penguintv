@@ -104,7 +104,7 @@ class PlanetView(gobject.GObject):
 		self._scrolled_window = gtk.ScrolledWindow()
 		if utils.RUNNING_HILDON:
 			hildon.hildon_helper_set_thumb_scrollbar(self._scrolled_window, True)
-			#vbox = gtk.VBox()
+			vbox = gtk.VBox()
 			#hbox = gtk.HBox()
 			#b = gtk.Button(stock=gtk.STOCK_GO_BACK)
 			#b.connect("clicked", self._do_pane_back)
@@ -113,21 +113,21 @@ class PlanetView(gobject.GObject):
 		#	l = gtk.Label("")
 		#	hbox.pack_start(l, True, True)
 		#	vbox.pack_start(hbox, False, False)
-		#	vbox.pack_start(self._scrolled_window, True, True)
-		#	hbox = gtk.HBox()
-		#	self._back_button = gtk.Button(stock=gtk.STOCK_GO_BACK)
-		#	self._back_button.connect("clicked", self._do_planet_up)
-		#	hbox.pack_start(self._back_button, False, False)
-		#	l = gtk.Label("")
-		#	hbox.pack_start(l, True, True)
-		#	self._forward_button = gtk.Button(stock=gtk.STOCK_GO_FORWARD)
-		#	self._forward_button.connect("clicked", self._do_planet_down)
-		#	hbox.pack_start(self._forward_button, False, False)
-		#	hbox.set_property("height-request", 40)
-		#	vbox.pack_start(hbox, False, False)
-		#	self._html_dock.add(vbox)
-		#else:
-		self._html_dock.add(self._scrolled_window)
+			vbox.pack_start(self._scrolled_window, True, True)
+			hbox = gtk.HBox()
+			self._back_button = gtk.Button(label=_("Newer Entries"))
+			self._back_button.connect("clicked", self._do_planet_up)
+			hbox.pack_start(self._back_button, False, False)
+			l = gtk.Label("")
+			hbox.pack_start(l, True, True)
+			self._forward_button = gtk.Button(label=_("Older Entries"))
+			self._forward_button.connect("clicked", self._do_planet_down)
+			hbox.pack_start(self._forward_button, False, False)
+			hbox.set_property("height-request", 36)
+			vbox.pack_start(hbox, False, False)
+			self._html_dock.add(vbox)
+		else:
+			self._html_dock.add(self._scrolled_window)
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_flags(self._scrolled_window.flags() & gtk.CAN_FOCUS) 
@@ -556,9 +556,13 @@ class PlanetView(gobject.GObject):
 			if self._renderer == EntryFormatter.GTKHTML:
 				self._gtkhtml_reset_image_dl()
 			
-		#if utils.RUNNING_HILDON:
-		#	self._back_button.hide()
-		#	self._forward_button.hide()
+		if utils.RUNNING_HILDON:
+			self._back_button.hide()
+			self._forward_button.hide()
+
+		if self._renderer == EntryFormatter.GTKHTML:	
+			self._scrolled_window.get_hadjustment().set_value(0)
+			self._scrolled_window.get_vadjustment().set_value(0)
 
 		if self._filter_feed is not None:
 			assert self._state == S_SEARCH
@@ -643,18 +647,18 @@ class PlanetView(gobject.GObject):
 					<tr><td>""")
 		if self._first_entry > 0:
 			if utils.RUNNING_HILDON:
-				html.append(_('<a href="planet:up" style="font-size: 20pt">Newer Entries</a>'))
+				#html.append(_('<a href="planet:up" style="font-size: 20pt">Newer Entries</a>'))
 				#html.append("""<button type="button" onclick="parent.location='planet:up'">Newer Entries</button>""")
-				#self._back_button.show()
+				self._back_button.show()
 			else:
 				html.append(_('<a href="planet:up">Newer Entries</a>'))
 		
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
 			if utils.RUNNING_HILDON:
-				html.append(_('<a href="planet:down" style="font-size: 20pt">Older Entries</a>'))
+				#html.append(_('<a href="planet:down" style="font-size: 20pt">Older Entries</a>'))
 				#html.append("""<button type="button" onclick="parent.location='planet:up'">Older Entries</button>""")
-				#self._forward_button.show()
+				self._forward_button.show()
 			else:
 				html.append(_('<a href="planet:down">Older Entries</a>'))
 			
@@ -671,13 +675,15 @@ class PlanetView(gobject.GObject):
 					<tr><td>""")
 		if self._first_entry > 0:
 			if utils.RUNNING_HILDON:
-				html.append(_('<a href="planet:up" style="font-size: 20pt">Newer Entries</a>'))
+				#html.append(_('<a href="planet:up" style="font-size: 20pt">Newer Entries</a>'))
+				pass
 			else:
 				html.append(_('<a href="planet:up">Newer Entries</a>'))
 		html.append('</td><td style="text-align: right;">')
 		if self._last_entry < len(entrylist):
 			if utils.RUNNING_HILDON:
-				html.append(_('<a href="planet:down" style="font-size: 20pt">Older Entries</a>'))
+				#html.append(_('<a href="planet:down" style="font-size: 20pt">Older Entries</a>'))
+				pass
 			else:
 				html.append(_('<a href="planet:down">Older Entries</a>'))
 		html.append("</td></tr></tbody></table></div>")
@@ -1134,13 +1140,13 @@ class PlanetView(gobject.GObject):
 	
 	def _do_planet_up(self, a=None):
 		self._first_entry -= ENTRIES_PER_PAGE
-		if self._renderer == EntryFormatter.GTKHTML:
+		if self._renderer == EntryFormatter.GTKHTML:	
 			self._gtkhtml_reset_image_dl()
 		self._render_entries(mark_read=True)
 		
 	def _do_planet_down(self, a=None):
 		self._first_entry += ENTRIES_PER_PAGE
-		if self._renderer == EntryFormatter.GTKHTML:
+		if self._renderer == EntryFormatter.GTKHTML:	
 			self._gtkhtml_reset_image_dl()
 		self._render_entries(mark_read=True)
 		
