@@ -104,6 +104,29 @@ class PlanetView(gobject.GObject):
 		self._scrolled_window = gtk.ScrolledWindow()
 		if utils.RUNNING_HILDON:
 			hildon.hildon_helper_set_thumb_scrollbar(self._scrolled_window, True)
+			#vbox = gtk.VBox()
+			#hbox = gtk.HBox()
+			#b = gtk.Button(stock=gtk.STOCK_GO_BACK)
+			#b.connect("clicked", self._do_pane_back)
+			#hbox.set_property("height-request", 40)
+		#	hbox.pack_start(b, False, False)
+		#	l = gtk.Label("")
+		#	hbox.pack_start(l, True, True)
+		#	vbox.pack_start(hbox, False, False)
+		#	vbox.pack_start(self._scrolled_window, True, True)
+		#	hbox = gtk.HBox()
+		#	self._back_button = gtk.Button(stock=gtk.STOCK_GO_BACK)
+		#	self._back_button.connect("clicked", self._do_planet_up)
+		#	hbox.pack_start(self._back_button, False, False)
+		#	l = gtk.Label("")
+		#	hbox.pack_start(l, True, True)
+		#	self._forward_button = gtk.Button(stock=gtk.STOCK_GO_FORWARD)
+		#	self._forward_button.connect("clicked", self._do_planet_down)
+		#	hbox.pack_start(self._forward_button, False, False)
+		#	hbox.set_property("height-request", 40)
+		#	vbox.pack_start(hbox, False, False)
+		#	self._html_dock.add(vbox)
+		#else:
 		self._html_dock.add(self._scrolled_window)
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
@@ -238,7 +261,7 @@ class PlanetView(gobject.GObject):
 			self._scrolled_window.set_vadjustment(htmlview.get_vadjustment())
 			
 			self._document.clear()
-			htmlview.set_document(self._document)		
+			htmlview.set_document(self._document)
 			self._scrolled_window.add(htmlview)
 			self._htmlview = htmlview
 			self._document_lock = threading.Lock()
@@ -533,6 +556,10 @@ class PlanetView(gobject.GObject):
 			if self._renderer == EntryFormatter.GTKHTML:
 				self._gtkhtml_reset_image_dl()
 			
+		#if utils.RUNNING_HILDON:
+		#	self._back_button.hide()
+		#	self._forward_button.hide()
+
 		if self._filter_feed is not None:
 			assert self._state == S_SEARCH
 			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
@@ -617,6 +644,8 @@ class PlanetView(gobject.GObject):
 		if self._first_entry > 0:
 			if utils.RUNNING_HILDON:
 				html.append(_('<a href="planet:up" style="font-size: 20pt">Newer Entries</a>'))
+				#html.append("""<button type="button" onclick="parent.location='planet:up'">Newer Entries</button>""")
+				#self._back_button.show()
 			else:
 				html.append(_('<a href="planet:up">Newer Entries</a>'))
 		
@@ -624,6 +653,8 @@ class PlanetView(gobject.GObject):
 		if self._last_entry < len(entrylist):
 			if utils.RUNNING_HILDON:
 				html.append(_('<a href="planet:down" style="font-size: 20pt">Older Entries</a>'))
+				#html.append("""<button type="button" onclick="parent.location='planet:up'">Older Entries</button>""")
+				#self._forward_button.show()
 			else:
 				html.append(_('<a href="planet:down">Older Entries</a>'))
 			
@@ -1088,19 +1119,30 @@ class PlanetView(gobject.GObject):
 		
 	def _link_clicked(self, link):
 		if link == "planet:up":
-			self._first_entry -= ENTRIES_PER_PAGE
-			if self._renderer == EntryFormatter.GTKHTML:
-				self._gtkhtml_reset_image_dl()
-			self._render_entries(mark_read=True)
+			self._do_planet_up()
 		elif link == "planet:down":
-			self._first_entry += ENTRIES_PER_PAGE
-			if self._renderer == EntryFormatter.GTKHTML:
-				self._gtkhtml_reset_image_dl()
-			self._render_entries(mark_read=True)
+			self._do_planet_down()
+		elif link == "pane:back":
+			self._do_pane_back()
 		elif link.startswith("rightclick"):
 			self._do_context_menu(int(link.split(':')[1]))
 		else:
 			self.emit('link-activated', link)
+
+	def _do_pane_back(self, a=None):
+		self._main_window.pane_to_feeds()
+	
+	def _do_planet_up(self, a=None):
+		self._first_entry -= ENTRIES_PER_PAGE
+		if self._renderer == EntryFormatter.GTKHTML:
+			self._gtkhtml_reset_image_dl()
+		self._render_entries(mark_read=True)
+		
+	def _do_planet_down(self, a=None):
+		self._first_entry += ENTRIES_PER_PAGE
+		if self._renderer == EntryFormatter.GTKHTML:
+			self._gtkhtml_reset_image_dl()
+		self._render_entries(mark_read=True)
 		
 	def set_hide_viewed(self, state):
 		if state == self._hide_viewed:

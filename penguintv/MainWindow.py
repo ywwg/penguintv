@@ -683,7 +683,7 @@ class MainWindow(gobject.GObject):
 			self.feed_pane = components.get_widget('feed_pane')
 		else:
 			self.feed_tabs = components.get_widget('feed_tabs')
-			self.feed_tabs.set_current_page(1)
+			self.feed_tabs.set_current_page(0)
 			self.feed_pane = None
 		self._feedlist = components.get_widget('feedlistview')
 		if self.layout.endswith("planet"):
