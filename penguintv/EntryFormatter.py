@@ -102,7 +102,7 @@ class EntryFormatter:
 				ret.append('%s' % item['description'])
 		ret.append('</div>')
 		if item.has_key('link'):
-			ret.append('<a href="' + item['link'] + '">' + _("Full Entry...") + '</a>')
+			ret.append('<a href="' + item['link'] + '">' + _("Open in Browser...") + '</a>')
 		ret.append('</p></div>')
 		#print "\n".join(ret)
 		return "\n".join(ret)

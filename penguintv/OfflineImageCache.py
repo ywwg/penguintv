@@ -288,7 +288,7 @@ class UrlCacher:
 			urllib.urlretrieve(url, os.path.join(self._store_location, local_filename))
 		except:
 			#TODO: any need to check if we have to delete half-dled file?
-			if retry >= RETRY_LIMIT:
+			if retry >= UrlCacher.RETRY_LIMIT:
 				return (url, False)
 			else:
 				return self._download_image(args, retry+1)

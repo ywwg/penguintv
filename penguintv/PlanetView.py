@@ -1067,6 +1067,13 @@ class PlanetView(gobject.GObject):
 			except ptvDB.NoEntry:
 				return
 				
+			item = gtk.MenuItem(_("_Open in Browser..."))
+			item.connect('activate', lambda e: self._app.activate_link(entry['link']))
+			menu.append(item)
+			
+			#separator = gtk.SeparatorMenuItem()
+			#menu.append(separator)
+				
 			entry['flag'] = self._db.get_entry_flag(entry_id)
 			
 			if entry['flag'] & ptvDB.F_MEDIA:

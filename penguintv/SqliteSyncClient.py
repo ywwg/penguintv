@@ -248,12 +248,12 @@ class SqliteSyncClient:
 		self._no_updates = False
 		
 		try:
-			assert self._db_exists()
-			#if not self._db_exists():
-			#	return self._create_db()
+			if not self._db_exists():
+				logging.error("no db found: %s" % str(e))
+				self._bad_db = True
+				return None
 		except Exception, e:
-			logging.error("no db found: %s" % str(e))
-			self._bad_db = True
+			logging.warning("No internet connection, cancelling")
 			return None
 			
 		try:
