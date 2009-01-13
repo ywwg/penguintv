@@ -77,6 +77,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._prepare_save = False
 		self._do_stop_resume = False
 		self._has_video = False
+		self._using_playbin2 = True
 		
 		self._error_dialog = GStreamerErrorDialog()
 		
@@ -250,10 +251,18 @@ class GStreamerPlayer(gobject.GObject):
 		main_vbox.pack_start(self._controls_hbox, False)
 		self._layout_dock.add(main_vbox)
 		
-		#Gstreamer init
-		try:
-			self._pipeline = gst.element_factory_make("playbin2", "ptv_bin")
-		except:
+		self.gstreamer_init()
+	
+		self._layout_dock.show_all()
+
+	def gstreamer_init(self):
+		if self._using_playbin2:
+			try:
+				self._pipeline = gst.element_factory_make("playbin2", "ptv_bin")
+			except:
+				self._using_playbin2 = False
+				self._pipeline = gst.element_factory_make("playbin", "ptv_bin")
+		else:
 			self._pipeline = gst.element_factory_make("playbin", "ptv_bin")
 		#use default audio sink, but get our own video sink
 		self._v_sink = self._get_video_sink()
@@ -267,8 +276,6 @@ class GStreamerPlayer(gobject.GObject):
 		bus.connect('message', self._on_gst_message)
 		#bus.connect('sync-message::element', self._on_sync_message)
 
-		self._layout_dock.show_all()
-		
 	def get_widget(self):
 		return self._layout_dock
 		
@@ -314,7 +321,9 @@ class GStreamerPlayer(gobject.GObject):
 			filename = gst.uri_get_location(uri)
 			self.emit('item-queued', filename, name, userdata)
 		if self.__is_exposed:
-			self._seek_to_saved_position()
+			if not self._seek_to_saved_position():
+				#retry once
+				self._seek_to_saved_position()
 		playlist.close()
 		
 	def save(self):
@@ -442,7 +451,10 @@ class GStreamerPlayer(gobject.GObject):
 			if self._do_stop_resume:
 				self._do_stop_resume = False
 				self._prepare_display()
-				self._seek_to_saved_position()
+				if not self._seek_to_saved_position():
+					#gstreamer error, recall ourselves
+					self.play()
+					return
 		self._pipeline.set_state(gst.STATE_PLAYING)
 		if not RUNNING_HILDON:
 			image = gtk.Image()
@@ -706,7 +718,9 @@ class GStreamerPlayer(gobject.GObject):
 			model = self._queue_listview.get_model()
 			if len(model) > 0:
 				#self._prepare_display()
-				self._seek_to_saved_position()
+				if not self._seek_to_saved_position():
+					#retry once
+					self._seek_to_saved_position()
 			self.__is_exposed = True
 				
 	###utility functions###
@@ -876,10 +890,21 @@ class GStreamerPlayer(gobject.GObject):
 		self.play(True)
 		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
-			print "some problem changing state to play"
+			print "some problem changing state to play, may be playbin2 issue?"
+			self._using_playbin2 = False
+			self.stop()
+			self._pipeline.set_state(gst.STATE_NULL)
+			self.gstreamer_init()
+			self._last_index = -1 #trigger play() to reinit the pipe
+			return False
 		self.pause()
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			print "some problem changing state to pause"
+			self._using_playbin2 = False
+			self._pipeline.set_state(gst.STATE_NULL)
+			self.gstreamer_init()
+			self._last_index = -1 #trigger play() to reinit the pipe
+			return False
 		self._media_position, self._media_duration = pos, dur
 		self.seek(self._media_position)
 		if self._media_duration <= 0:
@@ -900,6 +925,8 @@ class GStreamerPlayer(gobject.GObject):
 				return False
 				
 			gobject.idle_add(pop_trap)
+		
+		return True
 		
 	def _tick(self):
 		self.__no_seek = True
