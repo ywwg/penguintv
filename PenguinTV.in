@@ -15,7 +15,7 @@
 ## Run mozilla takes care of settin up the appropriate environment variables
 ## to run a program using mozilla libs
 
-if [ "$1"x == "--no-launcher"x ] ; then
+if [ "$1"x = "--no-launcher"x ] ; then
 	USE_LAUNCHER=0
 	shift
 else
