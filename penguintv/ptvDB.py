@@ -1369,14 +1369,21 @@ class ptvDB:
 			if data.has_key('bozo_exception'):
 				if isinstance(data['bozo_exception'], URLError):
 					e = data['bozo_exception'][0]
+					#logging.debug(str(e))
 					errno = e[0]
 					if errno in (#-2, # Name or service not known 
 								-3, #failure in name resolution   
 								101, #Network is unreachable
 								114, #Operation already in progress
 								11):  #Resource temporarily unavailable
-						raise IOError(e)	
-			
+						raise IOError(e)
+					elif errno == -2: #could be no site, could be no internet
+						try:
+							#this really should work, right?
+							#fixme: let's find a real way to test internet, hm?
+							u = urllib.urlretrieve("http://www.google.com")
+						except IOError, e2:
+							raise IOError(e)
 			feed_updates = {}
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
 				feed_updates = self._set_new_update_freq(feed, 0)
