@@ -510,7 +510,10 @@ class PenguinTVApp(gobject.GObject):
 		return True
 		
 	def _setup_article_sync(self):
-		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
+		if utils.ENABLE_ARTICLESYNC:
+			enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
+		else:
+			enabled = False
 		plugin = self.db.get_setting(ptvDB.STRING, '/apps/penguintv/article_sync_plugin', "")
 		readonly = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_readonly', False)
 		article_sync = ArticleSync.ArticleSync(self, self._entry_view,  plugin, 

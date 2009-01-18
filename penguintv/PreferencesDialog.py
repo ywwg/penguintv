@@ -78,6 +78,9 @@ class PreferencesDialog:
 			self._window.show_all()
 		if not utils.HAS_STATUS_ICON:
 			self.show_notification_always.hide()
+		if not utils.ENABLE_ARTICLESYNC:
+			self.xml.get_widget("sync_contents").hide()
+			self.xml.get_widget("notebook3").set_show_tabs(False)
 		        
 	def extract_content(self):
 		vbox = self.xml.get_widget('prefs_vbox')

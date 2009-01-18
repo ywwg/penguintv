@@ -175,6 +175,9 @@ HAS_PYNOTIFY = False
 #HAS_GNOMEVFS = False
 #HAS_MOZILLA=False
 
+#too buggy, disable for release
+ENABLE_ARTICLESYNC=False
+
 def get_home():
 	if RUNNING_SUGAR:
 		import sugar.env
