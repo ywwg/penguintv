@@ -2274,6 +2274,8 @@ class PenguinTVApp(gobject.GObject):
 		
 	def _gconf_set_use_article_sync(self, client, *args, **kwargs):
 		enabled = self.db.get_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', False)
+		if not utils.ENABLE_ARTICLESYNC:
+			enabled = False
 		self.set_use_article_sync(enabled)
 		self.window_preferences.set_use_article_sync(enabled)
 		if enabled:
