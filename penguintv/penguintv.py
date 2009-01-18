@@ -2641,7 +2641,11 @@ def do_commandline(remote_app=None, local_app=None):
 				if local_app is None:
 					remote_app.AddFeed(a)
 				else:
-					local_app.add_feed(a, a)
+					if utils.RUNNING_SUGAR:
+						local_app.sugar_add_button.popup()
+					else:
+						local_app.main_window.show_window_add_feed(False)
+					local_app.main_window.set_window_add_feed_location(url)
 			elif o == '--play':
 				if remote_app is not None:
 					remote_app.Play()
@@ -2659,10 +2663,15 @@ def do_commandline(remote_app=None, local_app=None):
 					remote_app.PlayPause()
 				
 	if len(opts) == 0 and len(sys.argv) > 1:
+		url = sys.argv[1]
 		if local_app is None:
-			remote_app.AddFeed(sys.argv[1])
+			remote_app.AddFeed(url)
 		else:
-			local_app.add_feed(sys.argv[1], sys.argv[1])
+			if utils.RUNNING_SUGAR:
+				local_app.sugar_add_button.popup()
+			else:
+				local_app.main_window.show_window_add_feed(False)
+			local_app.main_window.set_window_add_feed_location(url)
 			
 	if len(opts) == 0 and len(sys.argv) == 1 and local_app is None:
 		usage()
