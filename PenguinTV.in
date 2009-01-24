@@ -25,6 +25,10 @@ fi
 
 HILDON=0
 RUNMOZ_DIR=""
+if [ "$PYTHON"x == "x" ] ; then
+	PYTHON="/usr/bin/env python"
+fi
+
 if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
 	HILDON=1
 	echo "Launching Hildon version"
@@ -54,7 +58,7 @@ elif [ -f "../penguintv/penguintv.py" ] ; then
 elif [ -d "/usr/lib/python2.5/site-packages/penguintv" ] ; then
 	ptv_home="/usr/lib/python2.5/site-packages/penguintv"
 else
-	ptv_home=`/usr/bin/env python -c "import os, sys; 
+	ptv_home=`$PYTHON -c "import os, sys; 
 if os.environ.has_key('PENGUINTV_LIB'): 
     print os.environ['PENGUINTV_LIB'];  
     sys.exit(0); 
@@ -94,12 +98,12 @@ if [ $HILDON -eq 1 ] ; then
 else
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	if [ $WITH_MOZ_DIR = "" ] ; then
+	if [ "$WITH_MOZ_DIR"x = "x" ] ; then
 		echo "WARNING: COULD NOT FIND FIREFOX LIBRARIES"
-		echo "WARNING: CONDUIT MAY CRASH UNEXPECTEDLY"
+		echo "WARNING: PENGUINTV MAY CRASH UNEXPECTEDLY"
 		echo "Please export WITH_MOZ_DIR with the location of run-mozilla.sh to correct this issue"
-		/usr/bin/env python ./penguintv.py $*
+		$PYTHON ./penguintv.py $*
 	else
-		$WITH_MOZ_DIR/run-mozilla.sh /usr/bin/env python ./penguintv.py $*
+		$WITH_MOZ_DIR/run-mozilla.sh $PYTHON ./penguintv.py $*
 	fi
 fi
