@@ -641,9 +641,11 @@ class MainWindow(gobject.GObject):
 		#renderer = EntryFormatter.GTKHTML
 		if utils.RUNNING_HILDON:
 			renderer = EntryFormatter.GTKHTML
-		else:
-			assert utils.HAS_MOZILLA
+		elif utils.HAS_MOZILLA:
 			renderer = EntryFormatter.MOZILLA
+		else:
+			logging.warning("Mozilla (gtkmozembed) not found, falling back to GTKHTML")
+			renderer = EntryFormatter.GTKHTML
 		#
 		#if self.layout.endswith("planet") and renderer != EntryFormatter.MOZILLA:
 		#	self.layout = "standard"

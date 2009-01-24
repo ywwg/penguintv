@@ -75,7 +75,8 @@ import Player
 import UpdateTasksManager
 import Downloader
 import ArticleSync
-import Poller
+if HAS_DBUS:
+	import Poller
 
 import PreferencesDialog
 import MainWindow, FeedList

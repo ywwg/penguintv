@@ -14,6 +14,7 @@ import utils
 from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, MAJOR_DB_OPERATION
 import EntryFormatter
 import Downloader
+import ThreadPool
 
 if not utils.RUNNING_HILDON:
 	try:
@@ -31,6 +32,8 @@ if not utils.RUNNING_HILDON:
 #states
 S_DEFAULT = 0
 S_SEARCH  = 1
+
+IMG_REGEX = re.compile("<img.*?src=[\",\'](.*?)[\",\'].*?>", re.IGNORECASE|re.DOTALL)
 
 class EntryView(gobject.GObject):
 
@@ -124,6 +127,18 @@ class EntryView(gobject.GObject):
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
 		
+		if self._renderer == EntryFormatter.GTKHTML:
+			f = open(os.path.join(utils.get_share_prefix(), "gtkhtml.css"))
+			#f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
+			for l in f.readlines(): self._css += l
+			f.close()
+			self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
+			self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
+			self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
+			#self._image_lock = threading.Lock()
+			self._dl_total = 0
+			self._dl_count = 0
+		
 	def post_show_init(self):
 		html_dock = self._widget_tree.get_widget('html_dock')
 		if self._renderer==EntryFormatter.MOZILLA:
@@ -149,6 +164,27 @@ class EntryView(gobject.GObject):
 				self._conf = gconf.client_get_default()
 				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 			self._reset_moz_font()
+		elif self._renderer == EntryFormatter.GTKHTML:
+			import gtkhtml2
+			import SimpleImageCache
+			import threading
+			self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
+			htmlview = gtkhtml2.View()
+			self._document = gtkhtml2.Document()
+			self._document.connect("link-clicked", self._gtkhtml_link_clicked)
+			htmlview.connect("on_url", self._gtkhtml_on_url)
+			self._document.connect("request-url", self._gtkhtml_request_url)
+			htmlview.get_vadjustment().set_value(0)
+			htmlview.get_hadjustment().set_value(0)
+			self._scrolled_window.set_hadjustment(htmlview.get_hadjustment())
+			self._scrolled_window.set_vadjustment(htmlview.get_vadjustment())
+			
+			self._document.clear()
+			htmlview.set_document(self._document)
+			self._scrolled_window.add(htmlview)
+			self._htmlview = htmlview
+			self._document_lock = threading.Lock()
+			self._image_cache = SimpleImageCache.SimpleImageCache()
 			
 		html_dock.show_all()
 		
@@ -203,19 +239,19 @@ class EntryView(gobject.GObject):
 	#def __setting_changed_cb(self, app, typ, datum, value):
 	#	if datum == '/apps/penguintv/auto_mark_viewed':
 	#		self._auto_mark_viewed = value
-	
-	def on_url(self, view, url):
+
+	def _gtkhtml_on_url(self, view, url):
 		if url == None:
 			url = ""
 		self._main_window.display_status_message(url)
-		
+	
+	def _gtkhtml_link_clicked(self, document, link):
+		link = link.strip()
+		self._link_clicked(link)
+					
 	def _moz_link_message(self, data):
 		self._main_window.display_status_message(self._moz.get_link_message())
-
-	def _link_clicked(self, document, link):
-		link = link.strip()
-		self.emit('link-activated', link)
-		
+	
 	def _moz_link_clicked(self, mozembed, link):
 		link = link.strip()
 		self.emit('link-activated', link)
@@ -310,6 +346,13 @@ class EntryView(gobject.GObject):
 					self._moz.append_data(part, long(len(part)))
 				self._moz.append_data(message, long(len(message)))
 				self._moz.close_stream()		
+		elif self._renderer == EntryFormatter.GTKHTML:
+			self._document_lock.acquire()
+			self._document.clear()
+			self._document.open_stream("text/html")
+			self._document.write_stream(html)
+			self._document.close_stream()
+			self._document_lock.release()
 		#self.scrolled_window.hide()
 		self._custom_entry = True
 		return
@@ -322,6 +365,13 @@ class EntryView(gobject.GObject):
 					self._moz.open_stream("http://ywwg.com","text/html")
 					self._moz.append_data(message, long(len(message)))
 					self._moz.close_stream()	
+			elif self._renderer == EntryFormatter.GTKHTML:
+				self._document_lock.acquire()
+				self._document.clear()
+				self._document.open_stream("text/html")
+				self._document.write_stream(html)
+				self._document.close_stream()
+				self._document_lock.release()
 			self._custom_entry = False
 			
 	def _unset_state(self):
@@ -442,7 +492,38 @@ class EntryView(gobject.GObject):
 					self._moz.append_data(part, long(len(part)))
 				self._moz.append_data(html, long(len(html)))
 				self._moz.close_stream()
-		
+		elif self._renderer == EntryFormatter.GTKHTML:
+			self._document_lock.acquire()
+			imgs = IMG_REGEX.findall(html)
+			uncached=0
+			for url in imgs:
+				if not self._image_cache.is_cached(url):
+					uncached+=1
+					
+			if uncached > 0:
+				self._document.clear()
+				self._document.open_stream("text/html")
+				d = { 	"background_color": self._background_color,
+						"loading": _("Loading images...")}
+				self._document.write_stream("""<html><style type="text/css">
+		        body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
+				self._document.close_stream()
+				self._document_lock.release()
+				
+				self._dl_count = 0
+				self._dl_total = uncached
+				
+				for url in imgs:
+					if not self._image_cache.is_cached(url):
+						self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, item['entry_id']), self._gtkhtml_image_dl_cb)
+				self._image_pool.queueTask(self._gtkhtml_download_done, (item['entry_id'], html))
+			else:
+				self._document.clear()
+				self._document.open_stream("text/html")
+				self._document.write_stream(html)
+				self._document.close_stream()
+				self._document_lock.release()
+				
 		if item is not None:		
 			gobject.timeout_add(2000, self._do_delayed_set_viewed, item)
 		return
@@ -455,26 +536,6 @@ class EntryView(gobject.GObject):
 				self.emit('entries-viewed', [(self._current_entry['feed_id'], [self._current_entry['entry_id']])])
 		return False
 
-	def _do_download_images(self, entry_id, html, images):
-		self._document_lock.acquire()
-		for url in images:
-			self._image_cache.get_image(url)
-		#we need to go out to the app so we can queue the load request
-		#in the main gtk thread
-		self._app._entry_image_download_callback(entry_id, html)
-		self._document_lock.release()
-		
-	def _images_loaded(self, entry_id, html):
-		#if we're changing, nevermind.
-		#also make sure entry is the same and that we shouldn't be blanks
-		if self._main_window.is_changing_layout() == False and entry_id == self._current_entry['entry_id'] and self._currently_blank == False:
-			va = self._scrolled_window.get_vadjustment()
-			ha = self._scrolled_window.get_hadjustment()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream(html)
-			self._document.close_stream()
-
 	def scroll_down(self):
 		""" Old straw function, _still_ not used.  One day I might have "space reading" """
 		va = self._scrolled_window.get_vadjustment()
@@ -486,6 +547,60 @@ class EntryView(gobject.GObject):
 		va.set_value(new_value)
 		return new_value > old_value
 		
+	def _gtkhtml_reset_image_dl(self):
+		assert self._renderer == EntryFormatter.GTKHTML
+		self._image_pool.joinAll(False, False)
+		self._dl_count = 0
+		self._dl_total = 0
+				
+	def _gtkhtml_do_download_image(self, args):
+		url, entry_id = args
+		self._image_cache.get_image(url)
+		return entry_id
+		
+	def _gtkhtml_image_dl_cb(self, entry_id):
+		if entry_id == self._current_entry['entry_id']:
+			self._dl_count += 1
+			
+	def _gtkhtml_download_done(self, args):
+		entry_id, html = args
+		
+		count = 0
+		last_count = self._dl_count
+		while entry_id == self._current_entry['entry_id'] and count < (10 * 2):
+			if last_count != self._dl_count:
+				#if downloads are still coming in, reset counter
+				last_count = self._dl_count
+				count = 0
+			if self._dl_count >= self._dl_total:
+				gobject.idle_add(self._gtkhtml_images_loaded, entry_id, html)
+				return
+			count += 1
+			time.sleep(0.5)
+		gobject.idle_add(self._gtkhtml_images_loaded, entry_id, html)
+		
+	def _gtkhtml_images_loaded(self, entry_id, html):
+		#if we're changing, nevermind.
+		#also make sure entry is the same and that we shouldn't be blanks
+		if entry_id == self._current_entry['entry_id']:
+			va = self._scrolled_window.get_vadjustment()
+			ha = self._scrolled_window.get_hadjustment()
+			self._document_lock.acquire()
+			self._document.clear()
+			self._document.open_stream("text/html")
+			self._document.write_stream(html)
+			self._document.close_stream()
+			self._document_lock.release()
+		return False
+		
+	def _gtkhtml_request_url(self, document, url, stream):
+		try:
+			image = self._image_cache.get_image(url)
+			stream.write(image)
+			stream.close()
+		except Exception, ex:
+			stream.close()
+		
 	def finish(self):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
@@ -496,6 +611,9 @@ class EntryView(gobject.GObject):
 			message = """<html><head><style type="text/css">
             body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)
 			self.display_custom_entry(message)
+		elif self._renderer == EntryFormatter.GTKHTML:
+			self._image_pool.joinAll(False, False)
+			del self._image_pool
 		#self.scrolled_window.hide()
 		self._custom_entry = True
 		return

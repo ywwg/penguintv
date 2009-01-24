@@ -65,9 +65,10 @@ except:
 	try:
 		from penguintv.ptvmozembed import gtkmozembed
 	except:
-		missing_something.append("Need gtkmozembed, usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed")
-		if HAS_HILDON:
-			missing_something.append("On Maemo, gtkmozembed is created by running ./build_maemo_deb.sh and creating a package")
+		print "WARNING:  gtkmozembed not found.  This is usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed"
+		print "          PenguinTV will still run without gtkmozembed, but the experience isn't as good."
+		#if HAS_HILDON:
+		#	missing_something.append("On Maemo, gtkmozembed is created by running ./build_maemo_deb.sh and creating a package")
 
 try:
 	import sqlite3
