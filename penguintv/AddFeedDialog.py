@@ -192,6 +192,22 @@ class AddFeedDialog:
 			return #don't hide, give them a chance to try again.
 		
 		self.hide()
+		
+	def on_help_button_clicked(self, event):
+ 		dialog = gtk.Dialog(title=_("Add Feed Help"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
+		hbox = gtk.HBox()
+		hbox.set_spacing(12)
+		image = gtk.image_new_from_stock(gtk.STOCK_DIALOG_INFO, gtk.ICON_SIZE_DIALOG)
+		hbox.pack_start(image, False, False, 12)
+		label = gtk.Label(_("""Please enter the URL of the feed you would like to add.  Also enter any tags you would like to apply to this feed, separated by commas"""))
+		label.set_line_wrap(True)
+		hbox.pack_start(label, True, True, 0)
+		dialog.vbox.pack_start(hbox, True, True, 0)
+		dialog.show_all()
+		dialog.resize(400,-1)
+		response = dialog.run()
+		dialog.hide()
+		del dialog
 				
 	def on_button_ok_clicked(self,event):
 		self.finish()

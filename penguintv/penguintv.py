@@ -352,7 +352,8 @@ class PenguinTVApp(gobject.GObject):
 			except:
 				self._nm_interface = None
 				
-			self._spawn_poller()
+			if not utils.RUNNING_HILDON:
+				self._spawn_poller()
 			gobject.timeout_add(20000, self._check_poller)
 		
 		self.feed_list_view = self.main_window.feed_list_view
@@ -2340,6 +2341,9 @@ class PenguinTVApp(gobject.GObject):
 			self.sync_authenticate()
 		if sensitize:
 			self.main_window._sensitize_search()
+		
+		if utils.RUNNING_HILDON:
+			self._spawn_poller()
 			
 		if not self.__importing:
 			self.__importing = True
