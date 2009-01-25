@@ -560,10 +560,6 @@ class PlanetView(gobject.GObject):
 			self._back_button.hide()
 			self._forward_button.hide()
 
-		if self._renderer == EntryFormatter.GTKHTML:	
-			self._scrolled_window.get_hadjustment().set_value(0)
-			self._scrolled_window.get_vadjustment().set_value(0)
-
 		if self._filter_feed is not None:
 			assert self._state == S_SEARCH
 			entrylist = [r for r in self._entrylist if r[1] == self._filter_feed]
@@ -943,6 +939,8 @@ class PlanetView(gobject.GObject):
 						self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, self._current_feed_id, self._first_entry), self._gtkhtml_image_dl_cb)
 				self._image_pool.queueTask(self._gtkhtml_download_done, (self._current_feed_id, self._first_entry, html))
 			else:
+				self._scrolled_window.get_hadjustment().set_value(0)
+				self._scrolled_window.get_vadjustment().set_value(0)
 				self._document.clear()
 				self._document.open_stream("text/html")
 				self._document.write_stream(html)
