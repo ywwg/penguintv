@@ -142,7 +142,11 @@ except:
 	
 code = subprocess.call(["which","msgfmt"])
 if code != 0:
-	missing_something.append("Need gettext")
+	HAVE_GETTEXT = False
+	print "Need gettext to generate translations -- disabling translations."
+	#missing_something.append("Need gettext")
+else:
+	HAVE_GETTEXT = True
 	
 if len(missing_something) > 0:
 	sys.exit("\n".join(missing_something))
@@ -167,19 +171,20 @@ os.chmod("./bin/PenguinTV", 0775)
 from penguintv import utils
 
 locales = []
-if "build" in sys.argv or "install" in sys.argv:
+if HAVE_GETTEXT:
+	if "build" in sys.argv or "install" in sys.argv:
 	
-	for f in GlobDirectoryWalker("./po", "*.po"):	
-		this_locale = os.path.basename(f)	
-		this_locale = this_locale[0:this_locale.rfind('.')]
-		_mkdir("./mo/"+this_locale+"/LC_MESSAGES")
-		msgfmt_line = "msgfmt "+f+" -o ./mo/"+this_locale+"/LC_MESSAGES/penguintv.mo"
-		print msgfmt_line
-		locales.append(('share/locale/'+this_locale+'/LC_MESSAGES', ['mo/'+this_locale+'/LC_MESSAGES/penguintv.mo']))
-		sp = my_subProcess.subProcess(msgfmt_line)
-		if sp.read() != 0:
-			print "There was an error building the MO file for locale "+this_locale
-			sys.exit(1)
+		for f in GlobDirectoryWalker("./po", "*.po"):	
+			this_locale = os.path.basename(f)	
+			this_locale = this_locale[0:this_locale.rfind('.')]
+			_mkdir("./mo/"+this_locale+"/LC_MESSAGES")
+			msgfmt_line = "msgfmt "+f+" -o ./mo/"+this_locale+"/LC_MESSAGES/penguintv.mo"
+			print msgfmt_line
+			locales.append(('share/locale/'+this_locale+'/LC_MESSAGES', ['mo/'+this_locale+'/LC_MESSAGES/penguintv.mo']))
+			sp = my_subProcess.subProcess(msgfmt_line)
+			if sp.read() != 0:
+				print "There was an error building the MO file for locale "+this_locale
+				sys.exit(1)
 
 data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/gtkhtml.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
 					('share/penguintv/glade', ['share/glade/dialogs.glade']),
