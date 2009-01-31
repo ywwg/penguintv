@@ -20,6 +20,10 @@ import logging
 from xml.sax import saxutils, make_parser
 from xml.sax.handler import feature_namespaces
 
+def is_itms_url(url):
+	if url.lower().startswith("itms://"):
+		return True
+
 def is_itunes_url(url):
 	""" Two simple checks to see if this is a valid itunes url:
 		(ie, http://phobos.apple.com/WebObjects/MZStore.woa/wa/viewPodcast?id=207870198)
@@ -27,7 +31,9 @@ def is_itunes_url(url):
 	    * does it contain "viewPodcast" 
 	    
 	    There's also another form, as in http://www.itunes.com/podcast?id=207870198"""
-	    
+	
+	if url.lower().startswith("itms://"):
+		return True    
 	if "phobos.apple.com/" in url.lower() and "viewPodcast" in url:
 		return True
 	if "itunes.com/podcast" in url.lower():
@@ -37,7 +43,15 @@ def is_itunes_url(url):
 def get_rss_from_itunes(url):
 	if not is_itunes_url(url):
 		raise ItunesError, "not an itunes url"
-
+		
+	if not is_itms_url(url):
+		url2 = get_itms_url(url)
+		return get_podcast_url(url2)
+	else:
+		url2 = url.replace("itms://", "http://")
+		return get_podcast_url(url2)
+		
+def get_itms_url(url):
 	# Part 1, get the itunes "webpage" for this feed
 	# we have to save the file because urlopen doesn't support seeking		
 	filename, message = urllib.urlretrieve(url)
@@ -48,9 +62,11 @@ def get_rss_from_itunes(url):
 
 	if parser.url is None:
 		raise ItunesError, "error getting viewpodcast url from itunes"
-		
+	return parser.url
+
+def get_podcast_url(url):
 	# Part 2, find the actual rss link in the itunes "webpage"
-	filename, message = urllib.urlretrieve(parser.url)
+	filename, message = urllib.urlretrieve(url)
 	uncompressed = gzip.GzipFile(filename=filename, mode='r')
 
 	parser = make_parser()
