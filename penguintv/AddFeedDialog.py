@@ -148,7 +148,9 @@ class AddFeedDialog:
 		while gtk.events_pending(): #make sure the sensitivity change goes through
 			gtk.main_iteration()
 		try:
+			logging.debug("getting corrected url:")
 			url,title = AddFeedUtils.correct_url(url, utils.get_glade_prefix())
+			logging.debug("got: %s %s" % (url, title))
 			if url is None:
 				if self._window:
 					self._window.set_sensitive(True)

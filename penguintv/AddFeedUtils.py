@@ -20,7 +20,7 @@ if utils.HAS_PYXML:
 
 _=gettext.gettext
 
-def correct_url(url, glade_prefix):
+def correct_url(url, glade_prefix=None):
 	"""figures out if the url is a feed, or if it's actually a web page with a feed in it.  Also does http auth.  returns
 	the correct url and a title"""
 	
@@ -44,6 +44,7 @@ def correct_url(url, glade_prefix):
 			self.failed_auth = 0 
 			
 		def prompt_user_passwd(self, host, realm):
+			assert self.widget is not None
 			if self.tries==3:
 				self.failed_auth = my_url_opener.FAILED
 				return (None,None)
@@ -58,8 +59,10 @@ def correct_url(url, glade_prefix):
 			self.tries+=1
 			return (d.username, d.password)
 			
-	if url[0:5] == 'feed:':
-		url = 'http:' + url[5:]
+	#account for various http aliases
+	protocol = url.split(':')[0]
+	if protocol in ('feed','itpc','pcast'):
+		url = 'http' + url[url.find(':'):]	
 			
 	if utils.HAS_PYXML:
 		if itunes.is_itunes_url(url):
@@ -68,7 +71,11 @@ def correct_url(url, glade_prefix):
 			except:
 				raise BadFeedURL,"Error trying to get itunes podcast"
 			
-	urllib._urlopener = my_url_opener(gtk.glade.XML(os.path.join(glade_prefix, 'dialogs.glade'), "dialog_login", 'penguintv'))
+	if glade_prefix is not None:
+		#TODO: abstract this out so we can have a command-line testing version as well as gtk
+		urllib._urlopener = my_url_opener(gtk.glade.XML(os.path.join(glade_prefix, 'dialogs.glade'), "dialog_login", 'penguintv'))
+	else:
+		urllib._urlopener = my_url_opener(None)		
 	url_stream = None
 	try:
 		#logging.debug("opening url: %s" % url)
