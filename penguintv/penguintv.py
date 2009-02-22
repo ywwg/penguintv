@@ -1546,7 +1546,9 @@ class PenguinTVApp(gobject.GObject):
 		selected = self.feed_list_view.get_selected()
 
 	@utils.db_except()
-	def mark_entry_as_viewed(self,entry, feed_id): #, update_entrylist=True):
+	def mark_entry_as_viewed(self,entry, feed_id=None): #, update_entrylist=True):
+		if feed_id is None:
+			feed_id = self.db.get_entry(entry)['feed_id']
 		if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_MARKASREAD == ptvDB.FF_MARKASREAD:
 			return
 		entry = self.db.get_entry(entry)

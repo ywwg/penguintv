@@ -1095,6 +1095,15 @@ class PlanetView(gobject.GObject):
 					item = gtk.MenuItem(_("Delete"))
 					item.connect('activate', lambda e,i: self._app.delete_entry_media(i), entry_id)
 					menu.append(item)
+					
+				if entry['flag'] & ptvDB.F_UNVIEWED:
+					item = gtk.MenuItem(_("Mark As _Viewed"))
+					item.connect('activate', lambda e,i: self._app.mark_entry_as_viewed(i), entry_id)
+					menu.append(item)
+				else:
+					item = gtk.MenuItem(_("Mark As _Unviewed"))
+					item.connect('activate', lambda e,i: self._app.mark_entry_as_unviewed(i), entry_id)
+					menu.append(item)
 			
 			keep = self._db.get_entry_keep(entry['entry_id'])
 			if keep:
