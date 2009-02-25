@@ -133,7 +133,8 @@ class EntryList(gobject.GObject):
 			self.populate_entries(None)
 		
 	def __feed_polled_cb(self, app, feed_id, update_data):
-		if feed_id == self._feed_id:
+		feed_list = self._app.db.get_associated_feeds(feed_id)
+		if self._feed_id in feed_list:
 			self.update_entry_list()
 			
 	def __feed_removed_cb(self, app, feed_id):
@@ -145,10 +146,11 @@ class EntryList(gobject.GObject):
 		
 	def __entries_viewed_cb(self, app, viewlist):
 		for feed_id, entrylist in viewlist:
-			if feed_id == self._feed_id:
+			feed_list = self._app.db.get_associated_feeds(feed_id)
+			if self._feed_id in feed_list:
 				for e in entrylist:
 					self.update_entry_list(e)
-			
+					
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._feed_id:
 			self.populate_entries(feed_id, -1)

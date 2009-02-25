@@ -322,7 +322,8 @@ class PlanetView(gobject.GObject):
 			self.populate_entries(feed_id)
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
-		if feed_id == self._current_feed_id:
+		f_list = self._db.get_associated_feeds(feed_id)
+		if self._current_feed_id in f_list:
 			self.populate_entries(feed_id)
 			if update_data['pollfail']:
 				self.display_custom_entry("<b>"+_("There was an error trying to poll this feed.")+"</b>")
@@ -334,12 +335,14 @@ class PlanetView(gobject.GObject):
 		
 	def __entry_updated_cb(self, app, entry_id, feed_id):
 		self.update_entry_list(entry_id)
-		if feed_id == self._current_feed_id and not self._USING_AJAX:
+		f_list = self._db.get_associated_feeds(feed_id)
+		if self._current_feed_id in f_list and not self._USING_AJAX:
 			self._render_entries(mark_read=False, force=True)
 			
 	def __entries_updated_cb(self, app, viewlist):
 		for feed_id, idlist in viewlist:
-			if feed_id == self._current_feed_id:
+			f_list = self._db.get_associated_feeds(feed_id)
+			if self._current_feed_id in f_list:
 				self.populate_entries(feed_id)
 			
 	def __render_ops_updated_cb(self, app):

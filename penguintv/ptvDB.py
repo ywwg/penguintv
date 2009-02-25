@@ -2581,9 +2581,9 @@ class ptvDB:
 		   it up if I do my own sort.  profilers don't lie!"""
 		feed_info = {}
 		
-		is_filter = False
-		if utils.HAS_SEARCH:
-			is_filter = self.is_feed_filter(feed_id)
+		#is_filter = False
+		#if utils.HAS_SEARCH:
+		#	is_filter = self.is_feed_filter(feed_id) 
 		
 		#if is_filter or self.cache_dirty:
 		flaglist = self.get_entry_flags(feed_id)
@@ -3091,25 +3091,47 @@ class ptvDB:
 				self._image_cache.remove_cache(entry_id)
 		
 	def _resolve_pointed_feed(self, feed_id):
+		if not utils.HAS_SEARCH:
+			return feed_id
 		self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(feed_id,))
-		result = self._c.fetchone()[0]
-		if result >= 0:
+		result = self._c.fetchone()
+		if result is None:
+			return feed_id
+		if result[0] >= 0:
 			return result
 		return feed_id
 		
 	def is_feed_filter(self, feed_id):
+		if not utils.HAS_SEARCH:
+			return False
 		self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(feed_id,))
-		result = self._c.fetchone()[0]
-		if result >= 0:
+		result = self._c.fetchone()
+		if result is None:
+			return False
+		if result[0] >= 0:
 			return True
 		return False
 		
 	def get_pointer_feeds(self, feed_id):
+		if not utils.HAS_SEARCH:
+			return []
 		self._db_execute(self._c, u'SELECT rowid FROM feeds WHERE feed_pointer=?',(feed_id,))
 		results = self._c.fetchall()
 		if results is None:
 			return []
 		return [f[0] for f in results]
+		
+	def get_associated_feeds(self, feed_id):
+		if not utils.HAS_SEARCH:
+			return [feed_id]
+		feed_list = [feed_id]
+		pointer = self._resolve_pointed_feed(feed_id)
+		if pointer != feed_id:
+			feed_list.append(feed_id)
+		
+		feed_list += self.get_pointer_feeds(feed_id)
+		print feed_list
+		return feed_list
 		
 	def set_cache_images(self, cache):
 		if self._image_cache is not None:
