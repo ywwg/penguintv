@@ -240,22 +240,25 @@ class FeedList(gobject.GObject):
 			self.mark_entries_read(len(id_list), feed_id)
 			
 		for f in self._app.db.get_associated_feeds(feed_id):
-			self.update_feed_list(f, ['readinfo','icon'])
+			if f != feed_id:
+				self.update_feed_list(f, ['readinfo','icon'])
 		
 	def __entries_unviewed_cb(self, app, viewlist):
 		for feed_id, id_list in viewlist:
 			self.mark_entries_read(0 - len(id_list), feed_id)
 			
 		for f in self._app.db.get_associated_feeds(feed_id):
-			self.update_feed_list(f, ['readinfo','icon'])
-		
+			if f != feed_id:
+				self.update_feed_list(f, ['readinfo','icon'])
+						
 	def __update_feed_count_cb(self, o, feed_id, count):
 		#logging.debug("update %i ->  %i" % (feed_id, count))
 		self.update_feed_list(feed_id, update_what=['readinfo'], 
 			update_data={'unread_count':count})
 			
 		for f in self._app.db.get_associated_feeds(feed_id):
-			self.update_feed_list(f, ['readinfo','icon'])
+			if f != feed_id:
+				self.update_feed_list(f, ['readinfo','icon'])
 
 	def grab_focus(self):
 		self._widget.grab_focus()

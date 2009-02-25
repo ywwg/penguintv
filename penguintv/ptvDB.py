@@ -3098,7 +3098,7 @@ class ptvDB:
 		if result is None:
 			return feed_id
 		if result[0] >= 0:
-			return result
+			return result[0]
 		return feed_id
 		
 	def is_feed_filter(self, feed_id):
@@ -3127,10 +3127,9 @@ class ptvDB:
 		feed_list = [feed_id]
 		pointer = self._resolve_pointed_feed(feed_id)
 		if pointer != feed_id:
-			feed_list.append(feed_id)
+			feed_list.append(pointer)
 		
 		feed_list += self.get_pointer_feeds(feed_id)
-		print feed_list
 		return feed_list
 		
 	def set_cache_images(self, cache):
