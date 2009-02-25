@@ -2100,8 +2100,9 @@ class ptvDB:
 			return []
 		else:
 			return [r[0] for r in result]
-		
-	def get_entrylist(self, feed_index):
+			
+	def get_filtered_entries(self, feed_index):
+		"""Assumes this is a feed pointer"""
 		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_index,))
 		result = self._c.fetchone()
 		if result is None:
@@ -2126,7 +2127,14 @@ class ptvDB:
 				entries.append([entry_id, title, fakedate, readinfo, feed_id])
 			self._filtered_entries[feed_index] = entries
 			return entries
-	
+		else:
+			logging.error("programming error: tried to get filter information from non-filter feed")
+			assert False
+		
+	def get_entrylist(self, feed_index):
+		if self.is_feed_filter(feed_index):
+			return self.get_filtered_entries(feed_index)
+		
 		self._db_execute(self._c, """SELECT rowid,title,fakedate,read,feed_id FROM entries WHERE feed_id=? ORDER BY fakedate DESC""",(feed_index,))
 		result = self._c.fetchall()
 		
@@ -2449,7 +2457,9 @@ class ptvDB:
 	def mark_feed_as_viewed(self, feed_id):
 		"""marks a feed's entries and media as viewed.  If there's a way to do this all
 		in sql, I'd like to know"""
-		if self._filtered_entries.has_key(feed_id):
+		if self.is_feed_filter(feed_id):
+			if not self._filtered_entries.has_key(feed_id):
+				self.get_filtered_entries(feed_id)
 			changed_list = []
 			list = []
 			for entry in self._filtered_entries[feed_id]:
@@ -2706,9 +2716,12 @@ class ptvDB:
 		return [r[0] for r in retval]
 	
 	def get_unread_entries(self, feed_id):
-		if self._filtered_entries.has_key(feed_id):
-			return []
-		
+		if self.is_feed_filter(feed_id):
+			if not self._filtered_entries.has_key(feed_id):
+				self.get_filtered_entries(feed_id)
+				
+			return [r[0] for r in self.get_entrylist(feed_id) if r[3] == 0]
+			
 		self._db_execute(self._c, u'SELECT rowid FROM entries WHERE feed_id=? AND read=0', (feed_id,))
 		retval = self._c.fetchall()
 		if retval is None:
@@ -2716,7 +2729,9 @@ class ptvDB:
 		return [r[0] for r in retval]
 		
 	def get_unread_count(self, feed_id):
-		if self._filtered_entries.has_key(feed_id):
+		if self.is_feed_filter(feed_id):
+			if not self._filtered_entries.has_key(feed_id):
+				self.get_filtered_entries(feed_id)
 			entries = self._filtered_entries[feed_id]
 			list = []
 			for entry in entries:
@@ -2740,7 +2755,7 @@ class ptvDB:
 		""" Set the entry_read flag to the correct value based on all its enclosures.
 			This is necessary because there are some bugs with regard to when this
 			value gets set. """
-		if self._filtered_entries.has_key(feed_id):
+		if self.is_feed_filter(feed_id):
 			return #just don't do anything
 		#feed_id = self._resolve_pointed_feed(feed_id)
 			
@@ -2756,7 +2771,9 @@ class ptvDB:
 	def get_entry_flags(self, feed_id):
 		medialist=None
 		flaglist = []
-		if self._filtered_entries.has_key(feed_id):
+		if self.is_feed_filter(feed_id):
+			if not self._filtered_entries.has_key(feed_id):
+				self.get_filtered_entries(feed_id)
 			entrylist = [e[0] for e in self._filtered_entries[feed_id]]
 			for entry in entrylist:
 				flaglist.append(self.get_entry_flag(entry))
@@ -3034,7 +3051,10 @@ class ptvDB:
 		if blacklist is None:
 			blacklist = self._blacklist
 		if filter_feed: #no blacklist on filter feeds (doesn't make sense)
-			return self.searcher.Search("entry_feed_id:"+str(filter_feed)+" AND "+query, since=since)
+			result = [l for l in self.searcher.Search(query, since=since)[1] if l[3] == filter_feed]
+			if len(result) > 0:
+				return ([filter_feed], result)
+			return ([],[])
 		return self.searcher.Search(query,blacklist, since=since)
 		
 	def doindex(self, callback=None):

@@ -861,7 +861,12 @@ class PlanetView(gobject.GObject):
 					self._entry_store[entry_id] = (new_format, item)
 					return self._entry_store[entry_id]
 			self._entry_store[entry_id] = (new_format, item)
-		index = self._entrylist.index((entry_id,item['feed_id']))
+		try:
+			index = self._entrylist.index((entry_id,self._current_feed_id))
+		except:
+			logging.warning("Told to update an entry we don't have -- can't update")
+			return self._entry_store[entry_id]
+			
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
 			if self._USING_AJAX:
