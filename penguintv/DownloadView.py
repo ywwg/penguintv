@@ -239,8 +239,10 @@ class DownloadView:
 		tree,selected = selection.get_selected_rows()
 		medialist = []
 		for index in selected: #build a list to avoid race conditions
-			medialist.append(self._downloads[index[0]].media)
-		for medium in medialist:
+			medialist.append((self._downloads[index[0]].status, self._downloads[index[0]].media))
+		#start by getting rid of queued, stopped, end with active downloads
+		medialist.sort()
+		for status, medium in medialist:
 			print "stopping",medium['url']
 			self._app.do_cancel_download(medium)
 		selection.unselect_all()

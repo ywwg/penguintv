@@ -1,9 +1,10 @@
+#order is only used in downloadview for order in which to cancel -- I think
 QUEUED            = 0
-DOWNLOADING       = 1
-FINISHED          = 2
-FINISHED_AND_PLAY = 3
-STOPPED           = 4
-PAUSED            = 5
+PAUSED            = 1
+STOPPED           = 2
+FINISHED          = 3
+FINISHED_AND_PLAY = 4
+DOWNLOADING       = 5
 FAILURE           = -1
 
 #import traceback
