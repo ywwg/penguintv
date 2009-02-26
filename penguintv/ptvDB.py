@@ -2143,26 +2143,24 @@ class ptvDB:
 		return result
 		
 	def get_first_entry_title(self, feed_id, strip_newlines=False):
-		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_id,))
-		result = self._c.fetchone()
-
-		if result is None:
-			return []
-		if result[0] >= 0:
-			pointed_feed = result[0]
-			#this is where we perform a search
-			s_entries =  self.search(result[1],pointed_feed)[1]
-			if len(s_entries)==0:
-				return []
-			s_entries.sort(lambda x,y: int(y[2] - x[2]))
-			entries = []
-			entry_id,title, fakedate, feed_id = s_entries[0]
-			return title
+		"""returns title of first entry"""
+		if self.is_feed_filter(feed_id):
+			if not self._filtered_entries.has_key(feed_id):
+				self.get_filtered_entries(feed_id)
+			for entry in self._filtered_entries[feed_id]:
+				entry_id, title, fakedate, read, f_id = entry
+				if read == 0:
+					if strip_newlines:
+						return title.replace("\n"," ")
+					return title
+			if strip_newlines:
+				return self._filtered_entries[feed_id][0][1].replace("\n"," ")
+			return self._filtered_entries[feed_id][0][1]
 	
 		self._db_execute(self._c, """SELECT title FROM entries WHERE feed_id=? ORDER BY fakedate DESC LIMIT 1""",(feed_id,))
 		result = self._c.fetchone()
 
-		if result=="":
+		if result is None:
 			raise NoFeed, feed_id
 			
 		if strip_newlines:
