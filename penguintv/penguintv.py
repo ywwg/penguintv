@@ -570,7 +570,7 @@ class PenguinTVApp(gobject.GObject):
 	def _sync_articles_put(self):
 		timestamp = self.db.get_setting(ptvDB.INT, 'article_sync_timestamp', int(time.time()))
 		self._article_sync.submit_readstates_since(timestamp, self.__put_readstates_cb)
-		
+
 	def __put_readstates_cb(self, success):
 		self._sync_articles_get()
 		
@@ -956,6 +956,7 @@ class PenguinTVApp(gobject.GObject):
 
 		self.main_window.update_progress_bar(0,MainWindow.U_POLL)
 		self.main_window.display_status_message(self._poll_message, MainWindow.U_POLL)
+		self._poll_new_entries = []
 		
 		if self._remote_poller is not None and not local:
 			logging.debug("Using remote poller")
@@ -1682,6 +1683,7 @@ class PenguinTVApp(gobject.GObject):
 				self._first_poll_marking(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
 		
+		self._poll_new_entries = []
 		task_id = updater.queue(db.poll_feed_trap_errors,(feed, _refresh_cb))
 		
 	def _unset_state(self, authorize=False):
@@ -2022,6 +2024,7 @@ class PenguinTVApp(gobject.GObject):
 				self.emit('tags-changed', 0)
 			
 			updater, db = self._get_updater()
+			self._poll_new_entries = []
 			updater.queue(db.poll_feed_trap_errors, (feed_id,self._db_add_feed_cb))
 		except ptvDB.FeedAlreadyExists, e:
 			self.main_window.select_feed(e.feed)
@@ -2062,7 +2065,9 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()
 	def set_feed_filter(self, pointer_feed_id, filter_name, query):
 		self.db.set_feed_filter(pointer_feed_id, filter_name, query)
-		self.display_feed(pointer_feed_id)
+		#FIXME: should emit a signal so that planetview updates its title too
+		self.feed_list_view.update_feed_list(pointer_feed_id,['title'],{'title':filter_name})
+		self.feed_list_view.resize_columns()
 			
 	@utils.db_except()
 	def delete_entry_media(self, entry_id):
@@ -2201,6 +2206,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db.set_feed_name(feed_id, None) #gets the title the feed came with
 		else:
 			self.db.set_feed_name(feed_id, name)
+		#FIXME: should emit a signal so planetview updates its title as well
 		self.feed_list_view.update_feed_list(feed_id,['title'],{'title':name})
 		self.feed_list_view.resize_columns()	
 		
@@ -2428,7 +2434,6 @@ class PenguinTVApp(gobject.GObject):
 					self._poll_message = ""
 					if not utils.RUNNING_HILDON:
 						self._gui_updater.queue(self._article_sync.get_readstates_for_entries, self._poll_new_entries)
-						self._poll_new_entries = []
 					self.main_window.update_progress_bar(-1, MainWindow.U_POLL)
 					self.main_window.display_status_message(_("Trouble connecting to the internet"),MainWindow.U_POLL)
 					gobject.timeout_add(2000, self.main_window.display_status_message,"")
@@ -2460,7 +2465,6 @@ class PenguinTVApp(gobject.GObject):
 			#logging.debug("done polling multiple 1, updating readstates")
 			if not utils.RUNNING_HILDON:
 				self._article_sync.get_readstates_for_entries(self._poll_new_entries)
-				self._poll_new_entries = []
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
 			

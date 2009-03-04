@@ -929,19 +929,19 @@ class ptvDB:
 		return feed_id
 	
 	def add_feed_filter(self, pointed_feed_id, filter_name, query):
-		self._db_execute(self._c, u'SELECT rowid,feed_pointer,description FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
-		result = self._c.fetchone()
-		if result is None:
-			s = sha.new()
-			#this is lame I know.  We shouldn't ever get a collision here though!
-			s.update(filter_name+query)
-			self._db_execute(self._c, u'INSERT INTO feeds (title,url,feed_pointer,description,pollfail,pollfreq,lastpoll,newatlast,flags) VALUES (?, ?,?,?, 0,21600,0,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
-			self._db.commit()
-			#self._db_execute(self._c, u'SELECT rowid FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
-			self._db_execute(self._c,  "SELECT last_insert_rowid()")
-			return self._c.fetchone()[0]
-		else:
-			raise FeedAlreadyExists, result[0]
+		#self._db_execute(self._c, u'SELECT rowid,feed_pointer,description FROM feeds WHERE feed_pointer=? AND description=?',(pointed_feed_id,query))
+		#result = self._c.fetchone()
+		#if result is None:
+		import random
+		s = sha.new()
+		#this is lame I know.  We shouldn't ever get a collision here though!
+		s.update(filter_name+query+str(random.getrandbits(32)))
+		self._db_execute(self._c, u'INSERT INTO feeds (title,url,feed_pointer,description,pollfail,pollfreq,lastpoll,newatlast,flags) VALUES (?, ?,?,?, 0,21600,0,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
+		self._db.commit()
+		self._db_execute(self._c,  "SELECT last_insert_rowid()")
+		return self._c.fetchone()[0]
+		#else:
+		#	raise FeedAlreadyExists, result[0]
 			
 	def set_feed_filter(self, pointer_feed_id, filter_name, query):
 		self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(pointer_feed_id,))
@@ -950,12 +950,12 @@ class ptvDB:
 			raise NoFeed, pointer_feed_id
 		pointed_id = pointed_id[0]
 		self._db_execute(self._c, u'SELECT rowid FROM feeds WHERE feed_pointer=? AND description=?',(pointed_id,query))
-		result = self._c.fetchone()
-		if result is None:
-			self._db_execute(self._c, u'UPDATE feeds SET title=?, description=? WHERE rowid=?',(filter_name, query, pointer_feed_id))
-			self._db.commit()
-		else:
-			raise FeedAlreadyExists, result[0]
+		#result = self._c.fetchone()
+		#if result is None:
+		self._db_execute(self._c, u'UPDATE feeds SET title=?, description=? WHERE rowid=?',(filter_name, query, pointer_feed_id))
+		self._db.commit()
+		#else:
+		#	raise FeedAlreadyExists, result[0]
 				
 	def delete_feed(self, feed_id):
 		#check for valid entry		
@@ -1658,7 +1658,7 @@ class ptvDB:
 			status = self._get_status(item, entry_hash, existing_entries, guid_quality, media_entries)
 			
 			if status[0]==NEW:
-				new_items = new_items+1
+				new_items += 1
 				self._db_execute(self._c, u'INSERT INTO entries (feed_id, title, creator, description, read, fakedate, date, guid, link, keep, hash) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)',
 						(feed_id,item['title'],item['creator'],item['body'],
 						default_read,fake_time-i, 
@@ -2106,12 +2106,14 @@ class ptvDB:
 		self._db_execute(self._c, u'SELECT feed_pointer,description FROM feeds WHERE rowid=?',(feed_index,))
 		result = self._c.fetchone()
 		if result is None:
+			self._filtered_entries[feed_index] = []
 			return []
 		if result[0] >= 0:
 			pointed_feed = result[0]
 			#this is where we perform a search
 			s_entries =  self.search(result[1],pointed_feed)[1]
 			if len(s_entries)==0:
+				self._filtered_entries[feed_index] = []
 				return []
 			s_entries.sort(lambda x,y: int(y[2] - x[2]))
 			entries = []
@@ -2153,6 +2155,8 @@ class ptvDB:
 					if strip_newlines:
 						return title.replace("\n"," ")
 					return title
+			if len(self._filtered_entries[feed_id]) == 0:
+				return ""
 			if strip_newlines:
 				return self._filtered_entries[feed_id][0][1].replace("\n"," ")
 			return self._filtered_entries[feed_id][0][1]
