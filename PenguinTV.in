@@ -25,7 +25,7 @@ fi
 
 HILDON=0
 RUNMOZ_DIR=""
-if [ "$PYTHON"x == "x" ] ; then
+if [ "$PYTHON"x = "x" ] ; then
 	PYTHON="/usr/bin/env python"
 fi
 
