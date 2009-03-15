@@ -1165,7 +1165,7 @@ class ptvDB:
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
 			
-			result, new_entryids = self.poll_feed(feed_id, args | A_POOLED_POLL, preparsed=data)
+			result, new_entryids, mod_entryids = self.poll_feed(feed_id, args | A_POOLED_POLL, preparsed=data)
 
 			if self._exiting:
 				return (feed_id,{'ioerror':None, 'pollfail':False}, total)
@@ -1205,6 +1205,7 @@ class ptvDB:
 			update_data['first_poll'] = last_poll_time == 0
 			update_data['new_entries'] = result
 			update_data['new_entryids'] = new_entryids
+			update_data['mod_entryids'] = mod_entryids
 			if self.is_feed_filter(feed_id):
 				entries = self.get_entrylist(feed_id) #reinitialize filtered_entries dict
 				update_data['unread_count'] = self.get_unread_count(feed_id)
@@ -1240,7 +1241,7 @@ class ptvDB:
 			result = self._c.fetchone()
 			feed['feed_id']=feed_id
 			feed['url']=result[1]
-			feed['new_entries'], feed['new_entryids'] = \
+			feed['new_entries'], feed['new_entryids'], feed['mod_entryids'] = \
 				self.poll_feed(feed_id, A_IGNORE_ETAG+A_DO_REINDEX)
 			callback(feed, True)
 		except Exception, e:#FeedPollError,e:
@@ -1293,7 +1294,7 @@ class ptvDB:
 			#result =self._c.fetchone()
 			#if result:
 			if feed['feed_pointer'] >= 0:
-				return 0, []
+				return 0, [], []
 				
 			#self._db_execute(self._c, """SELECT url,etag FROM feeds WHERE rowid=?""",(feed_id,))
 			#data = self._c.fetchone()
@@ -1334,7 +1335,7 @@ class ptvDB:
 				raise FeedPollError,(feed_id,"feedparser blew a gasket")
 			elif preparsed == -2:
 				#print "pointer feed, returning 0"
-				return 0, []
+				return 0, [], []
 			else:
 				#print "data is good"
 				#need to get a url from somewhere
@@ -1353,7 +1354,7 @@ class ptvDB:
 				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				#self._db.commit()
 				perform_feed_updates(feed_updates, feed_id)
-				return 0, []
+				return 0, [], []
 			if data['status'] == 404: #whoops
 				feed_updates = {}
 				if arguments & A_AUTOTUNE == A_AUTOTUNE:
@@ -1531,6 +1532,7 @@ class ptvDB:
 		flag_list = []
 		no_delete = []
 		new_entryids = []
+		mod_entryids = []
 		
 		default_read = int(feed['flags'] & FF_MARKASREAD == FF_MARKASREAD)
 		
@@ -1719,6 +1721,7 @@ class ptvDB:
 				self._reindex_entry_list.append(entry_id)
 				self._image_cache_list.append(entry_id)
 				no_delete.append(entry_id)
+				mod_entryids.append(entry_id)
 			i+=1
 
 		#don't call anything old that has media...
@@ -1787,7 +1790,7 @@ class ptvDB:
 				if new_items > 0:
 					self.reindex()
 			self.cache_images()
-		return (new_items, new_entryids)
+		return (new_items, new_entryids, mod_entryids)
 		
 	def _set_new_update_freq(self, feed, new_items):
 		"""Based on previous feed history and number of items found, adjust

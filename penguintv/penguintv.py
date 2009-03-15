@@ -581,6 +581,7 @@ class PenguinTVApp(gobject.GObject):
 		#self._article_sync.get_readstates_since(timestamp)
 		
 		hashlist = self.db.get_unread_hashes()
+		logging.debug("getting readstates for %i entries" % (len(hashlist)))
 		self._article_sync.get_readstates(hashlist)
 
 	def __got_readstates_cb(self, o, viewlist):
@@ -1679,6 +1680,12 @@ class PenguinTVApp(gobject.GObject):
 			self._threaded_emit('feed-polled', feed, update_data)
 			if update_data.has_key('new_entryids'):
 				self._gui_updater.queue(self._article_sync.get_readstates_for_entries, update_data['new_entryids'])
+			if update_data.has_key('mod_entryids'):
+				if self._article_sync.is_enabled():
+					if len(update_data['mod_entryids']) > 0:
+						logging.debug("entries have been modified, resubmitting: %s" % str(update_data['mod_entryids']))
+					for e_id in update_data['mod_entryids']:
+						self._gui_updater.queue(self._article_sync.diff_entry, (e_id, feed))
 			if info['lastpoll'] == 0 and success:
 				self._first_poll_marking(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
@@ -2445,6 +2452,12 @@ class PenguinTVApp(gobject.GObject):
 							self._gui_updater.queue(self._article_sync.get_readstates_for_entries, update_data['new_entryids'])
 						else:
 							self._poll_new_entries += update_data['new_entryids']
+					if update_data.has_key('mod_entryids'):
+						if self._article_sync.is_enabled():
+							if len(update_data['mod_entryids']) > 0:
+								logging.debug("entries have been modified, resubmitting: %s" % str(update_data['mod_entryids']))
+							for e_id in update_data['mod_entryids']:
+								self._gui_updater.queue(self._article_sync.diff_entry, (e_id, feed_id))
 					self._threaded_emit('feed-polled', feed_id, update_data)
 					if update_data.has_key('first_poll'):
 						if update_data['first_poll']:
