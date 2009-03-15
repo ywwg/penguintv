@@ -4,7 +4,7 @@ Thank you for downloading Penguin TV.  This application is an RSS feed reader wi
 
 == Requirements ==
 
-PenguinTV is a python program, and requires python version 2.3 or higher.  It also requires several libraries and their python versions:
+PenguinTV is a python program, and requires python version 2.5 or higher.  It also requires several libraries and their python versions:
 
 * gnome 2.x
 * python 2.5 or later
