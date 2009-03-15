@@ -12,7 +12,7 @@ import gettext
 import shutil
 import logging
 
-VERSION="3.9.4"
+VERSION="4.1.0"
 
 try:
 	from sqlite3 import OperationalError as OperationalError
@@ -176,7 +176,7 @@ HAS_PYNOTIFY = False
 #HAS_MOZILLA=False
 
 #too buggy, disable for release
-ENABLE_ARTICLESYNC=False
+ENABLE_ARTICLESYNC=True
 
 def get_home():
 	if RUNNING_SUGAR:
