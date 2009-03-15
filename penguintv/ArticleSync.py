@@ -326,11 +326,16 @@ class ArticleSync(gobject.GObject):
 	def _entry_updated_cb(self, app, entry_id, feed_id):
 		if not self._authenticated:
 			return
+		self.diff_entry(entry_id, feed_id)
+	
+	@authenticated_func()	
+	def diff_entry(self, entry_id, feed_id):
 		readstate = self._db.get_entry_read(entry_id)
 		if not self._readstates_diff.has_key(feed_id):
 			self._readstates_diff[feed_id] = {}
 		self._readstates_diff[feed_id][entry_id] = readstate
 		#logging.debug("sync updated diff2: %s" % str(self._readstates_diff))
+		
 		
 	@authenticated_func(True)
 	def get_and_send(self, cb):

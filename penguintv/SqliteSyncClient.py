@@ -143,6 +143,9 @@ class SqliteSyncClient:
 		try: 
 			db = self._get_db()
 			c = db.cursor()
+		except InternetFail, e:
+			self._bad_db = False
+			return []
 		except Exception, e:
 			self._bad_db = True
 			return None
@@ -177,6 +180,10 @@ class SqliteSyncClient:
 		except Exception, e:
 			logging.error("error getting timestamp: %s" % str(e))
 			return []
+			
+		if server_timestamp == -1:
+			logging.error("error getting timestamp: (-1)")
+			return []
 		   
 		if self._no_updates:
 			#logging.debug("server time %i, our time %i" % (server_timestamp, self._local_timestamp))
@@ -188,10 +195,12 @@ class SqliteSyncClient:
 			logging.debug("server timestamp is less than local, so clocks must be off. Using their time")
 			timestamp = server_timestamp
 		
-		
 		try: 
 			db = self._get_db(server_timestamp)
 			c = db.cursor()
+		except InternetFail, e:
+			self._bad_db = False
+			return []
 		except Exception, e:
 			self._bad_db = True
 			return None
@@ -225,12 +234,17 @@ class SqliteSyncClient:
 		if self._sync_file is None:
 			return self._download_db()
 			
-		if server_timestamp is None:
-			try:
-				server_timestamp = self._get_server_timestamp()
-			except Exception, e:
-				logging.error("error getting timestamp: %s" % str(e))
-				return None
+		try:
+			#try anyway to catch internet problems
+			s = self._get_server_timestamp()
+			if server_timestamp is None:
+				server_timestamp = s
+		except Exception, e:
+			logging.error("error getting timestamp: %s" % str(e))
+			raise InternetFail("error getting timestamp: %s" % str(e))
+			
+		if server_timestamp == -1:
+			raise InternetFail("error getting timestamp: (-1)")
 			
 		if server_timestamp != self._local_timestamp:
 			#logging.debug("sync time unexpectedly changed %i %i" \
@@ -254,7 +268,7 @@ class SqliteSyncClient:
 				return None
 		except Exception, e:
 			logging.warning("No internet connection, cancelling")
-			return None
+			raise InternetFail("No internet connection, cancelling")
 			
 		try:
 			db_data = self._do_download_db()
@@ -274,6 +288,9 @@ class SqliteSyncClient:
 			self._local_timestamp = self._get_server_timestamp()
 		except Exception, e:
 			logging.error("error getting timestamp: %s" % str(e))
+			
+		if self._local_timestamp == -1:
+			logging.error("error getting timestamp, using anyway?: %s" % str(e))
 		
 		try:
 			return sqlite3.connect(self._sync_file)
@@ -364,3 +381,8 @@ class SqliteSyncClient:
 		logging.error("must be implemented in subclass")
 		assert False
 
+class InternetFail(Exception):
+	def __init__(self,m):
+		self.m = m
+	def __str__(self):
+		return self.m
