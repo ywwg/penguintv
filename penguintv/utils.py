@@ -145,6 +145,12 @@ else:
 		HAS_GSTREAMER = True
 	except:
 		HAS_GSTREAMER = False
+		
+	try:
+		import dbus
+		HAS_DBUS = True
+	except:
+		HAS_DBUS = False
 
 if RUNNING_HILDON:
 	#having a status icon causes tons of problems (causes hildonn UI to crash)

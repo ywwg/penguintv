@@ -315,6 +315,41 @@ class MainWindow(gobject.GObject):
 				self._widgetTree.get_widget('show_notifications').hide()
 			self.window = self.app_window
 			
+		if self._use_internal_player:
+			#From Sonata/dbus_plugin.py
+			if utils.HAS_DBUS:
+				import dbus
+				try:
+					bus = dbus.SessionBus()
+					dbusObj = bus.get_object('org.freedesktop.DBus', '/org/freedesktop/DBus')
+					dbusInterface = dbus.Interface(dbusObj, 'org.freedesktop.DBus')
+					if dbusInterface.NameHasOwner('org.gnome.SettingsDaemon'):
+						try:
+							# mmkeys for gnome 2.22+
+							settingsDaemonObj = bus.get_object('org.gnome.SettingsDaemon', '/org/gnome/SettingsDaemon/MediaKeys')
+							settingsDaemonInterface = dbus.Interface(settingsDaemonObj, 'org.gnome.SettingsDaemon.MediaKeys')
+							settingsDaemonInterface.GrabMediaPlayerKeys('PenguinTV', 0)
+						except:
+							# mmkeys for gnome 2.18+
+							settingsDaemonObj = bus.get_object('org.gnome.SettingsDaemon', '/org/gnome/SettingsDaemon')
+							settingsDaemonInterface = dbus.Interface(settingsDaemonObj, 'org.gnome.SettingsDaemon')
+							settingsDaemonInterface.GrabMediaPlayerKeys('PenguinTV', 0)
+						settingsDaemonInterface.connect_to_signal('MediaPlayerKeyPressed', lambda app, key:self._dbus_mmkeys_cb(app, key))
+				except:
+					pass
+			else:
+				try:
+					import mmkeys
+					keys = mmkeys.MmKeys()
+			
+					keys.connect("mm_prev", lambda x,y: self._gstreamer_player.prev())
+					keys.connect("mm_next", lambda x,y: self._gstreamer_player.next())
+					keys.connect("mm_playpause", lambda x,y: self._gstreamer_player.play_pause_toggle())
+					keys.connect("mm_stop", lambda x,y: self._gstreamer_player.stop())
+				except:
+					logging.debug("Multimedia Key Support not found")
+				
+			
 		self._notebook.show_only(N_FEEDS)
 		if not utils.HAS_SEARCH:
 			self.search_container.hide_all()
@@ -333,6 +368,12 @@ class MainWindow(gobject.GObject):
 			self._window_inited = True
 			
 		return False
+		
+	def _dbus_mmkeys_cb(self, app, key):
+		if app == 'PenguinTV':
+			if key in ("Play", "PlayPause", "Pause"):
+				key = "PlayPause"
+			self._app.player.control_internal(key)
 		
 	def _build_hildon_menu(self, widgets):
 		menu = gtk.Menu()  
@@ -1227,7 +1268,7 @@ class MainWindow(gobject.GObject):
 		#if event.state & gtk.gdk.CONTROL_MASK:
 		#	if keyname == 'k':
 		#		self.search_entry.grab_focus()
-
+		
 		if event.state & gtk.gdk.MOD1_MASK:
 			if keyname == '1':
 				self._notebook.set_current_page(N_FEEDS)
@@ -1282,6 +1323,10 @@ class MainWindow(gobject.GObject):
 					#emission
 					if self._gstreamer_player.handle_key(keyname):
 						widget.stop_emission("key-press-event")
+					if keyname == "F" and event.state & gtk.gdk.CONTROL_MASK:
+						self._gstreamer_player.ff()
+					elif keyname == "B" and event.state & gtk.gdk.CONTROL_MASK:
+						self._gstreamer_player.rew()
 			
 	def on_mark_entry_as_viewed_activate(self,event):
 		entry = self.entry_list_view.get_selected()

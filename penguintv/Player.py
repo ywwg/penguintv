@@ -65,16 +65,18 @@ class Player:
 				gobject.timeout_add(200, _expose_check_generator(action).next)
 				return
 		
-		if action == "play":
+		if action.lower() == "play":
 			self._gst_player.play()
-		elif action == "pause":
+		elif action.lower() == "pause":
 			self._gst_player.pause()
-		elif action == "next":
+		elif action.lower() == "next":
 			self._gst_player.next()
-		elif action == "prev":
+		elif action.lower() in ("prev", "previous"):
 			self._gst_player.prev()
-		elif action == "playpause":
+		elif action.lower() == "playpause":
 			self._gst_player.play_pause_toggle()
+		elif action.lower() == "stop":
+			self._gst_player.stop()
 		else:
 			print "unhandled action:",action
 		
