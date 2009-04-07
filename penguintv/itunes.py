@@ -34,7 +34,7 @@ def is_itunes_url(url):
 	
 	if url.lower().startswith("itms://"):
 		return True    
-	if "phobos.apple.com/" in url.lower() and "viewPodcast" in url:
+	if "apple.com/" in url.lower() and "viewPodcast" in url:
 		return True
 	if "itunes.com/podcast" in url.lower():
 		return True
@@ -55,7 +55,8 @@ def get_itms_url(url):
 	# Part 1, get the itunes "webpage" for this feed
 	# we have to save the file because urlopen doesn't support seeking		
 	filename, message = urllib.urlretrieve(url)
-	uncompressed = gzip.GzipFile(filename=filename, mode='r')
+	#uncompressed = gzip.GzipFile(filename=filename, mode='r')
+	uncompressed = open(filename, 'r')
 
 	parser = viewPodcastParser()
 	parser.feed(uncompressed.read())
@@ -67,7 +68,8 @@ def get_itms_url(url):
 def get_podcast_url(url):
 	# Part 2, find the actual rss link in the itunes "webpage"
 	filename, message = urllib.urlretrieve(url)
-	uncompressed = gzip.GzipFile(filename=filename, mode='r')
+	#uncompressed = gzip.GzipFile(filename=filename, mode='r')
+	uncompressed = open(filename, 'r')
 
 	parser = make_parser()
 	parser.setFeature(feature_namespaces, 0)
