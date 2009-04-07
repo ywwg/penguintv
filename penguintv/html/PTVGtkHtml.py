@@ -5,6 +5,7 @@ import re
 import time
 
 import gobject
+import gtk
 
 import PTVhtml
 import ThreadPool
@@ -29,9 +30,6 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 		self._dl_total = 0
 		self._dl_count = 0
 		
-	def set_scrolled_window(self, scrolled_window):
-		self._scrolled_window = scrolled_window
-		
 	def finish(self):
 		self._image_pool.joinAll(False, False)
 		del self._image_pool
@@ -39,7 +37,7 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 	def is_ajax_ok(self):
 		return False
 		
-	def post_show_init(self):
+	def post_show_init(self, widget):
 		import gtkhtml2
 		import SimpleImageCache
 		import threading
@@ -55,6 +53,12 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 		self._document.clear()
 		htmlview.set_document(self._document)
 		self._htmlview = htmlview
+		
+		widget.set_property("shadow-type",gtk.SHADOW_IN)
+		widget.set_hadjustment(self._htmlview.get_hadjustment())
+		widget.set_vadjustment(self._htmlview.get_vadjustment())
+		widget.add(self._htmlview)
+		self._scrolled_window = widget
 		
 	def get_widget(self):
 		return self._htmlview
@@ -111,10 +115,11 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 	def _do_download_image(self, args):
 		url, image_id = args
 		self._image_cache.get_image(url)
+		#print "do download", image_id
 		return image_id
 		
 	def _image_dl_cb(self, image_id):
-		#if feed_id == self._current_feed_id and first_entry == self._first_entry:
+		#print "dl_cb", image_id, self._view.get_image_id()
 		if image_id == self._view.get_image_id():
 			self._dl_count += 1
 			
@@ -123,7 +128,7 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 		
 		count = 0
 		last_count = self._dl_count
-		#while feed_id == self._current_feed_id and first_entry == self._first_entry and count < (10 * 2):
+		#print "dl_done", image_id, self._view.get_image_id()
 		while image_id == self._view.get_image_id() and count < (10 * 2):
 			if last_count != self._dl_count:
 				#if downloads are still coming in, reset counter
@@ -140,7 +145,7 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 	def _images_loaded(self, image_id, html):
 		#if we're changing, nevermind.
 		#also make sure entry is the same and that we shouldn't be blanks
-		#if feed_id == self._current_feed_id and first_entry == self._first_entry:
+		#print "loaded", image_id, self._view.get_image_id()
 		if image_id == self._view.get_image_id():
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()

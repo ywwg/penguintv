@@ -10,22 +10,23 @@ import gobject
 import gtk
 import ptvDB
 
+import PTVhtml
 import utils
 from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, MAJOR_DB_OPERATION
 import EntryFormatter
 import Downloader
 import ThreadPool
 
-if not utils.RUNNING_HILDON:
-	try:
-		#not good enough to load it below.  need to load it module-wide
-		#or else random images don't load.  gtkmozembed is VERY picky!
-		import gtkmozembed
-	except:
-		try:
-			from ptvmozembed import gtkmozembed
-		except:
-			pass
+#if not utils.RUNNING_HILDON:
+#	try:
+#		#not good enough to load it below.  need to load it module-wide
+#		#or else random images don't load.  gtkmozembed is VERY picky!
+#		import gtkmozembed
+#	except:
+#		try:
+#			from ptvmozembed import gtkmozembed
+#		except:
+#			pass
 	
 
 
@@ -52,8 +53,9 @@ class EntryView(gobject.GObject):
 		self._app = app
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
-		self._renderer = renderer
-		self._moz_realized = False
+		#self._renderer = renderer
+		self._renderer = EntryFormatter.GTKHTML
+		#self._moz_realized = False
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
 		self._widget_tree = widget_tree
@@ -127,65 +129,45 @@ class EntryView(gobject.GObject):
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
 		
-		if self._renderer == EntryFormatter.GTKHTML:
-			f = open(os.path.join(utils.get_share_prefix(), "gtkhtml.css"))
-			#f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
-			self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
-			self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
-			#self._image_lock = threading.Lock()
-			self._dl_total = 0
-			self._dl_count = 0
+		if self._renderer == EntryFormatter.MOZILLA:
+			import html.PTVMozilla
+			self._html_widget = html.PTVMozilla.PTVMozilla(self, self._app.db.home, utils.get_share_prefix())
+		elif self._renderer == EntryFormatter.GTKHTML:
+			import html.PTVGtkHtml
+			self._html_widget = html.PTVGtkHtml.PTVGtkHtml(self, self._app.db.home, utils.get_share_prefix())
+			#f = open(os.path.join(utils.get_share_prefix(), "gtkhtml.css"))
+			##f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
+			#for l in f.readlines(): self._css += l
+			#f.close()
+			#self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
+			#self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
+			#self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
+			##self._image_lock = threading.Lock()
+			#self._dl_total = 0
+			#self._dl_count = 0
+			
+	def get_image_id(self):
+		try:
+			return self._current_entry['entry_id']
+		except:
+			return None
+		
+	def get_bg_color(self):
+		return self._background_color
+		
+	def get_fg_color(self):
+		return self._foreground_color
+		
+	def get_in_color(self):
+		return self._insensitive_color
 		
 	def post_show_init(self):
 		html_dock = self._widget_tree.get_widget('html_dock')
-		if self._renderer==EntryFormatter.MOZILLA:
-			f = open(os.path.join(utils.get_share_prefix(),"mozilla.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			utils.init_gtkmozembed()
-			gtkmozembed.set_profile_path(self._app.db.home, 'gecko')
-			self._moz = gtkmozembed.MozEmbed()
-			self._moz.connect("open-uri", self._moz_link_clicked)
-			self._moz.connect("link-message", self._moz_link_message)
-			self._moz.connect("realize", self._moz_realize, True)
-			self._moz.connect("unrealize", self._moz_realize, False)
-			self._moz.load_url("about:blank")
-			#html_dock.add(self._moz)
-			self._scrolled_window.add_with_viewport(self._moz)
-			self._moz.show()
-			if utils.HAS_GCONF:
-				try:
-					import gconf
-				except:
-					from gnome import gconf
-				self._conf = gconf.client_get_default()
-				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self._reset_moz_font()
-		elif self._renderer == EntryFormatter.GTKHTML:
-			import gtkhtml2
-			import SimpleImageCache
-			import threading
-			self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
-			htmlview = gtkhtml2.View()
-			self._document = gtkhtml2.Document()
-			self._document.connect("link-clicked", self._gtkhtml_link_clicked)
-			htmlview.connect("on_url", self._gtkhtml_on_url)
-			self._document.connect("request-url", self._gtkhtml_request_url)
-			htmlview.get_vadjustment().set_value(0)
-			htmlview.get_hadjustment().set_value(0)
-			self._scrolled_window.set_hadjustment(htmlview.get_hadjustment())
-			self._scrolled_window.set_vadjustment(htmlview.get_vadjustment())
-			
-			self._document.clear()
-			htmlview.set_document(self._document)
-			self._scrolled_window.add(htmlview)
-			self._htmlview = htmlview
-			self._document_lock = threading.Lock()
-			self._image_cache = SimpleImageCache.SimpleImageCache()
-			
+		self._html_widget.post_show_init(self._scrolled_window)
+		self._html_widget.connect('link-message', self.__link_message_cb)
+		self._html_widget.connect('open-uri', self.__open_uri_cb)
+		self._USING_AJAX = self._html_widget.is_ajax_ok()
+		
 		html_dock.show_all()
 		
 	def __feedlist_none_selected_cb(self, o):
@@ -239,69 +221,76 @@ class EntryView(gobject.GObject):
 	#def __setting_changed_cb(self, app, typ, datum, value):
 	#	if datum == '/apps/penguintv/auto_mark_viewed':
 	#		self._auto_mark_viewed = value
+	
+	def __link_message_cb(self, o, message):
+		if not utils.RUNNING_HILDON:
+			self._main_window.display_status_message(message)
+	
+	def __open_uri_cb(self, o, uri):
+		self.emit('link-activated', uri)
 
-	def _gtkhtml_on_url(self, view, url):
-		if url == None:
-			url = ""
-		self._main_window.display_status_message(url)
-	
-	def _gtkhtml_link_clicked(self, document, link):
-		link = link.strip()
-		self._link_clicked(link)
-					
-	def _moz_link_message(self, data):
-		self._main_window.display_status_message(self._moz.get_link_message())
-	
-	def _moz_link_clicked(self, mozembed, link):
-		link = link.strip()
-		self.emit('link-activated', link)
-		return True #don't load url please
-	
-	def _moz_realize(self, widget, realized):
-		self._moz_realized = realized
-		self.display_item()
-		 
-	def _dmoz_link_clicked(self, link):
-		link = link.strip()
-		self.emit('link-activated', link)
-		return False #don't load url please (different from regular moz!)
-		
-	def _gconf_reset_moz_font(self, client, *args, **kwargs):
-		self._reset_moz_font()
-	
-	def _reset_moz_font(self):
-		def isNumber(x):
-			try:
-				float(x)
-				return True
-			except:
-				return False
-				
-		def isValid(x):
-			if x in ["Bold", "Italic", "Regular","BoldItalic"]:#,"Demi","Oblique" Book 
-				return False
-			return True
-				
-		moz_font = self._app.db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
-		#take just the beginning for the font name.  prepare for dense, unreadable code
-		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
-		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
-		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
-		if not self._currently_blank:
-			self.display_item(self._current_entry)
+	#def _gtkhtml_on_url(self, view, url):
+	#	if url == None:
+	#		url = ""
+	#	self._main_window.display_status_message(url)
+	#
+	#def _gtkhtml_link_clicked(self, document, link):
+	#	link = link.strip()
+	#	self._link_clicked(link)
+	#				
+	#def _moz_link_message(self, data):
+	#	self._main_window.display_status_message(self._moz.get_link_message())
+	#
+	#def _moz_link_clicked(self, mozembed, link):
+	#	link = link.strip()
+	#	self.emit('link-activated', link)
+	#	return True #don't load url please
+	#
+	#def _moz_realize(self, widget, realized):
+	#	self._moz_realized = realized
+	#	self.display_item()
+	#	 
+	#def _dmoz_link_clicked(self, link):
+	#	link = link.strip()
+	#	self.emit('link-activated', link)
+	#	return False #don't load url please (different from regular moz!)
+	#	
+	#def _gconf_reset_moz_font(self, client, *args, **kwargs):
+	#	self._reset_moz_font()
+	#
+	#def _reset_moz_font(self):
+	#	def isNumber(x):
+	#		try:
+	#			float(x)
+	#			return True
+	#		except:
+	#			return False
+	#			
+	#	def isValid(x):
+	#		if x in ["Bold", "Italic", "Regular","BoldItalic"]:#,"Demi","Oblique" Book 
+	#			return False
+	#		return True
+	#			
+	#	moz_font = self._app.db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
+	#	#take just the beginning for the font name.  prepare for dense, unreadable code
+	#	self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
+	#	self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
+	#	self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
+	#	if not self._currently_blank:
+	#		self.display_item(self._current_entry)
 
-	def _request_url(self, document, url, stream):
-		try:
-			#this was an experiment in threaded image loading.  What happened is the stream would be closed
-			#when this function exited, so by the time the image downloaded the stream was invalid
-			#self._image_cache.get_image(self._current_entry['entry_id'], url, stream)
-			#also the _request_url func is called by a gtk signal, and that really has to be
-			#in the main thread
-			stream.write(self._image_cache.get_image(url))
-			stream.close()
-		except Exception, ex:
-			stream.close()
-			raise
+	#def _request_url(self, document, url, stream):
+	#	try:
+	#		#this was an experiment in threaded image loading.  What happened is the stream would be closed
+	#		#when this function exited, so by the time the image downloaded the stream was invalid
+	#		#self._image_cache.get_image(self._current_entry['entry_id'], url, stream)
+	#		#also the _request_url func is called by a gtk signal, and that really has to be
+	#		#in the main thread
+	#		stream.write(self._image_cache.get_image(url))
+	#		stream.close()
+	#	except Exception, ex:
+	#		stream.close()
+	#		raise
 			
 	def get_selected(self):
 		if len(self._current_entry) == 0:
@@ -337,41 +326,42 @@ class EntryView(gobject.GObject):
 		self.display_item(item)
 		
 	def display_custom_entry(self, message):
-		if self._renderer==EntryFormatter.MOZILLA:
-			if self._moz_realized:
-				self._moz.open_stream("http://ywwg.com","text/html")
-				while len(message)>60000:
-					part = message[0:60000]
-					message = message[60000:]
-					self._moz.append_data(part, long(len(part)))
-				self._moz.append_data(message, long(len(message)))
-				self._moz.close_stream()		
-		elif self._renderer == EntryFormatter.GTKHTML:
-			self._document_lock.acquire()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream(html)
-			self._document.close_stream()
-			self._document_lock.release()
-		#self.scrolled_window.hide()
+		self._html_widget.render("<html><body>%s</body></html>" % message)
+		#if self._renderer==EntryFormatter.MOZILLA:
+		#	if self._moz_realized:
+		#		self._moz.open_stream("http://ywwg.com","text/html")
+		#		while len(message)>60000:
+		#			part = message[0:60000]
+		#			message = message[60000:]
+		#			self._moz.append_data(part, long(len(part)))
+		#		self._moz.append_data(message, long(len(message)))
+		#		self._moz.close_stream()		
+		#elif self._renderer == EntryFormatter.GTKHTML:
+		#	self._document_lock.acquire()
+		#	self._document.clear()
+		#	self._document.open_stream("text/html")
+		#	self._document.write_stream(html)
+		#	self._document.close_stream()
+		#	self._document_lock.release()
+		##self.scrolled_window.hide()
 		self._custom_entry = True
-		return
 		
 	def undisplay_custom_entry(self):
 		if self._custom_entry:
 			message = "<html></html>"
-			if self._renderer==EntryFormatter.MOZILLA:
-				if self._moz_realized:
-					self._moz.open_stream("http://ywwg.com","text/html")
-					self._moz.append_data(message, long(len(message)))
-					self._moz.close_stream()	
-			elif self._renderer == EntryFormatter.GTKHTML:
-				self._document_lock.acquire()
-				self._document.clear()
-				self._document.open_stream("text/html")
-				self._document.write_stream(html)
-				self._document.close_stream()
-				self._document_lock.release()
+			self._html_widget.render(message)
+			#if self._renderer==EntryFormatter.MOZILLA:
+			#	if self._moz_realized:
+			#		self._moz.open_stream("http://ywwg.com","text/html")
+			#		self._moz.append_data(message, long(len(message)))
+			#		self._moz.close_stream()	
+			#elif self._renderer == EntryFormatter.GTKHTML:
+			#	self._document_lock.acquire()
+			#	self._document.clear()
+			#	self._document.open_stream("text/html")
+			#	self._document.write_stream(html)
+			#	self._document.close_stream()
+			#	self._document_lock.release()
 			self._custom_entry = False
 			
 	def _unset_state(self):
@@ -423,44 +413,52 @@ class EntryView(gobject.GObject):
 		else:
 			formatter = self._entry_formatter
 	
-		if self._renderer == EntryFormatter.MOZILLA:
-			if not self._moz_realized:
-				return
-			if item is not None:
-				#no comments in css { } please!
-				#FIXME windows: os.path.join... wrong direction slashes?  does moz care?
-				html = (
-	            """<html><head>
-	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-				<style type="text/css">
-	            body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
-	            %s
-	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self._background_color,
-	            														 self._foreground_color,
-	            														 self._moz_font, 
-	            														 self._moz_size, 
-	            														 self._css, 
-	            														 formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
-			else:
-				html="""<html><style type="text/css">
+		html = self._html_widget.build_header()
+		if item is None:
+			html += """<html><style type="text/css">
 	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
 		else:
-			if item is not None:
-				html = (
-	            """<html><head>
-	            <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-	            <style type="text/css">
-	            body { background-color: %s; color: %s; }
-	            %s
-	            </style>
-	            <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
-	            														 self._foreground_color,
-	            														 self._css,
-	            														 formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
-			else:
-				html="""<html><style type="text/css">
-	            body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
+			html += "</head><body>%s</body></html>" % formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1])
+	
+	
+		#if self._renderer == EntryFormatter.MOZILLA:
+		#	if not self._moz_realized:
+		#		return
+		#	if item is not None:
+		#		#no comments in css { } please!
+		#		#FIXME windows: os.path.join... wrong direction slashes?  does moz care?
+		#		html = (
+	 #           """<html><head>
+	 #           <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		#		<style type="text/css">
+	 #           body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
+	 #           %s
+	 #           </style>
+	 #           <title>title</title></head><body>%s</body></html>""") % (self._background_color,
+	 #           														 self._foreground_color,
+	 #           														 self._moz_font, 
+	 #           														 self._moz_size, 
+	 #           														 self._css, 
+	 #           														 formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
+		#	else:
+		#		html="""<html><style type="text/css">
+	 #           body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
+		#else:
+		#	if item is not None:
+		#		html = (
+	 #           """<html><head>
+	 #           <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+	 #           <style type="text/css">
+	 #           body { background-color: %s; color: %s; }
+	 #           %s
+	 #           </style>
+	 #           <title>title</title></head><body>%s</body></html>""") % (self._background_color, 
+	 #           														 self._foreground_color,
+	 #           														 self._css,
+	 #           														 formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1]))
+		#	else:
+		#		html="""<html><style type="text/css">
+	 #           body { background-color: %s; }</style><body></body></html>""" % (self._background_color,)
 		
 		#do highlighting for search mode
 		html = html.encode('utf-8')
@@ -482,47 +480,49 @@ class EntryView(gobject.GObject):
 				pass
 				
 		#print html
+		
+		self._html_widget.render(html, "file:///", self.get_image_id())
 			
-		if self._renderer == EntryFormatter.MOZILLA:	
-			if self._moz_realized:
-				self._moz.open_stream("file:///","text/html") #that's a base uri for local links.  should be current dir
-				while len(html)>60000:
-					part = html[0:60000]
-					html = html[60000:]
-					self._moz.append_data(part, long(len(part)))
-				self._moz.append_data(html, long(len(html)))
-				self._moz.close_stream()
-		elif self._renderer == EntryFormatter.GTKHTML:
-			self._document_lock.acquire()
-			imgs = IMG_REGEX.findall(html)
-			uncached=0
-			for url in imgs:
-				if not self._image_cache.is_cached(url):
-					uncached+=1
-					
-			if uncached > 0:
-				self._document.clear()
-				self._document.open_stream("text/html")
-				d = { 	"background_color": self._background_color,
-						"loading": _("Loading images...")}
-				self._document.write_stream("""<html><style type="text/css">
-		        body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
-				self._document.close_stream()
-				self._document_lock.release()
-				
-				self._dl_count = 0
-				self._dl_total = uncached
-				
-				for url in imgs:
-					if not self._image_cache.is_cached(url):
-						self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, item['entry_id']), self._gtkhtml_image_dl_cb)
-				self._image_pool.queueTask(self._gtkhtml_download_done, (item['entry_id'], html))
-			else:
-				self._document.clear()
-				self._document.open_stream("text/html")
-				self._document.write_stream(html)
-				self._document.close_stream()
-				self._document_lock.release()
+		#if self._renderer == EntryFormatter.MOZILLA:	
+		#	if self._moz_realized:
+		#		self._moz.open_stream("file:///","text/html") #that's a base uri for local links.  should be current dir
+		#		while len(html)>60000:
+		#			part = html[0:60000]
+		#			html = html[60000:]
+		#			self._moz.append_data(part, long(len(part)))
+		#		self._moz.append_data(html, long(len(html)))
+		#		self._moz.close_stream()
+		#elif self._renderer == EntryFormatter.GTKHTML:
+		#	self._document_lock.acquire()
+		#	imgs = IMG_REGEX.findall(html)
+		#	uncached=0
+		#	for url in imgs:
+		#		if not self._image_cache.is_cached(url):
+		#			uncached+=1
+		#			
+		#	if uncached > 0:
+		#		self._document.clear()
+		#		self._document.open_stream("text/html")
+		#		d = { 	"background_color": self._background_color,
+		#				"loading": _("Loading images...")}
+		#		self._document.write_stream("""<html><style type="text/css">
+		#        body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
+		#		self._document.close_stream()
+		#		self._document_lock.release()
+		#		
+		#		self._dl_count = 0
+		#		self._dl_total = uncached
+		#		
+		#		for url in imgs:
+		#			if not self._image_cache.is_cached(url):
+		#				self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, item['entry_id']), self._gtkhtml_image_dl_cb)
+		#		self._image_pool.queueTask(self._gtkhtml_download_done, (item['entry_id'], html))
+		#	else:
+		#		self._document.clear()
+		#		self._document.open_stream("text/html")
+		#		self._document.write_stream(html)
+		#		self._document.close_stream()
+		#		self._document_lock.release()
 				
 		if item is not None:		
 			gobject.timeout_add(2000, self._do_delayed_set_viewed, item)
@@ -547,73 +547,74 @@ class EntryView(gobject.GObject):
 		va.set_value(new_value)
 		return new_value > old_value
 		
-	def _gtkhtml_reset_image_dl(self):
-		assert self._renderer == EntryFormatter.GTKHTML
-		self._image_pool.joinAll(False, False)
-		self._dl_count = 0
-		self._dl_total = 0
-				
-	def _gtkhtml_do_download_image(self, args):
-		url, entry_id = args
-		self._image_cache.get_image(url)
-		return entry_id
-		
-	def _gtkhtml_image_dl_cb(self, entry_id):
-		if entry_id == self._current_entry['entry_id']:
-			self._dl_count += 1
-			
-	def _gtkhtml_download_done(self, args):
-		entry_id, html = args
-		
-		count = 0
-		last_count = self._dl_count
-		while entry_id == self._current_entry['entry_id'] and count < (10 * 2):
-			if last_count != self._dl_count:
-				#if downloads are still coming in, reset counter
-				last_count = self._dl_count
-				count = 0
-			if self._dl_count >= self._dl_total:
-				gobject.idle_add(self._gtkhtml_images_loaded, entry_id, html)
-				return
-			count += 1
-			time.sleep(0.5)
-		gobject.idle_add(self._gtkhtml_images_loaded, entry_id, html)
-		
-	def _gtkhtml_images_loaded(self, entry_id, html):
-		#if we're changing, nevermind.
-		#also make sure entry is the same and that we shouldn't be blanks
-		if entry_id == self._current_entry['entry_id']:
-			va = self._scrolled_window.get_vadjustment()
-			ha = self._scrolled_window.get_hadjustment()
-			self._document_lock.acquire()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream(html)
-			self._document.close_stream()
-			self._document_lock.release()
-		return False
-		
-	def _gtkhtml_request_url(self, document, url, stream):
-		try:
-			image = self._image_cache.get_image(url)
-			stream.write(image)
-			stream.close()
-		except Exception, ex:
-			stream.close()
+	#def _gtkhtml_reset_image_dl(self):
+	#	assert self._renderer == EntryFormatter.GTKHTML
+	#	self._image_pool.joinAll(False, False)
+	#	self._dl_count = 0
+	#	self._dl_total = 0
+	#			
+	#def _gtkhtml_do_download_image(self, args):
+	#	url, entry_id = args
+	#	self._image_cache.get_image(url)
+	#	return entry_id
+	#	
+	#def _gtkhtml_image_dl_cb(self, entry_id):
+	#	if entry_id == self._current_entry['entry_id']:
+	#		self._dl_count += 1
+	#		
+	#def _gtkhtml_download_done(self, args):
+	#	entry_id, html = args
+	#	
+	#	count = 0
+	#	last_count = self._dl_count
+	#	while entry_id == self._current_entry['entry_id'] and count < (10 * 2):
+	#		if last_count != self._dl_count:
+	#			#if downloads are still coming in, reset counter
+	#			last_count = self._dl_count
+	#			count = 0
+	#		if self._dl_count >= self._dl_total:
+	#			gobject.idle_add(self._gtkhtml_images_loaded, entry_id, html)
+	#			return
+	#		count += 1
+	#		time.sleep(0.5)
+	#	gobject.idle_add(self._gtkhtml_images_loaded, entry_id, html)
+	#	
+	#def _gtkhtml_images_loaded(self, entry_id, html):
+	#	#if we're changing, nevermind.
+	#	#also make sure entry is the same and that we shouldn't be blanks
+	#	if entry_id == self._current_entry['entry_id']:
+	#		va = self._scrolled_window.get_vadjustment()
+	#		ha = self._scrolled_window.get_hadjustment()
+	#		self._document_lock.acquire()
+	#		self._document.clear()
+	#		self._document.open_stream("text/html")
+	#		self._document.write_stream(html)
+	#		self._document.close_stream()
+	#		self._document_lock.release()
+	#	return False
+	#	
+	#def _gtkhtml_request_url(self, document, url, stream):
+	#	try:
+	#		image = self._image_cache.get_image(url)
+	#		stream.write(image)
+	#		stream.close()
+	#	except Exception, ex:
+	#		stream.close()
 		
 	def finish(self):
 		for disconnector, h_id in self._handlers:
 			disconnector(h_id)
 	
 		#just make it gray for quitting
-		if self._renderer==EntryFormatter.MOZILLA:
-			#FIXME: this doesn't work, we quit before it renders
-			message = """<html><head><style type="text/css">
-            body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)
-			self.display_custom_entry(message)
-		elif self._renderer == EntryFormatter.GTKHTML:
-			self._image_pool.joinAll(False, False)
-			del self._image_pool
+		#if self._renderer==EntryFormatter.MOZILLA:
+		#	#FIXME: this doesn't work, we quit before it renders
+		#	message = """<html><head><style type="text/css">
+  #          body { background-color: %s; }</style></head><body></body></html>""" % (self._insensitive_color,)
+		#	self.display_custom_entry(message)
+		#elif self._renderer == EntryFormatter.GTKHTML:
+		#	self._image_pool.joinAll(False, False)
+		#	del self._image_pool
 		#self.scrolled_window.hide()
+		self._html_widget.finish()
 		self._custom_entry = True
 		return

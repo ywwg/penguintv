@@ -174,30 +174,11 @@ class PlanetView(gobject.GObject):
 		self._handlers.append((screen.disconnect, h_id))
 		
 	def post_show_init(self):
-		if self._renderer == EntryFormatter.MOZILLA:
-			self._html_widget.post_show_init()
-			
-			self._html_widget.connect('link-message', self.__link_message_cb)
-			self._html_widget.connect('open-uri', self.__open_uri_cb)
-			
-			self._USING_AJAX = self._html_widget.is_ajax_ok()
-			
-			self._scrolled_window.add_with_viewport(self._html_widget.get_widget())
-			self._html_widget.get_widget().show()
-		elif self._renderer == EntryFormatter.GTKHTML:
-			self._html_widget.post_show_init()
-			self._html_widget.set_scrolled_window(self._scrolled_window)
-			o = self._html_widget.get_widget()
-			self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
-			self._scrolled_window.set_hadjustment(o.get_hadjustment())
-			self._scrolled_window.set_vadjustment(o.get_vadjustment())
-			
-			self._scrolled_window.add(o)
-			
-			self._USING_AJAX = self._html_widget.is_ajax_ok()
-			
-			self._html_widget.connect('link-message', self.__link_message_cb)
-			self._html_widget.connect('open-uri', self.__open_uri_cb)
+		self._html_widget.post_show_init(self._scrolled_window)
+		self._html_widget.connect('link-message', self.__link_message_cb)
+		self._html_widget.connect('open-uri', self.__open_uri_cb)
+		self._USING_AJAX = self._html_widget.is_ajax_ok()
+		
 		if self._USING_AJAX:
 			logging.info("initializing ajax server")
 			import threading
