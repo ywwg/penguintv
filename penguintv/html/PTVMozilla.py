@@ -69,10 +69,6 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		widget.add_with_viewport(self._moz)
 		self._moz.show()
 		
-	#def set_widget(self, o):
-	#	self._moz = o
-	#	self._realized = True
-		
 	def get_widget(self):
 		return self._moz
 		
