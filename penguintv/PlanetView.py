@@ -7,30 +7,27 @@
 
 import logging
 import os, os.path
-import threading
-import re
-import time
 
 import gobject
 import gtk
 
+import PTVhtml
 import EntryFormatter
 import ptvDB
 import utils
-import ThreadPool
 
 if utils.RUNNING_HILDON:
 	import hildon
 elif utils.RUNNING_SUGAR:
 	import hulahop
-else:
-	try:
-		import gtkmozembed
-	except:
-		try:
-			from ptvmozembed import gtkmozembed
-		except:
-			pass
+#else:
+#	try:
+#		import gtkmozembed
+#	except:
+#		try:
+#			from ptvmozembed import gtkmozembed
+#		except:
+#			pass
 
 if utils.RUNNING_HILDON:
 	ENTRIES_PER_PAGE = 5
@@ -41,8 +38,6 @@ else:
 S_DEFAULT=0
 S_SEARCH=1
 
-IMG_REGEX = re.compile("<img.*?src=[\",\'](.*?)[\",\'].*?>", re.IGNORECASE|re.DOTALL)
-
 class PlanetView(gobject.GObject):
 	"""PlanetView implementes the api for entrylist and entryview, so that the main program doesn't
 	need to know that the two objects are actually the same"""
@@ -50,22 +45,22 @@ class PlanetView(gobject.GObject):
 	PORT = 8000
 	
 	__gsignals__ = {
-       	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_PYOBJECT])),
+	   	'link-activated': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_PYOBJECT])),
 		'entries-viewed': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_PYOBJECT])),
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_PYOBJECT])),
 		#
 		#unused by planetview, but part of entrylist API
 		#
-        'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           ([gobject.TYPE_INT, gobject.TYPE_INT])),
+		'entry-selected': (gobject.SIGNAL_RUN_FIRST, 
+						   gobject.TYPE_NONE, 
+						   ([gobject.TYPE_INT, gobject.TYPE_INT])),
 		'no-entry-selected': (gobject.SIGNAL_RUN_FIRST, 
-                           gobject.TYPE_NONE, 
-                           [])
-    }	                       
+						   gobject.TYPE_NONE, 
+						   [])
+	}	                       
 	
 	def __init__(self, dock_widget, main_window, db, share_path, feed_list_view=None, app=None, renderer=EntryFormatter.MOZILLA):
 		gobject.GObject.__init__(self)
@@ -82,7 +77,7 @@ class PlanetView(gobject.GObject):
 		self._main_window = main_window
 		self._db = db
 		self._renderer = renderer
-		self._css = ""
+		#self._css = ""
 		self._current_feed_id = -1
 		self._feed_title=""
 		self._state = S_DEFAULT
@@ -134,44 +129,49 @@ class PlanetView(gobject.GObject):
 
 		style = self._html_dock.get_style().copy()
 		self._background_color = "#%.2x%.2x%.2x;" % (
-                style.base[gtk.STATE_NORMAL].red / 256,
-                style.base[gtk.STATE_NORMAL].blue / 256,
-                style.base[gtk.STATE_NORMAL].green / 256)
-                
+				style.base[gtk.STATE_NORMAL].red / 256,
+				style.base[gtk.STATE_NORMAL].blue / 256,
+				style.base[gtk.STATE_NORMAL].green / 256)
+				
 		self._foreground_color = "#%.2x%.2x%.2x;" % (
-                style.text[gtk.STATE_NORMAL].red / 256,
-                style.text[gtk.STATE_NORMAL].blue / 256,
-                style.text[gtk.STATE_NORMAL].green / 256)
-                
+				style.text[gtk.STATE_NORMAL].red / 256,
+				style.text[gtk.STATE_NORMAL].blue / 256,
+				style.text[gtk.STATE_NORMAL].green / 256)
+				
 		self._insensitive_color = "#%.2x%.2x%.2x;" % (
-                style.base[gtk.STATE_INSENSITIVE].red / 256,
-                style.base[gtk.STATE_INSENSITIVE].blue / 256,
-                style.base[gtk.STATE_INSENSITIVE].green / 256)
+				style.base[gtk.STATE_INSENSITIVE].red / 256,
+				style.base[gtk.STATE_INSENSITIVE].blue / 256,
+				style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
 		if self._renderer == EntryFormatter.MOZILLA:
-			self._moz_realized = False
-			if utils.RUNNING_SUGAR:
-				f = open(os.path.join(share_path, "mozilla-planet-olpc.css"))
-				for l in f.readlines(): self._css += l
-				f.close()
-			else:
-				if utils.RUNNING_HILDON:
-					f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
-				else:
-					f = open(os.path.join(share_path, "mozilla-planet.css"))
-				for l in f.readlines(): self._css += l
-				f.close()
+			import html.PTVMozilla
+			self._html_widget = html.PTVMozilla.PTVMozilla(self, self._db.home, share_path)
+			#self._html_widget = getattr(__import__("html.PTVMozilla"), "PTVMozilla")()
+			#self._moz_realized = False
+			#if utils.RUNNING_SUGAR:
+			#	f = open(os.path.join(share_path, "mozilla-planet-olpc.css"))
+			#	for l in f.readlines(): self._css += l
+			#	f.close()
+			#else:
+			#	if utils.RUNNING_HILDON:
+			#		f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
+			#	else:
+			#		f = open(os.path.join(share_path, "mozilla-planet.css"))
+			#	for l in f.readlines(): self._css += l
+			#	f.close()
 		elif self._renderer == EntryFormatter.GTKHTML:
-			f = open(os.path.join(share_path, "gtkhtml.css"))
-			#f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
-			for l in f.readlines(): self._css += l
-			f.close()
-			self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
-			self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
-			self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
-			#self._image_lock = threading.Lock()
-			self._dl_total = 0
-			self._dl_count = 0
+			import html.PTVGtkHtml
+			self._html_widget = html.PTVGtkHtml.PTVGtkHtml(self, self._db.home, share_path)
+		#	f = open(os.path.join(share_path, "gtkhtml.css"))
+		#	#f = open(os.path.join(share_path, "mozilla-planet-hildon.css"))
+		#	for l in f.readlines(): self._css += l
+		#	f.close()
+		#	self._current_scroll_v = self._scrolled_window.get_vadjustment().get_value()
+		#	self._current_scroll_h = self._scrolled_window.get_hadjustment().get_value()
+		#	self._image_pool = ThreadPool.ThreadPool(5, "PlanetView")
+		#	#self._image_lock = threading.Lock()
+		#	self._dl_total = 0
+		#	self._dl_count = 0
 				
 		#signals
 		self._handlers = []
@@ -207,68 +207,95 @@ class PlanetView(gobject.GObject):
 		
 	def post_show_init(self):
 		if self._renderer == EntryFormatter.MOZILLA:
-			if utils.RUNNING_SUGAR:
-				self._USING_AJAX = False
-				hulahop.startup(os.path.join(self._db.home, 'gecko'))
-				import OLPCBrowser
-				self._moz = OLPCBrowser.Browser()
-				self._moz.load_uri("about:blank")
-				self._moz.connect("notify", self._hulahop_prop_changed)
-			else:
-				if utils.RUNNING_HILDON:
-					logging.debug("Hildon: Not using ajax view")
-					self._USING_AJAX = False
-				else:
-					self._USING_AJAX = True
-				utils.init_gtkmozembed()
-				gtkmozembed.set_profile_path(self._db.home, 'gecko')
-				gtkmozembed.push_startup()
-				self._moz = gtkmozembed.MozEmbed()
-				self._moz.load_url("about:blank")
+			#if True:
+			#if utils.RUNNING_SUGAR:
+			#	self._USING_AJAX = False
+			#	hulahop.startup(os.path.join(self._db.home, 'gecko'))
+			#	import OLPCBrowser
+			#	self._moz = OLPCBrowser.Browser()
+			#	self._moz.load_uri("about:blank")
+			#	self._moz.connect("notify", self._hulahop_prop_changed)
+			#else:
+			#	if utils.RUNNING_HILDON:
+			#		logging.debug("Hildon: Not using ajax view")
+			#		self._USING_AJAX = False
+			#	else:
+			#		self._USING_AJAX = True
+				#utils.init_gtkmozembed()
+				#gtkmozembed.set_profile_path(self._db.home, 'gecko')
+				#gtkmozembed.push_startup()
+				#self._moz = gtkmozembed.MozEmbed()
+				#self._moz.load_url("about:blank")
+				#self._moz.load_url("http://google.com")
+			#
+			##TEMP INDENT START	
+			#	#hard:
+			#	self._moz.connect("new-window", self._moz_new_window)
+			#	#requires changes to hulahop to get at _chrome:
+			#	self._moz.connect("link-message", self._moz_link_message)
+			#	
+			#self._moz.connect("open-uri", self._moz_link_clicked)
+			#self._moz.connect("realize", self._moz_realize, True)
+			#self._moz.connect("unrealize", self._moz_realize, False)
 			
-			#TEMP INDENT START	
-				#hard:
-				self._moz.connect("new-window", self._moz_new_window)
-				#requires changes to hulahop to get at _chrome:
-				self._moz.connect("link-message", self._moz_link_message)
-				
-			self._moz.connect("open-uri", self._moz_link_clicked)
-			self._moz.connect("realize", self._moz_realize, True)
-			self._moz.connect("unrealize", self._moz_realize, False)
-			self._scrolled_window.add_with_viewport(self._moz)
-			self._moz.show()
-			if utils.HAS_GCONF:
-				try:
-					import gconf
-				except:
-					from gnome import gconf
-				self._conf = gconf.client_get_default()
-				self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
-			self._reset_moz_font()
+			#o = gtkmozembed.MozEmbed()
+			
+			self._html_widget.post_show_init()
+			
+			#self._html_widget.set_widget(self._moz)
+			
+			self._html_widget.connect('link-message', self.__link_message_cb)
+			self._html_widget.connect('open-uri', self.__open_uri_cb)
+			
+			self._USING_AJAX = self._html_widget.is_ajax_ok()
+			
+			self._scrolled_window.add_with_viewport(self._html_widget.get_widget())
+			self._html_widget.get_widget().show()
+			
+			#if utils.HAS_GCONF:
+			#	try:
+			#		import gconf
+			#	except:
+			#		from gnome import gconf
+			#	self._conf = gconf.client_get_default()
+			#	self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
+			#self._reset_moz_font()
 		elif self._renderer == EntryFormatter.GTKHTML:
-			import gtkhtml2
-			import SimpleImageCache
-			import threading
+			self._html_widget.post_show_init()
+			self._html_widget.set_scrolled_window(self._scrolled_window)
+			o = self._html_widget.get_widget()
 			self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
-			htmlview = gtkhtml2.View()
-			self._document = gtkhtml2.Document()
-			self._document.connect("link-clicked", self._gtkhtml_link_clicked)
-			htmlview.connect("on_url", self._gtkhtml_on_url)
-			self._document.connect("request-url", self._gtkhtml_request_url)
-			htmlview.get_vadjustment().set_value(0)
-			htmlview.get_hadjustment().set_value(0)
-			self._scrolled_window.set_hadjustment(htmlview.get_hadjustment())
-			self._scrolled_window.set_vadjustment(htmlview.get_vadjustment())
+			self._scrolled_window.set_hadjustment(o.get_hadjustment())
+			self._scrolled_window.set_vadjustment(o.get_vadjustment())
 			
-			self._document.clear()
-			htmlview.set_document(self._document)
-			self._scrolled_window.add(htmlview)
-			self._htmlview = htmlview
-			self._document_lock = threading.Lock()
-			self._image_cache = SimpleImageCache.SimpleImageCache()
+			self._scrolled_window.add(o)
 			
-		self.display_item()
-		self._html_dock.show_all()
+			self._USING_AJAX = self._html_widget.is_ajax_ok()
+			
+			self._html_widget.connect('link-message', self.__link_message_cb)
+			self._html_widget.connect('open-uri', self.__open_uri_cb)
+		#
+		#	import gtkhtml2
+		#	import SimpleImageCache
+		#	import threading
+		#	self._scrolled_window.set_property("shadow-type",gtk.SHADOW_IN)
+		#	htmlview = gtkhtml2.View()
+		#	self._document = gtkhtml2.Document()
+		#	self._document.connect("link-clicked", self._gtkhtml_link_clicked)
+		#	htmlview.connect("on_url", self._gtkhtml_on_url)
+		#	self._document.connect("request-url", self._gtkhtml_request_url)
+		#	htmlview.get_vadjustment().set_value(0)
+		#	htmlview.get_hadjustment().set_value(0)
+		#	self._scrolled_window.set_hadjustment(htmlview.get_hadjustment())
+		#	self._scrolled_window.set_vadjustment(htmlview.get_vadjustment())
+		#	
+		#	self._document.clear()
+		#	htmlview.set_document(self._document)
+		#	self._scrolled_window.add(htmlview)
+		#	self._htmlview = htmlview
+		#	self._document_lock = threading.Lock()
+		#	self._image_cache = SimpleImageCache.SimpleImageCache()
+			
 		if self._USING_AJAX:
 			logging.info("initializing ajax server")
 			import threading
@@ -297,6 +324,9 @@ class PlanetView(gobject.GObject):
 			self._ajax_url = None
 			self._entry_formatter = EntryFormatter.EntryFormatter(self._mm, False, True, basic_progress=True, renderer=self._renderer)
 			self._search_formatter = EntryFormatter.EntryFormatter(self._mm, True, True, basic_progress=True, renderer=self._renderer)
+		self.display_item()
+		self._html_dock.show_all()
+
 		
 	def set_entry_view(self, entry_view):
 		pass
@@ -357,9 +387,16 @@ class PlanetView(gobject.GObject):
 	def __new_database_cb(self, app, db):
 		self._db = db
 		
-	def grab_focus(self):
-		if utils.RUNNING_SUGAR:
-			self._moz.grab_focus()
+	def __link_message_cb(self, o, message):
+		if not utils.RUNNING_HILDON:
+			self._main_window.display_status_message(message)
+	
+	def __open_uri_cb(self, o, uri):
+		self._link_clicked(uri)
+		
+	#def grab_focus(self):
+	#	if utils.RUNNING_SUGAR:
+	#		self._moz.grab_focus()
 		
 	#entrylist functions
 	def get_selected(self):
@@ -379,7 +416,19 @@ class PlanetView(gobject.GObject):
 		
 	def get_current_feed_id(self):
 		return self._current_feed_id
-	
+		
+	def get_image_id(self):
+		return (self._current_feed_id, self._first_entry)
+		
+	def get_bg_color(self):
+		return self._background_color
+		
+	def get_fg_color(self):
+		return self._foreground_color
+		
+	def get_in_color(self):
+		return self._insensitive_color
+		
 	def populate_if_selected(self, feed_id):
 		if feed_id == self._current_feed_id:
 			self.populate_entries(feed_id)
@@ -408,8 +457,9 @@ class PlanetView(gobject.GObject):
 			#self._main_window.set_hide_entries_visibility(True)
 			self._current_feed_id = feed_id
 			self._first_entry = 0
-			if self._renderer == EntryFormatter.GTKHTML:
-				self._gtkhtml_reset_image_dl()
+			self._html_widget.dl_interrupt()
+			#if self._renderer == EntryFormatter.GTKHTML:
+			#	self._gtkhtml_reset_image_dl()
 			self._entry_store={}
 			feed_info = self._db.get_feed_info(feed_id)
 			if feed_info['auth_feed']:
@@ -478,8 +528,9 @@ class PlanetView(gobject.GObject):
 		self._entry_store={}
 		self._entrylist = []
 		self._convert_newlines = False
-		if self._renderer == EntryFormatter.GTKHTML:
-			self._gtkhtml_reset_image_dl()
+		self._html_widget.dl_interrupt()
+		#if self._renderer == EntryFormatter.GTKHTML:
+		#	self._gtkhtml_reset_image_dl()
 		self._render("<html><body></body></html")
 		if self._USING_AJAX:
 			self._update_server.clear_updates()
@@ -544,11 +595,12 @@ class PlanetView(gobject.GObject):
 			except:
 				logging.error('error closing planetview server')
 		self._render("<html><body></body></html")
-		if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON and self._renderer == EntryFormatter.MOZILLA:
-			gtkmozembed.pop_startup()
-		if self._renderer == EntryFormatter.GTKHTML:
-			self._image_pool.joinAll(False, False)
-			del self._image_pool
+		#if not utils.RUNNING_SUGAR and not utils.RUNNING_HILDON and self._renderer == EntryFormatter.MOZILLA:
+			#gtkmozembed.pop_startup()
+		self._html_widget.finish()
+		#if self._renderer == EntryFormatter.GTKHTML:
+		#	self._image_pool.joinAll(False, False)
+		#	del self._image_pool
 					
 	#protected functions
 	def _render_entries(self, mark_read=False, force=False):
@@ -556,8 +608,9 @@ class PlanetView(gobject.GObject):
 
 		if self._first_entry < 0:
 			self._first_entry = 0
-			if self._renderer == EntryFormatter.GTKHTML:
-				self._gtkhtml_reset_image_dl()
+			self._html_widget.dl_interrupt()
+			#if self._renderer == EntryFormatter.GTKHTML:
+			#	self._gtkhtml_reset_image_dl()
 			
 		if utils.RUNNING_HILDON:
 			self._back_button.hide()
@@ -698,99 +751,107 @@ class PlanetView(gobject.GObject):
 		self._render(html)
 	
 	def _build_header(self, media_exists):
-		if self._renderer == EntryFormatter.MOZILLA:
-			html = ["""<html><head>
-			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-				<style type="text/css">
-			    body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
-			    %s
-			    </style>
-			    <title>title</title>""" % (self._background_color,
-										   self._foreground_color,
-										   self._moz_font, 
-										   self._moz_size, 
-										   self._css)] 
-			if self._USING_AJAX:
-				html.append("""<script type="text/javascript"><!--""")
-				html.append("""
-	            
-	            var xmlHttp
-
-				function refresh_entries(timed)
-				{
-					xmlHttp=GetXmlHttpObject()
-					if (xmlHttp==null)
-					{
-						alert ("Browser does not support HTTP Request")
-						return
-					}        
-					xmlHttp.onreadystatechange=stateChanged 
-					try
-					{
-						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
-						xmlHttp.send(null)
-					} 
-					catch (error) 
-					{
-						document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
-					}
-					if (timed == 1)
-					{
-						SetTimer()
-					}
-				} 
-
-				function stateChanged() 
-				{ 
-					if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
-				    { 
-				    	if (xmlHttp.responseText.length > 0)
-				    	{
-							line_split = xmlHttp.responseText.split(" ")
-							entry_id = line_split[0]
-				    		split_point = xmlHttp.responseText.indexOf(" ")
-							document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
-						}
-					} 
-				} 
-
-				function GetXmlHttpObject()
-				{ 
-					var objXMLHttp=null
-					if (window.XMLHttpRequest)
-					{
-						objXMLHttp=new XMLHttpRequest()
-					}
-					else if (window.ActiveXObject)
-					{
-						objXMLHttp=new ActiveXObject("Microsoft.XMLHTTP")
-					}
-					return objXMLHttp
-				} 
-				
-				var timerObj;
-				function SetTimer()
-				{
-	  				timerObj = setTimeout("refresh_entries(1)",1000);
-				}
-				refresh_entries(1)""")
-			html.append("""
-				document.oncontextmenu = function()
-					{
-						parent.location="rightclick:0"
-						return false;
-					};""")
+		html = []
+		#if self._renderer == EntryFormatter.MOZILLA:
+			#html = ["""<html><head>
+			#    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+			#	<style type="text/css">
+			#    body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
+			#    %s
+			#    </style>
+			#    <title>title</title>""" % (self._background_color,
+			#							   self._foreground_color,
+			#							   self._moz_font, 
+			#							   self._moz_size, 
+			#							   self._css)] 
 			
+		html.append(self._html_widget.build_header())
+			
+		if self._renderer == EntryFormatter.GTKHTML:
+			pass
+#			html = ["""<html><head>
+#			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+#<style type="text/css">
+#%s
+#</style>
+#			    <title>title</title>""" % self._css] 
+#			html.append("""</head><body>""")
+		
+			
+		if self._USING_AJAX:
+			html.append("""<script type="text/javascript"><!--""")
+			html.append("""
+		
+			var xmlHttp
+
+			function refresh_entries(timed)
+			{
+				xmlHttp=GetXmlHttpObject()
+				if (xmlHttp==null)
+				{
+					alert ("Browser does not support HTTP Request")
+					return
+				}        
+				xmlHttp.onreadystatechange=stateChanged 
+				try
+				{
+					xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
+					xmlHttp.send(null)
+				} 
+				catch (error) 
+				{
+					document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
+				}
+				if (timed == 1)
+				{
+					SetTimer()
+				}
+			} 
+
+			function stateChanged() 
+			{ 
+				if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
+				{ 
+					if (xmlHttp.responseText.length > 0)
+					{
+						line_split = xmlHttp.responseText.split(" ")
+						entry_id = line_split[0]
+						split_point = xmlHttp.responseText.indexOf(" ")
+						document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
+					}
+				} 
+			} 
+
+			function GetXmlHttpObject()
+			{ 
+				var objXMLHttp=null
+				if (window.XMLHttpRequest)
+				{
+					objXMLHttp=new XMLHttpRequest()
+				}
+				else if (window.ActiveXObject)
+				{
+					objXMLHttp=new ActiveXObject("Microsoft.XMLHTTP")
+				}
+				return objXMLHttp
+			} 
+		
+			var timerObj;
+			function SetTimer()
+			{
+  				timerObj = setTimeout("refresh_entries(1)",1000);
+			}
+			refresh_entries(1)""")
+			#html.append("""
+			#	document.oncontextmenu = function()
+			#		{
+			#			parent.location="rightclick:0"
+			#			return false;
+			#		};""")
+			#
 			html.append("--> </script>")
 			html.append("""</head><body><span id="errorMsg"></span><br>""")
-		else:
-			html = ["""<html><head>
-			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-<style type="text/css">
-%s
-</style>
-			    <title>title</title>""" % self._css] 
-			html.append("""</head><body>""")
+	
 			
 		return "\n".join(html)
 		
@@ -903,113 +964,117 @@ class PlanetView(gobject.GObject):
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
 				self._update_server.push_update(ret)
-		
+	
 	def _render(self, html):
 		# temp until olpcbrowser dows moz_realized
 		#logging.debug("="*80)
 		#logging.debug(html)
 		#logging.debug("="*80)
-		if self._renderer == EntryFormatter.MOZILLA:
-			if self._moz_realized or utils.RUNNING_SUGAR:
-				if self._USING_AJAX:
-					self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
-				else:
-					self._moz.open_stream("file:///","text/html")
-				while len(html)>60000:
-					part = html[0:60000]
-					html = html[60000:]
-					self._moz.append_data(part, long(len(part)))
-				self._moz.append_data(html, long(len(html)))
-				self._moz.close_stream()
-		elif self._renderer == EntryFormatter.GTKHTML:
-			self._document_lock.acquire()
-			imgs = IMG_REGEX.findall(html)
-			uncached=0
-			for url in imgs:
-				if not self._image_cache.is_cached(url):
-					uncached+=1
-					
-			if uncached > 0:
-				self._document.clear()
-				self._document.open_stream("text/html")
-				d = { 	"background_color": self._background_color,
-						"loading": _("Loading images...")}
-				self._document.write_stream("""<html><style type="text/css">
-		        body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
-				self._document.close_stream()
-				self._document_lock.release()
+		#if self._renderer == EntryFormatter.MOZILLA:
+		image_id = None
+		if self._renderer == EntryFormatter.GTKHTML:
+			image_id = self.get_image_id()
+		self._html_widget.render(html, self._ajax_url, image_id)
+			#if self._moz_realized or utils.RUNNING_SUGAR:
+			#	if self._USING_AJAX:
+			#		self._moz.open_stream("http://localhost:"+str(PlanetView.PORT),"text/html")
+			#	else:
+			#		self._moz.open_stream("file:///","text/html")
+			#	while len(html)>60000:
+			#		part = html[0:60000]
+			#		html = html[60000:]
+			#		self._moz.append_data(part, long(len(part)))
+			#	self._moz.append_data(html, long(len(html)))
+			#	self._moz.close_stream()
+		#elif self._renderer == EntryFormatter.GTKHTML:
+			#self._document_lock.acquire()
+			#imgs = IMG_REGEX.findall(html)
+			#uncached=0
+			#for url in imgs:
+			#	if not self._image_cache.is_cached(url):
+			#		uncached+=1
+			#		
+			#if uncached > 0:
+			#	self._document.clear()
+			#	self._document.open_stream("text/html")
+			#	d = { 	"background_color": self._background_color,
+			#			"loading": _("Loading images...")}
+			#	self._document.write_stream("""<html><style type="text/css">
+		 #       body { background-color: %(background_color)s; }</style><body><i>%(loading)s</i></body></html>""" % d) 
+			#	self._document.close_stream()
+			#	self._document_lock.release()
+			#	
+			#	self._dl_count = 0
+			#	self._dl_total = uncached
+			#	
+			#	for url in imgs:
+			#		if not self._image_cache.is_cached(url):
+			#			self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, self._current_feed_id, self._first_entry), self._gtkhtml_image_dl_cb)
+			#	self._image_pool.queueTask(self._gtkhtml_download_done, (self._current_feed_id, self._first_entry, html))
+			#else:
+			#	self._scrolled_window.get_hadjustment().set_value(0)
+			#	self._scrolled_window.get_vadjustment().set_value(0)
+			#	self._document.clear()
+			#	self._document.open_stream("text/html")
+			#	self._document.write_stream(html)
+			#	self._document.close_stream()
+			#	self._document_lock.release()
 				
-				self._dl_count = 0
-				self._dl_total = uncached
-				
-				for url in imgs:
-					if not self._image_cache.is_cached(url):
-						self._image_pool.queueTask(self._gtkhtml_do_download_image, (url, self._current_feed_id, self._first_entry), self._gtkhtml_image_dl_cb)
-				self._image_pool.queueTask(self._gtkhtml_download_done, (self._current_feed_id, self._first_entry, html))
-			else:
-				self._scrolled_window.get_hadjustment().set_value(0)
-				self._scrolled_window.get_vadjustment().set_value(0)
-				self._document.clear()
-				self._document.open_stream("text/html")
-				self._document.write_stream(html)
-				self._document.close_stream()
-				self._document_lock.release()
-				
-	def _gtkhtml_reset_image_dl(self):
-		assert self._renderer == EntryFormatter.GTKHTML
-		self._image_pool.joinAll(False, False)
-		self._dl_count = 0
-		self._dl_total = 0
-				
-	def _gtkhtml_do_download_image(self, args):
-		url, feed_id, first_entry = args
-		self._image_cache.get_image(url)
-		return (feed_id, first_entry)
-		
-	def _gtkhtml_image_dl_cb(self, args):
-		feed_id, first_entry = args
-		if feed_id == self._current_feed_id and first_entry == self._first_entry:
-			self._dl_count += 1
-			
-	def _gtkhtml_download_done(self, args):
-		feed_id, first_entry, html = args
-		
-		count = 0
-		last_count = self._dl_count
-		while feed_id == self._current_feed_id and first_entry == self._first_entry and count < (10 * 2):
-			if last_count != self._dl_count:
-				#if downloads are still coming in, reset counter
-				last_count = self._dl_count
-				count = 0
-			if self._dl_count >= self._dl_total:
-				gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
-				return
-			count += 1
-			time.sleep(0.5)
-		gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
-
-		
-	def _gtkhtml_images_loaded(self, feed_id, first_entry, html):
-		#if we're changing, nevermind.
-		#also make sure entry is the same and that we shouldn't be blanks
-		if feed_id == self._current_feed_id and first_entry == self._first_entry:
-			va = self._scrolled_window.get_vadjustment()
-			ha = self._scrolled_window.get_hadjustment()
-			self._document_lock.acquire()
-			self._document.clear()
-			self._document.open_stream("text/html")
-			self._document.write_stream(html)
-			self._document.close_stream()
-			self._document_lock.release()
-		return False
-		
-	def _gtkhtml_request_url(self, document, url, stream):
-		try:
-			image = self._image_cache.get_image(url)
-			stream.write(image)
-			stream.close()
-		except Exception, ex:
-			stream.close()
+#	def _gtkhtml_reset_image_dl(self):
+#		assert self._renderer == EntryFormatter.GTKHTML
+#		self._image_pool.joinAll(False, False)
+#		self._dl_count = 0
+#		self._dl_total = 0
+#				
+#	def _gtkhtml_do_download_image(self, args):
+#		url, feed_id, first_entry = args
+#		self._image_cache.get_image(url)
+#		return (feed_id, first_entry)
+#		
+#	def _gtkhtml_image_dl_cb(self, args):
+#		feed_id, first_entry = args
+#		if feed_id == self._current_feed_id and first_entry == self._first_entry:
+#			self._dl_count += 1
+#			
+#	def _gtkhtml_download_done(self, args):
+#		feed_id, first_entry, html = args
+#		
+#		count = 0
+#		last_count = self._dl_count
+#		while feed_id == self._current_feed_id and first_entry == self._first_entry and count < (10 * 2):
+#			if last_count != self._dl_count:
+#				#if downloads are still coming in, reset counter
+#				last_count = self._dl_count
+#				count = 0
+#			if self._dl_count >= self._dl_total:
+#				gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
+#				return
+#			count += 1
+#			time.sleep(0.5)
+#		gobject.idle_add(self._gtkhtml_images_loaded, feed_id, first_entry, html)
+#
+#		
+#	def _gtkhtml_images_loaded(self, feed_id, first_entry, html):
+#		#if we're changing, nevermind.
+#		#also make sure entry is the same and that we shouldn't be blanks
+#		if feed_id == self._current_feed_id and first_entry == self._first_entry:
+#			va = self._scrolled_window.get_vadjustment()
+#			ha = self._scrolled_window.get_hadjustment()
+#			self._document_lock.acquire()
+#			self._document.clear()
+#			self._document.open_stream("text/html")
+#			self._document.write_stream(html)
+#			self._document.close_stream()
+#			self._document_lock.release()
+#		return False
+#		
+#	def _gtkhtml_request_url(self, document, url, stream):
+#		try:
+#			image = self._image_cache.get_image(url)
+#			stream.write(image)
+#			stream.close()
+#		except Exception, ex:
+#			stream.close()
 			
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):
 		if (feed_id, first_entry, last_entry) != \
@@ -1140,10 +1205,10 @@ class PlanetView(gobject.GObject):
 		menu.show_all()
 		menu.popup(None,None,None, 3, 0)
 		
-	def _moz_link_clicked(self, mozembed, link):
-		link = link.strip()
-		self._link_clicked(link)
-		return True #don't load url please
+	#def _moz_link_clicked(self, mozembed, link):
+	#	link = link.strip()
+	#	self._link_clicked(link)
+	#	return True #don't load url please
 		
 	def _link_clicked(self, link):
 		if link == "planet:up":
@@ -1162,14 +1227,16 @@ class PlanetView(gobject.GObject):
 	
 	def _do_planet_up(self, a=None):
 		self._first_entry -= ENTRIES_PER_PAGE
-		if self._renderer == EntryFormatter.GTKHTML:	
-			self._gtkhtml_reset_image_dl()
+		self._html_widget.dl_interrupt()
+		#if self._renderer == EntryFormatter.GTKHTML:	
+		#	self._gtkhtml_reset_image_dl()
 		self._render_entries(mark_read=True)
 		
 	def _do_planet_down(self, a=None):
 		self._first_entry += ENTRIES_PER_PAGE
-		if self._renderer == EntryFormatter.GTKHTML:	
-			self._gtkhtml_reset_image_dl()
+		self._html_widget.dl_interrupt()
+		#if self._renderer == EntryFormatter.GTKHTML:	
+		#	self._gtkhtml_reset_image_dl()
 		self._render_entries(mark_read=True)
 		
 	def set_hide_viewed(self, state):
@@ -1187,46 +1254,45 @@ class PlanetView(gobject.GObject):
 		self._first_entry = 0
 		self._render_entries()
 		
-	def _moz_new_window(self, mozembed, retval, chromemask):
-		# hack to try to properly load links that want a new window
-		self.emit('link-activated', mozembed.get_link_message())
-		
-	def _moz_realize(self, widget, realized):
-		self._moz_realized = realized
-		self.display_item()
-		
-	def _moz_link_message(self, data):
-		if not utils.RUNNING_HILDON:
-			self._main_window.display_status_message(self._moz.get_link_message())
+	#def _moz_new_window(self, mozembed, retval, chromemask):
+	#	# hack to try to properly load links that want a new window
+	#	self.emit('link-activated', mozembed.get_link_message())
+	#	
+	#def _moz_realize(self, widget, realized):
+	#	self._moz_realized = realized
+	#	self.display_item()
+	#	
+	#def _moz_link_message(self, data):
+	#	if not utils.RUNNING_HILDON:
+	#		self._main_window.display_status_message(self._moz.get_link_message())
 			
-	def _gtkhtml_link_clicked(self, document, link):
-		link = link.strip()
-		self._link_clicked(link)
+	#def _gtkhtml_link_clicked(self, document, link):
+	#	link = link.strip()
+	#	self._link_clicked(link)
+	#
+	#def _gtkhtml_on_url(self, view, url):
+	#	if url == None:
+	#		url = ""
+	#	self._main_window.display_status_message(url)
 	
-	def _gtkhtml_on_url(self, view, url):
-		if url == None:
-			url = ""
-		self._main_window.display_status_message(url)
-	
-	def _gconf_reset_moz_font(self, client, *args, **kwargs):
-		self._reset_moz_font()
-	
-	def _reset_moz_font(self):
-		def isNumber(x):
-			try:
-				float(x)
-				return True
-			except:
-				return False
-				
-		def isValid(x):
-			if x in ["Bold", "Italic", "Regular","BoldItalic"]:#,"Demi","Oblique" Book 
-				return False
-			return True
-				
-		moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
-		#take just the beginning for the font name.  prepare for dense, unreadable code
-		self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
-		self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
-		self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
-
+	#def _gconf_reset_moz_font(self, client, *args, **kwargs):
+	#	self._reset_moz_font()
+	#
+	#def _reset_moz_font(self):
+	#	def isNumber(x):
+	#		try:
+	#			float(x)
+	#			return True
+	#		except:
+	#			return False
+	#			
+	#	def isValid(x):
+	#		if x in ["Bold", "Italic", "Regular","BoldItalic"]:#,"Demi","Oblique" Book 
+	#			return False
+	#		return True
+	#			
+	#	moz_font = self._db.get_setting(ptvDB.STRING, '/desktop/gnome/interface/font_name', "Sans Serif 12")
+	#	#take just the beginning for the font name.  prepare for dense, unreadable code
+	#	self._moz_font = " ".join(map(str, [x for x in moz_font.split() if not isNumber(x)]))
+	#	self._moz_font = "'"+self._moz_font+"','"+" ".join(map(str, [x for x in moz_font.split() if isValid(x)])) + "',Arial"
+	#	self._moz_size = int([x for x in moz_font.split() if isNumber(x)][-1])+4
