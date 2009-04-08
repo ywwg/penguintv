@@ -69,6 +69,7 @@ class PlanetView(gobject.GObject):
 		self._main_window = main_window
 		self._db = db
 		self._renderer = renderer
+		#self._renderer = EntryFormatter.GTKHTML
 		self._current_feed_id = -1
 		self._feed_title=""
 		self._state = S_DEFAULT
@@ -300,7 +301,7 @@ class PlanetView(gobject.GObject):
 	def get_current_feed_id(self):
 		return self._current_feed_id
 		
-	def get_image_id(self):
+	def get_display_id(self):
 		return (self._current_feed_id, self._first_entry)
 		
 	def get_bg_color(self):
@@ -556,6 +557,7 @@ class PlanetView(gobject.GObject):
 		
 		html = []
 		html.append(self._build_header(media_exists))
+		html.append("<body>")
 		
 		html.append(self._custom_message+"<br>")
 		
@@ -624,10 +626,7 @@ class PlanetView(gobject.GObject):
 	
 	def _build_header(self, media_exists):
 		html = []
-		html.append(self._html_widget.build_header())
 			
-		if self._renderer == EntryFormatter.GTKHTML:
-			pass
 		if self._USING_AJAX:
 			html.append("""<script type="text/javascript"><!--""")
 			html.append("""
@@ -695,8 +694,10 @@ class PlanetView(gobject.GObject):
 			html.append("--> </script>")
 			html.append("""</head><body><span id="errorMsg"></span><br>""")
 	
-			
-		return "\n".join(html)
+		html = "\n".join(html)
+		header = self._html_widget.build_header(html)
+
+		return header
 		
 	def _load_entry_block(self, entry_list, mark_read=False, force=False):
 		#if not forcing, load what we can from cache
@@ -811,7 +812,7 @@ class PlanetView(gobject.GObject):
 	def _render(self, html):
 		image_id = None
 		if self._renderer == EntryFormatter.GTKHTML:
-			image_id = self.get_image_id()
+			image_id = self.get_display_id()
 		self._html_widget.render(html, self._ajax_url, image_id)
 		
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):

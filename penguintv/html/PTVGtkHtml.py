@@ -60,20 +60,18 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 		widget.add(self._htmlview)
 		self._scrolled_window = widget
 		
-	def get_widget(self):
-		return self._htmlview
-		
-	def build_header(self):
-		html = ["""<html><head>
+	def build_header(self, html=""):
+		header = ["""<html><head>
 			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 <style type="text/css">
 %s
 </style>
 			    <title>title</title>""" % self._css] 
-		html.append("""</head><body>""")
-		return "\n".join(html)	
+		header.append(html)
+		header.append("""</head>""")
+		return "\n".join(header)	
 			
-	def render(self, html, stream_url="file:///", image_id=None):
+	def render(self, html, stream_url="file:///", display_id=None):
 		self._document_lock.acquire()
 		imgs = IMG_REGEX.findall(html)
 		uncached=0
@@ -96,8 +94,8 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 			
 			for url in imgs:
 				if not self._image_cache.is_cached(url):
-					self._image_pool.queueTask(self._do_download_image, (url, image_id), self._image_dl_cb)
-			self._image_pool.queueTask(self._download_done, (image_id, html))
+					self._image_pool.queueTask(self._do_download_image, (url, display_id), self._image_dl_cb)
+			self._image_pool.queueTask(self._download_done, (display_id, html))
 		else:
 			self._scrolled_window.get_hadjustment().set_value(0)
 			self._scrolled_window.get_vadjustment().set_value(0)
@@ -113,40 +111,40 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 		self._dl_total = 0
 				
 	def _do_download_image(self, args):
-		url, image_id = args
+		url, display_id = args
 		self._image_cache.get_image(url)
-		#print "do download", image_id
-		return image_id
+		#print "do download", display_id
+		return display_id
 		
-	def _image_dl_cb(self, image_id):
-		#print "dl_cb", image_id, self._view.get_image_id()
-		if image_id == self._view.get_image_id():
+	def _image_dl_cb(self, display_id):
+		#print "dl_cb", display_id, self._view.get_display_id()
+		if display_id == self._view.get_display_id():
 			self._dl_count += 1
 			
 	def _download_done(self, args):
-		image_id, html = args
+		display_id, html = args
 		
 		count = 0
 		last_count = self._dl_count
-		#print "dl_done", image_id, self._view.get_image_id()
-		while image_id == self._view.get_image_id() and count < (10 * 2):
+		#print "dl_done", display_id, self._view.get_display_id()
+		while display_id == self._view.get_display_id() and count < (10 * 2):
 			if last_count != self._dl_count:
 				#if downloads are still coming in, reset counter
 				last_count = self._dl_count
 				count = 0
 			if self._dl_count >= self._dl_total:
-				gobject.idle_add(self._images_loaded, image_id, html)
+				gobject.idle_add(self._images_loaded, display_id, html)
 				return
 			count += 1
 			time.sleep(0.5)
-		gobject.idle_add(self._images_loaded, image_id, html)
+		gobject.idle_add(self._images_loaded, display_id, html)
 
 		
-	def _images_loaded(self, image_id, html):
+	def _images_loaded(self, display_id, html):
 		#if we're changing, nevermind.
 		#also make sure entry is the same and that we shouldn't be blanks
-		#print "loaded", image_id, self._view.get_image_id()
-		if image_id == self._view.get_image_id():
+		#print "loaded", display_id, self._view.get_display_id()
+		if display_id == self._view.get_display_id():
 			va = self._scrolled_window.get_vadjustment()
 			ha = self._scrolled_window.get_hadjustment()
 			self._document_lock.acquire()

@@ -1,10 +1,7 @@
 import logging
-import time
 import os
 import htmllib, HTMLParser
 import formatter
-import threading
-import re
 
 import gobject
 import gtk
@@ -20,8 +17,6 @@ import ThreadPool
 #states
 S_DEFAULT = 0
 S_SEARCH  = 1
-
-IMG_REGEX = re.compile("<img.*?src=[\",\'](.*?)[\",\'].*?>", re.IGNORECASE|re.DOTALL)
 
 class EntryView(gobject.GObject):
 
@@ -123,7 +118,7 @@ class EntryView(gobject.GObject):
 			import html.PTVGtkHtml
 			self._html_widget = html.PTVGtkHtml.PTVGtkHtml(self, self._app.db.home, utils.get_share_prefix())
 			
-	def get_image_id(self):
+	def get_display_id(self):
 		try:
 			return self._current_entry['entry_id']
 		except:
@@ -297,13 +292,19 @@ class EntryView(gobject.GObject):
 				item['feed_title'] = self._app.db.get_feed_title(item['feed_id'])
 		else:
 			formatter = self._entry_formatter
-	
-		html = self._html_widget.build_header()
+			
 		if item is None:
-			html += """<html><style type="text/css">
-	            body { background-color: %s;}</style><body></body></html>""" % (self._background_color,)
+			header = """<style type="text/css">
+				body { background-color: %s;}</style>""" % (self._background_color,)
 		else:
-			html += "</head><body>%s</body></html>" % formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1])
+			header = ""
+	
+		html = self._html_widget.build_header(header)
+		
+		if item is None:
+			html += """<body></body></html>""" 
+		else:
+			html += "<body>%s</body></html>" % formatter.htmlify_item(item, convert_newlines=self._convert_newlines[1])
 	
 		#do highlighting for search mode
 		html = html.encode('utf-8')
@@ -326,7 +327,7 @@ class EntryView(gobject.GObject):
 				
 		#print html
 		
-		self._html_widget.render(html, "file:///", self.get_image_id())
+		self._html_widget.render(html, "file:///", self.get_display_id())
 			
 		if item is not None:		
 			gobject.timeout_add(2000, self._do_delayed_set_viewed, item)

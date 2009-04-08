@@ -69,11 +69,8 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		widget.add_with_viewport(self._moz)
 		self._moz.show()
 		
-	def get_widget(self):
-		return self._moz
-		
-	def build_header(self):
-		html = ["""<html><head>
+	def build_header(self, html=""):
+		header = ["""<html><head>
 			    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
 				<style type="text/css">
 			    body { background-color: %s; color: %s; font-family: %s; font-size: %s; }
@@ -85,18 +82,20 @@ class PTVMozilla(PTVhtml.PTVhtml):
 										   self._moz_size, 
 										   self._css)] 
 										   
-		html.append("""<script type="text/javascript"><!--""")
-		html.append("""
+		header.append("""<script type="text/javascript"><!--""")
+		header.append("""
 				document.oncontextmenu = function()
 					{
 						parent.location="rightclick:0"
 						return false;
 					};""")
 		
-		html.append("--> </script>")
-		return "\n".join(html)
+		header.append("--> </script>")
+		header.append(html)
+		header.append("""</head><body>""")
+		return "\n".join(header)
 		
-	def render(self, html, stream_url="file:///", image_id=None):
+	def render(self, html, stream_url="file:///", display_id=None):
 		#print html
 		
 		if self._realized or utils.RUNNING_SUGAR:
