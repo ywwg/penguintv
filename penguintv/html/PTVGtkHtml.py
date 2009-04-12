@@ -7,6 +7,7 @@ import time
 import gobject
 import gtk
 
+import utils
 import PTVhtml
 import ThreadPool
 import SimpleImageCache
@@ -164,11 +165,18 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 			stream.close()
 			
 	def _link_clicked(self, document, link):
-		link = link.strip()
-		self.emit('open-uri', link)
+		if not utils.RUNNING_HILDON:
+			link = link.strip()
+			self.emit('open-uri', link)
 	
 	def _on_url(self, view, url):
-		if url is None:
-			url = ""
-		self.emit('link-message', url)
+		if utils.RUNNING_HILDON:
+			if url is None:
+				return
+			link = url.strip()
+			self.emit('open-uri', link)
+		else:
+			if url is None:
+				url = ""
+			self.emit('link-message', url)
 		

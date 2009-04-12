@@ -229,6 +229,7 @@ packages = ["penguintv",
 			"penguintv/trayicon",
 			"penguintv/ajax",
 			"penguintv/amazon",
+			"penguintv/html",
 			"penguintv/BeautifulSoup"])
 
 if "install" in sys.argv:

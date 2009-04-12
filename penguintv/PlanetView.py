@@ -11,7 +11,7 @@ import os, os.path
 import gobject
 import gtk
 
-import PTVhtml
+import html.PTVhtml
 import EntryFormatter
 import ptvDB
 import utils
