@@ -89,6 +89,8 @@ class PlanetView(gobject.GObject):
 		
 		self._html_dock = dock_widget
 		self._scrolled_window = gtk.ScrolledWindow()
+		if utils.RUNNING_HILDON:
+			hildon.hildon_helper_set_thumb_scrollbar(self._scrolled_window, True)
 		self._html_dock.add(self._scrolled_window)
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)

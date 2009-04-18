@@ -3,6 +3,7 @@ import threading
 import os, os.path
 import re
 import time
+import logging
 
 import gobject
 import gtk
@@ -21,6 +22,7 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 		self._document_lock = threading.Lock()
 		self._image_cache = SimpleImageCache.SimpleImageCache()
 		self._css = ""
+		self._last_link_time = 0
 		
 		self._view = view
 		
@@ -171,6 +173,13 @@ class PTVGtkHtml(PTVhtml.PTVhtml):
 	
 	def _on_url(self, view, url):
 		if utils.RUNNING_HILDON:
+			now = time.time()
+			#prevent double-clicks
+			print now - self._last_link_time
+			if now - self._last_link_time < 1.0:
+				logging.debug("detected double-click, ignoring")
+				return
+			self._last_link_time = now
 			if url is None:
 				return
 			link = url.strip()

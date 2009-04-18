@@ -3,10 +3,10 @@ import gobject
 
 class PTVhtml(gobject.GObject):
 	__gsignals__ = {
-       	'link-message': (gobject.SIGNAL_RUN_FIRST, 
+       	'link-message': (gobject.SIGNAL_RUN_LAST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_STRING])),
-		'open-uri': (gobject.SIGNAL_RUN_FIRST, 
+		'open-uri': (gobject.SIGNAL_RUN_LAST, 
                            gobject.TYPE_NONE, 
                            ([gobject.TYPE_STRING]))
     }	   
