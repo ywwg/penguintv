@@ -503,9 +503,6 @@ class GStreamerPlayer(gobject.GObject):
 			#release the xv port
 			self._pipeline.unlink(self._v_sink)
 			self._v_sink.set_state(gst.STATE_NULL)
-			if not RUNNING_HILDON:
-				self._v_sink = self._get_video_sink(True)
-				self._pipeline.set_property('video-sink',self._v_sink)
 		self.emit('paused')
 			
 	def ff(self):
@@ -665,7 +662,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.seek(pos)
 		
 	def _on_queue_row_activated(self, treeview, path, view_column):
-		self.stop()
+		self.pause()
 		self._last_index = -1
 		self._current_index = path[0]
 		self.play()
