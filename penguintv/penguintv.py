@@ -36,10 +36,13 @@ logging.basicConfig(level=logging.DEBUG)
 import urllib
 
 import time
-import sets
 import string
 import subprocess
 #socket.setdefaulttimeout(30.0)
+try:
+	set
+except:
+	from sets import Set as set
 
 import pygtk
 pygtk.require('2.0')
@@ -1149,8 +1152,8 @@ class PenguinTVApp(gobject.GObject):
 	@utils.db_except()		
 	def apply_tags_to_feed(self, feed_id, old_tags, new_tags):
 		"""take a list of tags and apply it to a feed"""
-		old_set = sets.Set(old_tags)
-		new_set = sets.Set(new_tags)
+		old_set = set(old_tags)
+		new_set = set(new_tags)
 		removed_tags = list(old_set.difference(new_set))
 		added_tags = list(new_set.difference(old_set))
 		for tag in removed_tags:
@@ -1682,8 +1685,8 @@ class PenguinTVApp(gobject.GObject):
 				self._gui_updater.queue(self._article_sync.get_readstates_for_entries, update_data['new_entryids'])
 			if update_data.has_key('mod_entryids'):
 				if self._article_sync.is_enabled():
-					if len(update_data['mod_entryids']) > 0:
-						logging.debug("entries have been modified, resubmitting: %s" % str(update_data['mod_entryids']))
+					#if len(update_data['mod_entryids']) > 0:
+					#	logging.debug("entries have been modified, resubmitting: %s" % str(update_data['mod_entryids']))
 					for e_id in update_data['mod_entryids']:
 						self._gui_updater.queue(self._article_sync.diff_entry, (e_id, feed))
 			if info['lastpoll'] == 0 and success:
@@ -2454,8 +2457,8 @@ class PenguinTVApp(gobject.GObject):
 							self._poll_new_entries += update_data['new_entryids']
 					if update_data.has_key('mod_entryids'):
 						if self._article_sync.is_enabled():
-							if len(update_data['mod_entryids']) > 0:
-								logging.debug("entries have been modified, resubmitting: %s" % str(update_data['mod_entryids']))
+							#if len(update_data['mod_entryids']) > 0:
+							#	logging.debug("entries have been modified, resubmitting: %s" % str(update_data['mod_entryids']))
 							for e_id in update_data['mod_entryids']:
 								self._gui_updater.queue(self._article_sync.diff_entry, (e_id, feed_id))
 					self._threaded_emit('feed-polled', feed_id, update_data)

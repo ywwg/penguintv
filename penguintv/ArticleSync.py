@@ -3,7 +3,6 @@ import urllib
 import urlparse
 import threading
 import logging
-import sha
 #import traceback
 import time
 import gettext

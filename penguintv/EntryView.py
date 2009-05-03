@@ -7,7 +7,7 @@ import gobject
 import gtk
 import ptvDB
 
-import PTVhtml
+import html.PTVhtml
 import utils
 from penguintv import DEFAULT, MANUAL_SEARCH, TAG_SEARCH, MAJOR_DB_OPERATION
 import EntryFormatter

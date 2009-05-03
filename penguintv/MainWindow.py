@@ -2,8 +2,11 @@ import gtk
 import gtk.glade
 import gobject
 import sys, os, os.path
-import sets
 import logging
+try:
+	set
+except:
+	from sets import Set as set
 
 import ptvDB
 import penguintv
@@ -1762,8 +1765,8 @@ class MainWindow(gobject.GObject):
 			i+=1
 			self._app.db.set_tag_favorite(t, i)
 				
-		old = sets.Set(old_order)
-		new = sets.Set(tag_list)
+		old = set(old_order)
+		new = set(tag_list)
 		removed = list(old.difference(new))
 		for t in removed:
 			self._app.db.set_tag_favorite(t, 0)

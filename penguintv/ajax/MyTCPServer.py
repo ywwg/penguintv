@@ -15,7 +15,11 @@ class MyTCPServer(SocketServer.ForkingTCPServer):
 		
 	def serve_forever(self):
 		while 1:
-			self.handle_request()
+			try:
+				self.handle_request()
+			except Exception, e:
+				logging.error("Error in Ajax Server: %s" % str(e))
+				continue
 			if self._quitting:
 				logging.info('quitting tcp server')
 				return

@@ -1,9 +1,13 @@
 #a view that shows the current downloading media, and any unplayed media (For now)
 
 import gtk
-import sets, time, os, glob
+import time, os, glob
 import traceback
 import logging
+try:
+	set
+except:
+	from sets import Set as set
 
 import IconManager
 import MediaManager
@@ -130,8 +134,8 @@ class DownloadView:
 		current_list = [item.media['media_id'] for item in self._downloads]
 		viewing_list = [item[D_MEDIA_ID] for item in self._downloads_liststore]
 
-		oldset = sets.Set(viewing_list)
-		newset = sets.Set(current_list)
+		oldset = set(viewing_list)
+		newset = set(current_list)
 		
 		removed   = list(oldset.difference(newset))
 		added     = list(newset.difference(oldset))

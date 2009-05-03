@@ -4,7 +4,6 @@
 import penguintv
 from ptvDB import TagAlreadyExists
 import gtk
-import sets
 import utils
 
 class EditSearchesDialog:

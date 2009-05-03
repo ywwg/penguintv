@@ -20,10 +20,13 @@ import sys, os, os.path, re
 import gc
 import locale
 import gettext
-import sets
+try:
+	set
+except:
+	from sets import Set as set
 import traceback
 import pickle
-import sha
+import hashlib
 
 import socket
 socket.setdefaulttimeout(30.0)
@@ -230,7 +233,20 @@ class ptvDB:
 		#	print command, args
 		#	traceback.print_stack()
 		try:
-			return c.execute(command, args)
+			unicode_check = True
+			if command.upper().startswith("SELECT"):
+				unicode_check = False
+			if unicode_check:
+				u_args = []
+				for i, val in enumerate(args):
+					if type(val) is str:
+						#logging.debug("DB Warning: String argument, making unicode: %s %i %s" % (command,i,val))
+						val = unicode(val)
+					u_args.append(val)
+				u_args = tuple(u_args)
+				return c.execute(command, u_args)
+			else:
+				return c.execute(command, args)
 		except Exception, e:
 			#traceback.print_stack()
 			logging.error("Database error:" + str(command) + " " + str(args))
@@ -702,7 +718,7 @@ class ptvDB:
 		self._db.commit()
 		
 	def _get_hash(self, guid, title, description):
-		s = sha.new()
+		s = hashlib.sha1()
 		text = STRIPPER_REGEX.sub('', ' '.join((guid, title, description)))
 		s.update(text)
 		return s.hexdigest()
@@ -933,7 +949,7 @@ class ptvDB:
 		#result = self._c.fetchone()
 		#if result is None:
 		import random
-		s = sha.new()
+		s = hashlib.sha1()
 		#this is lame I know.  We shouldn't ever get a collision here though!
 		s.update(filter_name+query+str(random.getrandbits(32)))
 		self._db_execute(self._c, u'INSERT INTO feeds (title,url,feed_pointer,description,pollfail,pollfreq,lastpoll,newatlast,flags) VALUES (?, ?,?,?, 0,21600,0,0,0)', (filter_name,s.hexdigest(),pointed_feed_id,query))
@@ -1696,8 +1712,8 @@ class ptvDB:
 					db_enc = [c_i[0] for c_i in db_enc]
 					f_enc = [f_i['url'] for f_i in item['enclosures']]
 
-					db_set = sets.Set(db_enc)
-					f_set  = sets.Set(f_enc)
+					db_set = set(db_enc)
+					f_set  = set(f_enc)
 					
 					removed = list(db_set.difference(f_set))
 					added   = list(f_set.difference(db_set))
@@ -3236,11 +3252,11 @@ class NoFeed(Exception):
 		return self.feed
 		
 class FeedPollError(Exception):
-	def __init__(self,feed,message="unspecified error"):
+	def __init__(self,feed,msg="unspecified error"):
 		self.feed = feed
-		self.message = message
+		self.msg = msg
 	def __str__(self):
-		return str(self.feed)+": "+self.message
+		return str(self.feed)+": "+self.msg
 		
 class NoEntry(Exception):
 	def __init__(self,entry):

@@ -718,42 +718,42 @@ def get_pynotify_ok():
 		logging.info("pynotify too old, using fallback notifications")
 		return False
 
-	# if it's good, check to see it's not lying about prefix
-	cmd = "pkg-config notify-python --variable=prefix"
-	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	retval = p.wait()
-	stderr = p.stderr.read()
-	if len(stderr) > 1 or retval != 0:
-		logging.info("trouble getting notify-python prefix from pkg-config, using fallback notifications")
-		return False
-	pkgconfig_prefix = p.stdout.read().strip()
-	
-	try:
-		dirname = os.path.split(pynotify.__file__)[0]
-		f = open(os.path.join(dirname, "_pynotify.la"))
-	except:
-		logging.info("trouble opening _pynotify.la, using fallback notifications")
-		return False
-	
-	libdir_line = ""
-	
-	for line in f.readlines():
-		if line[0:6] == "libdir":
-			libdir_line = line.split("=")[1][1:-1]
-			break
-	f.close()
-	
-	libdir_line = libdir_line.strip()
-	
-	if len(libdir_line) == 0:
-		logging.info("trouble reading _pynotify.la, using fallback notifications")
-		return False
-	
-	if pkgconfig_prefix not in libdir_line:
-		logging.info("pkgconfig does not agree with _pynotify.la, using fallback notifications")
-		return False
-
-	logging.info("Using pynotify notifications")
+#	# if it's good, check to see it's not lying about prefix
+#	cmd = "pkg-config notify-python --variable=prefix"
+#	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+#	retval = p.wait()
+#	stderr = p.stderr.read()
+#	if len(stderr) > 1 or retval != 0:
+#		logging.info("trouble getting notify-python prefix from pkg-config, using fallback notifications")
+#		return False
+#	pkgconfig_prefix = p.stdout.read().strip()
+#	
+#	try:
+#		dirname = os.path.split(pynotify.__file__)[0]
+#		f = open(os.path.join(dirname, "_pynotify.la"))
+#	except:
+#		logging.info("trouble opening _pynotify.la, using fallback notifications")
+#		return False
+#	
+#	libdir_line = ""
+#	
+#	for line in f.readlines():
+#		if line[0:6] == "libdir":
+#			libdir_line = line.split("=")[1][1:-1]
+#			break
+#	f.close()
+#	
+#	libdir_line = libdir_line.strip()
+#	
+#	if len(libdir_line) == 0:
+#		logging.info("trouble reading _pynotify.la, using fallback notifications")
+#		return False
+#	
+#	if pkgconfig_prefix not in libdir_line:
+#		logging.info("pkgconfig does not agree with _pynotify.la, using fallback notifications")
+#		return False
+#
+#	logging.info("Using pynotify notifications")
 	return True
 
 def db_except(default_retval=None):
