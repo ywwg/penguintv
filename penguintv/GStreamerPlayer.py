@@ -77,7 +77,9 @@ class GStreamerPlayer(gobject.GObject):
 		self._prepare_save = False
 		self._do_stop_resume = False
 		self._has_video = False
-		self._using_playbin2 = True
+		#self._using_playbin2 = True
+		#TODO: wait until playbin2 isn't buggy, then reenable
+		self._using_playbin2 = False
 		
 		self._error_dialog = GStreamerErrorDialog()
 		
