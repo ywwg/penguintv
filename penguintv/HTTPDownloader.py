@@ -67,8 +67,19 @@ class HTTPDownloader(Downloader):
 			fp.close()
 			if self.media['url'][:5] == "http:":
 				if response != 200 and response != 206:
+					logging.warning("HTTP download error: %s" % response)
 					if response == 404:
 						self.media['errormsg']=_("404: File Not Found")
+					elif response == 400:
+						#maybe not properly escaped url?
+						import urlparse, urllib
+						p = urlparse.urlparse(self.media['url'])
+						new_p = (p[0], urllib.quote(p[1]), urllib.quote(p[2]),
+							urllib.quote(p[3]), urllib.quote(p[4]), urllib.quote(p[5]))
+						new_url = urlparse.urlunparse(new_p)
+						self.media['url'] = new_url
+						self.download(None)
+						return
 					else:
 						d = {"response":response}
 						self.media['errormsg']=_("Some HTTP error: %(response)s") % d
@@ -113,7 +124,7 @@ class HTTPDownloader(Downloader):
 				self.message = ""
 				self._finished_callback()
 			else:
-				print "some downloading error "+str(data),self.media
+				logging.warning("some downloading error %s %s" % (str(data),self.media))
 				self.media['errormsg']=data
 				self.status = FAILURE
 				self.message = data
