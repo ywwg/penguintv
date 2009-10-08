@@ -354,10 +354,11 @@ class PenguinTVApp(gobject.GObject):
 				logging.info("Listening to NetworkManager")
 			except:
 				self._nm_interface = None
-				
-			if not utils.RUNNING_HILDON:
-				self._spawn_poller()
-			gobject.timeout_add(20000, self._check_poller)
+			
+			logging.debug("TODO: Poller keeps crashing, disabling it")	
+			#if not utils.RUNNING_HILDON:
+			#	self._spawn_poller()
+			#gobject.timeout_add(2 * 60 * 1000, self._check_poller)
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
@@ -476,7 +477,7 @@ class PenguinTVApp(gobject.GObject):
 			gtk.gdk.threads_leave()
 		if self._remote_poller is None:
 			logging.error("Unable to start remote poller.  Polling will be done in-process")
-			self._remote_poller_pid = 0	
+			self._remote_poller_pid = 0
 		else:
 			logging.debug("Got poller")
 			
@@ -486,8 +487,12 @@ class PenguinTVApp(gobject.GObject):
 			if self._firstrun:
 				self._import_default_feeds()
 			gtk.gdk.threads_leave()
+		
+		#return success or fail
+		return self._remote_poller_pid != 0
 			
 	def _check_poller(self):
+		logging.debug("Checking in on the poller: %i" % self._remote_poller_pid)
 		if self._remote_poller_pid < 0:
 			logging.debug("Not checking, no poller anyway (maybe it hasn't started up)")
 		elif self._remote_poller_pid == 0:
@@ -512,6 +517,20 @@ class PenguinTVApp(gobject.GObject):
 				self._remote_poller = None
 				self._remote_poller_pid = 0
 				self._spawn_poller()
+				return True
+			try:
+				#and is it still responding?
+				self._remote_poller.ping()
+				logging.debug("Poller still running")
+			except Exception, e:
+				logging.debug("trying to reget poller")
+				os.kill(self._remote_poller_pid, 15)
+				self._spawn_poller()
+				if self._get_poller():
+					logging.debug("restarted poller")
+				else:
+					logging.debug("failed to restart poller")
+				
 		return True
 		
 	def _setup_article_sync(self):
@@ -967,10 +986,10 @@ class PenguinTVApp(gobject.GObject):
 			if feeds is None:
 				try:
 					self._remote_poller.poll_all(arguments, "FinishedCallback")
-				except:
+				except Exception, e:
 					#don't reset poller, maybe it just timed out. _check_poller
 					#will find out for sure
-					logging.debug("lost the poller, trying again with local poller")
+					logging.debug("lost the poller, trying again with local poller (err: %s)" % str(e))
 					return self.do_poll_multiple(was_setup, arguments, feeds, message, local=True)
 			else:
 				try:

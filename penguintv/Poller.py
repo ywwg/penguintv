@@ -60,7 +60,7 @@ class Poller(dbus.service.Object):
 		return True
 		
 	def _polling_cb(self, args, cancelled=False):
-		logging.debug("Poller calling back, %s" % str(self._quitting))
+		logging.debug("Poller calling back, %s" % (str(self._quitting),))
 		try:
 			if not self._remote_app.PollingCallback(str(args), cancelled):
 				logging.debug("Poller exit, negative callback (exiting)")
@@ -95,6 +95,7 @@ class Poller(dbus.service.Object):
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def exit(self):
+		logging.debug("exiting")
 		self._quitting = True
 		self._db.finish(False, False)
 		self._mainloop.quit()
@@ -103,6 +104,10 @@ class Poller(dbus.service.Object):
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def get_pid(self):
 		return os.getpid()
+		
+	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
+	def ping(self):
+		return True
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
 	bus = dbus.SessionBus()

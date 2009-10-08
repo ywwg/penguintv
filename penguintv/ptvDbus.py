@@ -33,6 +33,7 @@ class ptvDbus(dbus.service.Object):
 		
 	@dbus.service.method("com.ywwg.PenguinTV.AppInterface")
 	def PollingCallback(self, pyobject_str, cancelled=False):
+		#print "args we got to callback: %s" % pyobject_str
 		args = eval(pyobject_str)
 		self._app.polling_callback(args, cancelled)
 		if self._app.is_exiting():
