@@ -7,6 +7,8 @@ import gtk.glade
 import gobject
 import utils
 
+import logging
+
 import os, os.path
 if utils.HAS_LUCENE:
 	import PyLucene
@@ -30,6 +32,14 @@ class SynchronizeDialog:
 		self._move_check = self._xml.get_widget("move_check")
 		self._destination_entry = self._xml.get_widget("dest_entry")
 		
+		self._delete_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
+		self._move_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
+		self._audio_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
+		self._dest_dir = self._app.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
+		self._destination_entry.set_text(self._dest_dir)
+		self._cancel = False
+		
+		
 		if utils.HAS_GCONF:
 			try:
 				import gconf
@@ -46,28 +56,22 @@ class SynchronizeDialog:
 		self._preview_dialog = SynchronizeDialog.SyncPreview(gtk.glade.XML(gladefile, 'sync_preview_window','penguintv'), self._cancel_cb, self._sync_cb)
 		
 	def Show(self):
-		self._delete_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_delete', False))
-		self._move_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_move', False))
-		self._audio_check.set_active(self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only', False))
-		self._dest_dir = self._app.db.get_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir', "")
-		self._destination_entry.set_text(self._dest_dir)
-		self._cancel = False
-
 		self._dialog.show()
 				
 	def run(self):
 		self._destination_entry.grab_focus()
 		return self._dialog.run()
 		
-	def _check_dest_dir(self):
-		self._dest_dir = self._destination_entry.get_text()
+	def _check_dest_dir(self, dir_to_check):
 		try:
-			stat = os.stat(self._dest_dir)
-			if not os.path.isdir(self._dest_dir):
+			stat = os.stat(dir_to_check)
+			if not os.path.isdir(dir_to_check):
 				return False				
-			self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir',self._dest_dir)
+			self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/sync_dest_dir',dir_to_check)
+			logging.debug("sync destination OK: %s" % dir_to_check)
 			return True
-		except:
+		except Exception, e:
+			logging.warning("sync destination FAIL: %s \n %s" % (dir_to_check, str(e)))
 			return False
 		
 	def _cancel_cb(self):
@@ -99,7 +103,8 @@ class SynchronizeDialog:
 		self._app.db.set_setting(ptvDB.BOOL, '/apps/penguintv/sync_audio_only',self._audio_check.get_active())
 	
 	def on_sync_button_clicked(self, event):
-		if not self._check_dest_dir():
+		self._dest_dir = self._destination_entry.get_text()
+		if not self._check_dest_dir(self._dest_dir):
 			dialog = gtk.Dialog(title=_("Destination Error"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("The destination you have selected is not valid.  \nPlease select another destination and try again."))
 			dialog.vbox.pack_start(label, True, True, 0)
@@ -189,7 +194,8 @@ class SynchronizeDialog:
 			self.progress = self.total #just make sure this is done
 			
 	def on_preview_button_clicked(self, event):
-		if not self._check_dest_dir():
+		self._dest_dir = self._destination_entry.get_text()
+		if not self._check_dest_dir(self._dest_dir):
 			dialog = gtk.Dialog(title=_("Destination Error"), parent=None, flags=gtk.DIALOG_MODAL, buttons=(gtk.STOCK_OK, gtk.RESPONSE_ACCEPT))
 			label = gtk.Label(_("The destination you have selected is not valid.  Please select another destination and try again."))
 			dialog.vbox.pack_start(label, True, True, 0)
