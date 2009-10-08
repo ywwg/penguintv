@@ -1586,16 +1586,8 @@ class ptvDB:
 				item['body'] = utils.html_entity_unfixer(item['body'])
 			
 			if item.has_key('title') == 0:
-				item['title']=item['description'][0:35]	
-				html_begin = string.find(item['title'],'<')
-				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
-					#p = utils.StrippingParser()
-					#p.feed(item['description'])
-					##p.cleanup()
-					#p.close()
-					#item['title']=p.result[0:35]
-					item['title'] = STRIPPER_REGEX.sub('', item['description'])[:35]
-			elif item['title']=="":
+				item['title'] = ""
+			if item['title']=="":
 				item['title']=item['description'][0:35]
 				html_begin = string.find(item['title'],'<')
 				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
@@ -1604,8 +1596,10 @@ class ptvDB:
 					##p.cleanup()
 					#p.close()
 					#item['title']=p.result[0:35]
-					item['title'] = STRIPPER_REGEX.sub('', item['description'])[:35]
-			
+					desc = item['description']
+					#hack for hullabaloo
+					desc = desc[:desc.find("<br")]
+					item['title'] = STRIPPER_REGEX.sub('', desc)[:35]
 				elif html_begin > 5: #in case there's html within 35 chars...
 					item['title']=item['title'][0:html_begin-1] #strip
 					#things mess up if a title ends in a space, so strip trailing spaces
