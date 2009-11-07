@@ -15,11 +15,12 @@
 
 import urllib
 import urlparse
-import os.path
+import os, os.path
 import pickle
 import logging
 import glob
 import hashlib  #requires python2.5
+import time
 
 import gobject
 
@@ -160,6 +161,21 @@ class OfflineImageCache:
 			logging.warning("error while removing image cache %s" % str(e))
 			#logging.debug(glob.glob(os.path.join(cache_dir, "*")))
 			#logging.debug(str(rewrite_hash))
+			
+	def cleanup(self):
+		logging.info("Cleaning out old cached images")
+		now = time.time()
+		for root,d,files in os.walk(self._store_location):
+			if root != self._store_location:
+				for f in files:
+					try:
+						date = os.stat(os.path.join(root,f)).st_mtime
+						if now - date > 60*60*24*30: #one month
+							logging.info("deleting %s" % os.path.join(root,f))
+							#print ("deleting %s" % os.path.join(root,f))
+							os.remove(os.path.join(root,f))
+					except:
+						pass
 		
 	def finish(self):
 		self._threadpool.joinAll(False, False)

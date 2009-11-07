@@ -762,19 +762,32 @@ class ptvDB:
 	def clean_file_media(self):
 		"""walks the media dir, and deletes anything that doesn't have an entry in the database.
 		Also deletes dirs with only a playlist or with nothing"""
-		media_dir = os.path.join(self.home,"media")
+		media_dir = self.get_setting(STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
+			try:
+				image_index = dirs.index("images")
+				del dirs[image_index]
+			except:
+				pass
 			if root!=media_dir:
 				for file in files:
 					if file != "playlist.m3u":
-						self._db_execute(self._c, u"SELECT rowid FROM media WHERE file=?",(os.path.join(root, file),))
+						self._db_execute(self._c, u"SELECT rowid, download_status FROM media WHERE file=?",(os.path.join(root, file),))
 						result = self._c.fetchone()
 						if result is None:
 							logging.info("deleting "+os.path.join(root,file))
 							os.remove(os.path.join(root,file))
+						elif result[1] == D_NOT_DOWNLOADED: #db says it's not downloaded, so remove it
+							logging.info("deleting "+os.path.join(root,file))
+							os.remove(os.path.join(root,file))
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
+			try:
+				image_index = dirs.index("images")
+				del dirs[image_index]
+			except:
+				pass
 			if root!=media_dir:
 				if len(files) == 1:
 					if files[0] == "playlist.m3u":
@@ -783,6 +796,9 @@ class ptvDB:
 				elif len(files) == 0:
 					logging.info("deleting "+root)
 					utils.deltree(root)
+					
+		#now clean up images?
+		self._image_cache.cleanup()
 					
 	def relocate_media(self, old_dir, new_dir):
 		"""rewrite db so that media files point to a new place.  Lots of
