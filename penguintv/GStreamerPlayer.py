@@ -172,7 +172,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not RUNNING_HILDON:
 			image = gtk.Image()
 			image.set_from_stock("gtk-media-previous",gtk.ICON_SIZE_BUTTON)
-			button = gtk.Button("")
+			button = gtk.Button()
 			button.set_image(image)
 		else:
 			button = gtk.Button()
@@ -187,7 +187,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not RUNNING_HILDON:
 			image = gtk.Image()
 			image.set_from_stock("gtk-media-rewind",gtk.ICON_SIZE_BUTTON)
-			button = gtk.Button("")
+			button = gtk.Button()
 			button.set_image(image)
 		else:
 			button = gtk.Button(_("Rew"))
@@ -198,7 +198,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not RUNNING_HILDON:
 			image = gtk.Image()
 			image.set_from_stock("gtk-media-play",gtk.ICON_SIZE_BUTTON)
-			self._play_pause_button = gtk.Button("")
+			self._play_pause_button = gtk.Button()
 			self._play_pause_button.set_image(image)
 		else:
 			self._play_pause_button = gtk.Button(_("Play"))
@@ -209,7 +209,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not RUNNING_HILDON:
 			image = gtk.Image()
 			image.set_from_stock("gtk-media-stop",gtk.ICON_SIZE_BUTTON)
-			button = gtk.Button("")
+			button = gtk.Button()
 			button.set_image(image)
 		else:
 			button = gtk.Button(_("Stop"))
@@ -220,7 +220,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not RUNNING_HILDON:
 			image = gtk.Image()
 			image.set_from_stock("gtk-media-forward",gtk.ICON_SIZE_BUTTON)
-			button = gtk.Button("")
+			button = gtk.Button()
 			button.set_image(image)
 		else:
 			button = gtk.Button(_("FF"))
@@ -231,7 +231,7 @@ class GStreamerPlayer(gobject.GObject):
 		if not RUNNING_HILDON:
 			image = gtk.Image()
 			image.set_from_stock("gtk-media-next",gtk.ICON_SIZE_BUTTON)
-			button = gtk.Button("")
+			button = gtk.Button()
 			button.set_image(image)
 		else:
 			button = gtk.Button(_("Next"))
