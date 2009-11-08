@@ -355,10 +355,10 @@ class PenguinTVApp(gobject.GObject):
 			except:
 				self._nm_interface = None
 			
-			logging.debug("TODO: Poller keeps crashing, disabling it")	
-			#if not utils.RUNNING_HILDON:
-			#	self._spawn_poller()
-			#gobject.timeout_add(2 * 60 * 1000, self._check_poller)
+			#logging.debug("TODO: Poller keeps crashing, disabling it")	
+			if not utils.RUNNING_HILDON:
+				self._spawn_poller()
+			gobject.timeout_add(2 * 60 * 1000, self._check_poller)
 		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
