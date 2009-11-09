@@ -493,7 +493,7 @@ class PenguinTVApp(gobject.GObject):
 		return self._remote_poller_pid != 0
 			
 	def _check_poller(self):
-		logging.debug("Checking in on the poller: %i" % self._remote_poller_pid)
+		#logging.debug("Checking in on the poller: %i" % self._remote_poller_pid)
 		if self._remote_poller_pid < 0:
 			logging.debug("Not checking, no poller anyway (maybe it hasn't started up)")
 		elif self._remote_poller_pid == 0:
@@ -523,7 +523,7 @@ class PenguinTVApp(gobject.GObject):
 				try:
 					#and is it still responding?
 					self._remote_poller.ping()
-					logging.debug("Poller still running")
+					#logging.debug("Poller still running")
 				except Exception, e:
 					logging.debug("no ping response, rerunning poller: %s" % str(e))
 					os.kill(self._remote_poller_pid, 15)
@@ -532,8 +532,8 @@ class PenguinTVApp(gobject.GObject):
 						logging.debug("restarted poller")
 					else:
 						logging.debug("failed to restart poller")
-			else:
-				logging.debug("not pinging while polling")
+			#else:
+			#	logging.debug("not pinging while polling")
 				
 		return True
 		
