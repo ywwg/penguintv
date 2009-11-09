@@ -433,6 +433,7 @@ class PenguinTVApp(gobject.GObject):
 		self._remote_poller_pid = -2
 		rundir = os.path.split(utils.__file__)[0]
 		if rundir == "": rundir = "./"
+		#logging.debug("RUN POLLER NOW")
 		logging.debug("running poller: %s %s" % ('/usr/bin/env python', os.path.join(rundir, 'Poller.py')))
 		subprocess.Popen(['/usr/bin/env', 'python', 
 			os.path.join(rundir, 'Poller.py')])
@@ -518,18 +519,21 @@ class PenguinTVApp(gobject.GObject):
 				self._remote_poller_pid = 0
 				self._spawn_poller()
 				return True
-			try:
-				#and is it still responding?
-				self._remote_poller.ping()
-				logging.debug("Poller still running")
-			except Exception, e:
-				logging.debug("trying to reget poller")
-				os.kill(self._remote_poller_pid, 15)
-				self._spawn_poller()
-				if self._get_poller():
-					logging.debug("restarted poller")
-				else:
-					logging.debug("failed to restart poller")
+			if self._polling_taskinfo == -1:
+				try:
+					#and is it still responding?
+					self._remote_poller.ping()
+					logging.debug("Poller still running")
+				except Exception, e:
+					logging.debug("no ping response, rerunning poller: %s" % str(e))
+					os.kill(self._remote_poller_pid, 15)
+					self._spawn_poller()
+					if self._get_poller():
+						logging.debug("restarted poller")
+					else:
+						logging.debug("failed to restart poller")
+			else:
+				logging.debug("not pinging while polling")
 				
 		return True
 		
