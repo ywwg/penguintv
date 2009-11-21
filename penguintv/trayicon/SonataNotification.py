@@ -59,7 +59,7 @@ class TrayIconTips(gtk.Window):
 		vbox = gtk.VBox()
 		img = gtk.Image()
 		img.set_from_stock("gtk-close", gtk.ICON_SIZE_MENU)
-		button = gtk.Button("")
+		button = gtk.Button()
 		button.set_image(img)
 		button.connect('clicked', self.__close_clicked_cb)
 		vbox.pack_start(button, False, False)

@@ -353,6 +353,7 @@ class PenguinTVApp(gobject.GObject):
 											  "org.freedesktop.NetworkManager")
 				logging.info("Listening to NetworkManager")
 			except:
+				logging.warning("Couldn't connect to NetworkManager")
 				self._nm_interface = None
 			
 			#logging.debug("TODO: Poller keeps crashing, disabling it")	

@@ -51,6 +51,7 @@ if [ $BUILD_MOZ == 1 ] ; then
 	cd ../..
 fi
 
+mkdir bin
 cp PenguinTV.in bin/PenguinTV
 
 #running py2deb gets most of it out of the way, but more work needs to be done
