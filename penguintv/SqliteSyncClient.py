@@ -263,12 +263,12 @@ class SqliteSyncClient:
 		
 		try:
 			if not self._db_exists():
-				logging.error("no db found: %s" % str(e))
+				logging.error("no db found")
 				self._bad_db = True
 				return None
 		except Exception, e:
-			logging.warning("No internet connection, cancelling")
-			raise InternetFail("No internet connection, cancelling")
+			logging.warning("No internet connection, cancelling: %s" % str(e))
+			raise InternetFail("No internet connection, cancelling: %s" % str(e))
 			
 		try:
 			db_data = self._do_download_db()
