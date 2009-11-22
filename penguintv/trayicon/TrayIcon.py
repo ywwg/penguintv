@@ -114,6 +114,7 @@ class StatusTrayIcon(gtk.StatusIcon):
 			
 	def _display_pynotification(self, title, message, icon=None, userdata=None):
 		self._notification_displaying = True
+		#logging.debug("displaying pynotification: %s %s" % (title, message))
 		if icon is not None:
 			notification = pynotify.Notification(title, message, None)
 			notification.set_icon_from_pixbuf(icon)
@@ -122,12 +123,12 @@ class StatusTrayIcon(gtk.StatusIcon):
 	
 		notification.set_timeout(5000)
 		notification.set_data('userdata', userdata)
-		notification.add_action('default', 'Default Action', self.__pynotification_click_cb)
-		notification.connect('closed', self.__notification_closed_cb)
+		#notification.add_action('default', 'Default Action', self.__pynotification_click_cb)
+		#notification.connect('closed', self.__notification_closed_cb)
 
-		screen, rect, orient = self.get_geometry()
-		notification.set_hint("x", rect.x +(rect.width / 2))
-		notification.set_hint("y", rect.y +(rect.height / 2))
+		#screen, rect, orient = self.get_geometry()
+		#notification.set_hint("x", rect.x +(rect.width / 2))
+		#notification.set_hint("y", rect.y +(rect.height / 2))
 		notification.show()
 		
 	def _display_sonatafication(self, title, message, icon=None, userdata=None):

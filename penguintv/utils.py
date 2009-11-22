@@ -173,7 +173,7 @@ else:
 	logging.info("xapian or lucene not found, search disabled")
 	
 # Pynotify is still broken, forget it
-HAS_PYNOTIFY = False
+#HAS_PYNOTIFY = False
 #HAS_PYXML = False
 #HAS_STATUS_ICON = False
 #HAS_GNOMEVFS = False
