@@ -113,7 +113,8 @@ class StatusTrayIcon(gtk.StatusIcon):
 		gobject.timeout_add(5000, done_showing)
 			
 	def _display_pynotification(self, title, message, icon=None, userdata=None):
-		self._notification_displaying = True
+		#don't need this, pynotifications can stack up
+		#self._notification_displaying = True
 		#logging.debug("displaying pynotification: %s %s" % (title, message))
 		if icon is not None:
 			notification = pynotify.Notification(title, message, None)
@@ -123,6 +124,8 @@ class StatusTrayIcon(gtk.StatusIcon):
 	
 		notification.set_timeout(5000)
 		notification.set_data('userdata', userdata)
+		#setting a default action used to work, but now it causes the notification to become
+		#a boring OK/Cancel dialog box, which is weird
 		#notification.add_action('default', 'Default Action', self.__pynotification_click_cb)
 		#notification.connect('closed', self.__notification_closed_cb)
 
