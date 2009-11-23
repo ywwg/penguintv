@@ -40,11 +40,11 @@ class UpdateTasksManager:
 		
 		return float(UpdateTasksManager.id_time)+(UpdateTasksManager.time_appendix/100)
 			
-	def queue(self, func, arg=None, waitfor=None, clear_completed=True, priority=0):
+	def queue(self, func, arg=None, waitfor=None, clear_completed=True, priority=0, cb=None):
 		task_id = self.get_task_id()
 		if priority==1:
 			self.my_tasks.reverse()
-		self.my_tasks.append((func, arg, task_id, waitfor, clear_completed))
+		self.my_tasks.append((func, arg, cb, task_id, waitfor, clear_completed))
 		if priority==1:
 			self.my_tasks.reverse()
 		if self.updater_running == False:
@@ -96,6 +96,7 @@ class UpdateTasksManager:
 		"""Generator that empties that queue and yields on each iteration"""
 		skipped=0
 		waiting_on = []
+		
 		while self.task_count() > 0: #just run forever
 			self.exception = None
 			var = self.peek(skipped)
@@ -104,7 +105,7 @@ class UpdateTasksManager:
 				waiting_on = []
 				yield True
 				continue
-			func, args, task_id, waitfor, clear_completed = var
+			func, args, cb, task_id, waitfor, clear_completed = var
 			
 			if waitfor:
 				#don't pop if false, and if previous tasks think that task isn't
@@ -112,11 +113,11 @@ class UpdateTasksManager:
 				if self.is_completed(waitfor) and waitfor not in waiting_on:
 					try:
 						if type(args) is tuple:
-							func(*args)
+							cb is not None and cb(func(*args)) or func(*args)
 						elif args is not None:
-							func(args)
+							cb is not None and cb(func(args)) or func(args)
 						else:
-							func()
+							cb is not None and cb(func()) or func()
 					except Exception, e:
 						self.exception = e
 						exc_type, exc_value, exc_traceback = sys.exc_info()
@@ -135,11 +136,11 @@ class UpdateTasksManager:
 			else:
 				try:
 					if type(args) is tuple:
-						func(*args)
+						cb is not None and cb(func(*args)) or func(*args)
 					elif args is not None:
-						func(args)
+						cb is not None and cb(func(args)) or func(args)
 					else:
-						func()
+						cb is not None and cb(func()) or func()
 				except Exception, e:
 					self.exception = e
 					exc_type, exc_value, exc_traceback = sys.exc_info()
