@@ -11,7 +11,6 @@ except:
 import ptvDB
 import penguintv
 import Player
-import UpdateTasksManager
 import utils
 import Downloader
 #from trayicon.SonataNotification import TrayIconTips as tooltips

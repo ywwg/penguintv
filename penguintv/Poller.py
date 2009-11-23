@@ -63,22 +63,21 @@ class Poller(dbus.service.Object):
 		return True
 		
 	def _polling_cb(self, args, cancelled=False):
-		logging.debug("Poller calling back, %s" % (str(self._quitting),))
-		def go(args, cancelled):
-			try:
-				#logging.debug("tick1")
-				if not self._remote_app.PollingCallback(str(args), cancelled):
-					##logging.debug("tick2")
-					logging.debug("Poller exit, negative callback (exiting)")
-					self.exit()
-				return False
-			except Exception, e:
-				logging.debug("Poller exit, exception in callback: %s" % str(e))
+		logging.debug("Poller calling back, %s" % (str(self._quitting)))
+		#def go(args, cancelled):
+		try:
+			#logging.debug("tick1")
+			if not self._remote_app.PollingCallback(str(args), cancelled):
+				##logging.debug("tick2")
+				logging.debug("Poller exit, negative callback (exiting)")
 				self.exit()
-				return False
-		gobject.timeout_add(100, go, args, cancelled)
-				
-		
+			return False
+		except Exception, e:
+			logging.debug("Poller exit, exception in callback: %s" % str(e))
+			self.exit()
+			return False
+		#gobject.timeout_add(100, go, args, cancelled)
+
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def poll_multiple(self, arguments, feeds, finished_cb):
 		logging.debug("Poller starting poll mult")
@@ -118,7 +117,7 @@ class Poller(dbus.service.Object):
 		
 	@dbus.service.method("com.ywwg.PenguinTVPoller.PollInterface")
 	def ping(self):
-		#logging.debug("responding to ping")
+		logging.debug("responding to ping")
 		return True
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
