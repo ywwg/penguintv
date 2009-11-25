@@ -356,11 +356,6 @@ class PenguinTVApp(gobject.GObject):
 				logging.warning("Couldn't connect to NetworkManager")
 				self._nm_interface = None
 			
-			#logging.debug("TODO: Poller keeps crashing, disabling it")	
-			if not utils.RUNNING_HILDON:
-				self._spawn_poller()
-			gobject.timeout_add(2 * 60 * 1000, self._check_poller)
-		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
 		self._entry_view = self.main_window.entry_view
@@ -406,9 +401,7 @@ class PenguinTVApp(gobject.GObject):
 		# do this after we have the poller
 		if self._firstrun and not utils.RUNNING_HILDON:
 			self._import_default_feeds()
-		if not self._firstrun and self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
-			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
-		
+				
 		#gtk.gdk.threads_leave()
 		self.emit('app-loaded')
 		self._app_loaded = True
@@ -2386,8 +2379,10 @@ class PenguinTVApp(gobject.GObject):
 		if sensitize:
 			self.main_window._sensitize_search()
 		
-		if utils.RUNNING_HILDON:
-			self._spawn_poller()
+		self._spawn_poller()
+		gobject.timeout_add(2 * 60 * 1000, self._check_poller)
+		if not self._firstrun and self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
+			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
 		if not self.__importing:
 			self.__importing = True
