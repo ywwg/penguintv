@@ -521,6 +521,7 @@ class PenguinTVApp(gobject.GObject):
 				self._spawn_poller()
 				return True
 			if self._polling_taskinfo == -1:
+				logging.debug("pinging the poller")
 				try:
 					#and is it still responding?
 					self._remote_poller.ping()
@@ -969,6 +970,7 @@ class PenguinTVApp(gobject.GObject):
 
 		if self._polling_taskinfo != -1:
 			if time.time() - self._polling_taskinfo > 20*60:
+				logging.debug("reset polling taskinfo 972")
 				self._polling_taskinfo = -1
 			else:
 				return True
@@ -2464,6 +2466,7 @@ class PenguinTVApp(gobject.GObject):
 					updater, db = self._get_updater()
 					db.interrupt_poll_multiple()
 					self._polled = 0
+					logging.debug("reset polling taskinfo 2468")
 					self._polling_taskinfo = -1
 					self._poll_message = ""
 					if not utils.RUNNING_HILDON:
@@ -2499,14 +2502,15 @@ class PenguinTVApp(gobject.GObject):
 
 		self._polled += 1
 		if self._polled >= total or cancelled:
-			self._polled = 0
-			self._polling_taskinfo = -1
-			self._poll_message = ""
 			#logging.debug("done polling multiple 1, updating readstates")
 			if not utils.RUNNING_HILDON:
 				self._article_sync.get_readstates_for_entries(self._poll_new_entries)
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
+			self._polled = 0
+			logging.debug("reset polling taskinfo 2508")
+			self._polling_taskinfo = -1
+			self._poll_message = ""
 			
 			gobject.timeout_add(2000, self.main_window.display_status_message,"")
 		else:
