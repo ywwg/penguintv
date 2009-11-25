@@ -86,6 +86,9 @@ penguintv/trayicon/TrayIcon.py
 penguintv/trayicon/SonataNotification.py
 penguintv/BeautifulSoup/BeautifulSoup.py
 penguintv/BeautifulSoup/__init__.py
+penguintv/html/PTVMozilla.py
+penguintv/html/PTVGtkHtml.py
+penguintv/html/PTVhtml.py
 feedparser/setup.py
 feedparser/feedparser.py
 feedparser/LICENSE
