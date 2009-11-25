@@ -106,7 +106,7 @@ class StatusTrayIcon(gtk.StatusIcon):
 			b = hildon.hildon_banner_show_information_with_markup(self._parent, "NULL", "<b>%s</b>\n%s" % (title, message))
 		if icon is not None:
 			b.set_icon_from_file(icon)
-		b.set_timeout(5000)
+		b.set_timeout(3000)
 		def done_showing():
 			self._notification_displaying = False
 			return False
@@ -122,7 +122,7 @@ class StatusTrayIcon(gtk.StatusIcon):
 		else:
 			notification = pynotify.Notification(title, message, "info")
 	
-		notification.set_timeout(5000)
+		notification.set_timeout(3000)
 		notification.set_data('userdata', userdata)
 		#setting a default action used to work, but now it causes the notification to become
 		#a boring OK/Cancel dialog box, which is weird
