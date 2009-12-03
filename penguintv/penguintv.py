@@ -38,6 +38,7 @@ import urllib
 import time
 import string
 import subprocess
+import getopt
 #socket.setdefaulttimeout(30.0)
 try:
 	set
@@ -169,7 +170,7 @@ class PenguinTVApp(gobject.GObject):
 						   ([gobject.TYPE_PYOBJECT])), 
 	}
 
-	def __init__(self, window=None):
+	def __init__(self, window=None, playlist=None):
 		gobject.GObject.__init__(self)
 		self._for_import = []
 		self.__importing = False
@@ -258,7 +259,7 @@ class PenguinTVApp(gobject.GObject):
 				icon = utils.get_image_path('penguintvicon.png')
 			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, icon)	
 
-		self.main_window = MainWindow.MainWindow(self, use_internal_player, window=window, status_icon=self._status_icon) 
+		self.main_window = MainWindow.MainWindow(self, use_internal_player, window=window, status_icon=self._status_icon, playlist=playlist) 
 		self.main_window.layout=window_layout
 		
 		self._hildon_context = None
@@ -514,7 +515,7 @@ class PenguinTVApp(gobject.GObject):
 				self._spawn_poller()
 				return True
 			if self._polling_taskinfo == -1:
-				logging.debug("pinging the poller")
+				#logging.debug("pinging the poller")
 				try:
 					#and is it still responding?
 					self._remote_poller.ping()
@@ -963,7 +964,7 @@ class PenguinTVApp(gobject.GObject):
 
 		if self._polling_taskinfo != -1:
 			if time.time() - self._polling_taskinfo > 20*60:
-				logging.debug("reset polling taskinfo 972")
+				#logging.debug("reset polling taskinfo 972")
 				self._polling_taskinfo = -1
 			else:
 				return True
@@ -2461,7 +2462,7 @@ class PenguinTVApp(gobject.GObject):
 					updater, db = self._get_updater()
 					db.interrupt_poll_multiple()
 					self._polled = 0
-					logging.debug("reset polling taskinfo 2468")
+					#logging.debug("reset polling taskinfo 2468")
 					self._polling_taskinfo = -1
 					self._poll_message = ""
 					if not utils.RUNNING_HILDON:
@@ -2503,7 +2504,7 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
 			self._polled = 0
-			logging.debug("reset polling taskinfo 2508")
+			#logging.debug("reset polling taskinfo 2508")
 			self._polling_taskinfo = -1
 			self._poll_message = ""
 			
@@ -2673,15 +2674,15 @@ def usage():
 		
 def do_commandline(remote_app=None, local_app=None):
 	assert remote_app is not None or local_app is not None
-	import getopt
-
+	
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help","play","pause","prev","next","playpause"])
+		opts, args = getopt.getopt(sys.argv[1:], "ho:u:", ["help","play","pause","prev","next","playpause","playlist"])
 	except getopt.GetoptError:
 		# print help information and exit:
 		usage()
 		sys.exit(2)
 		
+	#ignore --playlist, that is already taken care of before
 	if len(opts) > 0:
 		for o, a in opts:
 			if o in ('-h', '--help'):
@@ -2888,8 +2889,18 @@ to prevent crashes."""
 		
 		gtk.window_set_auto_startup_notification(True)
 		gnome.init("PenguinTV", utils.VERSION)
+		playlist = None
 		try:
-			app = PenguinTVApp()    # Instancing of the GUI
+			opts, args = getopt.getopt(sys.argv[1:], "p:", ["playlist="])
+		except getopt.GetoptError, e:
+			pass
+		if len(opts) > 0:
+			print opts
+			for o, a in opts:
+				if o in ('-p', '--playlist'):
+					playlist = a
+		try:
+			app = PenguinTVApp(playlist=playlist)    # Instancing of the GUI
 		except AlreadyRunning, e:
 			logging.info("PenguinTV is already running, why didn't we catch it?")
 			do_commandline(remote_app=e.remote_app)

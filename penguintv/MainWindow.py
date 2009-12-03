@@ -72,7 +72,7 @@ class MainWindow(gobject.GObject):
 						   ([]))
 	}
 
-	def __init__(self, app, use_internal_player=False, window=None, status_icon=None):
+	def __init__(self, app, use_internal_player=False, window=None, status_icon=None, playlist=None):
 		gobject.GObject.__init__(self)
 		self._app = app
 		self._window_inited = False
@@ -88,7 +88,10 @@ class MainWindow(gobject.GObject):
 		self._state = S_DEFAULT
 		self._fullscreen = False
 		self._fullscreen_lock = False
-		
+		if playlist is None:
+			self._playlist_filename = os.path.join(utils.get_home(), "gst_playlist.pickle")
+		else:
+			self._playlist_filename = playlist
 		self._use_internal_player = False
 		if utils.HAS_GSTREAMER and use_internal_player:
 			self._use_internal_player = True
@@ -628,7 +631,7 @@ class MainWindow(gobject.GObject):
 		
 		p_vbox = gtk.VBox()
 		if self._use_internal_player:
-			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, os.path.join(utils.get_home(), "gst_playlist.pickle"), tick_interval=5)
+			self._gstreamer_player = GStreamerPlayer.GStreamerPlayer(p_vbox, self._playlist_filename, tick_interval=5)
 			self._gstreamer_player.connect('item-queued', self._on_player_item_queued)
 			self._gstreamer_player.connect('items-removed', self._on_player_items_removed)
 			self._gstreamer_player.Show()

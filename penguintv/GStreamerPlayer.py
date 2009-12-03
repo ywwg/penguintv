@@ -9,6 +9,7 @@ import pickle
 import urllib
 import getopt
 from math import ceil, floor
+import time
 
 import pygst
 pygst.require("0.10")
@@ -332,8 +333,8 @@ class GStreamerPlayer(gobject.GObject):
 		"""saves playlist"""
 		try:
 			playlist = open(self._playlist_name, 'w')
-		except:
-			print "error writing playlist"
+		except Exception, e:
+			print "error writing playlist: %s" % str(e)
 			return
 			
 		pickle.dump(self._current_index, playlist)
@@ -981,7 +982,7 @@ class GStreamerPlayer(gobject.GObject):
 	#		message.src.set_property('force-aspect-ratio', True)
 	###drag and drop###
 		
-	def _on_queue_drag_data_received(self, treeview, context, x, y, selection, targetType, time):
+	def _on_queue_drag_data_received(self, treeview, context, x, y, selection, targetType, thyme):
 		if targetType == self._TARGET_TYPE_REORDER:
 			treeview.emit_stop_by_name('drag-data-received')
 			model, paths_to_copy = treeview.get_selection().get_selected_rows()
@@ -998,7 +999,7 @@ class GStreamerPlayer(gobject.GObject):
 				
 				if self.checkSanity(model, iter_to_copy, target_iter):
 					self.iterCopy(model, target_iter, row, pos)
-					context.finish(True, True, time) #finishes the move
+					context.finish(True, True, thyme) #finishes the move
 					i=-1
 					for row in model:
 						i+=1
@@ -1008,16 +1009,16 @@ class GStreamerPlayer(gobject.GObject):
 						else:
 							row[2]=""							
 				else:
-					context.finish(False, False, time)
+					context.finish(False, False, thyme)
 			except:
 				model.append(row)
-				context.finish(True, True, time)
+				context.finish(True, True, thyme)
 		elif targetType == self._TARGET_TYPE_URI_LIST:
 			uri_list = [s for s in selection.data.split('\r\n') if len(s) > 0]
 			for uri in uri_list:
 				uri = uri.replace("file://", "")
 				uri = urllib.unquote(uri)
-				self.queue_file(uri)			
+				self.queue_file(uri)
 
 	def checkSanity(self, model, iter_to_copy, target_iter):
 		path_of_iter_to_copy = model.get_path(iter_to_copy)
@@ -1109,12 +1110,13 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	else:
 		home = os.path.join(os.getenv('HOME'), ".penguintv")
 	try:
-		opts, args = getopt.getopt(sys.argv[1:], "p:", ["--playlist"])
+		opts, args = getopt.getopt(sys.argv[1:], "p:", ["playlist="])
 	except getopt.GetoptError, e:
-		print "error %s", str(e)
+		print "error %s" % str(e)
 		sys.exit(1)
 	playlist = os.path.join(home, 'gst_playlist.pickle')
 	if len(opts) > 0:
+		print opts
 		for o, a in opts:
 			if o in ('-p', '--playlist'):
 				playlist = a
