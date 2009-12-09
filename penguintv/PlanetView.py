@@ -198,6 +198,7 @@ class PlanetView(gobject.GObject):
 	def __feedlist_search_feed_selected_cb(self, o, feed_id):
 		self._filter_feed = feed_id
 		self._current_feed_id = feed_id
+		self._first_entry = 0
 		self._render_entries()
 		
 	def __feedlist_none_selected_cb(self, o):
