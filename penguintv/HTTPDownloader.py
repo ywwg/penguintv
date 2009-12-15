@@ -67,9 +67,9 @@ class HTTPDownloader(Downloader):
 			fp.close()
 			if self.media['url'][:5] == "http:":
 				if response != 200 and response != 206:
-					logging.warning("HTTP download error: %s" % response)
+					logging.warning("HTTP download error: %s %s" % (self.media['url'],response))
 					if response == 404:
-						self.media['errormsg']=_("404: File Not Found")
+						self.media['errormsg']=_("404: File Not Found: %s" % self.media['url'])
 					elif response == 400:
 						#maybe not properly escaped url?
 						import urlparse, urllib
@@ -81,8 +81,9 @@ class HTTPDownloader(Downloader):
 						self.download(None)
 						return
 					else:
-						d = {"response":response}
-						self.media['errormsg']=_("Some HTTP error: %(response)s") % d
+						d = {"response":response,
+							 "url":self.media['url']}
+						self.media['errormsg']=_("Some HTTP error: %(response)s %(url)s") % d
 					self.status = FAILURE
 					self.message = self.media['errormsg']
 					self._finished_callback()
@@ -94,13 +95,15 @@ class HTTPDownloader(Downloader):
 				if major_code == 2: #positive reply
 					pass
 				elif major_code == 4 or major_code == 5:
-					d = {"response":response}
-					self.media['errormsg']=_("FTP error: %(response)s") % d
+					d = {"response":response,
+					 	 "url":self.media['url']}
+					self.media['errormsg']=_("FTP error: %(response)s %(url)s") % d
 				else:
-					d = {"response":response}
-					self.media['errormsg']=_("Unexpected FTP response: %(response)s") % d
+					d = {"response":response,
+						 "url":self.media['url']}
+					self.media['errormsg']=_("Unexpected FTP response: %(response)s %(url)s") % d
 			else: 
-				self.media['errormsg']=_("Unknown protocol")
+				self.media['errormsg']=_("Unknown protocol for url %s" % self.media['url'])
 				self.status = FAILURE
 				self.message = self.media['errormsg']
 				self._finished_callback()

@@ -55,7 +55,7 @@ else:
 	USING_FLAG_CACHE = True
 #USING_FLAG_CACHE = False
 
-LATEST_DB_VER = 7
+LATEST_DB_VER = 8
 	
 NEW = 0
 EXISTS = 1
@@ -328,6 +328,8 @@ class ptvDB:
 				self._migrate_database_five_six()
 			if db_ver < 7:
 				self._migrate_database_six_seven()
+			if db_ver < 8:
+				self._migrate_database_seven_eight()
 				self.clean_database_media()
 			if db_ver > LATEST_DB_VER:
 				logging.warning("This database comes from a later version of PenguinTV and may not work with this version")
@@ -606,6 +608,11 @@ class ptvDB:
 		self._db_execute(self._c, u'UPDATE settings SET value=7 WHERE data="db_ver"')
 		self._db.commit()
 		
+	def _migrate_database_seven_eight(self):
+		logging.info("upgrading to database schema 8, please wait...")
+		self._db_execute(self._c, u'ALTER TABLE media ADD COLUMN errormsg TEXT')
+		self._db_execute(self._c, u'UPDATE settings SET value=8 WHERE data="db_ver"')
+		self._db.commit()
 		
 	def __remove_columns(self, table, new_schema, new_columns):
 		"""dangerous internal function without injection checking.
@@ -688,6 +695,7 @@ class ptvDB:
 								file TEXT,
 								mimetype TEXT,
 								download_status INTEGER NOT NULL,
+								errormsg TEXT,
 								viewed BOOL NOT NULL,
 								keep BOOL NOT NULL,
 								length INTEGER,
@@ -713,7 +721,7 @@ class ptvDB:
 							
 		self._db.commit()
 		
-		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", 7)""")
+		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", ?)""" % LATEST_DB_VER)
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
 		
@@ -1982,7 +1990,7 @@ class ptvDB:
 			return (MODIFIED,entry_id, [])
 			
 	def get_entry_media(self, entry_id):
-		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype FROM media WHERE entry_id = ? ORDER BY entry_id DESC""",(entry_id,))
+		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype,errormsg FROM media WHERE entry_id = ? ORDER BY entry_id DESC""",(entry_id,))
 		dataList=self._c.fetchall()
 		
 		if dataList is None:
@@ -2002,6 +2010,7 @@ class ptvDB:
 			medium['entry_id']=datum[1] #MAGIC
 			medium['viewed']=int(datum[5]) #MAGIC
 			medium['mimetype']=datum[7] #MAGIC
+			medium['errormsg']=datum[8] #MAGIC
 			media_list.append(medium)			
 		return media_list
 		
@@ -2010,7 +2019,7 @@ class ptvDB:
 			return
 		qmarks = "?,"*(len(entry_list)-1)+"?"
 		
-		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype FROM media WHERE entry_id in ("""+qmarks+')',tuple(entry_list))
+		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype,errormsg FROM media WHERE entry_id in ("""+qmarks+')',tuple(entry_list))
 		result = self._c.fetchall()
 		if result is None:
 			return []
@@ -2028,6 +2037,7 @@ class ptvDB:
 			medium['entry_id']=datum[1] #MAGIC
 			medium['viewed']=int(datum[5]) #MAGIC
 			medium['mimetype']=datum[7] #MAGIC
+			medium['errormsg']=datum[8] #MAGIC
 			
 			if not media_dict.has_key(medium['entry_id']):
 				media_dict[medium['entry_id']] = [medium]
@@ -2037,7 +2047,7 @@ class ptvDB:
 		return media_dict
 		
 	def get_media(self, media_id):
-		self._db_execute(self._c, u'SELECT url, download_status, length, file, entry_id, viewed, mimetype, feed_id FROM media WHERE rowid=?',(media_id,))
+		self._db_execute(self._c, u'SELECT url, download_status, length, file, entry_id, viewed, mimetype, feed_id, errormsg FROM media WHERE rowid=?',(media_id,))
 		datum=self._c.fetchone()
 		if datum is None:
 			return None
@@ -2054,6 +2064,7 @@ class ptvDB:
 		medium['viewed']=int(datum[5]) #MAGIC
 		medium['mimetype']=datum[6] #MAGIC
 		medium['feed_id']=datum[7] #MAGIC
+		medium['errormsg']=datum[8] #MAGIC
 		return medium
 		
 	def get_feed_media_count(self, feed_id):
@@ -2329,12 +2340,12 @@ class ptvDB:
 		self._db_execute(self._c, update_str, update_data)
 		self._db.commit()
 				
-	def set_media_download_status(self, media_id, status):
+	def set_media_download_status(self, media_id, status, errormsg=""):
 		if status == D_DOWNLOADED:
-			self._db_execute(self._c, u'UPDATE media SET download_status=?, download_date=? WHERE rowid=?', (status, int(time.time()),media_id,))
+			self._db_execute(self._c, u'UPDATE media SET download_status=?, download_date=?, errormsg=? WHERE rowid=?', (status, int(time.time()),errormsg,media_id))
 			self._db.commit()
 		else:
-			self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE rowid=?', (status,media_id,))
+			self._db_execute(self._c, u'UPDATE media SET download_status=?, errormsg=? WHERE rowid=?', (status,errormsg,media_id))
 			self._db.commit()
 		self._db_execute(self._c, u'SELECT entry_id FROM media WHERE rowid=?',(media_id,))
 		entry_id = self._c.fetchone()[0]
@@ -2418,10 +2429,9 @@ class ptvDB:
 		
 	def clean_media_status(self):
 		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE download_status<1',(D_NOT_DOWNLOADED,))
-		self._db.commit()
 		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE download_status=1',(D_RESUMABLE,))
-		self._db.commit()
 		self._db_execute(self._c, u'UPDATE media SET download_status=? WHERE download_status=? AND file is NULL',(D_NOT_DOWNLOADED, D_DOWNLOADED))
+		self._db_execute(self._c, u'UPDATE media SET errormsg=""')
 		self._db.commit()
 		
 	def get_entryid_for_media(self, media_id):

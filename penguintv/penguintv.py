@@ -2199,14 +2199,14 @@ class PenguinTVApp(gobject.GObject):
 		
 		self.update_disk_usage()
 		if d.status==Downloader.FAILURE: 
-			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR)
+			self.db.set_media_download_status(d.media['media_id'],ptvDB.D_ERROR,d.media['errormsg'])
 		elif d.status==Downloader.STOPPED or d.status==Downloader.PAUSED:
 			pass
 		elif d.status==Downloader.FINISHED or d.status==Downloader.FINISHED_AND_PLAY:
 			if os.stat(d.media['file'])[6] < int(d.media['size']/2) and os.path.isfile(d.media['file']): #don't check dirs
 				self.db.set_entry_read(d.media['entry_id'],False)
 				self.db.set_media_viewed(d.media['media_id'],False)
-				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)
+				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED,_("File did not download completely"))
 				d.status = Downloader.FAILURE
 			else:
 				if d.status==Downloader.FINISHED_AND_PLAY:
@@ -2222,7 +2222,7 @@ class PenguinTVApp(gobject.GObject):
 					if not entry['keep']:
 						self.db.set_entry_read(d.media['entry_id'],False)
 						self.db.set_media_viewed(d.media['media_id'],False)
-				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)	
+				self.db.set_media_download_status(d.media['media_id'],ptvDB.D_DOWNLOADED)
 		self.emit('download-finished', d)
 		if self._exiting:
 			self.feed_list_view.filter_all() #to remove active downloads from the list

@@ -202,9 +202,8 @@ class EntryFormatter:
 			ret.append(self._html_command('delete:',medium['media_id'])+"</td></tr><tr><td>")
 			ret.append('(%s)</td></tr></table>' % (utils.format_size(medium['size']),))	
 		elif medium['download_status'] == D_ERROR:
-			if self._mm.has_downloader(medium['media_id']):	
-				downloader = self._mm.get_downloader(medium['media_id'])
-				error_msg = downloader.message
+			if len(medium['errormsg']) > 0:
+				error_msg = medium['errormsg']
 			else:
 				error_msg = _("There was an error downloading the file.")
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
