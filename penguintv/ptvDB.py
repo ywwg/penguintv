@@ -349,6 +349,86 @@ class ptvDB:
 		
 	def done_initializing(self):
 		self._initializing_db = False
+
+	def _init_database(self):
+		self._db_execute(self._c, u"""CREATE TABLE settings
+							(
+								data TEXT NOT NULL,
+								value TEXT
+								);""")
+
+		#for pointer / pointed filter feeds, feed_pointer is feed_id, and description is query
+		self._db_execute(self._c, u"""CREATE TABLE  feeds
+							(
+								id INTEGER PRIMARY KEY,
+							    url TEXT NOT NULL,
+							    pollfail BOOL NOT NULL,
+							    title TEXT,
+							    description TEXT,
+							    link TEXT, 
+							    etag TEXT,
+							    pollfreq INT NOT NULL,
+							    lastpoll DATE,
+							    newatlast INT,
+							    flags INTEGER NOT NULL DEFAULT 0,
+							    feed_pointer INT,
+							    image TEXT,
+							    UNIQUE(url)
+							);""")
+							
+		self._db_execute(self._c, u"""CREATE TABLE entries
+							(
+								id INTEGER PRIMARY KEY,
+						    	feed_id INTEGER UNSIGNED NOT NULL,
+					        	title TEXT,
+					        	creator TEXT,
+					        	description TEXT,
+					        	fakedate DATE,
+					        	date DATE,
+					        	guid TEXT,
+					        	link TEXT,
+					        	keep INTEGER,
+								read INTEGER NOT NULL,
+								hash TEXT
+							);""")
+		self._db_execute(self._c, u"""CREATE TABLE media
+							(
+								id INTEGER PRIMARY KEY,
+								entry_id INTEGER UNSIGNED NOT NULL,
+								feed_id INTEGER UNSIGNED NOT NULL,
+								url TEXT NOT NULL,
+								file TEXT,
+								mimetype TEXT,
+								download_status INTEGER NOT NULL,
+								errormsg TEXT,
+								viewed BOOL NOT NULL,
+								keep BOOL NOT NULL,
+								length INTEGER,
+								download_date DATE, 
+								thumbnail TEXT
+							);
+							""")
+		self._db_execute(self._c, u"""CREATE TABLE tags
+							(
+							tag TEXT,
+							feed_id INT UNSIGNED NOT NULL,
+							query TEXT,
+							favorite INT,
+							type INT);""")
+							
+		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX m_entryindex ON media (entry_id DESC);""")
+		self._db_execute(self._c, u"""CREATE INDEX t_feedindex ON tags (feed_id DESC);""")
+		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
+							
+		self._db.commit()
+		
+		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", ?)""" % LATEST_DB_VER)
+		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
+		self._db.commit()
 			
 	def _migrate_database_one_two(self):
 		#add table settings
@@ -644,86 +724,6 @@ class ptvDB:
 							 (int_flag,) + tuple(flagged_feeds))
 		
 		self.remove_tag(tag_flag)
-		
-	def _init_database(self):
-		self._db_execute(self._c, u"""CREATE TABLE settings
-							(
-								data TEXT NOT NULL,
-								value TEXT
-								);""")
-
-		#for pointer / pointed filter feeds, feed_pointer is feed_id, and description is query
-		self._db_execute(self._c, u"""CREATE TABLE  feeds
-							(
-								id INTEGER PRIMARY KEY,
-							    url TEXT NOT NULL,
-							    pollfail BOOL NOT NULL,
-							    title TEXT,
-							    description TEXT,
-							    link TEXT, 
-							    etag TEXT,
-							    pollfreq INT NOT NULL,
-							    lastpoll DATE,
-							    newatlast INT,
-							    flags INTEGER NOT NULL DEFAULT 0,
-							    feed_pointer INT,
-							    image TEXT,
-							    UNIQUE(url)
-							);""")
-							
-		self._db_execute(self._c, u"""CREATE TABLE entries
-							(
-								id INTEGER PRIMARY KEY,
-						    	feed_id INTEGER UNSIGNED NOT NULL,
-					        	title TEXT,
-					        	creator TEXT,
-					        	description TEXT,
-					        	fakedate DATE,
-					        	date DATE,
-					        	guid TEXT,
-					        	link TEXT,
-					        	keep INTEGER,
-								read INTEGER NOT NULL,
-								hash TEXT
-							);""")
-		self._db_execute(self._c, u"""CREATE TABLE media
-							(
-								id INTEGER PRIMARY KEY,
-								entry_id INTEGER UNSIGNED NOT NULL,
-								feed_id INTEGER UNSIGNED NOT NULL,
-								url TEXT NOT NULL,
-								file TEXT,
-								mimetype TEXT,
-								download_status INTEGER NOT NULL,
-								errormsg TEXT,
-								viewed BOOL NOT NULL,
-								keep BOOL NOT NULL,
-								length INTEGER,
-								download_date DATE, 
-								thumbnail TEXT
-							);
-							""")
-		self._db_execute(self._c, u"""CREATE TABLE tags
-							(
-							tag TEXT,
-							feed_id INT UNSIGNED NOT NULL,
-							query TEXT,
-							favorite INT,
-							type INT);""")
-							
-		self._db_execute(self._c, u"""CREATE INDEX pollindex ON entries (fakedate DESC);""")
-		self._db_execute(self._c, u"""CREATE INDEX feedindex ON feeds (title DESC);""")
-		self._db_execute(self._c, u"""CREATE INDEX e_feedindex ON entries (feed_id DESC);""")
-		self._db_execute(self._c, u"""CREATE INDEX m_feedindex ON media (feed_id DESC);""")
-		self._db_execute(self._c, u"""CREATE INDEX m_entryindex ON media (entry_id DESC);""")
-		self._db_execute(self._c, u"""CREATE INDEX t_feedindex ON tags (feed_id DESC);""")
-		self._db_execute(self._c, u'UPDATE entries SET keep=0') 
-							
-		self._db.commit()
-		
-		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", ?)""" % LATEST_DB_VER)
-		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
-		self._db.commit()
 		
 	def _get_hash(self, guid, title, description):
 		s = hashlib.sha1()
