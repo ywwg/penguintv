@@ -133,6 +133,9 @@ class PenguinTVApp(gobject.GObject):
 		'feed-removed': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
 						   ([gobject.TYPE_INT])),
+		'feed-name-changed': (gobject.SIGNAL_RUN_FIRST, 
+							gobject.TYPE_NONE,
+							([gobject.TYPE_INT, gobject.TYPE_STRING, gobject.TYPE_STRING])),
 		'entry-updated': (gobject.SIGNAL_RUN_FIRST, 
 						   gobject.TYPE_NONE, 
 						   ([gobject.TYPE_INT, gobject.TYPE_INT])),
@@ -324,6 +327,7 @@ class PenguinTVApp(gobject.GObject):
 			conf.notify_add('/apps/penguintv/auto_download_limiter',self._gconf_set_auto_download_limiter)
 			conf.notify_add('/apps/penguintv/auto_download_limit',self._gconf_set_auto_download_limit)
 			conf.notify_add('/apps/penguintv/media_storage_location',self._gconf_set_media_storage_location)
+			conf.notify_add('/apps/penguintv/media_storage_style',self._gconf_set_media_storage_style)
 			conf.notify_add('/apps/penguintv/use_article_sync',self._gconf_set_use_article_sync)
 			#conf.notify_add('/apps/penguintv/sync_username',self._gconf_set_sync_username)
 			#conf.notify_add('/apps/penguintv/sync_password',self._gconf_set_sync_password)
@@ -792,6 +796,10 @@ class PenguinTVApp(gobject.GObject):
 		val = self.mediamanager.get_media_dir()
 		self.window_preferences.set_media_storage_location(val)
 		
+		val = self.db.get_setting(ptvDB.INT, '/apps/penguintv/media_storage_style', 0)
+		self.window_preferences.set_media_storage_style(val)
+		self.mediamanager.set_storage_style(val)
+		
 	@utils.db_except()
 	def save_settings(self):
 		if self.main_window.feed_pane is not None:
@@ -842,6 +850,7 @@ class PenguinTVApp(gobject.GObject):
 		media_dir = self.window_preferences.get_media_storage_location()
 		if media_dir is not None:
 			self.db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', media_dir)
+		self.db.set_setting(ptvDB.INT, '/apps/penguintv/media_storage_style', self.mediamanager.get_storage_style())
 		enabled = self.window_preferences.get_use_article_sync()
 		self.db.set_setting(ptvDB.BOOL, '/apps/penguintv/use_article_sync', enabled)
 		readonly = self.window_preferences.get_article_sync_readonly()
@@ -1322,6 +1331,8 @@ class PenguinTVApp(gobject.GObject):
 				os.system('konqueror --select ' + reveal_url + ' &')
 			else:
 				reveal_url = "file:"+os.path.split(urllib.quote(parsed_url[1]+parsed_url[2]))[0]
+				reveal_url = reveal_url.replace("%20"," ")
+				logging.debug("eh? %s" % reveal_url)
 				if HAS_GNOME:
 					try:
 						gnome.url_show(reveal_url)
@@ -2004,6 +2015,9 @@ class PenguinTVApp(gobject.GObject):
 				gst_player.relocate_media(old_dir, remap_dir)
 		self.window_preferences.set_media_storage_location(location)
 		
+	def _gconf_set_media_storage_style(self, client, *args, **kwargs):
+		val = client.get_int('/apps/penguintv/media_storage_style')
+		self.mediamanager.set_storage_style(val)
 			
 	def get_feed_refresh_method(self):
 		return self.feed_refresh_method
@@ -2232,13 +2246,13 @@ class PenguinTVApp(gobject.GObject):
 			
 	@utils.db_except()
 	def rename_feed(self, feed_id, name):
+		oldname = self.db.get_feed_title(feed_id)
 		if len(name)==0:
 			self.db.set_feed_name(feed_id, None) #gets the title the feed came with
+			name = self.db.get_feed_title(feed_id)
 		else:
 			self.db.set_feed_name(feed_id, name)
-		#FIXME: should emit a signal so planetview updates its title as well
-		self.feed_list_view.update_feed_list(feed_id,['title'],{'title':name})
-		self.feed_list_view.resize_columns()	
+		self.emit('feed-name-changed', feed_id, oldname, name)
 		
 	def _gconf_set_auto_resume(self, client, *args, **kwargs):
 		autoresume = client.get_bool('/apps/penguintv/auto_resume')

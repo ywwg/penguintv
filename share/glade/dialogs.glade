@@ -1,10 +1,10 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--*- mode: xml -*-->
+<?xml version="1.0"?>
 <glade-interface>
+  <!-- interface-requires gtk+ 2.12 -->
+  <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkAboutDialog" id="aboutdialog1">
     <property name="border_width">5</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_NORMAL</property>
+    <property name="type_hint">normal</property>
     <property name="copyright" translatable="yes">(c)2008 Owen Williams</property>
     <property name="comments" translatable="yes">Podcast and Video Blog aggregator for GTK+ and GNOME</property>
     <property name="website">http://penguintv.sourceforge.net</property>
@@ -20,12 +20,13 @@ j@v2v.cc
     <signal name="response" handler="on_about_response"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox1">
+        <property name="orientation">vertical</property>
         <child internal-child="action_area">
-          <widget class="GtkHButtonBox" id="dialog-action_area1">
-          </widget>
+          <widget class="GtkHButtonBox" id="dialog-action_area1"/>
           <packing>
             <property name="expand">False</property>
-            <property name="pack_type">GTK_PACK_END</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>
@@ -33,20 +34,22 @@ j@v2v.cc
   </widget>
   <widget class="GtkDialog" id="dialog_login">
     <property name="title" translatable="yes">Login Required</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="type_hint">dialog</property>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox2">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkVBox" id="vbox9">
             <property name="visible">True</property>
             <property name="border_width">15</property>
+            <property name="orientation">vertical</property>
             <property name="spacing">18</property>
             <child>
               <widget class="GtkFrame" id="frame17">
                 <property name="visible">True</property>
                 <property name="label_xalign">0</property>
-                <property name="shadow_type">GTK_SHADOW_NONE</property>
+                <property name="shadow_type">none</property>
                 <child>
                   <widget class="GtkAlignment" id="alignment17">
                     <property name="visible">True</property>
@@ -75,6 +78,7 @@ j@v2v.cc
                 <property name="expand">False</property>
                 <property name="fill">False</property>
                 <property name="padding">10</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
@@ -88,13 +92,13 @@ j@v2v.cc
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkEntry" id="user_widget">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="invisible_char">*</property>
                     <signal name="activate" handler="on_user_widget_activate"/>
                   </widget>
                   <packing>
@@ -119,6 +123,7 @@ j@v2v.cc
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
@@ -126,7 +131,6 @@ j@v2v.cc
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
                     <property name="visibility">False</property>
-                    <property name="invisible_char">*</property>
                     <property name="activates_default">True</property>
                     <signal name="activate" handler="on_pass_widget_activate"/>
                   </widget>
@@ -147,35 +151,45 @@ j@v2v.cc
         <child internal-child="action_area">
           <widget class="GtkHButtonBox" id="dialog-action_area2">
             <property name="visible">True</property>
-            <property name="layout_style">GTK_BUTTONBOX_END</property>
+            <property name="layout_style">end</property>
             <child>
               <widget class="GtkButton" id="cancelbutton1">
+                <property name="label">gtk-cancel</property>
+                <property name="response_id">-6</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="label">gtk-cancel</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">-6</property>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="okbutton1">
+                <property name="label">gtk-ok</property>
+                <property name="response_id">-5</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="label">gtk-ok</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">-5</property>
                 <signal name="clicked" handler="on_button_ok_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="pack_type">GTK_PACK_END</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>
@@ -184,12 +198,13 @@ j@v2v.cc
   <widget class="GtkWindow" id="window_feed_properties">
     <property name="title" translatable="yes">Feed Properties</property>
     <property name="default_width">400</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="type_hint">dialog</property>
     <signal name="delete_event" handler="on_window_feed_properties_delete_event"/>
     <child>
       <widget class="GtkVBox" id="feed_prop_contents">
         <property name="visible">True</property>
         <property name="border_width">6</property>
+        <property name="orientation">vertical</property>
         <property name="spacing">6</property>
         <child>
           <widget class="GtkNotebook" id="notebook1">
@@ -384,7 +399,6 @@ j@v2v.cc
                       <widget class="GtkEntry" id="edit_tags_widget">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="invisible_char">*</property>
                         <signal name="activate" handler="on_save_values_activate"/>
                       </widget>
                       <packing>
@@ -405,22 +419,23 @@ j@v2v.cc
                 <property name="label" translatable="yes">Feed Properties</property>
               </widget>
               <packing>
-                <property name="type">tab</property>
                 <property name="tab_fill">False</property>
+                <property name="type">tab</property>
               </packing>
             </child>
             <child>
               <widget class="GtkVBox" id="tab2_contents1">
                 <property name="visible">True</property>
                 <property name="border_width">12</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">5</property>
                 <child>
                   <widget class="GtkCheckButton" id="b_autodownload">
+                    <property name="label" translatable="yes">Automatically download media</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="label" translatable="yes">Automatically download media</property>
+                    <property name="receives_default">False</property>
                     <property name="use_underline">True</property>
-                    <property name="response_id">0</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_autodownload_toggled"/>
@@ -428,15 +443,16 @@ j@v2v.cc
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="b_search">
+                    <property name="label" translatable="yes">Include this feed in search results</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="label" translatable="yes">Include this feed in search results</property>
+                    <property name="receives_default">False</property>
                     <property name="use_underline">True</property>
-                    <property name="response_id">0</property>
                     <property name="active">True</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_search_toggled"/>
@@ -449,11 +465,11 @@ j@v2v.cc
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="b_notifyupdates">
+                    <property name="label" translatable="yes">Show notifications when this feed updates</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="label" translatable="yes">Show notifications when this feed updates</property>
+                    <property name="receives_default">False</property>
                     <property name="use_underline">True</property>
-                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_notifyupdates_toggled"/>
                   </widget>
@@ -465,12 +481,12 @@ j@v2v.cc
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="b_noautoexpire">
+                    <property name="label" translatable="yes">Never delete media automatically</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
                     <property name="tooltip" translatable="yes">If unchecked, media may be deleted to free up space</property>
-                    <property name="label" translatable="yes">Never delete media automatically</property>
                     <property name="use_underline">True</property>
-                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_noautoexpire_toggled"/>
                   </widget>
@@ -482,12 +498,12 @@ j@v2v.cc
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="b_addnewlines">
+                    <property name="label" translatable="yes">Work around feeds where entries appear to be in one large paragraph</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
                     <property name="tooltip" translatable="yes">Convert newline characters to HTML paragraph breaks</property>
-                    <property name="label" translatable="yes">Work around feeds where entries appear to be in one large paragraph</property>
                     <property name="use_underline">True</property>
-                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_addnewlines_toggled"/>
                   </widget>
@@ -499,11 +515,11 @@ j@v2v.cc
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="b_markasread">
+                    <property name="label" translatable="yes">Automatically mark new entries as read</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="label" translatable="yes">Automatically mark new entries as read</property>
+                    <property name="receives_default">False</property>
                     <property name="use_underline">True</property>
-                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_markasread_toggled"/>
                   </widget>
@@ -515,11 +531,11 @@ j@v2v.cc
                 </child>
                 <child>
                   <widget class="GtkCheckButton" id="b_nokeepdeleted">
+                    <property name="label" translatable="yes">Delete entries that are removed from original feed</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
                     <property name="tooltip" translatable="yes">Don't keep items in PenguinTV even if they disappear from the source</property>
-                    <property name="label" translatable="yes">Delete entries that are removed from original feed</property>
-                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_b_nokeepdeleted_toggled"/>
                   </widget>
@@ -539,12 +555,15 @@ j@v2v.cc
                 <property name="label" translatable="yes">Options</property>
               </widget>
               <packing>
-                <property name="type">tab</property>
                 <property name="position">1</property>
                 <property name="tab_fill">False</property>
+                <property name="type">tab</property>
               </packing>
             </child>
           </widget>
+          <packing>
+            <property name="position">0</property>
+          </packing>
         </child>
         <child>
           <widget class="GtkHSeparator" id="hseparator3">
@@ -562,14 +581,17 @@ j@v2v.cc
               <widget class="GtkLabel" id="label72">
                 <property name="visible">True</property>
               </widget>
+              <packing>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="revert_button">
+                <property name="label">gtk-revert-to-saved</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="label">gtk-revert-to-saved</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_revert_button_clicked"/>
               </widget>
               <packing>
@@ -580,11 +602,11 @@ j@v2v.cc
             </child>
             <child>
               <widget class="GtkButton" id="close_button1">
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="label">gtk-close</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_close_button_clicked"/>
               </widget>
               <packing>
@@ -608,10 +630,11 @@ j@v2v.cc
     <child>
       <widget class="GtkVBox" id="download_view">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkToolbar" id="toolbar2">
             <property name="visible">True</property>
-            <property name="toolbar_style">GTK_TOOLBAR_BOTH_HORIZ</property>
+            <property name="toolbar_style">both-horiz</property>
             <child>
               <widget class="GtkToolButton" id="stop_toolbutton">
                 <property name="visible">True</property>
@@ -620,6 +643,7 @@ j@v2v.cc
                 <signal name="clicked" handler="on_stop_toolbutton_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
                 <property name="homogeneous">True</property>
               </packing>
             </child>
@@ -631,6 +655,7 @@ j@v2v.cc
                 <signal name="clicked" handler="on_pause_toolbutton_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
                 <property name="homogeneous">True</property>
               </packing>
             </child>
@@ -645,6 +670,7 @@ j@v2v.cc
                 <signal name="clicked" handler="on_resume_toolbutton_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
                 <property name="homogeneous">True</property>
               </packing>
             </child>
@@ -652,14 +678,15 @@ j@v2v.cc
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
           <widget class="GtkScrolledWindow" id="d_v_scrolledwindow">
             <property name="visible">True</property>
             <property name="can_focus">True</property>
-            <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-            <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
+            <property name="hscrollbar_policy">automatic</property>
+            <property name="vscrollbar_policy">automatic</property>
             <child>
               <widget class="GtkTreeView" id="download_list">
                 <property name="visible">True</property>
@@ -679,11 +706,12 @@ j@v2v.cc
   </widget>
   <widget class="GtkDialog" id="dialog_tag_favorites">
     <property name="title" translatable="yes">Edit Favorite Tags</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="type_hint">dialog</property>
     <signal name="delete_event" handler="_on_delete_event"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox3">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkHPaned" id="hpaned">
             <property name="visible">True</property>
@@ -692,9 +720,9 @@ j@v2v.cc
               <widget class="GtkScrolledWindow" id="scrolledwindow16">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="shadow_type">GTK_SHADOW_IN</property>
+                <property name="hscrollbar_policy">automatic</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <property name="shadow_type">in</property>
                 <child>
                   <widget class="GtkTreeView" id="favorites_treeview">
                     <property name="visible">True</property>
@@ -714,9 +742,9 @@ j@v2v.cc
             <child>
               <widget class="GtkScrolledWindow" id="scrolledwindow15">
                 <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="shadow_type">GTK_SHADOW_IN</property>
+                <property name="hscrollbar_policy">automatic</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <property name="shadow_type">in</property>
                 <child>
                   <widget class="GtkTreeView" id="all_tags_treeview">
                     <property name="height_request">300</property>
@@ -742,50 +770,60 @@ j@v2v.cc
         <child internal-child="action_area">
           <widget class="GtkHButtonBox" id="dialog-action_area3">
             <property name="visible">True</property>
-            <property name="layout_style">GTK_BUTTONBOX_END</property>
+            <property name="layout_style">end</property>
             <child>
               <widget class="GtkButton" id="button1">
+                <property name="label">gtk-help</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="label" translatable="yes">gtk-help</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="_on_help_button_activate"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="close_button2">
+                <property name="label">gtk-cancel</property>
+                <property name="response_id">-6</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="label">gtk-cancel</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">-6</property>
                 <signal name="clicked" handler="_on_close_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
             <child>
               <widget class="GtkButton" id="apply_button">
+                <property name="label">gtk-ok</property>
+                <property name="response_id">-5</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="label">gtk-ok</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">-5</property>
                 <signal name="clicked" handler="_on_apply_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">2</property>
               </packing>
             </child>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="pack_type">GTK_PACK_END</property>
+            <property name="pack_type">end</property>
             <property name="position">1</property>
           </packing>
         </child>
@@ -795,13 +833,14 @@ j@v2v.cc
   <widget class="GtkDialog" id="dialog_tag_editor_ng">
     <property name="visible">True</property>
     <property name="title" translatable="yes">Tag Editor</property>
-    <property name="window_position">GTK_WIN_POS_CENTER</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
-    <signal name="delete_event" handler="_on_dialog_tag_editor_ng_delete_event"/>
+    <property name="window_position">center</property>
+    <property name="type_hint">dialog</property>
     <signal name="destroy_event" handler="_on_dialog_tag_editor_ng_destroy_event"/>
+    <signal name="delete_event" handler="_on_dialog_tag_editor_ng_delete_event"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog-vbox4">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkHPaned" id="hpaned1">
             <property name="visible">True</property>
@@ -810,14 +849,15 @@ j@v2v.cc
             <child>
               <widget class="GtkVBox" id="vbox26">
                 <property name="visible">True</property>
+                <property name="orientation">vertical</property>
                 <property name="spacing">6</property>
                 <child>
                   <widget class="GtkScrolledWindow" id="scrolledwindow_tags">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                    <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                    <property name="shadow_type">GTK_SHADOW_IN</property>
+                    <property name="hscrollbar_policy">automatic</property>
+                    <property name="vscrollbar_policy">automatic</property>
+                    <property name="shadow_type">in</property>
                     <child>
                       <widget class="GtkTreeView" id="treeview_tags">
                         <property name="visible">True</property>
@@ -825,6 +865,9 @@ j@v2v.cc
                       </widget>
                     </child>
                   </widget>
+                  <packing>
+                    <property name="position">0</property>
+                  </packing>
                 </child>
                 <child>
                   <widget class="GtkHBox" id="hbox58">
@@ -833,7 +876,7 @@ j@v2v.cc
                       <widget class="GtkButton" id="button_rename">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="response_id">0</property>
+                        <property name="receives_default">False</property>
                         <signal name="clicked" handler="_on_button_rename_clicked"/>
                         <child>
                           <widget class="GtkAlignment" id="alignment38">
@@ -852,6 +895,7 @@ j@v2v.cc
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">False</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -874,6 +918,7 @@ j@v2v.cc
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
@@ -889,7 +934,7 @@ j@v2v.cc
                       <widget class="GtkButton" id="button_remove">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="response_id">0</property>
+                        <property name="receives_default">False</property>
                         <signal name="clicked" handler="_on_button_remove_clicked"/>
                         <child>
                           <widget class="GtkImage" id="image387">
@@ -908,7 +953,7 @@ j@v2v.cc
                       <widget class="GtkButton" id="button_add">
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
-                        <property name="response_id">0</property>
+                        <property name="receives_default">False</property>
                         <signal name="clicked" handler="_on_button_add_clicked"/>
                         <child>
                           <widget class="GtkImage" id="image388">
@@ -939,9 +984,9 @@ j@v2v.cc
               <widget class="GtkScrolledWindow" id="scrolledwindow18">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                <property name="shadow_type">GTK_SHADOW_IN</property>
+                <property name="hscrollbar_policy">automatic</property>
+                <property name="vscrollbar_policy">automatic</property>
+                <property name="shadow_type">in</property>
                 <child>
                   <widget class="GtkTreeView" id="treeview_feeds">
                     <property name="visible">True</property>
@@ -962,36 +1007,44 @@ j@v2v.cc
         <child internal-child="action_area">
           <widget class="GtkHButtonBox" id="dialog-action_area4">
             <property name="visible">True</property>
-            <property name="layout_style">GTK_BUTTONBOX_END</property>
+            <property name="layout_style">end</property>
             <child>
               <widget class="GtkButton" id="editor_help_button">
+                <property name="label">gtk-help</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="receives_default">True</property>
-                <property name="label" translatable="yes">gtk-help</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="_on_editor_help_button_activate"/>
               </widget>
+              <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
+                <property name="position">0</property>
+              </packing>
             </child>
             <child>
               <widget class="GtkButton" id="button_close">
+                <property name="label">gtk-close</property>
+                <property name="response_id">-7</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
                 <property name="can_default">True</property>
-                <property name="label">gtk-close</property>
+                <property name="receives_default">False</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">-7</property>
                 <signal name="clicked" handler="_on_button_close_clicked"/>
               </widget>
               <packing>
+                <property name="expand">False</property>
+                <property name="fill">False</property>
                 <property name="position">1</property>
               </packing>
             </child>
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="pack_type">GTK_PACK_END</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>
@@ -1001,14 +1054,15 @@ j@v2v.cc
     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
     <property name="border_width">5</property>
     <property name="title" translatable="yes">Preferences</property>
-    <property name="window_position">GTK_WIN_POS_CENTER_ON_PARENT</property>
-    <property name="type_hint">GDK_WINDOW_TYPE_HINT_DIALOG</property>
+    <property name="window_position">center-on-parent</property>
+    <property name="type_hint">dialog</property>
     <property name="has_separator">False</property>
     <signal name="delete_event" handler="on_window_preferences_delete_event"/>
     <child internal-child="vbox">
       <widget class="GtkVBox" id="dialog_vbox">
         <property name="visible">True</property>
         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+        <property name="orientation">vertical</property>
         <property name="spacing">2</property>
         <child>
           <widget class="GtkNotebook" id="notebook3">
@@ -1020,11 +1074,12 @@ j@v2v.cc
               <widget class="GtkVBox" id="prefs_vbox">
                 <property name="visible">True</property>
                 <property name="border_width">15</property>
+                <property name="orientation">vertical</property>
                 <child>
                   <widget class="GtkFrame" id="frame9">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
-                    <property name="shadow_type">GTK_SHADOW_NONE</property>
+                    <property name="shadow_type">none</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment9">
                         <property name="visible">True</property>
@@ -1032,28 +1087,30 @@ j@v2v.cc
                         <child>
                           <widget class="GtkVBox" id="vbox4">
                             <property name="visible">True</property>
+                            <property name="orientation">vertical</property>
                             <child>
                               <widget class="GtkCheckButton" id="show_notification_always">
+                                <property name="label" translatable="yes">Always show notification icon</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Always show notification icon</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_show_notification_always"/>
                               </widget>
                               <packing>
                                 <property name="expand">False</property>
                                 <property name="fill">False</property>
+                                <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
                               <widget class="GtkCheckButton" id="poll_on_startup">
+                                <property name="label" translatable="yes">Poll all feeds on startup</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Poll all feeds on startup</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_poll_on_startup_toggled"/>
                               </widget>
@@ -1065,11 +1122,11 @@ j@v2v.cc
                             </child>
                             <child>
                               <widget class="GtkCheckButton" id="auto_resume">
+                                <property name="label" translatable="yes">Resume downloads on startup</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Resume downloads on startup</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_auto_resume_toggled"/>
                               </widget>
@@ -1081,11 +1138,11 @@ j@v2v.cc
                             </child>
                             <child>
                               <widget class="GtkCheckButton" id="cache_images">
+                                <property name="label" translatable="yes">Cache images locally</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Cache images locally</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_cache_images_toggled"/>
                               </widget>
@@ -1097,11 +1154,11 @@ j@v2v.cc
                             </child>
                             <child>
                               <widget class="GtkCheckButton" id="auto_download">
+                                <property name="label" translatable="yes">Automatically download new media</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Automatically download new media</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_auto_download_toggled"/>
                               </widget>
@@ -1122,15 +1179,16 @@ j@v2v.cc
                                   <packing>
                                     <property name="expand">False</property>
                                     <property name="fill">False</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkCheckButton" id="auto_download_limiter">
+                                    <property name="label" translatable="yes">Limit total disk usage to </property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="label" translatable="yes">Limit total disk usage to </property>
+                                    <property name="receives_default">False</property>
                                     <property name="use_underline">True</property>
-                                    <property name="response_id">0</property>
                                     <property name="draw_indicator">True</property>
                                     <signal name="toggled" handler="on_auto_download_limiter_toggled"/>
                                   </widget>
@@ -1144,7 +1202,6 @@ j@v2v.cc
                                     <property name="width_request">70</property>
                                     <property name="visible">True</property>
                                     <property name="can_focus">True</property>
-                                    <property name="invisible_char">*</property>
                                     <signal name="focus_out_event" handler="on_auto_download_limit_focus_out_event"/>
                                   </widget>
                                   <packing>
@@ -1181,19 +1238,26 @@ j@v2v.cc
                                     <property name="xalign">0</property>
                                     <property name="label" translatable="yes">Media storage location:</property>
                                   </widget>
+                                  <packing>
+                                    <property name="position">0</property>
+                                  </packing>
                                 </child>
                                 <child>
                                   <widget class="GtkVBox" id="media_storage_container">
                                     <property name="visible">True</property>
                                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                    <property name="orientation">vertical</property>
                                     <child>
                                       <widget class="GtkFileChooserButton" id="media_storage_chooser">
                                         <property name="visible">True</property>
                                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                                        <property name="action">GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER</property>
+                                        <property name="action">select-folder</property>
                                         <property name="title" translatable="yes">Select A Folder</property>
                                         <signal name="file_set" handler="on_media_storage_chooser_file_set"/>
                                       </widget>
+                                      <packing>
+                                        <property name="position">0</property>
+                                      </packing>
                                     </child>
                                   </widget>
                                   <packing>
@@ -1203,6 +1267,38 @@ j@v2v.cc
                               </widget>
                               <packing>
                                 <property name="position">6</property>
+                              </packing>
+                            </child>
+                            <child>
+                              <widget class="GtkHBox" id="hbox1">
+                                <property name="visible">True</property>
+                                <child>
+                                  <widget class="GtkLabel" id="label2">
+                                    <property name="visible">True</property>
+                                    <property name="xalign">0</property>
+                                    <property name="label" translatable="yes">Media storage style:</property>
+                                  </widget>
+                                  <packing>
+                                    <property name="position">0</property>
+                                  </packing>
+                                </child>
+                                <child>
+                                  <widget class="GtkComboBox" id="media_storage_style_cbb">
+                                    <property name="visible">True</property>
+                                    <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK</property>
+                                    <property name="tooltip" translatable="yes">Changing style will only affect newly downloaded items</property>
+                                    <property name="button_sensitivity">on</property>
+                                    <property name="items" translatable="yes">By Date
+By Feed</property>
+                                    <signal name="changed" handler="on_media_storage_style_cbb_changed"/>
+                                  </widget>
+                                  <packing>
+                                    <property name="position">1</property>
+                                  </packing>
+                                </child>
+                              </widget>
+                              <packing>
+                                <property name="position">7</property>
                               </packing>
                             </child>
                           </widget>
@@ -1223,13 +1319,14 @@ j@v2v.cc
                   <packing>
                     <property name="expand">False</property>
                     <property name="padding">5</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkFrame" id="frame11">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
-                    <property name="shadow_type">GTK_SHADOW_NONE</property>
+                    <property name="shadow_type">none</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment11">
                         <property name="visible">True</property>
@@ -1258,7 +1355,6 @@ j@v2v.cc
                                 <property name="width_request">58</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="invisible_char">*</property>
                                 <signal name="changed" handler="on_feed_refresh_changed"/>
                               </widget>
                               <packing>
@@ -1272,11 +1368,11 @@ j@v2v.cc
                             </child>
                             <child>
                               <widget class="GtkRadioButton" id="refresh_auto">
+                                <property name="label" translatable="yes">Autotune refresh period</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Autotune refresh period</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                               </widget>
                               <packing>
@@ -1289,11 +1385,11 @@ j@v2v.cc
                             </child>
                             <child>
                               <widget class="GtkRadioButton" id="refresh_specified">
+                                <property name="label" translatable="yes">Refresh every </property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Refresh every </property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <property name="group">refresh_auto</property>
                               </widget>
@@ -1306,11 +1402,11 @@ j@v2v.cc
                             </child>
                             <child>
                               <widget class="GtkRadioButton" id="refresh_never">
+                                <property name="label" translatable="yes">Don't refresh automatically</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="label" translatable="yes">Don't refresh automatically</property>
+                                <property name="receives_default">False</property>
                                 <property name="use_underline">True</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <property name="group">refresh_auto</property>
                               </widget>
@@ -1346,7 +1442,7 @@ j@v2v.cc
                   <widget class="GtkFrame" id="frame8">
                     <property name="visible">True</property>
                     <property name="label_xalign">0</property>
-                    <property name="shadow_type">GTK_SHADOW_NONE</property>
+                    <property name="shadow_type">none</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment8">
                         <property name="visible">True</property>
@@ -1361,7 +1457,6 @@ j@v2v.cc
                                 <property name="width_request">70</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="invisible_char">*</property>
                                 <signal name="changed" handler="on_max_port_entry_changed"/>
                               </widget>
                               <packing>
@@ -1378,7 +1473,6 @@ j@v2v.cc
                                 <property name="width_request">70</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="invisible_char">*</property>
                                 <signal name="changed" handler="on_min_port_entry_changed"/>
                               </widget>
                               <packing>
@@ -1419,7 +1513,6 @@ j@v2v.cc
                                 <property name="width_request">70</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
-                                <property name="invisible_char">*</property>
                                 <signal name="changed" handler="on_upload_limit_entry_changed"/>
                               </widget>
                               <packing>
@@ -1471,8 +1564,8 @@ j@v2v.cc
                 <property name="label" translatable="yes">Main Options</property>
               </widget>
               <packing>
-                <property name="type">tab</property>
                 <property name="tab_fill">False</property>
+                <property name="type">tab</property>
               </packing>
             </child>
             <child>
@@ -1480,19 +1573,21 @@ j@v2v.cc
                 <property name="visible">True</property>
                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                 <property name="border_width">15</property>
+                <property name="orientation">vertical</property>
                 <child>
                   <widget class="GtkCheckButton" id="sync_enabled_checkbox">
+                    <property name="label" translatable="yes">Use Article Sync</property>
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
+                    <property name="receives_default">False</property>
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                    <property name="label" translatable="yes">Use Article Sync</property>
-                    <property name="response_id">0</property>
                     <property name="draw_indicator">True</property>
                     <signal name="toggled" handler="on_sync_enabled_checkbox_toggled"/>
                   </widget>
                   <packing>
                     <property name="expand">False</property>
                     <property name="fill">False</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
@@ -1500,7 +1595,7 @@ j@v2v.cc
                     <property name="visible">True</property>
                     <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                     <property name="label_xalign">0</property>
-                    <property name="shadow_type">GTK_SHADOW_NONE</property>
+                    <property name="shadow_type">none</property>
                     <child>
                       <widget class="GtkAlignment" id="alignment1">
                         <property name="visible">True</property>
@@ -1510,19 +1605,21 @@ j@v2v.cc
                           <widget class="GtkVBox" id="vbox1">
                             <property name="visible">True</property>
                             <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                            <property name="orientation">vertical</property>
                             <child>
                               <widget class="GtkCheckButton" id="sync_readonly_check">
+                                <property name="label" translatable="yes">Download data only, do not upload</property>
                                 <property name="visible">True</property>
                                 <property name="can_focus">True</property>
+                                <property name="receives_default">False</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                                 <property name="tooltip" translatable="yes">Read-only mode</property>
-                                <property name="label" translatable="yes">Download data only, do not upload</property>
-                                <property name="response_id">0</property>
                                 <property name="draw_indicator">True</property>
                                 <signal name="toggled" handler="on_sync_readonly_check_toggled"/>
                               </widget>
                               <packing>
                                 <property name="expand">False</property>
+                                <property name="position">0</property>
                               </packing>
                             </child>
                             <child>
@@ -1538,6 +1635,7 @@ j@v2v.cc
                                   </widget>
                                   <packing>
                                     <property name="expand">False</property>
+                                    <property name="position">0</property>
                                   </packing>
                                 </child>
                                 <child>
@@ -1560,6 +1658,7 @@ j@v2v.cc
                               <widget class="GtkVBox" id="sync_settings_vbox">
                                 <property name="visible">True</property>
                                 <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                <property name="orientation">vertical</property>
                                 <child>
                                   <placeholder/>
                                 </child>
@@ -1604,6 +1703,7 @@ j@v2v.cc
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
@@ -1619,13 +1719,12 @@ j@v2v.cc
                     </child>
                     <child>
                       <widget class="GtkButton" id="sync_login_button">
+                        <property name="label" translatable="yes">Log in</property>
                         <property name="width_request">100</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
                         <property name="receives_default">True</property>
                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                        <property name="label" translatable="yes">Log in</property>
-                        <property name="response_id">0</property>
                         <signal name="clicked" handler="on_sync_login_button_clicked"/>
                         <signal name="activate" handler="on_sync_login_button_activate"/>
                       </widget>
@@ -1653,9 +1752,9 @@ j@v2v.cc
                 <property name="label" translatable="yes">Article Sync</property>
               </widget>
               <packing>
-                <property name="type">tab</property>
                 <property name="position">1</property>
                 <property name="tab_fill">False</property>
+                <property name="type">tab</property>
               </packing>
             </child>
           </widget>
@@ -1667,18 +1766,18 @@ j@v2v.cc
           <widget class="GtkHButtonBox" id="dialog-action_area6">
             <property name="visible">True</property>
             <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-            <property name="layout_style">GTK_BUTTONBOX_END</property>
+            <property name="layout_style">end</property>
             <child>
               <placeholder/>
             </child>
             <child>
               <widget class="GtkButton" id="button_close1">
+                <property name="label">gtk-close</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
                 <property name="border_width">6</property>
-                <property name="label">gtk-close</property>
                 <property name="use_stock">True</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_button_close_clicked"/>
               </widget>
               <packing>
@@ -1690,7 +1789,8 @@ j@v2v.cc
           </widget>
           <packing>
             <property name="expand">False</property>
-            <property name="pack_type">GTK_PACK_END</property>
+            <property name="pack_type">end</property>
+            <property name="position">0</property>
           </packing>
         </child>
       </widget>

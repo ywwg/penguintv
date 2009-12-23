@@ -371,6 +371,20 @@
    </schema>
 
 	<schema>
+     <key>/schemas/apps/penguintv/media_storage_style</key>
+     <applyto>/apps/penguintv/media_storage_style</applyto>
+     <owner>penguintv</owner>
+     <type>int</type>
+     <default>0</default>
+     <locale name="C">
+	<short>Media Storage Style</short>
+	<long>Sets whether media should be stored according to date (0) or feed name (1)
+	</long>
+     </locale>
+   </schema>
+
+
+	<schema>
      <key>/schemas/apps/penguintv/selected_feed</key>
      <applyto>/apps/penguintv/selected_entry</applyto>
      <owner>penguintv</owner>

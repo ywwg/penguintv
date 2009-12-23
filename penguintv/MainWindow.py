@@ -762,6 +762,7 @@ class MainWindow(gobject.GObject):
 		filter_filter.set_visible_column(3)
 		
 		#if not utils.RUNNING_HILDON:								  
+		#print self._filter_selector_combo.get_property("appears-as-list")
 		self._filter_selector_combo.set_model(filter_filter)
 		self._filter_selector_combo.set_row_separator_func(lambda model,iter:model[iter][2]==1)
 		
@@ -1668,6 +1669,7 @@ class MainWindow(gobject.GObject):
 		self._filters = []
 		self._favorite_filters = []
 		self._filter_tree.clear()
+		
 		completion_model = self.search_entry.get_completion().get_model()
 		completion_model.clear()
 				
@@ -1728,7 +1730,7 @@ class MainWindow(gobject.GObject):
 				all_tags_submenu = None
 				self._filter_tree.append(None, ["", "", 1, True])
 			else:
-				all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0, True])
+				all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('Al3l Tags'), 0, True])
 			if has_search:
 				for f in self._filters:
 					if f[F_TYPE] == ptvDB.T_SEARCH:
@@ -1740,7 +1742,7 @@ class MainWindow(gobject.GObject):
 		
 		if not utils.RUNNING_HILDON:	
 			self._filter_tree.append(None, [_('Edit Favorite Tags...'), _('Edit Favorite Tags...'), 2, True])
-		
+			
 		#get index for our previously selected tag
 		index = self.get_filter_index(current_filter)
 		if not self.changing_layout:

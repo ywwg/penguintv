@@ -329,7 +329,7 @@ def get_play_command_for(filename):
 				
 def get_dated_dir():
 	today = time.strftime("%Y-%m-%d")
-	return today				
+	return today 		
 			
 #http://www.faqts.com/knowledge_base/view.phtml/aid/2682
 class GlobDirectoryWalker:

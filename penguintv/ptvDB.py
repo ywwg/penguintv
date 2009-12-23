@@ -2298,6 +2298,8 @@ class ptvDB:
 					channel['title']=url
 			channel['title'] = self._encode_text(channel['title'])
 			
+			#logging.debug("got title from feed: %s" % channel['title'])
+			
 			self._db_execute(self._c, u'UPDATE feeds SET title=? WHERE rowid=?',(channel['title'],feed_id))
 			self._db.commit()
 		self._reindex_feed_list.append(feed_id)

@@ -179,6 +179,8 @@ class FeedList(gobject.GObject):
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('feed-removed', self.__feed_removed_cb)
 		self._handlers.append((self._app.disconnect, h_id))
+		h_id = self._app.connect('feed-name-changed', self.__feed_name_changed_cb)
+		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('entry-updated', self.__entry_updated_cb)
 		self._handlers.append((self._app.disconnect, h_id))
 		h_id = self._app.connect('tags-changed', self.__tags_changed_cb)
@@ -220,6 +222,10 @@ class FeedList(gobject.GObject):
 			
 	def __feed_removed_cb(self, app, feed_id):
 		self.remove_feed(feed_id)
+		self.resize_columns()
+		
+	def __feed_name_changed_cb(self, app, feed_id, oldname, name):
+		self.update_feed_list(feed_id,['title'],{'title':name})
 		self.resize_columns()
 		
 	def __tags_changed_cb(self, app, a):

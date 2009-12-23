@@ -35,6 +35,9 @@ RUNNING = 0
 PAUSING = 1 
 PAUSED  = 2
 
+BYDATE = 0
+BYNAME = 1
+
 #Downloader API:
 #constructor takes:  media, params, resume, queue, progress_callback, finished_callback
 #  media:  the media dic
@@ -56,6 +59,7 @@ class MediaManager:
 			max_downloads = 1
 		else:
 			max_downloads = 5
+		self._style=BYDATE
 		self.pool = ThreadPool.ThreadPool(max_downloads, "MediaManager")
 		self.downloads = []
 		self.db = ptvDB.ptvDB()
@@ -89,6 +93,7 @@ class MediaManager:
 		self._media_dir = media_dir
 		
 		app.connect('online-status-changed', self.__online_status_changed)
+		app.connect('feed-name-changed',self.__feed_name_changed_cb)
 	
 	def finish(self):
 		self.quitting = True
@@ -176,6 +181,12 @@ class MediaManager:
 
 		self._net_connected = connected
 		
+	def __feed_name_changed_cb(self, app, feed_id, oldname, name):
+		old_dir = os.path.join(self._media_dir, oldname)
+		new_dir = os.path.join(self._media_dir, name)
+		if os.path.isdir(old_dir):
+			os.rename(old_dir, new_dir)
+		
 	def set_bt_settings(self, bt_settings):
 		self.bt_settings = bt_settings
 		
@@ -191,13 +202,16 @@ class MediaManager:
 		return str(self.id_time)+"+"+str(self.time_appendix)
 		
 	def show_downloads(self):
-		url = "file://"+self._media_dir+"/"+utils.get_dated_dir()
+		if self._style==BYDATE:
+			url = "file://"+self._media_dir+"/"+utils.get_dated_dir()
+		else:
+			url = "file://"+self._media_dir
 		if HAS_GNOME:
 			gnome.url_show(url)
 		else:
 			import webbrowser
 			webbrowser.open_new_tab(url)
-		
+					
 	def download_entry(self, entry_id, queue=False, resume=False):
 		"""queues a download
 		 will interact with bittorrent python
@@ -217,25 +231,31 @@ class MediaManager:
 				break
 		
 		media = self.db.get_media(media_id)
+		media['feedname'] = self.db.get_feed_title(media['feed_id'])
 		media['downloader_index']=self.index
 		media['download_status']=1
 		media.setdefault('size',0)			
-		if media['file'] is None:
+		#if media['file'] is None:
+		logging.debug("TEMP OVERRIDE OF FILENAME?")
+		if True:
 			filename = os.path.basename(media['url'])
 			filen, ext = os.path.splitext(filename)
 			ext = ext.split('?')[0] #grrr lugradio...
-			media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+ext)
+			#media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+ext)
+			media['file']=self.get_storage_dir(media, filen+ext)
 			dated_dir = os.path.split(os.path.split(media['file'])[0])[1]
 			try: #make sure
 				os.stat(os.path.join(self._media_dir, dated_dir))
 			except:
 				os.mkdir(os.path.join(self._media_dir, dated_dir))
 			if self.db.media_exists(media['file']): #if the filename is in the db, rename
-				media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext)
+				#media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext)
+				media['file']=self.get_storage_dir(media, filen+"-"+self.get_id()+ext)
 			else:
 				try:
 					os.stat(media['file'])  #if this raises exception, the file doesn't exist and we're ok
-					media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext) #if not, get new name
+					#media['file']=os.path.join(self._media_dir, utils.get_dated_dir(), filen+"-"+self.get_id()+ext) #if not, get new name
+					media['file']=self.get_storage_dir(media, filen+"-"+self.get_id()+ext) #if not, get new name
 				except:
 					pass #we're ok
 			
@@ -395,20 +415,21 @@ class MediaManager:
 	def generate_playlist(self):
 		if utils.RUNNING_SUGAR:
 			return
-		import glob
-		dated_dir = utils.get_dated_dir()
-		try:
-			os.stat(os.path.join(self._media_dir, dated_dir))
-		except:
-			os.mkdir(os.path.join(self._media_dir, dated_dir))
-		f = open(os.path.join(self._media_dir, dated_dir, "playlist.m3u"),'w')
-		f.write('#EXTM3U\n')
+		if self._style == BYDATE:
+			import glob
+			dated_dir = utils.get_dated_dir()
+			try:
+				os.stat(os.path.join(self._media_dir, dated_dir))
+			except:
+				os.mkdir(os.path.join(self._media_dir, dated_dir))
+			f = open(os.path.join(self._media_dir, dated_dir, "playlist.m3u"),'w')
+			f.write('#EXTM3U\n')
 		
-		for item in glob.glob(os.path.join(self._media_dir, dated_dir, "*")):
-			filename = os.path.split(item)[1]
-			if filename != "playlist.m3u":
-				f.write(filename+"\n")
-		f.close()
+			for item in glob.glob(os.path.join(self._media_dir, dated_dir, "*")):
+				filename = os.path.split(item)[1]
+				if filename != "playlist.m3u":
+					f.write(filename+"\n")
+			f.close()
 		
 	def update_playlist(self, media):
 		"""Adds media to the playlist in its directory"""
@@ -432,6 +453,24 @@ class MediaManager:
 		
 		f.write(os.path.split(media['file'])[1]+"\n")
 		f.close()
+		
+	def set_storage_style(self, style):
+		self._style = style
+		logging.debug("style is now: %i" % self._style)
+		#do other stuff?
+		
+	def get_storage_style(self):
+		return self._style
+		
+	def get_storage_dir(self, media, filename):
+		logging.debug("get storage dir for: %s %s" % (media, filename))
+		if self._style == BYDATE:
+			return os.path.join(self._media_dir, utils.get_dated_dir(), filename)
+		elif self._style == BYNAME:
+			return os.path.join(self._media_dir, media['feedname'], filename)
+		else:
+			logging.error("Bad storage style (not 0 or 1): %i" % self._style)
+			assert False
 
 class NoDir(Exception):
 	def __init__(self,durr):

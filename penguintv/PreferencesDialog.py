@@ -178,6 +178,9 @@ class PreferencesDialog:
 		else:
 			self.xml.get_widget("media_storage_chooser").set_current_folder(location)
 			
+	def set_media_storage_style(self, style):
+		self.xml.get_widget("media_storage_style_cbb").set_active(style)
+			
 	def set_use_article_sync(self, enabled):
 		self.xml.get_widget("sync_enabled_checkbox").set_active(enabled)
 		self.xml.get_widget("sync_settings_frame").set_sensitive(enabled)
@@ -312,12 +315,21 @@ class PreferencesDialog:
 			self._app.set_bt_ullimit(val)
 			
 	def on_media_storage_chooser_file_set(self, widget):
-		logging.debug("look it changed")
 		val = widget.get_filename()
 		self._app.db.set_setting(ptvDB.STRING, '/apps/penguintv/media_storage_location', val)
 		if not utils.HAS_GCONF:
 			logging.debug("telling the app about the new setting")
 			self._app.set_media_storage_location(val)
+			
+	def on_media_storage_style_cbb_changed(self, widget):
+		logging.debug("style combo changed")
+		style = widget.get_active()
+		if style < 0:
+			style == 0
+			
+		self._app.db.set_setting(ptvDB.INT, '/apps/penguintv/media_storage_style', style)
+		if not utils.HAS_GCONF:
+			self._app.set_media_storage_style(style)
 			
 	def on_sync_enabled_checkbox_toggled(self, widget):
 		enabled = widget.get_active()
