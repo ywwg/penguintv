@@ -235,9 +235,9 @@ class MediaManager:
 		media['downloader_index']=self.index
 		media['download_status']=1
 		media.setdefault('size',0)			
-		#if media['file'] is None:
-		logging.debug("TEMP OVERRIDE OF FILENAME?")
-		if True:
+		if media['file'] is None:
+		#logging.debug("TEMP OVERRIDE OF FILENAME?")
+		#if True:
 			filename = os.path.basename(media['url'])
 			filen, ext = os.path.splitext(filename)
 			ext = ext.split('?')[0] #grrr lugradio...
@@ -456,14 +456,12 @@ class MediaManager:
 		
 	def set_storage_style(self, style):
 		self._style = style
-		logging.debug("style is now: %i" % self._style)
 		#do other stuff?
 		
 	def get_storage_style(self):
 		return self._style
 		
 	def get_storage_dir(self, media, filename):
-		logging.debug("get storage dir for: %s %s" % (media, filename))
 		if self._style == BYDATE:
 			return os.path.join(self._media_dir, utils.get_dated_dir(), filename)
 		elif self._style == BYNAME:

@@ -322,7 +322,6 @@ class PreferencesDialog:
 			self._app.set_media_storage_location(val)
 			
 	def on_media_storage_style_cbb_changed(self, widget):
-		logging.debug("style combo changed")
 		style = widget.get_active()
 		if style < 0:
 			style == 0
