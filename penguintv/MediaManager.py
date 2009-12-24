@@ -62,7 +62,7 @@ class MediaManager:
 		self._style=BYDATE
 		self.pool = ThreadPool.ThreadPool(max_downloads, "MediaManager")
 		self.downloads = []
-		self.db = ptvDB.ptvDB()
+		self.db = app.db
 		self.time_appendix=0
 		self.bt_settings = {'min_port':6881, 'max_port':6999, 'ul_limit':0}
 		self.id_time=0
@@ -94,6 +94,7 @@ class MediaManager:
 		
 		app.connect('online-status-changed', self.__online_status_changed)
 		app.connect('feed-name-changed',self.__feed_name_changed_cb)
+		app.connect('new-database', self.__new_database_cb)
 	
 	def finish(self):
 		self.quitting = True
@@ -182,10 +183,15 @@ class MediaManager:
 		self._net_connected = connected
 		
 	def __feed_name_changed_cb(self, app, feed_id, oldname, name):
+		oldname = utils.make_pathsafe(oldname)
+		name = utils.make_pathsafe(name)
 		old_dir = os.path.join(self._media_dir, oldname)
 		new_dir = os.path.join(self._media_dir, name)
 		if os.path.isdir(old_dir):
 			os.rename(old_dir, new_dir)
+
+	def __new_database_cb(self, app, db):
+		self.db = db
 		
 	def set_bt_settings(self, bt_settings):
 		self.bt_settings = bt_settings
@@ -454,10 +460,15 @@ class MediaManager:
 		f.write(os.path.split(media['file'])[1]+"\n")
 		f.close()
 		
-	def set_storage_style(self, style):
+	def set_storage_style(self, style, migrate=False):
 		self._style = style
-		#do other stuff?
-		
+		if migrate:
+			#migrate the media from one style to the other
+			if self._style == BYDATE:
+				self.db.set_media_storage_style_dated(self._media_dir)
+			else:
+				self.db.set_media_storage_style_named(self._media_dir)
+			
 	def get_storage_style(self):
 		return self._style
 		
@@ -465,7 +476,7 @@ class MediaManager:
 		if self._style == BYDATE:
 			return os.path.join(self._media_dir, utils.get_dated_dir(), filename)
 		elif self._style == BYNAME:
-			return os.path.join(self._media_dir, media['feedname'], filename)
+			return os.path.join(self._media_dir, utils.make_pathsafe(media['feedname']), filename)
 		else:
 			logging.error("Bad storage style (not 0 or 1): %i" % self._style)
 			assert False

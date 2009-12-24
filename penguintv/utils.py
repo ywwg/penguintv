@@ -327,8 +327,8 @@ def get_play_command_for(filename):
 		return full_qual_prog+" "+known_players[program]
 	return full_qual_prog
 				
-def get_dated_dir():
-	today = time.strftime("%Y-%m-%d")
+def get_dated_dir(t=None):
+	today = time.strftime("%Y-%m-%d", t)
 	return today 		
 			
 #http://www.faqts.com/knowledge_base/view.phtml/aid/2682
@@ -406,6 +406,12 @@ def my_quote(s):
 	#instead of doing this with logic, just "unquote" the amps and then requote them
 	s=string.replace(s,"&amp;","&")
 	s=string.replace(s,"&","&amp;")
+	return s
+	
+def make_pathsafe(s):
+	unsafe=('<','>',':','"','/','\\','|')
+	for c in unsafe:
+		s=string.replace(s,c,'_')
 	return s
 	
 def get_hyphen():

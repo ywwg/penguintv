@@ -2017,8 +2017,11 @@ class PenguinTVApp(gobject.GObject):
 		
 	def _gconf_set_media_storage_style(self, client, *args, **kwargs):
 		val = client.get_int('/apps/penguintv/media_storage_style')
-		self.mediamanager.set_storage_style(val)
-			
+		self.set_media_storage_style(val)
+		
+	def set_media_storage_style(self, style):
+		self.mediamanager.set_storage_style(style, True)
+		
 	def get_feed_refresh_method(self):
 		return self.feed_refresh_method
 		

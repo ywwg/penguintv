@@ -249,7 +249,7 @@ class ptvDB:
 				return c.execute(command, args)
 		except Exception, e:
 			#traceback.print_stack()
-			logging.error("Database error:" + str(command) + " " + str(args))
+			logging.error("Database error:" + str(command) + " args:" + str(args))
 			raise e
 				
 	#def __del__(self):
@@ -764,12 +764,19 @@ class ptvDB:
 			title = self._c.fetchone()
 			if title is None: #this entry doesn't exist anymore
 				self._db_execute(self._c, "DELETE FROM media WHERE rowid=?",(item[0],))
+				
+		self._db_execute(self._c, "SELECT rowid,file FROM media WHERE download_status=?", (D_DOWNLOADED,))
+		result = self._c.fetchall()
+		for rowid, filename in self._c:
+			if not os.path.isfile(filename):
+				self._db_execute(self._c, "UPDATE media SET download_status=? WHERE rowid=?", (D_NOT_DOWNLOADED, rowid))
 		self._db.commit()
 	
-	#right now this code doesn't get called.  Maybe we should?
+	#this is called when we change storage schemas
 	def clean_file_media(self):
 		"""walks the media dir, and deletes anything that doesn't have an entry in the database.
 		Also deletes dirs with only a playlist or with nothing"""
+		
 		media_dir = self.get_setting(STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
@@ -827,6 +834,52 @@ class ptvDB:
 			new_filename = os.path.join(new_dir, filename[len(old_dir) + 1:])
 			self._db_execute(self._c, u'UPDATE media SET file=? WHERE rowid=?', (new_filename, rowid))
 		self._db.commit()
+		
+	def _migrate_storage_style(self, media_dir, style):
+		self.clean_file_media()
+		self._db_execute(self._c, u'SELECT media.rowid, media.file, media.feed_id, feeds.title, media.download_date FROM media INNER JOIN feeds ON media.feed_id = feeds.rowid WHERE media.download_status=? ORDER BY feeds.title', (D_DOWNLOADED,))
+		result = self._c.fetchall()
+		for media_id, oldpath, feed_id, title, download_date in result:
+			if not os.path.isfile(oldpath):
+				logging.warning("File doesn't exist for migration: %i %s" % (media_id, oldpath))
+				continue
+
+			#figure out new filename
+			filename = os.path.basename(oldpath)
+			if style=="BYDATE":
+				newdir = os.path.join(media_dir, utils.get_dated_dir(time.gmtime(download_date)))
+			elif style=="BYNAME":
+				newdir = os.path.join(media_dir, utils.make_pathsafe(title))
+			else:
+				logging.error("Programming Error: style must be 'BYDATE' or 'BYNAME'")
+				assert False
+			newpath = os.path.join(newdir, filename)
+			
+			#be sure there are no collisions
+			i=0
+			filen, ext = os.path.splitext(filename)
+			while os.path.isfile(newpath):
+				newpath = os.path.join(newdir, "%s-%i%s" % (filen,i,ext))
+				i=i+1
+
+			if not os.path.isdir(newdir):
+				os.mkdir(newdir)
+
+			try:
+				os.rename(oldpath, newpath)
+				#on fail, db update doesn't happen
+				self._db_execute(self._c, u'UPDATE media SET file=? WHERE rowid=?', (newpath, media_id))
+			except Exception, e:
+				logging.warning("Trouble moving media file %s to %s:\n %s\n" % (oldpath, newpath, str(e)))
+		self._db.commit()
+		#clean up
+		self.clean_file_media()
+	
+	def set_media_storage_style_dated(self, media_dir):
+		self._migrate_storage_style(media_dir, 'BYDATE')
+	
+	def set_media_storage_style_named(self, media_dir):
+		self._migrate_storage_style(media_dir, 'BYNAME')
 		
 	def _check_settings_location(self):
 		"""Do we suddenly have gconf, where before we were using the db?
