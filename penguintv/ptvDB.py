@@ -2396,6 +2396,7 @@ class ptvDB:
 		self._db.commit()
 				
 	def set_media_download_status(self, media_id, status, errormsg=""):
+		errormsg = unicode(errormsg)
 		if status == D_DOWNLOADED:
 			self._db_execute(self._c, u'UPDATE media SET download_status=?, download_date=?, errormsg=? WHERE rowid=?', (status, int(time.time()),errormsg,media_id))
 			self._db.commit()
