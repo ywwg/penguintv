@@ -459,7 +459,7 @@ def desktop_has_file_handler(filename):
 	else:
 		if HAS_GNOMEVFS:
 			# Otherwise, use GNOMEVFS to find the appropriate handler
-			handler = gnomevfs.mime_get_default_application(gnomevfs.get_mime_type(urllib.quote(filename))) #PA fix
+			handler = gnomevfs.mime_get_default_application(gnomevfs.get_mime_type(urllib.quote(str(filename)))) #PA fix
 			if handler is not None:
 				return True
 			return False
