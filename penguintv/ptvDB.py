@@ -2328,6 +2328,7 @@ class ptvDB:
 		return result
 		
 	def set_feed_name(self, feed_id, name):
+		logging.warning("need to rename media dirs to represent new name")
 		name = self._encode_text(name)
 		
 		if name is not None:
