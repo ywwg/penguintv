@@ -1,17 +1,19 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--*- mode: xml -*-->
+<?xml version="1.0"?>
 <glade-interface>
+  <!-- interface-requires gtk+ 2.6 -->
   <requires lib="gnome"/>
-    <widget class="GtkWindow" id="app">
+  <!-- interface-requires gnome 2179.37864 -->
+  <!-- interface-naming-policy toplevel-contextual -->
+  <widget class="GtkWindow" id="app">
     <property name="title" translatable="yes">PenguinTV</property>
     <signal name="key_press_event" handler="on_app_key_press_event"/>
-    <signal name="delete_event" handler="on_app_delete_event"/>
     <signal name="destroy_event" handler="on_app_destroy_event"/>
+    <signal name="delete_event" handler="on_app_delete_event"/>
     <signal name="window_state_event" handler="on_app_window_state_event"/>
     <child>
       <widget class="GtkVBox" id="app_contents">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkMenuBar" id="menubar2">
             <property name="visible">True</property>
@@ -45,8 +47,8 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="quit2">
+                        <property name="label">gtk-quit</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">gtk-quit</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_quit2_activate"/>
@@ -89,8 +91,8 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="preferences...">
+                        <property name="label">gtk-preferences</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">gtk-preferences</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_preferences_activate"/>
@@ -191,13 +193,13 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="toggle_fullscreen">
+                        <property name="label">gtk-fullscreen</property>
                         <property name="visible">True</property>
                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                        <property name="label" translatable="yes">gtk-fullscreen</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_toggle_fullscreen_activate"/>
-                        <accelerator key="F11" modifiers="" signal="activate"/>
+                        <accelerator key="F11" signal="activate"/>
                       </widget>
                     </child>
                   </widget>
@@ -212,47 +214,38 @@
                 <child>
                   <widget class="GtkMenu" id="go1_menu">
                     <child>
-                      <widget class="GtkImageMenuItem" id="refresh_feeds">
+                      <widget class="GtkImageMenuItem" id="menuitem1">
+                        <property name="label">gtk-refresh</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Refresh Feeds</property>
                         <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_refresh_feeds_activate"/>
-                        <accelerator key="r" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK" signal="activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image376">
+                        <property name="use_stock">True</property>
+                        <child>
+                          <widget class="GtkMenu" id="menu1">
                             <property name="visible">True</property>
-                            <property name="stock">gtk-refresh</property>
-                            <property name="icon_size">1</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="refresh_feeds_with_errors">
-                        <property name="visible">True</property>
-                        <property name="label" translatable="yes">Refresh Feeds with _Errors</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_refresh_feeds_with_errors_activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image377">
-                            <property name="visible">True</property>
-                            <property name="stock">gtk-refresh</property>
-                            <property name="icon_size">1</property>
-                          </widget>
-                        </child>
-                      </widget>
-                    </child>
-                    <child>
-                      <widget class="GtkImageMenuItem" id="refresh_visible_feeds">
-                        <property name="visible">True</property>
-                        <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
-                        <property name="tooltip" translatable="yes">Refreshes feeds with the current tag</property>
-                        <property name="label" translatable="yes">Refresh _Visible Feeds</property>
-                        <property name="use_underline">True</property>
-                        <signal name="activate" handler="on_refresh_visible_feeds_activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="menu-item-image17">
-                            <property name="stock">gtk-refresh</property>
+                            <child>
+                              <widget class="GtkMenuItem" id="all_feeds">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">_All Feeds</property>
+                                <property name="use_underline">True</property>
+                                <accelerator key="r" signal="activate" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
+                              </widget>
+                            </child>
+                            <child>
+                              <widget class="GtkMenuItem" id="Feeds_with_errors">
+                                <property name="visible">True</property>
+                                <property name="label" translatable="yes">Feeds with _Errors</property>
+                                <property name="use_underline">True</property>
+                              </widget>
+                            </child>
+                            <child>
+                              <widget class="GtkMenuItem" id="refresh_visible_feeds">
+                                <property name="visible">True</property>
+                                <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
+                                <property name="tooltip" translatable="yes">Refreshes feeds with the current tag</property>
+                                <property name="label" translatable="yes">_Visible Feeds</property>
+                                <property name="use_underline">True</property>
+                              </widget>
+                            </child>
                           </widget>
                         </child>
                       </widget>
@@ -282,16 +275,15 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="download_unviewed">
+                        <property name="label">Download _Unviewed Media</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Download _Unviewed Media</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_download_unviewed_activate"/>
-                        <accelerator key="d" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="d" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                         <child internal-child="image">
-                          <widget class="GtkImage" id="image378">
+                          <widget class="GtkImage" id="image1">
                             <property name="visible">True</property>
                             <property name="stock">gtk-go-down</property>
-                            <property name="icon_size">1</property>
                           </widget>
                         </child>
                       </widget>
@@ -330,25 +322,24 @@
               </widget>
             </child>
             <child>
-              <widget class="GtkMenuItem" id="go1">
+              <widget class="GtkMenuItem" id="go2">
                 <property name="visible">True</property>
                 <property name="label" translatable="yes">Fee_d</property>
                 <property name="use_underline">True</property>
                 <signal name="activate" handler="on_go1_activate"/>
                 <child>
-                  <widget class="GtkMenu" id="go1_menu">
+                  <widget class="GtkMenu" id="go1_menu1">
                     <child>
                       <widget class="GtkImageMenuItem" id="add_feed">
+                        <property name="label">_Add Feed...</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Add Feed...</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_add_feed_activate"/>
-                        <accelerator key="f" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="f" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                         <child internal-child="image">
-                          <widget class="GtkImage" id="image380">
+                          <widget class="GtkImage" id="image2">
                             <property name="visible">True</property>
                             <property name="stock">gtk-add</property>
-                            <property name="icon_size">1</property>
                           </widget>
                         </child>
                       </widget>
@@ -363,31 +354,29 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="remove_feed">
+                        <property name="label">_Remove Feed</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Remove Feed</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_remove_feed_activate"/>
                         <child internal-child="image">
-                          <widget class="GtkImage" id="image381">
+                          <widget class="GtkImage" id="image3">
                             <property name="visible">True</property>
                             <property name="stock">gtk-remove</property>
-                            <property name="icon_size">1</property>
                           </widget>
                         </child>
                       </widget>
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="refresh">
+                        <property name="label">Re_fresh</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">Re_fresh</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_refresh_activate"/>
-                        <accelerator key="r" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                         <child internal-child="image">
-                          <widget class="GtkImage" id="image382">
+                          <widget class="GtkImage" id="image4">
                             <property name="visible">True</property>
                             <property name="stock">gtk-refresh</property>
-                            <property name="icon_size">1</property>
                           </widget>
                         </child>
                       </widget>
@@ -403,7 +392,7 @@
                         <property name="label" translatable="yes">_Mark As Viewed</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_mark_feed_as_viewed_activate"/>
-                        <accelerator key="m" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="m" signal="activate" modifiers="GDK_SHIFT_MASK | GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -412,7 +401,7 @@
                         <property name="label" translatable="yes">_Delete All Media</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_delete_feed_media_activate"/>
-                        <accelerator key="Delete" modifiers="GDK_SHIFT_MASK" signal="activate"/>
+                        <accelerator key="Delete" signal="activate" modifiers="GDK_SHIFT_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -422,17 +411,10 @@
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="properties">
+                        <property name="label">gtk-properties</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Properties</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_feed_properties_activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image383">
-                            <property name="visible">True</property>
-                            <property name="stock">gtk-properties</property>
-                            <property name="icon_size">1</property>
-                          </widget>
-                        </child>
                       </widget>
                     </child>
                   </widget>
@@ -448,34 +430,26 @@
                   <widget class="GtkMenu" id="entry1_menu">
                     <child>
                       <widget class="GtkImageMenuItem" id="download_entry">
+                        <property name="label">_Download Media</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Download Media</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">False</property>
                         <signal name="activate" handler="on_download_entry_activate"/>
-                        <accelerator key="d" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="d" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                         <child internal-child="image">
-                          <widget class="GtkImage" id="image384">
+                          <widget class="GtkImage" id="image5">
                             <property name="visible">True</property>
                             <property name="stock">gtk-go-down</property>
-                            <property name="icon_size">1</property>
                           </widget>
                         </child>
                       </widget>
                     </child>
                     <child>
                       <widget class="GtkImageMenuItem" id="play_entry">
+                        <property name="label">gtk-media-play</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">_Play Media</property>
-                        <property name="use_underline">True</property>
+                        <property name="use_stock">True</property>
                         <signal name="activate" handler="on_play_entry_activate"/>
-                        <accelerator key="p" modifiers="GDK_CONTROL_MASK" signal="activate"/>
-                        <child internal-child="image">
-                          <widget class="GtkImage" id="image385">
-                            <property name="visible">True</property>
-                            <property name="stock">gtk-media-play</property>
-                            <property name="icon_size">1</property>
-                          </widget>
-                        </child>
+                        <accelerator key="p" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -489,7 +463,7 @@
                         <property name="label" translatable="yes">Mark As _Viewed</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_mark_entry_as_viewed_activate"/>
-                        <accelerator key="m" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="m" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -498,7 +472,7 @@
                         <property name="label" translatable="yes">Mark As _Unviewed</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_mark_entry_as_unviewed_activate"/>
-                        <accelerator key="u" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="u" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -508,7 +482,7 @@
                         <property name="label" translatable="yes">_Keep New</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_keep_entry_new_activate"/>
-                        <accelerator key="k" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="k" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -518,7 +492,7 @@
                         <property name="label" translatable="yes">D_on't Keep New</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_unkeep_entry_new_activate"/>
-                        <accelerator key="n" modifiers="GDK_CONTROL_MASK" signal="activate"/>
+                        <accelerator key="n" signal="activate" modifiers="GDK_CONTROL_MASK"/>
                       </widget>
                     </child>
                     <child>
@@ -532,7 +506,7 @@
                         <property name="label" translatable="yes">_Delete Media</property>
                         <property name="use_underline">True</property>
                         <signal name="activate" handler="on_delete_entry_media_activate"/>
-                        <accelerator key="Delete" modifiers="" signal="activate"/>
+                        <accelerator key="Delete" signal="activate"/>
                       </widget>
                     </child>
                   </widget>
@@ -548,8 +522,8 @@
                   <widget class="GtkMenu" id="help2_menu">
                     <child>
                       <widget class="GtkImageMenuItem" id="about">
+                        <property name="label">gtk-about</property>
                         <property name="visible">True</property>
-                        <property name="label" translatable="yes">gtk-about</property>
                         <property name="use_underline">True</property>
                         <property name="use_stock">True</property>
                         <signal name="activate" handler="on_about_activate"/>
@@ -563,12 +537,13 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
           <widget class="GtkToolbar" id="toolbar1">
             <property name="visible">True</property>
-            <property name="toolbar_style">GTK_TOOLBAR_BOTH_HORIZ</property>
+            <property name="toolbar_style">both-horiz</property>
             <child>
               <widget class="GtkToolButton" id="feed_add_button">
                 <property name="visible">True</property>
@@ -578,6 +553,7 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
@@ -589,6 +565,7 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
@@ -600,6 +577,7 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
@@ -611,10 +589,11 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
-              <widget class="GtkToolButton" id="download_unviewed">
+              <widget class="GtkToolButton" id="download_unviewed1">
                 <property name="visible">True</property>
                 <property name="tooltip" translatable="yes">Download Unviewed Media</property>
                 <property name="stock_id">gtk-go-down</property>
@@ -622,6 +601,7 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
@@ -630,7 +610,6 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="homogeneous">False</property>
               </packing>
             </child>
             <child>
@@ -641,19 +620,18 @@
               </widget>
               <packing>
                 <property name="expand">False</property>
+                <property name="homogeneous">True</property>
               </packing>
             </child>
             <child>
               <widget class="GtkToolItem" id="toolitem1">
                 <property name="visible">True</property>
                 <child>
-                  <widget class="GtkSeparatorToolItem" id="vseparator1">
-                  </widget>
+                  <widget class="GtkSeparatorToolItem" id="vseparator1"/>
                 </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="homogeneous">False</property>
               </packing>
             </child>
             <child>
@@ -663,13 +641,12 @@
                   <widget class="GtkLabel" id="using_label">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes">Using: </property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                    <property name="justify">right</property>
                   </widget>
                 </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="homogeneous">False</property>
               </packing>
             </child>
             <child>
@@ -679,13 +656,12 @@
                   <widget class="GtkLabel" id="disk_usage">
                     <property name="visible">True</property>
                     <property name="label" translatable="yes">0 bytes</property>
-                    <property name="justify">GTK_JUSTIFY_RIGHT</property>
+                    <property name="justify">right</property>
                   </widget>
                 </child>
               </widget>
               <packing>
                 <property name="expand">False</property>
-                <property name="homogeneous">False</property>
               </packing>
             </child>
           </widget>
@@ -714,15 +690,16 @@
                 <property name="height_request">21</property>
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="relief">GTK_RELIEF_NONE</property>
+                <property name="receives_default">False</property>
+                <property name="relief">none</property>
                 <property name="use_underline">True</property>
                 <property name="focus_on_click">False</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_connection_button_clicked"/>
               </widget>
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
