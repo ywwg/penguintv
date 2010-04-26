@@ -616,7 +616,7 @@ class GStreamerPlayer(gobject.GObject):
 	def _on_type_discovered(self, discoverer, ismedia, filename, name, userdata):
 		if ismedia:
 			model = self._queue_listview.get_model()
-			uri = 'file://'+urllib.quote(filename)
+			uri = 'file://'+urllib.quote(str(filename))
 			if RUNNING_SUGAR or RUNNING_HILDON:
 				name = '<span size="x-small">'+name+'</span>'
 			model.append([uri, name, "", userdata])

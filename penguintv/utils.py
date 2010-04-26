@@ -328,6 +328,8 @@ def get_play_command_for(filename):
 	return full_qual_prog
 				
 def get_dated_dir(t=None):
+	if t is None:
+		t = time.localtime()
 	today = time.strftime("%Y-%m-%d", t)
 	return today 		
 			
