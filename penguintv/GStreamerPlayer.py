@@ -546,18 +546,21 @@ class GStreamerPlayer(gobject.GObject):
 		self.play(doseek=True)
 		
 	def prev(self):
-		selection = self._queue_listview.get_selection()
-		self._pipeline.set_state(gst.STATE_READY)
-		self._current_index -= 1
-		if self._current_index <= 0:
-			self._current_index = 0
+		if (self._media_position > 5 * gst.SECOND):
 			self.seek(0)
-		selection.unselect_all()
-		selection.select_path((self._current_index,))
-		self._seek_scale.set_range(0,1)
-		self._seek_scale.set_value(0)
-		self._do_stop_resume = False
-		self.play(doseek=True)
+		else:
+			selection = self._queue_listview.get_selection()
+			self._pipeline.set_state(gst.STATE_READY)
+			self._current_index -= 1
+			if self._current_index <= 0:
+				self._current_index = 0
+				self.seek(0)
+			selection.unselect_all()
+			selection.select_path((self._current_index,))
+			self._seek_scale.set_range(0,1)
+			self._seek_scale.set_value(0)
+			self._do_stop_resume = False
+			self.play(doseek=True)
 		
 	def finish(self):
 		self.save()
@@ -591,8 +594,10 @@ class GStreamerPlayer(gobject.GObject):
 		if message.type == gst.MESSAGE_EOS:
 			model = self._queue_listview.get_model()
 			if self._current_index < len(model) - 1:
+				self._update_position(0)
 				self.next()
 			else:
+				self._update_position(0)
 				self.stop()
 		elif message.type == gst.MESSAGE_ERROR:
 			gerror, debug = message.parse_error()
@@ -979,10 +984,11 @@ class GStreamerPlayer(gobject.GObject):
 			
 		self._time_label.set_text(nano_to_string(self._media_position)+" / "+nano_to_string(self._media_duration))
 		
-	def _update_position(self):
-		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
-			model = self._queue_listview.get_model()
-			model[self._current_index][3] = self._media_position
+	def _update_position(self, pos=None):
+		if pos is None:
+			pos = self._media_position
+		model = self._queue_listview.get_model()
+		model[self._current_index][3] = pos
 		
 	#def _on_sync_message(self, bus, message):
 	#	if message.structure is None:
