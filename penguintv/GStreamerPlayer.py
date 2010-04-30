@@ -54,10 +54,10 @@ class GStreamerPlayer(gobject.GObject):
                            ([])),
         'item-queued': (gobject.SIGNAL_RUN_LAST, 
         				gobject.TYPE_NONE, 
-        				[str, str, gobject.TYPE_PYOBJECT]),
+        				[str, str, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT]),
         'item-not-supported': (gobject.SIGNAL_RUN_LAST, 
         					   gobject.TYPE_NONE, 
-        					   [str, str, gobject.TYPE_PYOBJECT]),
+        					   [str, str, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT]),
         'items-removed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 	}
 
@@ -117,7 +117,7 @@ class GStreamerPlayer(gobject.GObject):
 		if RUNNING_HILDON:
 			hildon.hildon_helper_set_thumb_scrollbar(s_w, True)
 		self._queue_listview = gtk.TreeView()
-		model = gtk.ListStore(str, str, str, gobject.TYPE_PYOBJECT) #uri, title to display, current track indicator, user data
+		model = gtk.ListStore(str, str, str, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT) #uri, title to display, current track indicator, current pos, user data
 		self._queue_listview.set_model(model)
 		
 		column = gtk.TreeViewColumn(_(""))
@@ -313,20 +313,23 @@ class GStreamerPlayer(gobject.GObject):
 			print "error reading playlist"
 			return
 			
-		self._current_index = pickle.load(playlist)
-		self._last_index = -1
-		self._media_position = pickle.load(playlist)
-		self._media_duration = pickle.load(playlist)
-		l = pickle.load(playlist)
-		model = self._queue_listview.get_model()
-		for uri, name, userdata in l:
-			model.append([uri, name, "", userdata])
-			filename = gst.uri_get_location(uri)
-			self.emit('item-queued', filename, name, userdata)
-		if self.__is_exposed:
-			if not self._seek_to_saved_position():
-				#retry once
-				self._seek_to_saved_position()
+		try:
+			self._current_index = pickle.load(playlist)
+			self._last_index = -1
+			self._media_position = pickle.load(playlist)
+			self._media_duration = pickle.load(playlist)
+			l = pickle.load(playlist)
+			model = self._queue_listview.get_model()
+			for uri, name, pos, userdata in l:
+				model.append([uri, name, "", pos, userdata])
+				filename = gst.uri_get_location(uri)
+				self.emit('item-queued', filename, name, pos, userdata)
+			if self.__is_exposed:
+				if not self._seek_in_ready(self._media_position):
+					#retry once
+					self._seek_in_ready(self._media_position)
+		except ValueError, e:
+			logging.warning("Playlist has incorrect format, unable to load")
 		playlist.close()
 		
 	def save(self):
@@ -341,12 +344,12 @@ class GStreamerPlayer(gobject.GObject):
 		pickle.dump(self._media_position, playlist)
 		pickle.dump(self._media_duration, playlist)
 		l = []
-		for uri, name, current, userdata in self._queue_listview.get_model():
-			l.append([uri, name, userdata])
+		for uri, name, current, pos, userdata in self._queue_listview.get_model():
+			l.append([uri, name, pos, userdata])
 		pickle.dump(l, playlist)
 		playlist.close()
 		
-	def queue_file(self, filename, name=None, userdata=None):
+	def queue_file(self, filename, name=None, pos=0, userdata=None):
 		try:
 			os.stat(filename)
 		except:
@@ -365,11 +368,11 @@ class GStreamerPlayer(gobject.GObject):
 			except:
 				pass
 				
-			self._on_type_discovered(None, ext in known_good, filename, name, userdata)
+			self._on_type_discovered(None, ext in known_good, filename, name, pos, userdata)
 		else:
 			#thanks gstfile.py
 			d = Discoverer(filename)
-			d.connect('discovered', self._on_type_discovered, filename, name, userdata)
+			d.connect('discovered', self._on_type_discovered, filename, name, pos, userdata)
 			d.discover()
 			
 	def unqueue(self, filename=None, userdata=None):
@@ -430,12 +433,12 @@ class GStreamerPlayer(gobject.GObject):
 		else:
 			self.play()
 		
-	def play(self, notick=False):
+	def play(self, notick=False, doseek=False):
 		model = self._queue_listview.get_model()
 		if len(model) == 0:
 			return
 		if self._current_index < 0: self._current_index = 0
-		uri, title, current, userdata = list(model[self._current_index])
+		uri, title, current, pos, userdata = list(model[self._current_index])
 		if self._last_index != self._current_index:
 			self._last_index = self._current_index
 			selection = self._queue_listview.get_selection()
@@ -450,11 +453,13 @@ class GStreamerPlayer(gobject.GObject):
 				return
 			self._prepare_display()
 			self._prepare_save = True
+			if doseek:
+				print self._seek_in_ready(pos)
 		else:
 			if self._do_stop_resume:
 				self._do_stop_resume = False
 				self._prepare_display()
-				if not self._seek_to_saved_position():
+				if not self._seek_in_ready(self._media_position):
 					#gstreamer error, recall ourselves
 					self.play()
 					return
@@ -538,7 +543,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		self._do_stop_resume = False
-		self.play()
+		self.play(doseek=True)
 		
 	def prev(self):
 		selection = self._queue_listview.get_selection()
@@ -552,7 +557,7 @@ class GStreamerPlayer(gobject.GObject):
 		self._seek_scale.set_range(0,1)
 		self._seek_scale.set_value(0)
 		self._do_stop_resume = False
-		self.play()
+		self.play(doseek=True)
 		
 	def finish(self):
 		self.save()
@@ -613,17 +618,17 @@ class GStreamerPlayer(gobject.GObject):
 	
 	def _on_prev_clicked(self, b): self.prev()
 	
-	def _on_type_discovered(self, discoverer, ismedia, filename, name, userdata):
+	def _on_type_discovered(self, discoverer, ismedia, filename, name, pos, userdata):
 		if ismedia:
 			model = self._queue_listview.get_model()
 			uri = 'file://'+urllib.quote(str(filename))
 			if RUNNING_SUGAR or RUNNING_HILDON:
 				name = '<span size="x-small">'+name+'</span>'
-			model.append([uri, name, "", userdata])
-			self.emit('item-queued', filename, name, userdata)
+			model.append([uri, name, "", pos, userdata])
+			self.emit('item-queued', filename, name, pos, userdata)
 			self.save()
 		else:
-			self.emit('item-not-supported', filename, name, userdata)
+			self.emit('item-not-supported', filename, name, pos, userdata)
 	
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()
@@ -635,7 +640,6 @@ class GStreamerPlayer(gobject.GObject):
 		
 		for i in iter_list:
 			if model.get_path(i)[0] == self._current_index:
-				print "stopping current"
 				self.stop()
 			model.remove(i)
 			
@@ -668,7 +672,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.pause()
 		self._last_index = -1
 		self._current_index = path[0]
-		self.play()
+		self.play(doseek=True)
 		
 	def _on_queue_row_button_press(self, widget, event):
 		if event.button==3: #right click     
@@ -718,9 +722,9 @@ class GStreamerPlayer(gobject.GObject):
 			model = self._queue_listview.get_model()
 			if len(model) > 0:
 				#self._prepare_display()
-				if not self._seek_to_saved_position():
+				if not self._seek_in_ready(self._media_position):
 					#retry once
-					self._seek_to_saved_position()
+					self._seek_in_ready(self._media_position)
 			self.__is_exposed = True
 				
 	###utility functions###
@@ -866,7 +870,7 @@ class GStreamerPlayer(gobject.GObject):
 				
 			gobject.idle_add(pop_trap)
 
-	def _seek_to_saved_position(self):
+	def _seek_in_ready(self, new_pos):
 		"""many sources don't support seek in ready, so we do it the old fashioned way:
 		play, wait for it to play, pause, wait for it to pause, and then seek"""
 		model = self._queue_listview.get_model()
@@ -875,8 +879,8 @@ class GStreamerPlayer(gobject.GObject):
 			i+=1
 			if i == self._current_index: row[2] = "&#8226;" #bullet
 			else: row[2] = ""
-		#save, because they may get overwritten when we play and pause
-		pos, dur = self._media_position, self._media_duration
+		#save, because it may get overwritten when we play and pause
+		dur = self._media_duration
 		if not RUNNING_HILDON:
 			volume = self._pipeline.get_property('volume')
 		#temporarily mute to avoid little bloops during this hack
@@ -905,8 +909,8 @@ class GStreamerPlayer(gobject.GObject):
 			self.gstreamer_init()
 			self._last_index = -1 #trigger play() to reinit the pipe
 			return False
-		self._media_position, self._media_duration = pos, dur
-		self.seek(self._media_position)
+		self._media_position, self._media_duration = new_pos, dur
+		self.seek(new_pos)
 		if self._media_duration <= 0:
 			self._media_duration = 1
 		self._resize_pane()
@@ -940,6 +944,7 @@ class GStreamerPlayer(gobject.GObject):
 		
 		self._update_seek_bar()
 		self._update_time_label()
+		self._update_position()
 		if self._prepare_save:
 			self._prepare_save = False
 			self.save()
@@ -973,6 +978,11 @@ class GStreamerPlayer(gobject.GObject):
 			return "%i:%.2i" % (minutes,seconds)
 			
 		self._time_label.set_text(nano_to_string(self._media_position)+" / "+nano_to_string(self._media_duration))
+		
+	def _update_position(self):
+		if self._pipeline.get_state()[1] == gst.STATE_PLAYING:
+			model = self._queue_listview.get_model()
+			model[self._current_index][3] = self._media_position
 		
 	#def _on_sync_message(self, bus, message):
 	#	if message.structure is None:
