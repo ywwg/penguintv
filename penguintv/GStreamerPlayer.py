@@ -454,7 +454,7 @@ class GStreamerPlayer(gobject.GObject):
 			self._prepare_display()
 			self._prepare_save = True
 			if doseek:
-				print self._seek_in_ready(pos)
+				self._seek_in_ready(pos)
 		else:
 			if self._do_stop_resume:
 				self._do_stop_resume = False
