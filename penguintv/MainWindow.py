@@ -745,25 +745,19 @@ class MainWindow(gobject.GObject):
 										  str,		#filter name
 										  int,      #seperator
 										  bool)     #visible
+		
+		eventbox = components.get_widget('filter_selector_eventbox')
+		self._filter_selector_combo = gtk.ComboBox(self._filter_tree)
+		cell = gtk.CellRendererText()
 		if utils.RUNNING_HILDON:
-			eventbox = components.get_widget('filter_selector_eventbox')
-			self._filter_selector_combo = gtk.ComboBox(self._filter_tree)
-			cell = gtk.CellRendererText()
 			cell.set_property("size-points", 24)
-			self._filter_selector_combo.pack_start(cell, True)
-			self._filter_selector_combo.add_attribute(cell, 'text', 0)
-			self._filter_selector_combo.connect('changed', self.on_filter_changed)
-			eventbox.add(self._filter_selector_combo)
-		else:
-			self._filter_selector_combo = components.get_widget('filter_selector_combo')
-		
-										  
-		filter_filter = self._filter_tree.filter_new()
-		filter_filter.set_visible_column(3)
-		
-		#if not utils.RUNNING_HILDON:								  
-		#print self._filter_selector_combo.get_property("appears-as-list")
-		self._filter_selector_combo.set_model(filter_filter)
+		self._filter_selector_combo.pack_start(cell, True)
+		self._filter_selector_combo.add_attribute(cell, 'text', 0)
+		self._filter_selector_combo.add_attribute(cell, 'sensitive', 3)
+		self._filter_selector_combo.connect('changed', self.on_filter_changed)
+		eventbox.add(self._filter_selector_combo)
+
+		self._filter_selector_combo.set_model(self._filter_tree)
 		self._filter_selector_combo.set_row_separator_func(lambda model,iter:model[iter][2]==1)
 		
 		self._filters = [] #text, text to display, type, tree path
@@ -1194,8 +1188,6 @@ class MainWindow(gobject.GObject):
 			else:
 				self._filter_tree[FeedList.NOTIFY][3] = False
 
-			model.refilter()
-
 		self._activate_filter()
 		
 	def _find_path(self, index):
@@ -1227,8 +1219,6 @@ class MainWindow(gobject.GObject):
 		else:
 			self._filter_tree[FeedList.NOTIFY][3] = False
 			
-		model.refilter()
-
 		self._find_path(index)
 		it = model.get_iter(self._active_filter_path)
 		self._filter_selector_combo.set_active_iter(it)
@@ -1730,7 +1720,7 @@ class MainWindow(gobject.GObject):
 				all_tags_submenu = None
 				self._filter_tree.append(None, ["", "", 1, True])
 			else:
-				all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('Al3l Tags'), 0, True])
+				all_tags_submenu = self._filter_tree.append(None, [_('All Tags'), _('All Tags'), 0, True])
 			if has_search:
 				for f in self._filters:
 					if f[F_TYPE] == ptvDB.T_SEARCH:
