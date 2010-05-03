@@ -5,7 +5,7 @@ import penguintv
 import utils
 from ptvDB import FeedAlreadyExists, FF_NOAUTODOWNLOAD, FF_NOSEARCH, \
 				  FF_NOAUTOEXPIRE, FF_NOTIFYUPDATES, FF_ADDNEWLINES, \
-				  FF_MARKASREAD, FF_NOKEEPDELETED 
+				  FF_MARKASREAD, FF_NOKEEPDELETED, FF_DOWNLOADSINGLE 
 import gtk
 import time, datetime
 from math import floor
@@ -148,6 +148,11 @@ class FeedPropertiesDialog(gtk.Dialog):
 			self._xml.get_widget('b_nokeepdeleted').set_active(True)
 		else:
 			self._xml.get_widget('b_nokeepdeleted').set_active(False)
+			
+		if flags & FF_DOWNLOADSINGLE == FF_DOWNLOADSINGLE:
+			self._xml.get_widget('b_downloadsingle').set_active(True)
+		else:
+			self._xml.get_widget('b_downloadsingle').set_active(False)
 
 	def on_window_feed_properties_delete_event(self, widget, event):
 		return self.hide_on_delete()
@@ -231,6 +236,16 @@ class FeedPropertiesDialog(gtk.Dialog):
 				self._cur_flags -= FF_MARKASREAD
 				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
 				self._app.emit('render-ops-updated')
+				
+	def on_b_downloadsingle_toggled(self, b_downloadsingle):
+		if b_downloadsingle.get_active():
+			if not self._cur_flags & FF_DOWNLOADSINGLE == FF_DOWNLOADSINGLE:
+				self._cur_flags += FF_DOWNLOADSINGLE
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
+		else:
+			if self._cur_flags & FF_DOWNLOADSINGLE == FF_DOWNLOADSINGLE:
+				self._cur_flags -= FF_DOWNLOADSINGLE
+				self._app.db.set_flags_for_feed(self._feed_id, self._cur_flags)
 		
 	def on_save_values_activate(self, event):
 		new_title = self._title_widget.get_text()

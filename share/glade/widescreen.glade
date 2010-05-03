@@ -1,13 +1,14 @@
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!DOCTYPE glade-interface SYSTEM "glade-2.0.dtd">
-<!--*- mode: xml -*-->
+<?xml version="1.0"?>
 <glade-interface>
+  <!-- interface-requires gtk+ 2.6 -->
+  <!-- interface-naming-policy toplevel-contextual -->
   <widget class="GtkWindow" id="widescreen_layout">
     <property name="visible">True</property>
     <property name="title" translatable="yes">window3</property>
     <child>
       <widget class="GtkVBox" id="widescreen_layout_container">
         <property name="visible">True</property>
+        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkHBox" id="search_container">
             <property name="visible">True</property>
@@ -24,14 +25,15 @@
               <packing>
                 <property name="expand">False</property>
                 <property name="fill">False</property>
+                <property name="position">0</property>
               </packing>
             </child>
             <child>
               <widget class="GtkButton" id="search_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
                 <property name="tooltip" translatable="yes">Search Feeds and Entries</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_search_entry_activate"/>
                 <child>
                   <widget class="GtkImage" id="image190">
@@ -50,8 +52,8 @@
               <widget class="GtkButton" id="clear_search_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
+                <property name="receives_default">False</property>
                 <property name="tooltip" translatable="yes">Clear Search</property>
-                <property name="response_id">0</property>
                 <signal name="clicked" handler="on_search_clear_clicked"/>
                 <child>
                   <widget class="GtkImage" id="image191">
@@ -70,7 +72,7 @@
               <widget class="GtkButton" id="save_search_button">
                 <property name="visible">True</property>
                 <property name="can_focus">True</property>
-                <property name="response_id">0</property>
+                <property name="receives_default">False</property>
                 <signal name="clicked" handler="on_save_search_clicked"/>
                 <child>
                   <widget class="GtkAlignment" id="alignment20">
@@ -89,6 +91,7 @@
                           <packing>
                             <property name="expand">False</property>
                             <property name="fill">False</property>
+                            <property name="position">0</property>
                           </packing>
                         </child>
                         <child>
@@ -127,6 +130,7 @@
           <packing>
             <property name="expand">False</property>
             <property name="fill">False</property>
+            <property name="position">0</property>
           </packing>
         </child>
         <child>
@@ -137,6 +141,7 @@
             <child>
               <widget class="GtkVBox" id="vbox5">
                 <property name="visible">True</property>
+                <property name="orientation">vertical</property>
                 <child>
                   <widget class="GtkHBox" id="filter_container">
                     <property name="visible">True</property>
@@ -148,6 +153,7 @@
                       <packing>
                         <property name="expand">False</property>
                         <property name="fill">False</property>
+                        <property name="position">0</property>
                       </packing>
                     </child>
                     <child>
@@ -155,11 +161,7 @@
                         <property name="visible">True</property>
                         <property name="events">GDK_POINTER_MOTION_MASK | GDK_POINTER_MOTION_HINT_MASK | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK</property>
                         <child>
-                          <widget class="GtkComboBox" id="filter_selector_combo">
-                            <property name="visible">True</property>
-                            <property name="items" translatable="yes">All Feeds</property>
-                            <signal name="changed" handler="on_filter_changed"/>
-                          </widget>
+                          <placeholder/>
                         </child>
                       </widget>
                       <packing>
@@ -169,12 +171,12 @@
                     </child>
                     <child>
                       <widget class="GtkCheckButton" id="unread_filter">
+                        <property name="label" translatable="yes">Hide Viewed</property>
                         <property name="visible">True</property>
                         <property name="can_focus">True</property>
+                        <property name="receives_default">False</property>
                         <property name="border_width">5</property>
-                        <property name="label" translatable="yes">Hide Viewed</property>
                         <property name="use_underline">True</property>
-                        <property name="response_id">0</property>
                         <property name="draw_indicator">True</property>
                         <signal name="toggled" handler="on_hide_feeds_cb_toggled"/>
                       </widget>
@@ -187,15 +189,16 @@
                   </widget>
                   <packing>
                     <property name="expand">False</property>
+                    <property name="position">0</property>
                   </packing>
                 </child>
                 <child>
                   <widget class="GtkScrolledWindow" id="feed_scrolled_window">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                    <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                    <property name="shadow_type">GTK_SHADOW_IN</property>
+                    <property name="hscrollbar_policy">automatic</property>
+                    <property name="vscrollbar_policy">automatic</property>
+                    <property name="shadow_type">in</property>
                     <child>
                       <widget class="GtkTreeView" id="feedlistview">
                         <property name="visible">True</property>
@@ -224,9 +227,9 @@
                   <widget class="GtkScrolledWindow" id="entry_scrolled_window">
                     <property name="visible">True</property>
                     <property name="can_focus">True</property>
-                    <property name="hscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                    <property name="vscrollbar_policy">GTK_POLICY_AUTOMATIC</property>
-                    <property name="shadow_type">GTK_SHADOW_IN</property>
+                    <property name="hscrollbar_policy">automatic</property>
+                    <property name="vscrollbar_policy">automatic</property>
+                    <property name="shadow_type">in</property>
                     <child>
                       <widget class="GtkTreeView" id="entrylistview">
                         <property name="visible">True</property>

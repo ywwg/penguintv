@@ -1721,7 +1721,7 @@ class PenguinTVApp(gobject.GObject):
 					for e_id in update_data['mod_entryids']:
 						self._gui_updater.queue(self._article_sync.diff_entry, (e_id, feed))
 			if info['lastpoll'] == 0 and success:
-				self._first_poll_marking(feed, db=db)
+				self._mark_all_media_but_first(feed, db=db)
 		self.main_window.display_status_message(_("Polling Feed..."))
 		
 		self._poll_new_entries = []
@@ -2084,10 +2084,10 @@ class PenguinTVApp(gobject.GObject):
 		
 	def __feed_added_cb(self, app, feed_id, success):
 		if success:
-			self._first_poll_marking(feed_id)
+			self._mark_all_media_but_first(feed_id)
 		
 	@utils.db_except()
-	def _first_poll_marking(self, feed_id, db=None): 
+	def _mark_all_media_but_first(self, feed_id, db=None): 
 		"""mark all media read except first one.  called when we first add a feed"""
 		if db is None:
 			db = self.db
@@ -2504,7 +2504,9 @@ class PenguinTVApp(gobject.GObject):
 					self._threaded_emit('feed-polled', feed_id, update_data)
 					if update_data.has_key('first_poll'):
 						if update_data['first_poll']:
-							self._gui_updater.queue(self._first_poll_marking, feed_id)
+							self._gui_updater.queue(self._mark_all_media_but_first, feed_id)
+					if db.get_flags_for_feed(feed_id) & ptvDB.FF_DOWNLOADSINGLE == ptvDB.FF_DOWNLOADSINGLE:
+						self._gui_updater.queue(self._mark_all_media_but_first, feed_id)
 			elif not cancelled and feed_id != -1:
 				#check image just in case
 				self._gui_updater.queue(self.feed_list_view.update_feed_list, (feed_id,['image']))
