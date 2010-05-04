@@ -336,6 +336,7 @@
                       <widget class="GtkImageMenuItem" id="add_feed">
                         <property name="label">_Add Feed...</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_add_feed_activate"/>
                         <accelerator key="f" signal="activate" modifiers="GDK_CONTROL_MASK"/>
@@ -359,6 +360,7 @@
                       <widget class="GtkImageMenuItem" id="remove_feed">
                         <property name="label">_Remove Feed</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_remove_feed_activate"/>
                         <child internal-child="image">
@@ -373,6 +375,7 @@
                       <widget class="GtkImageMenuItem" id="refresh">
                         <property name="label">Re_fresh</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_refresh_activate"/>
                         <accelerator key="r" signal="activate" modifiers="GDK_CONTROL_MASK"/>
@@ -436,6 +439,7 @@
                       <widget class="GtkImageMenuItem" id="download_entry">
                         <property name="label">_Download Media</property>
                         <property name="visible">True</property>
+                        <property name="use_underline">True</property>
                         <property name="use_stock">False</property>
                         <signal name="activate" handler="on_download_entry_activate"/>
                         <accelerator key="d" signal="activate" modifiers="GDK_CONTROL_MASK"/>
