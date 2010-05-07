@@ -1138,7 +1138,7 @@ class ptvDB:
 			if data: 
 				feeds = [row[0] for row in data]
 			else:
-				self.polling_callback((-1, [], 0), False)
+				self.polling_callback(self, (-1, [], 0), False)
 				return 0
 		
 		#don't renice on hildon because we can't renice
@@ -1174,7 +1174,7 @@ class ptvDB:
 			if len(self._parse_list) > 0:
 				polled+=1
 				feed_id, args, total, parsed = self._parse_list.pop(0)
-				self.polling_callback(self._process_feed(feed_id, args, total, parsed))
+				self.polling_callback(self, self._process_feed(feed_id, args, total, parsed))
 				gc.collect()
 			time.sleep(.1)
 		#self._db_execute(self._c, 'PRAGMA cache_size=2000')
@@ -1182,7 +1182,7 @@ class ptvDB:
 		if self._cancel_poll_multiple:
 			self._parse_list = []
 			#pass dummy poll result, send cancel signal
-			self.polling_callback((-1, [], total), True)
+			self.polling_callback(self, (-1, [], total), True)
 		else: # no need for manual join
 			while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 				if self._exiting:
@@ -1349,7 +1349,7 @@ class ptvDB:
 			self.reindex()
 			callback(feed, False)
 
-	def _polling_callback(self, data):
+	def _polling_callback(self, db, data, cancelled=False):
 		print "look a callback"
 		print data
 		

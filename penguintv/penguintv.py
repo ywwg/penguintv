@@ -2469,7 +2469,7 @@ class PenguinTVApp(gobject.GObject):
 	def _finished_callback(self,downloader):
 		self._gui_updater.queue(self._download_finished, downloader)
 		
-	def polling_callback(self, args, cancelled=False):
+	def polling_callback(self, calling_db, args, cancelled=False):
 		if not self._exiting:
 			feed_id, update_data, total = args
 			if len(update_data)>0:
@@ -2505,7 +2505,7 @@ class PenguinTVApp(gobject.GObject):
 					if update_data.has_key('first_poll'):
 						if update_data['first_poll']:
 							self._gui_updater.queue(self._mark_all_media_but_first, feed_id)
-					if self.db.get_flags_for_feed(feed_id) & ptvDB.FF_DOWNLOADSINGLE == ptvDB.FF_DOWNLOADSINGLE:
+					if calling_db.get_flags_for_feed(feed_id) & ptvDB.FF_DOWNLOADSINGLE == ptvDB.FF_DOWNLOADSINGLE:
 						self._gui_updater.queue(self._mark_all_media_but_first, feed_id)
 			elif not cancelled and feed_id != -1:
 				#check image just in case
