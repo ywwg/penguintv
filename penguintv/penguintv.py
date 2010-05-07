@@ -1116,7 +1116,7 @@ class PenguinTVApp(gobject.GObject):
 		#get the media that's currently in the player so we don't delete it
 		if utils.HAS_GSTREAMER:
 			media_in_player = self.player.get_queue()
-			media_in_player = [m[3] for m in media_in_player]
+			media_in_player = [m[4] for m in media_in_player]
 			
 		media_to_remove = []
 		removed_size = 0
