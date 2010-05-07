@@ -115,6 +115,9 @@ REFRESH_SPECIFIED=0
 REFRESH_AUTO=1
 REFRESH_NEVER=2
 
+LOCAL=0
+REMOTE=1
+
 if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
 	AUTO_REFRESH_FREQUENCY=30*60*1000
 else:
@@ -224,6 +227,7 @@ class PenguinTVApp(gobject.GObject):
 		self._poll_message = ""
 		self._polling_taskinfo = -1 # the taskid we can use to waitfor a polling operation,
 									# and the time of last polling
+		self._polling_thread = REMOTE
 		self._poll_new_entries = []
 		self.polling_frequency=12*60*60*1000
 		self._bt_settings = {}
@@ -992,6 +996,7 @@ class PenguinTVApp(gobject.GObject):
 		self._poll_new_entries = []
 		
 		if self._remote_poller is not None and not local:
+			self._polling_thread = REMOTE
 			logging.debug("Using remote poller")
 			if feeds is None:
 				try:
@@ -1009,6 +1014,7 @@ class PenguinTVApp(gobject.GObject):
 					return self.do_poll_multiple(was_setup, arguments, feeds, message, local=True)
 			self._polling_taskinfo = int(time.time())
 		else:	
+			self._polling_thread = LOCAL
 			logging.debug("Polling in-process")
 			updater, db = self._get_updater()
 			task_id = updater.queue(db.poll_multiple, (arguments,feeds))
@@ -2469,7 +2475,7 @@ class PenguinTVApp(gobject.GObject):
 	def _finished_callback(self,downloader):
 		self._gui_updater.queue(self._download_finished, downloader)
 		
-	def polling_callback(self, calling_db, args, cancelled=False):
+	def polling_callback(self, args, cancelled=False):
 		if not self._exiting:
 			feed_id, update_data, total = args
 			if len(update_data)>0:
@@ -2505,7 +2511,11 @@ class PenguinTVApp(gobject.GObject):
 					if update_data.has_key('first_poll'):
 						if update_data['first_poll']:
 							self._gui_updater.queue(self._mark_all_media_but_first, feed_id)
-					if calling_db.get_flags_for_feed(feed_id) & ptvDB.FF_DOWNLOADSINGLE == ptvDB.FF_DOWNLOADSINGLE:
+					if self._polling_thread == LOCAL:
+						updater, db = self._get_updater()
+					elif self._polling_thread == REMOTE:
+						db = self.db
+					if db.get_flags_for_feed(feed_id) & ptvDB.FF_DOWNLOADSINGLE == ptvDB.FF_DOWNLOADSINGLE:
 						self._gui_updater.queue(self._mark_all_media_but_first, feed_id)
 			elif not cancelled and feed_id != -1:
 				#check image just in case
