@@ -899,7 +899,7 @@ class GStreamerPlayer(gobject.GObject):
 		self.play(True)
 		change_return, state, pending = self._pipeline.get_state(gst.SECOND * 10)
 		if change_return != gst.STATE_CHANGE_SUCCESS:
-			print "some problem changing state to play, may be playbin2 issue?"
+			print "some problem changing state to play (bad uri? playbin2?)"
 			self._using_playbin2 = False
 			self.stop()
 			self._pipeline.set_state(gst.STATE_NULL)

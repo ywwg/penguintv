@@ -130,7 +130,7 @@ class Player:
 		
 		if self._gst_player is not None and not force_external:
 			for f,t,u in files:
-				self._gst_player.queue_file(f,t,u)
+				self._gst_player.queue_file(f,name=t,userdata=u)
 		else:
 			if utils.RUNNING_HILDON:
 				import osso.rpc
