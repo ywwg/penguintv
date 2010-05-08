@@ -45,12 +45,11 @@ class PTVMozilla(PTVhtml.PTVhtml):
 			self._USING_AJAX = False
 		else:
 			self._USING_AJAX = True
-		utils.init_gtkmozembed()
+		#utils.init_gtkmozembed()
 		gtkmozembed.set_profile_path(self._home, 'gecko')
 		gtkmozembed.push_startup()
 		self._moz = gtkmozembed.MozEmbed()
-		self._moz.load_url("about:blank")
-	
+		
 		self._moz.connect("new-window", self._new_window)
 		self._moz.connect("link-message", self._link_message)
 		self._moz.connect("open-uri", self._link_clicked)
@@ -68,6 +67,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		
 		widget.add_with_viewport(self._moz)
 		self._moz.show()
+		self._moz.load_url("about:blank")
 		
 	def build_header(self, html=""):
 		header = ["""<html><head>
@@ -96,18 +96,10 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		return "\n".join(header)
 		
 	def render(self, html, stream_url="file:///", display_id=None):
-		#print html
-		
 		if self._realized or utils.RUNNING_SUGAR:
 			if stream_url is None:
 				stream_url = "file:///"
-			self._moz.open_stream(stream_url,"text/html")
-			while len(html)>60000:
-				part = html[0:60000]
-				html = html[60000:]
-				self._moz.append_data(part, long(len(part)))
-			self._moz.append_data(html, long(len(html)))
-			self._moz.close_stream()
+			self._moz.render_data(html, long(len(html)), stream_url, 'text/html')
 		else:
 			logging.warning("HTML widget not realized")
 			
@@ -128,6 +120,10 @@ class PTVMozilla(PTVhtml.PTVhtml):
 			
 	def _link_clicked(self, mozembed, link):
 		link = link.strip()
+		#As of ubuntu 10.04, I get tons of spurious file:/// or ajax proxy url
+		#signals that I have to trap
+		if link == "file:///" or link.startswith("http://localhost:80"):
+			return False
 		self.emit('open-uri', link)
 		return True #don't load url please
 			
