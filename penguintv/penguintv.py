@@ -2026,7 +2026,6 @@ class PenguinTVApp(gobject.GObject):
 		self.set_media_storage_style(val)
 		
 	def set_media_storage_style(self, style):
-		logging.debug("migrating 2")
 		self.mediamanager.set_storage_style(style, True)
 		
 	def get_feed_refresh_method(self):
