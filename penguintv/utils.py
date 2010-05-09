@@ -566,34 +566,40 @@ def get_disk_total(f="/"):
 	
 	return stats.f_bsize * stats.f_blocks
 		
-#def init_gtkmozembed():
-#	"""We need to set up mozilla with set_comp_path in order for it not to 
-#	crash.  The fun part is not hardcoding that path since we have no way
-#	of getting it from the module itself.  good luck with this"""
-#
-#	logging.info("initializing mozilla")
-#	assert HAS_MOZILLA
-#	
-#	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
-#		return False
-#	moz_path = os.environ['MOZILLA_FIVE_HOME']
-#	cmd = "ldd " + moz_path + '/libxpcom.so  | grep "not found"'
-#	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#	retval = p.wait()
-#	stderr = p.stderr.read()
-#	stdout = p.stdout.read()
-#	if len(stderr) > 1 or len(stdout) > 0:
-#		print """***ERROR initializing mozilla.  PenguinTV may crash shortly.  
-#You may need to export LD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
-#"""
-#		return False
-#
-#	_init_mozilla_proxy()
-#	
-#	logging.info("initializing mozilla in " + str(moz_path))
-#	gtkmozembed.set_comp_path(moz_path)
-#	
-#	return True
+def init_gtkmozembed():
+	"""We need to set up mozilla with set_comp_path in order for it not to 
+	crash.  The fun part is not hardcoding that path since we have no way
+	of getting it from the module itself.  good luck with this"""
+	
+	logging.info("initializing mozilla")
+	assert HAS_MOZILLA
+
+	#new, easy behavior
+	if os.path.exists('/usr/lib/xulrunner-1.9'):
+		gtkmozembed.set_comp_path('/usr/lib/xulrunner-1.9')
+		return
+	
+	#old, disgusting behavior
+	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
+		return False
+	moz_path = os.environ['MOZILLA_FIVE_HOME']
+	cmd = "ldd " + moz_path + '/libxpcom.so  | grep "not found"'
+	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	retval = p.wait()
+	stderr = p.stderr.read()
+	stdout = p.stdout.read()
+	if len(stderr) > 1 or len(stdout) > 0:
+		print """***ERROR initializing mozilla.  PenguinTV may crash shortly.  
+You may need to export LD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
+"""
+		return False
+
+	_init_mozilla_proxy()
+	
+	logging.info("initializing mozilla in " + str(moz_path))
+	gtkmozembed.set_comp_path(moz_path)
+	
+	return True
 	
 def _init_mozilla_proxy():
 	if RUNNING_SUGAR:

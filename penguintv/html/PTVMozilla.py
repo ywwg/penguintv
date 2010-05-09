@@ -45,17 +45,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 			self._USING_AJAX = False
 		else:
 			self._USING_AJAX = True
-		#utils.init_gtkmozembed()
-		gtkmozembed.set_profile_path(self._home, 'gecko')
-		gtkmozembed.push_startup()
-		self._moz = gtkmozembed.MozEmbed()
-		
-		self._moz.connect("new-window", self._new_window)
-		self._moz.connect("link-message", self._link_message)
-		self._moz.connect("open-uri", self._link_clicked)
-		self._moz.connect("realize", self._realize, True)
-		self._moz.connect("unrealize", self._realize, False)
-		
+			
 		if utils.HAS_GCONF:
 			try:
 				import gconf
@@ -64,10 +54,18 @@ class PTVMozilla(PTVhtml.PTVhtml):
 			self._conf = gconf.client_get_default()
 			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_moz_font)
 		self._reset_moz_font()
-		
+			
+		utils.init_gtkmozembed()
+		gtkmozembed.set_profile_path(self._home, 'gecko')
+		gtkmozembed.push_startup()
+		self._moz = gtkmozembed.MozEmbed()
+		self._moz.connect("new-window", self._new_window)
+		self._moz.connect("link-message", self._link_message)
+		self._moz.connect("open-uri", self._link_clicked)
+		self._moz.connect("realize", self._realize, True)
+		self._moz.connect("unrealize", self._realize, False)
 		widget.add_with_viewport(self._moz)
 		self._moz.show()
-		self._moz.load_url("about:blank")
 		
 	def build_header(self, html=""):
 		header = ["""<html><head>
@@ -112,6 +110,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		
 	def _realize(self, widget, realized):
 		self._realized = realized
+		self._moz.load_url("about:blank")
 		#self._moz.load_url("http://google.com")
 		
 	def _link_message(self, data):
