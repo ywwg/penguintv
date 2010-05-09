@@ -2026,6 +2026,7 @@ class PenguinTVApp(gobject.GObject):
 		self.set_media_storage_style(val)
 		
 	def set_media_storage_style(self, style):
+		logging.debug("migrating 2")
 		self.mediamanager.set_storage_style(style, True)
 		
 	def get_feed_refresh_method(self):
@@ -2891,10 +2892,11 @@ Please upgrade back to the latest version of PenguinTV."""))
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
 	if utils.HAS_MOZILLA:
-		if not os.environ.has_key('MOZILLA_FIVE_HOME'):
-			print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 
+		if not os.path.exists('/usr/lib/xulrunner-1.9'):
+			if not os.environ.has_key('MOZILLA_FIVE_HOME'):
+				print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 
 to prevent crashes."""
-			sys.exit(1)
+				sys.exit(1)
 		
 	gtk.gdk.threads_init()
 	

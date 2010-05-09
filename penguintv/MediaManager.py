@@ -463,6 +463,7 @@ class MediaManager:
 	def set_storage_style(self, style, migrate=False):
 		self._style = style
 		if migrate:
+			logging.debug("migrating 1")
 			#migrate the media from one style to the other
 			if self._style == BYDATE:
 				self.db.set_media_storage_style_dated(self._media_dir)
