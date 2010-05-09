@@ -461,6 +461,8 @@ class MediaManager:
 		f.close()
 		
 	def set_storage_style(self, style, migrate=False):
+		if self._style == style:
+			return
 		self._style = style
 		if migrate:
 			logging.debug("migrating 1")
