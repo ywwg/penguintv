@@ -57,7 +57,7 @@ class GStreamerPlayer(gobject.GObject):
         				[str, str, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT]),
         'item-not-supported': (gobject.SIGNAL_RUN_LAST, 
         					   gobject.TYPE_NONE, 
-        					   [str, str, gobject.TYPE_PYOBJECT, gobject.TYPE_PYOBJECT]),
+        					   [str, str, gobject.TYPE_PYOBJECT]),
         'items-removed': (gobject.SIGNAL_RUN_LAST, gobject.TYPE_NONE, [])
 	}
 
@@ -633,7 +633,7 @@ class GStreamerPlayer(gobject.GObject):
 			self.emit('item-queued', filename, name, pos, userdata)
 			self.save()
 		else:
-			self.emit('item-not-supported', filename, name, pos, userdata)
+			self.emit('item-not-supported', filename, name, userdata)
 	
 	def _on_remove_clicked(self, b):
 		model, paths = self._queue_listview.get_selection().get_selected_rows()
