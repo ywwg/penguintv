@@ -12,8 +12,6 @@
     <signal name="window_state_event" handler="on_app_window_state_event"/>
     <child>
       <widget class="GtkVBox" id="app_contents">
-        <property name="visible">True</property>
-        <property name="orientation">vertical</property>
         <child>
           <widget class="GtkMenuBar" id="menubar2">
             <property name="visible">True</property>
@@ -682,7 +680,6 @@
         </child>
         <child>
           <widget class="GtkVBox" id="layout_dock">
-            <property name="visible">True</property>
             <child>
               <placeholder/>
             </child>

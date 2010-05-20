@@ -906,6 +906,9 @@ class GStreamerPlayer(gobject.GObject):
 			self.gstreamer_init()
 			self._last_index = -1 #trigger play() to reinit the pipe
 			return False
+
+		dur = self._pipeline.query_duration(gst.FORMAT_TIME)[0]
+				
 		self.pause()
 		if change_return != gst.STATE_CHANGE_SUCCESS:
 			print "some problem changing state to pause"
@@ -914,6 +917,7 @@ class GStreamerPlayer(gobject.GObject):
 			self.gstreamer_init()
 			self._last_index = -1 #trigger play() to reinit the pipe
 			return False
+		
 		self._media_position, self._media_duration = new_pos, dur
 		self.seek(new_pos)
 		if self._media_duration <= 0:
