@@ -32,6 +32,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		f.close()
 		
 	def finish(self):
+		self._moz.destroy()
 		gtkmozembed.pop_startup()
 		
 	def is_ajax_ok(self):
