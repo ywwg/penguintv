@@ -1666,7 +1666,7 @@ class ptvDB:
 			if item.has_key('title') == 0:
 				item['title'] = ""
 			if item['title']=="":
-				item['title']=item['description'][0:35]
+				item['title']=item['description'][0:100]
 				html_begin = string.find(item['title'],'<')
 				if html_begin >= 0 and html_begin < 5: #in case it _begins_ with html, and the html is really early
 					#p = utils.StrippingParser()
@@ -1677,10 +1677,10 @@ class ptvDB:
 					desc = item['description']
 					#hack for hullabaloo
 					desc = desc[:desc.find("<br")]
-					item['title'] = STRIPPER_REGEX.sub('', desc)[:35]
-				elif html_begin > 5: #in case there's html within 35 chars...
+					item['title'] = STRIPPER_REGEX.sub('', desc)[:100]
+				elif html_begin > 5: #in case there's html within 100 chars...
 					item['title']=item['title'][0:html_begin-1] #strip
-					#things mess up if a title ends in a space, so strip trailing spaces
+				#things mess up if a title ends in a space, so strip trailing spaces
 				#doublecheck
 				if len(item['title'])==0:
 					item['title']='untitled'
