@@ -1423,7 +1423,7 @@ class MainWindow(gobject.GObject):
 		self._app.refresh_feed(feed)
 		
 	def on_refresh_feeds_activate(self, event):
-		self._app.poll_feeds()
+		self._app.poll_feeds(ptvDB.A_ALL_FEEDS)
 
 	def on_refresh_feeds_with_errors_activate(self, event):
 		self._app.poll_feeds(ptvDB.A_ERROR_FEEDS)
