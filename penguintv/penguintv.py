@@ -1336,7 +1336,6 @@ class PenguinTVApp(gobject.GObject):
 				reveal_url = "file:" + parsed_url[1] + parsed_url[2]
 				os.system('konqueror --select ' + reveal_url + ' &')
 			else:
-				logging.debug("parsed 1: %s", parsed_url)
 				reveal_url = "file:"+os.path.split(parsed_url[1]+parsed_url[2])[0]
 				reveal_url = reveal_url.replace("%20"," ")
 				if HAS_GNOME:
