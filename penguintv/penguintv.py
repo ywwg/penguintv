@@ -1333,12 +1333,12 @@ class PenguinTVApp(gobject.GObject):
 			self.emit('entry-updated', entry_id, feed_id)
 		elif action=="reveal":
 			if utils.is_kde():
-				reveal_url = "file:" + urllib.quote(parsed_url[1]+parsed_url[2])
+				reveal_url = "file:" + parsed_url[1] + parsed_url[2]
 				os.system('konqueror --select ' + reveal_url + ' &')
 			else:
-				reveal_url = "file:"+os.path.split(urllib.quote(parsed_url[1]+parsed_url[2]))[0]
+				logging.debug("parsed 1: %s", parsed_url)
+				reveal_url = "file:"+os.path.split(parsed_url[1]+parsed_url[2])[0]
 				reveal_url = reveal_url.replace("%20"," ")
-				logging.debug("eh? %s" % reveal_url)
 				if HAS_GNOME:
 					try:
 						gnome.url_show(reveal_url)
