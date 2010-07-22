@@ -2073,7 +2073,7 @@ class ptvDB:
 			return
 		qmarks = "?,"*(len(entry_list)-1)+"?"
 		
-		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype,errormsg FROM media WHERE entry_id in ("""+qmarks+')',tuple(entry_list))
+		self._db_execute(self._c, """SELECT rowid,entry_id,url,file,download_status,viewed,length,mimetype,errormsg FROM media WHERE entry_id in ("""+qmarks+') ORDER BY download_date DESC',tuple(entry_list))
 		result = self._c.fetchall()
 		if result is None:
 			return []
