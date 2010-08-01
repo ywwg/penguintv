@@ -96,6 +96,8 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		
 	def render(self, html, stream_url="file:///", display_id=None):
 		if self._realized or utils.RUNNING_SUGAR:
+			#pad html to solve truncation problems
+			html = html + " "*80*5
 			if stream_url is None:
 				stream_url = "file:///"
 			self._moz.render_data(html, long(len(html)), stream_url, 'text/html')
