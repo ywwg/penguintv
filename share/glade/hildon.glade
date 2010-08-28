@@ -35,7 +35,7 @@
             <property name="visible">True</property>
             <property name="tooltip" translatable="yes">Refresh Feeds</property>
             <property name="stock_id">gtk-refresh</property>
-            <signal name="clicked" handler="on_refresh_visible_feeds_activate"/>
+            <signal name="clicked" handler="on_refresh_feeds_activate"/>
           </widget>
           <packing>
             <property name="expand">False</property>
