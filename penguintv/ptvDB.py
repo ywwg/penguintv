@@ -427,7 +427,7 @@ class ptvDB:
 							
 		self._db.commit()
 		
-		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", ?)""" % LATEST_DB_VER)
+		self._db_execute(self._c, u"""INSERT INTO settings (data, value) VALUES ("db_ver", ?)""", (LATEST_DB_VER,))
 		self._db_execute(self._c, u'INSERT INTO settings (data, value) VALUES ("frequency_table_update",0)')
 		self._db.commit()
 			
@@ -814,7 +814,8 @@ class ptvDB:
 					utils.deltree(root)
 					
 		#now clean up images?
-		self._image_cache.cleanup()
+		if self._image_cache is not None:
+			self._image_cache.cleanup()
 					
 	def relocate_media(self, old_dir, new_dir):
 		"""rewrite db so that media files point to a new place.  Lots of
