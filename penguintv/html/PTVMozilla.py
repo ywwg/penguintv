@@ -33,7 +33,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		
 	def finish(self):
 		self._moz.destroy()
-		gtkmozembed.pop_startup()
+		#gtkmozembed.pop_startup()
 		
 	def is_ajax_ok(self):
 		if utils.RUNNING_HILDON:
