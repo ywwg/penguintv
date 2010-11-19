@@ -93,7 +93,6 @@ class MediaManager:
 		self._media_dir = media_dir
 		
 		app.connect('online-status-changed', self.__online_status_changed)
-		app.connect('feed-name-changed',self.__feed_name_changed_cb)
 		app.connect('new-database', self.__new_database_cb)
 	
 	def finish(self):
@@ -182,14 +181,6 @@ class MediaManager:
 
 		self._net_connected = connected
 		
-	def __feed_name_changed_cb(self, app, feed_id, oldname, name):
-		oldname = utils.make_pathsafe(oldname)
-		name = utils.make_pathsafe(name)
-		old_dir = os.path.join(self._media_dir, oldname)
-		new_dir = os.path.join(self._media_dir, name)
-		if os.path.isdir(old_dir):
-			os.rename(old_dir, new_dir)
-
 	def __new_database_cb(self, app, db):
 		self.db = db
 		

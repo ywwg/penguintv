@@ -2330,8 +2330,9 @@ class ptvDB:
 		return result
 		
 	def set_feed_name(self, feed_id, name):
-		logging.warning("need to rename media dirs to represent new name")
 		name = self._encode_text(name)
+		
+		oldname = self.get_feed_title(feed_id)
 		
 		if name is not None:
 			self._db_execute(self._c, u'UPDATE feeds SET title=? WHERE rowid=?',(name,feed_id))
@@ -2358,6 +2359,30 @@ class ptvDB:
 			
 			self._db_execute(self._c, u'UPDATE feeds SET title=? WHERE rowid=?',(channel['title'],feed_id))
 			self._db.commit()
+			name = channel['title']
+		
+		if name != oldname:
+			media_dir = self.get_setting(STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
+			
+			oldname = utils.make_pathsafe(oldname)
+			name = utils.make_pathsafe(name)
+			old_dir = os.path.join(media_dir, oldname)
+			new_dir = os.path.join(media_dir, name)
+			if os.path.isdir(old_dir):
+				os.rename(old_dir, new_dir)
+			
+			#if the naming scheme is by date, this shouldn't harm anything... right?
+			self._db_execute(self._c, u'SELECT rowid, file FROM media WHERE file IS NOT NULL AND feed_id=?', (feed_id,))
+			rows = self._c.fetchall()
+
+			for rowid, filename in rows:
+				if filename.startswith(old_dir):
+					f = filename[len(old_dir)+1:]
+					new_filename = os.path.join(new_dir, f)
+					if os.path.isfile(new_filename):
+						self._db_execute(self._c, u'UPDATE media SET file=? WHERE rowid=?', (new_filename, rowid))
+			self._db.commit()
+			
 		self._reindex_feed_list.append(feed_id)
 		self.reindex()
 		
