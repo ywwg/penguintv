@@ -101,6 +101,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 			if stream_url is None:
 				stream_url = "file:///"
 			self._moz.render_data(html, long(len(html)), stream_url, 'text/html')
+			#print html
 		else:
 			logging.warning("HTML widget not realized")
 			
