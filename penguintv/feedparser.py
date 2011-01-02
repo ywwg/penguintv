@@ -168,9 +168,14 @@ except:
 # older 2.x series.  If it doesn't, and you can figure out why, I'll accept a
 # patch and modify the compatibility statement accordingly.
 try:
-    import BeautifulSoup
+    from BeautifulSoup import BeautifulSoup
+    BeautifulSoup.BeautifulSoup()
 except:
-    BeautifulSoup = None
+    try:
+        import BeautifulSoup
+        BeautifulSoup.BeautifulSoup()
+    except:
+        BeautifulSoup = None
 
 # ---------- don't touch these ----------
 class ThingsNobodyCaresAboutButMe(Exception): pass
@@ -2502,6 +2507,12 @@ class _HTMLSanitizer(_BaseHTMLProcessor):
                 self.mathmlOK += 1
             if tag=='svg' and ('xmlns','http://www.w3.org/2000/svg') in attrs:
                 self.svgOK += 1
+                
+            if tag == 'embed':
+                for key, value in attrs:
+                    if key == 'type' and value == 'application/x-shockwave-flash':
+                        if not self.unacceptablestack:
+                            _BaseHTMLProcessor.handle_data(self, _('<i>&lt;Note: There is a Flash applet in the original page for this entry.&gt;</i>'))
 
             # chose acceptable attributes based on tag class, else bail
             if  self.mathmlOK and tag in self.mathml_elements:
@@ -3192,18 +3203,18 @@ rfc822._timezones.update(_additional_timezones)
 registerDateHandler(_parse_date_rfc822)    
 
 def _parse_date_perforce(aDateString):
-	"""parse a date in yyyy/mm/dd hh:mm:ss TTT format"""
-	# Fri, 2006/09/15 08:19:53 EDT
-	_my_date_pattern = re.compile( \
-		r'(\w{,3}), (\d{,4})/(\d{,2})/(\d{2}) (\d{,2}):(\d{2}):(\d{2}) (\w{,3})')
+    """parse a date in yyyy/mm/dd hh:mm:ss TTT format"""
+    # Fri, 2006/09/15 08:19:53 EDT
+    _my_date_pattern = re.compile( \
+        r'(\w{,3}), (\d{,4})/(\d{,2})/(\d{2}) (\d{,2}):(\d{2}):(\d{2}) (\w{,3})')
 
-	dow, year, month, day, hour, minute, second, tz = \
-		_my_date_pattern.search(aDateString).groups()
-	months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-	dateString = "%s, %s %s %s %s:%s:%s %s" % (dow, day, months[int(month) - 1], year, hour, minute, second, tz)
-	tm = rfc822.parsedate_tz(dateString)
-	if tm:
-		return time.gmtime(rfc822.mktime_tz(tm))
+    dow, year, month, day, hour, minute, second, tz = \
+        _my_date_pattern.search(aDateString).groups()
+    months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+    dateString = "%s, %s %s %s %s:%s:%s %s" % (dow, day, months[int(month) - 1], year, hour, minute, second, tz)
+    tm = rfc822.parsedate_tz(dateString)
+    if tm:
+        return time.gmtime(rfc822.mktime_tz(tm))
 registerDateHandler(_parse_date_perforce)
 
 def _parse_date(dateString):
