@@ -403,8 +403,8 @@ class FeedList(gobject.GObject):
 					m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id , 
 								    64, 64, MIN_SIZE, MIN_SIZE)	
 				else:
-					m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id) #, 
-								    #MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
+					m_pixbuf = self._icon_manager.get_icon_pixbuf(feed_id,  
+								    MAX_WIDTH, MAX_HEIGHT, MIN_SIZE, MIN_SIZE)
 				model, iter = selection.get_selected()
 				try: sel = model[iter][FEEDID]
 				except: sel = -1
