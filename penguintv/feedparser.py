@@ -63,6 +63,9 @@ ACCEPT_HEADER = ""
 #OWEN EDIT:
 #current.com and other sites don't like this, just turn it off
 
+import gettext
+_=gettext.gettext
+
 # List of preferred XML parsers, by SAX driver name.  These will be tried first,
 # but if they're not installed, Python will keep searching through its own list
 # of pre-installed parsers until it finds one that supports everything we need.
