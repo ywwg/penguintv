@@ -440,7 +440,7 @@ class ptvDB:
 			self._db_execute(self._c, u"""CREATE TABLE settings   
 (
 	id INTEGER PRIMARY KEY,
-    data NOT NULL,
+	data NOT NULL,
 	value
 	);""")
 	
@@ -789,7 +789,7 @@ class ptvDB:
 			if root!=media_dir:
 				for file in files:
 					if file != "playlist.m3u":
-						self._db_execute(self._c, u"SELECT rowid, download_status FROM media WHERE file=?",(os.path.join(root, file),))
+						self._db_execute(self._c, u"SELECT rowid, download_status FROM media WHERE file=?",(unicode(os.path.join(root, file)),))
 						result = self._c.fetchone()
 						if result is None:
 							logging.info("deleting "+os.path.join(root,file))
@@ -1757,11 +1757,11 @@ class ptvDB:
 						item['guid'],item['link'], entry_hash))
 				self._db_execute(self._c,  "SELECT last_insert_rowid()")
 				entry_id = self._c.fetchone()[0]
-				if item.has_key('enclosures'):
-					for media in item['enclosures']:
-						media.setdefault('length', 0)
-						media.setdefault('type', 'application/octet-stream')
-						self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
+				enclosure_list = self._get_parsed_media(item)
+				for media in enclosure_list:
+					media.setdefault('length', 0)
+					media.setdefault('type', 'application/octet-stream')
+					self._db_execute(self._c, u"""INSERT INTO media (entry_id, url, mimetype, download_status, viewed, keep, length, feed_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)""", (entry_id, media['url'], media['type'], D_NOT_DOWNLOADED, default_read, 0, media['length'], feed_id))
 						
 				self._reindex_entry_list.append(entry_id)
 				self._image_cache_list.append(entry_id)
@@ -1777,13 +1777,14 @@ class ptvDB:
 								 int(time.mktime(item['date_parsed'])),item['guid'],
 								 item['link'], entry_hash, entry_id))
 				if self.entry_flag_cache.has_key(entry_id): del self.entry_flag_cache[entry_id]
-				if item.has_key('enclosures'):
+				enclosure_list = self._get_parsed_media(item)
+				if enclosure_list is not None:
 					#self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=? AND (download_status=? OR download_status=?)',
 					#				(entry_id,D_NOT_DOWNLOADED,D_ERROR))
 					self._db_execute(self._c, u'SELECT url FROM media WHERE entry_id=?', (entry_id,))
 					db_enc = self._c.fetchall()
 					db_enc = [c_i[0] for c_i in db_enc]
-					f_enc = [f_i['url'] for f_i in item['enclosures']]
+					f_enc = [f_i['url'] for f_i in enclosure_list]
 
 					db_set = set(db_enc)
 					f_set  = set(f_enc)
@@ -1799,7 +1800,11 @@ class ptvDB:
 					#need to add media that's in enclosures but not in db after that process
 					
 					if len(added) > 0:
-						for media in item['enclosures']: #add the rest
+						logging.debug("Added enclosure.  Existing list:")
+						logging.debug("\n".join(db_enc))
+						logging.debug("New stuff:")
+						logging.debug("\n".join(added))
+						for media in enclosure_list: #add the rest
 							if media['url'] in added:
 								#if dburl[0] != media['url']: #only add if that url doesn't exist
 								media.setdefault('length', 0)
@@ -1946,6 +1951,21 @@ class ptvDB:
 		feed_updates['pollfreq'] = poll_freq
 		return feed_updates
 		
+	def _get_parsed_media(self, item):
+		enclosure_list = []
+		if item.has_key('media_content'):
+			for m in item['media_content']:
+				if m.has_key('medium'):
+					if m['medium'] != 'image':
+						enclosure_list.append(m)
+				elif m.has_key('type'):
+					if "audio" in m['type'].lower() or "video" in m['type'].lower():
+						enclosure_list.append(m)
+		elif item.has_key('enclosures'):
+			enclosure_list = item['enclosures']
+		return enclosure_list
+
+		
 	def _get_status(self, item, new_hash, existing_entries, guid_quality, media_entries):
 		"""returns status, the entry_id of the matching entry (if any), and the media list if unmodified"""
 		ID=0
@@ -2006,23 +2026,19 @@ class ptvDB:
 
 		if new_hash == old_hash:
 			#now check enclosures
+			enclosure_list = self._get_parsed_media(item)
 			if entry_id not in media_entries:
 				old_media = []
 			else:
 				old_media = self.get_entry_media(entry_id)
-
+				
 			#if they are both zero, return
-			if len(old_media) == 0 and item.has_key('enclosures') == False: 
+			if len(old_media) == 0 and len(enclosure_list) == 0: 
 				return (EXISTS,entry_id, [])
 			
-			if item.has_key('enclosures'):
-				#if lengths are different, return
-				if len(old_media) != len(item['enclosures']): 
-					return (MODIFIED,entry_id, [])
-			else:
-				#if we had some, and now don't, return
-				if len(old_media)>0: 
-					return (MODIFIED,entry_id, [])
+			#if lengths are different, return
+			if len(old_media) != len(enclosure_list): 
+				return (MODIFIED,entry_id, [])
 			
 			#we have two lists of the same, non-zero length
 			#only now do we do the loops and sorts -- we need to test individual items
@@ -2030,7 +2046,7 @@ class ptvDB:
 			existing_media = old_media
 			
 			old_media = [urlparse.urlparse(medium['url'])[:3] for medium in old_media]
-			new_media = [urlparse.urlparse(m['url'])[:3] for m in item['enclosures']]
+			new_media = [urlparse.urlparse(m['url'])[:3] for m in enclosure_list]
 			
 			old_media = utils.uniquer(old_media)
 			old_media.sort()
