@@ -4,7 +4,11 @@ import logging
 
 import ptvDB
 from Downloader import FINISHED, FINISHED_AND_PLAY
-import trayicon.TrayIcon
+try:
+	import appindicator
+	import trayicon.AppIndicator as TrayIcon
+except:
+	import trayicon.TrayIcon as TrayIcon
 import IconManager
 import utils
 import MainWindow
@@ -74,7 +78,7 @@ class PtvTrayIcon:
 		
 		show_always = self._app.db.get_setting(ptvDB.BOOL, '/apps/penguintv/show_notification_always', True)
 		
-		self._tray_icon = trayicon.TrayIcon.StatusTrayIcon(icon, menu, show_always)
+		self._tray_icon = TrayIcon.StatusTrayIcon(icon, menu, show_always)
 		self._tray_icon.connect('notification-clicked', self._notification_clicked_cb)
 		
 		d = {'version': utils.VERSION}

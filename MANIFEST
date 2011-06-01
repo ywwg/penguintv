@@ -83,6 +83,7 @@ penguintv/amazon/S3.py
 penguintv/amazon/__init__.py
 penguintv/trayicon/__init__.py
 penguintv/trayicon/TrayIcon.py
+penguintv/trayicon/AppIndicator.py
 penguintv/trayicon/SonataNotification.py
 penguintv/BeautifulSoup/BeautifulSoup.py
 penguintv/BeautifulSoup/__init__.py
@@ -123,6 +124,7 @@ share/icons/stock-media-pause.svg
 share/icons/stock-media-play.svg
 share/icons/stock-preferences.svg
 share/icons/stock-stop.svg
+share/pixmaps/penguintvindicator.png
 share/pixmaps/26x26/penguintvicon.png
 share/pixmaps/40x40/penguintvicon.png
 share/pixmaps/64x64/penguintvicon.png

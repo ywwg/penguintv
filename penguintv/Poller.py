@@ -135,8 +135,8 @@ if __name__ == '__main__': # Here starts the dynamic part of the program
 	
 	loop = gobject.MainLoop()
 	poller = Poller(remote_app, loop, bus)
-	if RUNNING_HILDON:
-		os.nice(15)
+	#if RUNNING_HILDON:
+	os.nice(15)
 	logging.debug("mainloop")
 	loop.run()
 	logging.debug("quit")

@@ -263,7 +263,7 @@ class PenguinTVApp(gobject.GObject):
 				if not os.path.isfile(icon):
 					icon = utils.get_image_path('penguintvicon.png')
 			else:
-				icon = utils.get_image_path('penguintvicon.png')
+				icon = utils.get_image_path('penguintvindicator.png')
 			self._status_icon = PtvTrayIcon.PtvTrayIcon(self, icon)	
 
 		self.main_window = MainWindow.MainWindow(self, use_internal_player, window=window, status_icon=self._status_icon, playlist=playlist) 

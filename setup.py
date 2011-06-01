@@ -189,6 +189,7 @@ if HAVE_GETTEXT:
 data_files       = [('share/penguintv',		['share/penguintv.glade','share/defaultsubs.opml','share/penguintvicon.png','share/mozilla.css','share/gtkhtml.css','share/mozilla-planet.css','share/mozilla-planet-hildon.css']),
 					('share/penguintv/glade', ['share/glade/dialogs.glade']),
 					('share/pixmaps',		['share/penguintvicon.png']),
+					('share/pixmaps',		['share/penguintvindicator.png']),
 					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
 					('share/icons/hicolor/64x64/hildon', ['share/pixmaps/64x64/penguintvicon.png']),
 					('share/icons/hicolor/40x40/hildon', ['share/pixmaps/40x40/penguintvicon.png']),
@@ -200,6 +201,7 @@ data_files += locales
 if utils.RUNNING_HILDON:
 	data_files += [('share/applications/hildon/',['penguintv-hildon.desktop']),
 					('share/icons/hicolor/scalable/hildon', ['share/penguintvicon.png']),
+					('share/icons/hicolor/scalable/hildon',		['share/penguintvindicator.png']),
 					('share/icons/hicolor/64x64/hildon', ['share/pixmaps/64x64/penguintvicon.png']),
 					('share/icons/hicolor/40x40/hildon', ['share/pixmaps/40x40/penguintvicon.png']),
 					('share/icons/hicolor/26x26/hildon', ['share/pixmaps/26x26/penguintvicon.png']),
@@ -208,6 +210,7 @@ if utils.RUNNING_HILDON:
 else:
 	data_files += [('share/applications',	['penguintv.desktop']),
 					('share/icons/hicolor/scalable/apps', ['share/penguintvicon.png']),
+					('share/icons/hicolor/scalable/apps', ['share/penguintvindicator.png']),
 					('share/icons/hicolor/64x64/apps', ['share/pixmaps/64x64/penguintvicon.png']),
 					('share/icons/hicolor/40x40/apps', ['share/pixmaps/40x40/penguintvicon.png']),
 					('share/icons/hicolor/26x26/apps', ['share/pixmaps/26x26/penguintvicon.png']),
