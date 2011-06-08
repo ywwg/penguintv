@@ -1258,7 +1258,7 @@ class PenguinTVApp(gobject.GObject):
 		http_arguments=parsed_url[4]
 		anchor = parsed_url[5]
 		try:
-			item=int(parsed_url[2])
+			item=int(parsed_url[1])
 		except:
 			pass
 		if action == "keep":
