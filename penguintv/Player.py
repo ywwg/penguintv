@@ -96,8 +96,9 @@ class Player:
 		try:
 			playlist = open(os.path.join(self.media_dir,"recovery_playlist.m3u") , "a")
 			playlist.write("#"*20+"\n")
-		except:
-			print "Warning: couldn't append to playlist file", os.path.join(self.media_dir,"recovery_playlist.m3u")
+		except Exception,e:
+			print "Warning: couldn't append to playlist file, ", str(e), os.path.join(self.media_dir,"recovery_playlist.m3u")
+			return
 			
 		players={}
 

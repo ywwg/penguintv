@@ -1260,7 +1260,12 @@ class PenguinTVApp(gobject.GObject):
 		try:
 			item=int(parsed_url[1])
 		except:
-			pass
+			try:
+				item=int(parsed_url[2].replace("/",""))
+			except:
+				logging.warning("Invalid link clicked: %s" % (link,))
+				return 
+
 		if action == "keep":
 			entry = self.db.get_entry(item)
 			self.db.set_entry_keep(item, 1)
