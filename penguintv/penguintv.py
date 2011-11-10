@@ -1254,17 +1254,29 @@ class PenguinTVApp(gobject.GObject):
 			logging.warning("Invalid link clicked: %s" % (link,))
 			return
 		action=parsed_url[0] #protocol
-		parameters=parsed_url[3]
-		http_arguments=parsed_url[4]
-		anchor = parsed_url[5]
-		try:
-			item=int(parsed_url[1])
-		except:
-			try:
-				item=int(parsed_url[2].replace("/",""))
-			except:
-				logging.warning("Invalid link clicked: %s" % (link,))
-				return 
+		
+		if action == "":
+			splitted = link.split(':')
+			if len(splitted) == 2:
+				try:
+					action = splitted[0]
+					item=int(splitted[1])
+				except:
+					logging.warning("Invalid link item: %s" % (link,))
+					return
+		else:
+			parameters=parsed_url[3]
+			http_arguments=parsed_url[4]
+			anchor = parsed_url[5]
+			if action not in ("http", "https", "file"): 
+				try:
+					item=int(parsed_url[1])
+				except:
+					try:
+						item=int(parsed_url[2].replace("/",""))
+					except:
+						logging.warning("Invalid link item: %s" % (link,))
+						return 
 
 		if action == "keep":
 			entry = self.db.get_entry(item)

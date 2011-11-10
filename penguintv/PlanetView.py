@@ -609,42 +609,73 @@ class PlanetView(gobject.GObject):
 			html.append("""<script type="text/javascript"><!--""")
 			html.append("""
 		
-			var xmlHttp
+			var xmlHttp=GetXmlHttpObject()
+			
+			function log(msg) {
+				window.status=msg
+				/*setTimeout(function() {
+					throw new Error(msg);
+				}, 0);*/
+			}
+
 
 			function refresh_entries(timed)
 			{
-				xmlHttp=GetXmlHttpObject()
 				if (xmlHttp==null)
 				{
 					alert ("Browser does not support HTTP Request")
 					return
-				}        
-				xmlHttp.onreadystatechange=stateChanged 
-				try
-				{
-					xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
-					xmlHttp.send(null)
-				} 
-				catch (error) 
-				{
-					document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
 				}
+				log("current status... " +xmlHttp.readyState);
+				/*if (xmlHttp.readyState != 0 && xmlHttp.readyState != 4)
+				{
+					log("whoops not ready yet")
+				}	
+				else
+				{*/
+					xmlHttp.onreadystatechange=stateChanged
+					try
+					{
+						//log("pulling update http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update")
+						//log("uri "+ document.baseURI)
+						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
+						//xmlHttp.open("GET","http://google.com", true)
+						//xmlHttp.open("GET","update",true)
+						//log("ready to send? " + xmlHttp.readyState)
+						//xmlHttp.setRequestHeader("Access-Control-Allow-Origin", "*")
+						//xmlHttp.setRequestHeader("Cache-Control", "no-cache")
+						xmlHttp.send(null)
+						//log("REQUEST SENT, ALL IS WELL")
+					} 
+					catch (error) 
+					{
+						log("ERROR")
+						document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
+					}
+				//}
 				if (timed == 1)
 				{
 					SetTimer()
 				}
 			} 
 
-			function stateChanged() 
+			function stateChanged(e) 
 			{ 
-				if (xmlHttp.readyState==4 || xmlHttp.readyState=="complete")
+				if (e.target.readyState==4 || e.target.readyState=="complete")
 				{ 
-					if (xmlHttp.responseText.length > 0)
+					//log("state " + e.target.readyState)
+					//log("status " + e.target.status)
+					//log("status text " + e.target.statusText)
+					//log("doc base uri " + document.baseURI)
+					//log("text: " + e.target.responseText)
+
+					if (e.target.responseText.length > 0)
 					{
-						line_split = xmlHttp.responseText.split(" ")
+						//log("trying to push change" + e.target.responseText)
+						line_split = e.target.responseText.split(" ")
 						entry_id = line_split[0]
-						split_point = xmlHttp.responseText.indexOf(" ")
-						document.getElementById(entry_id).innerHTML=xmlHttp.responseText.substring(split_point)
+						split_point = e.target.responseText.indexOf(" ")
+						document.getElementById(entry_id).innerHTML=e.target.responseText.substring(split_point)
 					}
 				} 
 			} 
@@ -755,11 +786,14 @@ class PlanetView(gobject.GObject):
 			
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
 			entry = self._entry_store[entry_id][1]
+			#if self._renderer == EntryFormatter.WEBKIT:
+			#	self._html_widget.rewrite(entry_id, self._entry_store[entry_id][0])
 			if self._USING_AJAX:
 				ret = []
 				ret.append(str(entry_id)+" ")
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
+				#print "PUSHING"
 				self._update_server.push_update(ret)
 			else:
 				self._render_entries()
@@ -780,11 +814,14 @@ class PlanetView(gobject.GObject):
 		if not show_change:
 			return
 		if index >= self._first_entry and index <= self._first_entry+ENTRIES_PER_PAGE:
+			#if self._renderer == EntryFormatter.WEBKIT:
+			#	self._html_widget.rewrite(entry_id, self._entry_store[entry_id][0])
 			if self._USING_AJAX:
 				ret = []
 				ret.append(str(entry_id)+" ")
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
+				#print "PUSHING"
 				self._update_server.push_update(ret)
 	
 	def _render(self, html):

@@ -51,11 +51,21 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		self._reset_webview_font()
 			
 		self._webview = webkit.WebView()
+		settings = self._webview.get_settings()
+		settings.set_property("enable-file-access-from-file-uris", True)
+		settings.set_property("enable-universal-access-from-file-uris", True)
+		self._webview.set_settings(settings)
+		#self._webview.set_editable(True)
+		#print "scripts?",settings.get_property("enable-scripts")
+		#print "plugins?",settings.get_property("enable-plugins")
 		#self._webview.connect("new-window", self._new_window)
 		self._webview.connect("hovering-over-link", self._link_message)
-		self._webview.connect("navigation-policy-decision-requested", self._link_clicked)
+		self._webview.connect("navigation-policy-decision-requested", self._nav_policy)
 		self._webview.connect("realize", self._realize, True)
 		self._webview.connect("unrealize", self._realize, False)
+		self._webview.connect("status-bar-text-changed", self._console_message)
+		#self._webview.connect("script-alert", lambda a,b,c: logging.debug("script-alert"))
+		#self._webview.connect("script-confirm", lambda a,b,c: logging.debug("script-confirm"))
 		widget.add(self._webview)
 		self._webview.show()
 		
@@ -92,10 +102,16 @@ class PTVWebkit(PTVhtml.PTVhtml):
 			#html = html + " "*80*5
 			#if stream_url is None:
 			#	stream_url = "file:///"
+			print "stream url", stream_url
 			self._webview.load_string(html, 'text/html', 'UTF-8', stream_url)
 			#print html
 		else:
 			logging.warning("HTML widget not realized")
+	
+	def rewrite(self, entry_id, html):
+		print "rewriting"
+		document = self._webview.get_dom_document()
+		document.getElementById(entry_id).innerHTML=html
 			
 	def dl_interrupt(self):
 		pass
@@ -114,8 +130,9 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		if not utils.RUNNING_HILDON:
 			self.emit('link-message', uri)
 			
-	def _link_clicked(self, webview, frame, request, action, decision):
+	def _nav_policy(self, webview, frame, request, action, decision):
 		link = request.get_uri().strip()
+		print "navigation:", link
 		#use our own generated htmls and such
 		if link.startswith(self._stream_url) or \
 		   link.startswith("about"):
@@ -125,6 +142,9 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		decision.ignore()
 		self.emit('open-uri', link)
 		return True #don't load url please
+		
+	def _console_message(self, webview, message):
+		logging.debug("webkit message %s" % (message,))
 			
 	def _gconf_reset_webview_font(self, client, *args, **kwargs):
 		self._reset_webview_font()

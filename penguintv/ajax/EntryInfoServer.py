@@ -43,6 +43,9 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 				self.wfile.write("")
 			else:
 				update = self.server.peek_update()
+				#print "WRITING UPDATE", update
+				#self.send_header('Access-Control-Allow-Origin', '*')
+				#self.send_header('Cache-Control', 'no-cache')
 				self.wfile.write(update)
 		elif command == "icon":
 			theme = gtk.icon_theme_get_default()

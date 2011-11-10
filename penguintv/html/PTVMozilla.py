@@ -65,6 +65,7 @@ class PTVMozilla(PTVhtml.PTVhtml):
 		self._moz.connect("open-uri", self._link_clicked)
 		self._moz.connect("realize", self._realize, True)
 		self._moz.connect("unrealize", self._realize, False)
+		self._moz.connect("js-status", self._console_message)
 		widget.add_with_viewport(self._moz)
 		self._moz.show()
 		
@@ -129,6 +130,9 @@ class PTVMozilla(PTVhtml.PTVhtml):
 			return False
 		self.emit('open-uri', link)
 		return True #don't load url please
+		
+	def _console_message(self, moz):
+		logging.debug("console: " + str(self._moz.get_js_status()))
 			
 	def _gconf_reset_moz_font(self, client, *args, **kwargs):
 		self._reset_moz_font()

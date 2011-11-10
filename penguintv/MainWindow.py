@@ -687,8 +687,8 @@ class MainWindow(gobject.GObject):
 		#renderer = EntryFormatter.GTKHTML
 		if utils.RUNNING_HILDON:
 			renderer = EntryFormatter.GTKHTML
-		elif utils.HAS_WEBKIT:
-			renderer = EntryFormatter.WEBKIT
+		#elif utils.HAS_WEBKIT:
+		#	renderer = EntryFormatter.WEBKIT
 		elif utils.HAS_MOZILLA:
 			renderer = EntryFormatter.MOZILLA
 		else:
