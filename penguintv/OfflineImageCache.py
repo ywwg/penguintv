@@ -170,7 +170,7 @@ class OfflineImageCache:
 				for f in files:
 					try:
 						date = os.stat(os.path.join(root,f)).st_mtime
-						if now - date > 60*60*24*30: #one month
+						if now - date > 60*60*24*14: #two weeks
 							logging.info("deleting %s" % os.path.join(root,f))
 							#print ("deleting %s" % os.path.join(root,f))
 							os.remove(os.path.join(root,f))

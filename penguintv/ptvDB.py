@@ -279,11 +279,11 @@ class ptvDB:
 			self._image_cache.finish()
 				
 		#FIXME: lame, but I'm being lazy
-		#if randint(1,100) == 1:
-		#	print "cleaning up unreferenced media"
-		#	self.clean_file_media()
+		import random
+		if random.randint(1,100) == 1:
+			print "cleaning up unreferenced media"
+			self.clean_file_media()
 		if correctthread:
-			import random
 			if random.randint(1,80) == 1 and vacuumok:
 				logging.info("compacting database")
 				self._c.execute('VACUUM')
@@ -778,6 +778,7 @@ class ptvDB:
 		"""walks the media dir, and deletes anything that doesn't have an entry in the database.
 		Also deletes dirs with only a playlist or with nothing"""
 		
+		logging.info("Deleting unreferenced media")
 		media_dir = self.get_setting(STRING, '/apps/penguintv/media_storage_location', os.path.join(utils.get_home(), "media"))
 		d = os.walk(media_dir)
 		for root,dirs,files in d:
