@@ -56,6 +56,7 @@ if RUNNING_SUGAR:
 	HAS_PYXML = False
 	HAS_STATUS_ICON = False
 	HAS_MOZILLA = True
+	HAS_WEBKIT = True
 	#HAS_GSTREAMER = True
 	#I'm having trouble building gst for jhbuild, so detect this
 	try:
@@ -78,6 +79,12 @@ else:
 				HAS_MOZILLA = True
 			except:
 				HAS_MOZILLA = False
+				
+		try:
+			import webkit
+			HAS_WEBKIT = True
+		except:
+			HAS_WEBKIT = False
 
 	HAS_SEARCH = False
 

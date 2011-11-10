@@ -30,14 +30,12 @@ class EntryView(gobject.GObject):
     }	
 
 	def __init__(self, widget_tree, feed_list_view, entry_list_view, 
-				 app, main_window, renderer=EntryFormatter.MOZILLA):
+				 app, main_window, renderer=EntryFormatter.WEBKIT):
 		gobject.GObject.__init__(self)
 		self._app = app
 		self._mm = self._app.mediamanager
 		self._main_window = main_window
 		self._renderer = renderer
-		#self._renderer = EntryFormatter.GTKHTML
-		#self._moz_realized = False
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
 		self._widget_tree = widget_tree
@@ -111,7 +109,10 @@ class EntryView(gobject.GObject):
 		#h_id = app.connect('setting-changed', self.__setting_changed_cb)
 		#self._handlers.append((app.disconnect, h_id))
 		
-		if self._renderer == EntryFormatter.MOZILLA:
+		if self._renderer == EntryFormatter.WEBKIT:
+			import html.PTVWebkit
+			self._html_widget = html.PTVWebkit.PTVWebkit(self, self._app.db.home, utils.get_share_prefix())
+		elif self._renderer == EntryFormatter.MOZILLA:
 			import html.PTVMozilla
 			self._html_widget = html.PTVMozilla.PTVMozilla(self, self._app.db.home, utils.get_share_prefix())
 		elif self._renderer == EntryFormatter.GTKHTML:

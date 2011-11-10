@@ -13,9 +13,10 @@ import utils
 
 GTKHTML=0
 MOZILLA=1
+WEBKIT=2
 
 class EntryFormatter:
-	def __init__(self, mm=None, with_feed_titles=False, indicate_new=False, basic_progress=False, ajax_url=None, renderer=MOZILLA):
+	def __init__(self, mm=None, with_feed_titles=False, indicate_new=False, basic_progress=False, ajax_url=None, renderer=WEBKIT):
 		self._mm = mm
 		self._with_feed_titles = with_feed_titles
 		self._indicate_new = indicate_new
@@ -33,17 +34,17 @@ class EntryFormatter:
 		if self._indicate_new:
 			if item['new']:
 				javascript = ""
-				if self._renderer == MOZILLA:
+				if self._renderer != GTKHTML:
 					javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
 				ret.append("""<div class="entrynew" %s>""" % javascript)
 			else:
 				javascript = ""
-				if self._renderer == MOZILLA:
+				if self._renderer != GTKHTML:
 					javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
 				ret.append("""<div class="entryold" %s>""" % javascript)
 		else:
 			javascript = ""
-			if self._renderer == MOZILLA:
+			if self._renderer != GTKHTML:
 				javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
 			ret.append("""<div class="entrynew" %s>""" % javascript)
 
@@ -66,7 +67,7 @@ class EntryFormatter:
 		ret.append('</td><td style="text-align: right;">')
 
 		if not utils.RUNNING_SUGAR:
-			if self._renderer == MOZILLA:
+			if self._renderer != GTKHTML:
 				cb_status = item['keep'] and "CHECKED" or "UNCHECKED"
 				cb_function = item['keep'] and "unkeep" or "keep"
 		

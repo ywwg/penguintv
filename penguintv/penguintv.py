@@ -2894,7 +2894,7 @@ Please upgrade back to the latest version of PenguinTV."""))
 	return True
 		
 if __name__ == '__main__': # Here starts the dynamic part of the program
-	if utils.HAS_MOZILLA:
+	if utils.HAS_MOZILLA and not utils.HAS_WEBKIT:
 		if not os.path.exists('/usr/lib/xulrunner-1.9'):
 			if not os.environ.has_key('MOZILLA_FIVE_HOME'):
 				print """MOZILLA_FIVE_HOME not set.  Please set before running Penguintv 

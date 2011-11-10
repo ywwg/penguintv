@@ -54,7 +54,7 @@ class PlanetView(gobject.GObject):
 						   [])
 	}	                       
 	
-	def __init__(self, dock_widget, main_window, db, share_path, feed_list_view=None, app=None, renderer=EntryFormatter.MOZILLA):
+	def __init__(self, dock_widget, main_window, db, share_path, feed_list_view=None, app=None, renderer=EntryFormatter.WEBKIT):
 		gobject.GObject.__init__(self)
 		#public
 		self.presently_selecting = False
@@ -97,6 +97,7 @@ class PlanetView(gobject.GObject):
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_flags(self._scrolled_window.flags() & gtk.CAN_FOCUS) 
+		self._scrolled_window.set_shadow_type(gtk.SHADOW_IN)
 
 		style = self._html_dock.get_style().copy()
 		self._background_color = "#%.2x%.2x%.2x;" % (
@@ -114,7 +115,11 @@ class PlanetView(gobject.GObject):
 				style.base[gtk.STATE_INSENSITIVE].blue / 256,
 				style.base[gtk.STATE_INSENSITIVE].green / 256)
 		
-		if self._renderer == EntryFormatter.MOZILLA:
+		
+		if self._renderer == EntryFormatter.WEBKIT:
+			import html.PTVWebkit
+			self._html_widget = html.PTVWebkit.PTVWebkit(self, self._db.home, share_path)
+		elif self._renderer == EntryFormatter.MOZILLA:
 			import html.PTVMozilla
 			self._html_widget = html.PTVMozilla.PTVMozilla(self, self._db.home, share_path)
 		elif self._renderer == EntryFormatter.GTKHTML:
@@ -822,10 +827,6 @@ class PlanetView(gobject.GObject):
 			self.emit('entries-viewed', [(feed_id, [e['entry_id'] for e in keepers])])
 		return False
 
-	def _hulahop_prop_changed(self, obj, pspec):
-		if pspec.name == 'status':
-			self._main_window.display_status_message(self._moz.get_property('status'))
-			
 	def _do_context_menu(self, entry_id):
 		"""pops up a context menu for the designated item"""
 		
