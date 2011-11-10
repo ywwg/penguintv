@@ -626,7 +626,7 @@ class PlanetView(gobject.GObject):
 					alert ("Browser does not support HTTP Request")
 					return
 				}
-				log("current status... " +xmlHttp.readyState);
+				//log("current status... " +xmlHttp.readyState);
 				/*if (xmlHttp.readyState != 0 && xmlHttp.readyState != 4)
 				{
 					log("whoops not ready yet")
