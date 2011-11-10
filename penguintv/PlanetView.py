@@ -75,6 +75,8 @@ class PlanetView(gobject.GObject):
 		self._state = S_DEFAULT
 		self._auth_info = (-1, "","") #user:pass, url
 		self._custom_message = ""
+		self._last_link = ""
+		self._current_link = None
 		self._search_query = None
 		self._filter_feed = None
 		self._hide_viewed = False
@@ -257,6 +259,14 @@ class PlanetView(gobject.GObject):
 		self._db = db
 		
 	def __link_message_cb(self, o, message):
+		if len(message) > 0:
+			#current_link might be blank when they actually click on the 
+			#menu item, so save the last link
+			self._current_link = message
+			self._last_link = message
+		else:
+			self._current_link = None
+			
 		if not utils.RUNNING_HILDON:
 			self._main_window.display_status_message(message)
 	
@@ -833,6 +843,19 @@ class PlanetView(gobject.GObject):
 		
 		if entry_id == 0 and self._state == S_SEARCH:
 			return
+			
+		if self._current_link is not None:
+			if self._current_link.startswith("http"):
+				#if we're on a link, override everything else
+				item = gtk.MenuItem(_("_Open Link in Browser..."))
+				item.connect('activate', lambda e: self._app.activate_link(self._last_link))
+				menu.append(item)
+				item = gtk.MenuItem(_("_Copy Link Location"))
+				item.connect('activate', lambda e: self._set_clipboard_text(self._last_link))
+				menu.append(item)
+				menu.show_all()
+				menu.popup(None,None,None, 3, 0)
+				return
 		
 		if entry_id > 0:
 			try:
@@ -840,8 +863,12 @@ class PlanetView(gobject.GObject):
 			except ptvDB.NoEntry:
 				return
 				
-			item = gtk.MenuItem(_("_Open in Browser..."))
+			item = gtk.MenuItem(_("_Open Entry in Browser..."))
 			item.connect('activate', lambda e: self._app.activate_link(entry['link']))
+			menu.append(item)
+			
+			item = gtk.MenuItem(_("_Copy Entry URL"))
+			item.connect('activate', lambda e: self._set_clipboard_text(entry['link']))
 			menu.append(item)
 			
 			#separator = gtk.SeparatorMenuItem()
@@ -906,6 +933,10 @@ class PlanetView(gobject.GObject):
 			
 		menu.show_all()
 		menu.popup(None,None,None, 3, 0)
+		
+	def _set_clipboard_text(self, text):
+		clipboard = gtk.clipboard_get(selection="CLIPBOARD")
+		clipboard.set_text(text)
 		
 	def _link_clicked(self, link):
 		if link == "planet:up":
