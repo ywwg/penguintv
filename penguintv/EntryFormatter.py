@@ -92,7 +92,10 @@ class EntryFormatter:
 
 		if item.has_key('media'):
 			for medium in item['media']:
-				ret += self.htmlify_media(medium)
+				try:
+					ret += self.htmlify_media(medium)
+				except:
+					logging.warning("Problem formatting media item for display: %s" % (str(medium),))
 		ret.append('<div class="content">')
 		if item.has_key('description'):
 			if convert_newlines:
@@ -111,9 +114,10 @@ class EntryFormatter:
 		ret.append('<div class="media">')
 		if medium['download_status']==D_NOT_DOWNLOADED:  
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
+			filename = medium['file'][medium['file'].rfind("/")+1:]
 			ret.append(self._html_command('download://',medium['media_id']) + "</td><td>")
 			ret.append(self._html_command('downloadqueue://',medium['media_id']) + "</td><td>")
-			ret.append('(%s)</p>' % (utils.format_size(medium['size'],)) + "</td></tr></table>")
+			ret.append('</tr><tr><td colspan="3"><font size="3">(%s: %s)</font></td></tr></table>' % (filename, utils.format_size(medium['size'])))
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
 				if self._ajax_url is None:

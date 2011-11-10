@@ -122,7 +122,10 @@ def correct_url(url, glade_prefix=None):
 		p = AltParser()
 		try:
 			for line in url_stream.readlines():
-				p.feed(line)
+				try:
+				    p.feed(line)
+				except:
+				    break
 				if p.head_end: #if we've gotten an error, we need the whole page
 					break #otherwise the header is enough
 				
