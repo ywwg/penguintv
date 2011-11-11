@@ -390,15 +390,24 @@ class MediaManager:
 		import subprocess
 		if not os.path.isdir(self._media_dir):
 			return 0
-
-		cmd = "du -sk %s" % self._media_dir
-		p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-		retval = p.wait()
-		stderr = p.stderr.read()
-		if len(stderr) > 1 or retval != 0:
-			return 0
-		retval = p.stdout.read().split('\t')[0]
-		size = long(retval)*1024L
+		
+		size = 0
+		try:
+			cmd = "du -sk %s" % self._media_dir
+			p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+			retval = p.wait()
+			stderr = p.stderr.read()
+			if len(stderr) > 1 or retval != 0:
+				return 0
+			retval = p.stdout.read().split('\t')[0]
+			size = long(retval)*1024L
+		except:
+			#fall back on old method
+			try:
+				for f in utils.GlobDirectoryWalker(self._media_dir):
+					size = size+os.stat(f)[6]
+			except:
+				return 0
 		return size
 		
 	def generate_playlist(self):
