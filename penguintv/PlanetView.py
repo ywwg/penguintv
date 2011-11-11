@@ -97,7 +97,8 @@ class PlanetView(gobject.GObject):
 		self._scrolled_window.set_property("hscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_property("vscrollbar-policy",gtk.POLICY_AUTOMATIC)
 		self._scrolled_window.set_flags(self._scrolled_window.flags() & gtk.CAN_FOCUS) 
-		self._scrolled_window.set_shadow_type(gtk.SHADOW_IN)
+		if self._renderer == EntryFormatter.WEBKIT:
+			self._scrolled_window.set_shadow_type(gtk.SHADOW_IN)
 
 		style = self._html_dock.get_style().copy()
 		self._background_color = "#%.2x%.2x%.2x;" % (
@@ -627,32 +628,20 @@ class PlanetView(gobject.GObject):
 					return
 				}
 				//log("current status... " +xmlHttp.readyState);
-				/*if (xmlHttp.readyState != 0 && xmlHttp.readyState != 4)
+				xmlHttp.onreadystatechange=stateChanged
+				try
 				{
-					log("whoops not ready yet")
-				}	
-				else
-				{*/
-					xmlHttp.onreadystatechange=stateChanged
-					try
-					{
-						//log("pulling update http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update")
-						//log("uri "+ document.baseURI)
-						xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
-						//xmlHttp.open("GET","http://google.com", true)
-						//xmlHttp.open("GET","update",true)
-						//log("ready to send? " + xmlHttp.readyState)
-						//xmlHttp.setRequestHeader("Access-Control-Allow-Origin", "*")
-						//xmlHttp.setRequestHeader("Cache-Control", "no-cache")
-						xmlHttp.send(null)
-						//log("REQUEST SENT, ALL IS WELL")
-					} 
-					catch (error) 
-					{
-						log("ERROR")
-						document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
-					}
-				//}
+					//log("pulling update http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update")
+					//log("uri "+ document.baseURI)
+					xmlHttp.open("GET","http://localhost:"""+str(PlanetView.PORT)+"/"+self._update_server.get_key()+"""/update",true)
+					//xmlHttp.setRequestHeader("Access-Control-Allow-Origin", "*")
+					xmlHttp.send(null)
+				} 
+				catch (error) 
+				{
+					log("ERROR")
+					document.getElementById("errorMsg").innerHTML="Permissions problem loading ajax"
+				}
 				if (timed == 1)
 				{
 					SetTimer()
@@ -663,15 +652,8 @@ class PlanetView(gobject.GObject):
 			{ 
 				if (e.target.readyState==4 || e.target.readyState=="complete")
 				{ 
-					//log("state " + e.target.readyState)
-					//log("status " + e.target.status)
-					//log("status text " + e.target.statusText)
-					//log("doc base uri " + document.baseURI)
-					//log("text: " + e.target.responseText)
-
 					if (e.target.responseText.length > 0)
 					{
-						//log("trying to push change" + e.target.responseText)
 						line_split = e.target.responseText.split(" ")
 						entry_id = line_split[0]
 						split_point = e.target.responseText.indexOf(" ")
@@ -793,7 +775,6 @@ class PlanetView(gobject.GObject):
 				ret.append(str(entry_id)+" ")
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
-				#print "PUSHING"
 				self._update_server.push_update(ret)
 			else:
 				self._render_entries()
@@ -821,13 +802,17 @@ class PlanetView(gobject.GObject):
 				ret.append(str(entry_id)+" ")
 				ret.append(self._entry_store[entry_id][0])
 				ret = "".join(ret)
-				#print "PUSHING"
 				self._update_server.push_update(ret)
 	
 	def _render(self, html):
 		image_id = None
 		if self._renderer == EntryFormatter.GTKHTML:
 			image_id = self.get_display_id()
+		
+		#if self._renderer == EntryFormatter.WEBKIT:
+		#	self._update_server.push_update(html)
+		#	self._html_widget.load_update(self._ajax_url)
+		#else:
 		self._html_widget.render(html, self._ajax_url, image_id)
 		
 	def _do_delayed_set_viewed(self, feed_id, first_entry, last_entry, show_change=False):

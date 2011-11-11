@@ -7,7 +7,7 @@ import utils
 import SimpleHTTPServer
 import SimpleImageCache
 
-class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):	
+class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 	"""This class is recreated on every GET call.  So things changed in this
 	   scope don't stick"""
 	
@@ -38,15 +38,16 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 		if len(splitted) >= 3:
 			arg = splitted[2]
 			
+		self.send_response(200)
+		self.send_header('Content-type', 'text/html')
+		self.end_headers()
+
 		if command == "update":
 			if self.server.update_count()==0:
-				self.wfile.write("")
+				self.wfile.write("".encode('utf-8'))
 			else:
 				update = self.server.peek_update()
-				#print "WRITING UPDATE", update
-				#self.send_header('Access-Control-Allow-Origin', '*')
-				#self.send_header('Cache-Control', 'no-cache')
-				self.wfile.write(update)
+				self.wfile.write(update.encode('utf-8'))
 		elif command == "icon":
 			theme = gtk.icon_theme_get_default()
 			iconinfo = theme.lookup_icon(arg, 16, gtk.ICON_LOOKUP_NO_SVG)
@@ -71,3 +72,13 @@ class EntryInfoServer(SimpleHTTPServer.SimpleHTTPRequestHandler):
 			else:
 				image_data = self._image_cache.get_image_from_file(filename)
 			self.wfile.write(image_data)
+		
+		self.wfile.flush()
+		
+	def log_message(self, format, *args):
+		#eat messages
+		pass
+		#logging.debug("%s - - [%s] %s\n" %
+  #                       (self.address_string(),
+  #                        self.log_date_time_string(),
+  #                        format%args))

@@ -27,6 +27,7 @@ class MyTCPServer(SocketServer.ForkingTCPServer):
 				#We must have posted an update.  So pop it (unlike in the request handler,
 				#changes actually have an effect here!)
 				self._updates.pop(0)
+				#pass
 				
 	def finish(self):
 		self._quitting = True
@@ -55,3 +56,4 @@ class MyTCPServer(SocketServer.ForkingTCPServer):
 		
 	def update_count(self):
 		return len(self._updates)
+		
