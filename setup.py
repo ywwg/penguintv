@@ -57,18 +57,25 @@ gettext.textdomain('penguintv')
 _=gettext.gettext
 
 missing_something = []
-
 try:
-	import gtkmozembed
+	import webkit
+	HAS_WEBKIT=True
 except:
-	#maybe we built gtkmozembed for maemo with build-deb.sh
+	print "WARNING: python-webkit not found.  PenguinTV will try using gtkmozembed, but that will be deprecated soon."
+	HAS_WEBKIT=False
+	
+if not HAS_WEBKIT:
 	try:
-		from penguintv.ptvmozembed import gtkmozembed
+		import gtkmozembed
 	except:
-		print "WARNING:  gtkmozembed not found.  This is usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed"
-		print "          PenguinTV will still run without gtkmozembed, but the experience isn't as good."
-		#if HAS_HILDON:
-		#	missing_something.append("On Maemo, gtkmozembed is created by running ./build_maemo_deb.sh and creating a package")
+		#maybe we built gtkmozembed for maemo with build-deb.sh
+		try:
+			from penguintv.ptvmozembed import gtkmozembed
+		except:
+			print "WARNING:  gtkmozembed not found.  This is usually provided by a package like python-gnome2-extras or gnome-python2-gtkmozembed"
+			print "          PenguinTV will still run without gtkmozembed, but the experience isn't as good."
+			#if HAS_HILDON:
+			#	missing_something.append("On Maemo, gtkmozembed is created by running ./build_maemo_deb.sh and creating a package")
 
 try:
 	import sqlite3

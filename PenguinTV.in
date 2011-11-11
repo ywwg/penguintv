@@ -29,6 +29,12 @@ if [ "$PYTHON"x = "x" ] ; then
 	PYTHON="/usr/bin/env python"
 fi
 
+HAS_WEBKIT=`$PYTHON -c "try:
+ import webkit;
+ print 1;
+except:
+ print 0;"`
+
 if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
 	HILDON=1
 	echo "Launching Hildon version"
@@ -82,11 +88,11 @@ sys.exit(1)"`
 	fi
 fi
 
-echo "Running ptv in $ptv_home"
 export PTV_PREFIX=$rundir
 
 if [ $HILDON -eq 1 ] ; then	
 	PYTHONPATH="$ptv_home"
+	echo "Running ptv in $ptv_home"
 	cd $ptv_home
 	if [ $USE_LAUNCHER -eq 1 ] ; then
 		run-standalone.sh /usr/bin/python ./penguintv.py $*
@@ -96,12 +102,16 @@ if [ $HILDON -eq 1 ] ; then
 else
 	PYTHONPATH="$ptv_home"
 	cd $ptv_home
-	if [ "$WITH_MOZ_DIR"x = "x" ] ; then
+	if [ "$HAS_WEBKIT" = "1" ] ; then
+		echo "Running ptv in $ptv_home"
+		$PYTHON ./penguintv.py $*
+	elif [ "$WITH_MOZ_DIR"x = "x" ] ; then
 		echo "WARNING: COULD NOT FIND FIREFOX LIBRARIES"
 		echo "WARNING: PENGUINTV MAY CRASH UNEXPECTEDLY"
 		echo "Please export WITH_MOZ_DIR with the location of run-mozilla.sh to correct this issue"
 		$PYTHON ./penguintv.py $*
 	else
+		echo "Running ptv with mozilla in $ptv_home"
 		$WITH_MOZ_DIR/run-mozilla.sh $PYTHON ./penguintv.py $*
 	fi
 fi

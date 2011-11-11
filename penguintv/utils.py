@@ -69,22 +69,26 @@ if RUNNING_SUGAR:
 else:
 	if DO_GTK_CHECKS:
 		try:
-			import gtk
-			import gtkmozembed
-			HAS_MOZILLA = True
-		except:
-			try:
-				from ptvmozembed import gtkmozembed
-				logging.info("Using PenguinTV-built gtkmozembed")
-				HAS_MOZILLA = True
-			except:
-				HAS_MOZILLA = False
-				
-		try:
 			import webkit
 			HAS_WEBKIT = True
 		except:
 			HAS_WEBKIT = False
+		
+		#don't even bother if we have webkit, save the memory
+		HAS_MOZILLA = False
+		if not HAS_WEBKIT:
+			try:
+				import gtk
+				import gtkmozembed
+				HAS_MOZILLA = True
+			except:
+				try:
+					from ptvmozembed import gtkmozembed
+					logging.info("Using PenguinTV-built gtkmozembed")
+					HAS_MOZILLA = True
+				except:
+					HAS_MOZILLA = False
+				
 
 	HAS_SEARCH = False
 

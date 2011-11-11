@@ -52,6 +52,7 @@ class PTVWebkit(PTVhtml.PTVhtml):
 			self._conf.notify_add('/desktop/gnome/interface/font_name',self._gconf_reset_webview_font)
 		self._reset_webview_font()
 			
+		logging.info("Loading Webkit renderer")
 		self._webview = webkit.WebView()
 		#self._webview.connect("new-window", self._new_window)
 		self._webview.connect("hovering-over-link", self._link_message)
@@ -139,7 +140,8 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		return True #don't load url please
 		
 	def _console_message(self, webview, message):
-		logging.debug("webkit message %s" % (message,))
+		if len(message) > 0:
+			logging.debug("webkit message %s" % (message,))
 			
 	def _gconf_reset_webview_font(self, client, *args, **kwargs):
 		self._reset_webview_font()
