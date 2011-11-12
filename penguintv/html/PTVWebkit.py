@@ -57,6 +57,7 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		#self._webview.connect("new-window", self._new_window)
 		self._webview.connect("hovering-over-link", self._link_message)
 		self._webview.connect("navigation-policy-decision-requested", self._nav_policy)
+		self._webview.connect("new-window-policy-decision-requested", self._nav_policy)
 		self._webview.connect("realize", self._realize, True)
 		self._webview.connect("unrealize", self._realize, False)
 		self._webview.connect("status-bar-text-changed", self._console_message)
