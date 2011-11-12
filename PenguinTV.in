@@ -40,7 +40,7 @@ if [ -f "/usr/lib/libgtkembedmoz.so.0" -a -d "/usr/lib/microb-engine" ]; then
 	echo "Launching Hildon version"
 	#export MOZILLA_FIVE_HOME="/usr/lib/microb-engine"
 	#export LD_LIBRARY_PATH="/usr/lib/microb-engine"
-else
+elif [ "$HAS_WEBKIT" = 0 ] ; then
 	if [ "$WITH_MOZ_DIR"x = "x" ] ; then
 		for d in `ls -d  /usr/lib*/firefox* /usr/lib*/mozilla-firefox* /usr/lib*/xulrunner* 2> /dev/null | grep -v addons | grep -v devel | sort -r`
 		do
