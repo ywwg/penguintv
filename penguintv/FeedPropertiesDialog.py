@@ -5,7 +5,8 @@ import penguintv
 import utils
 from ptvDB import FeedAlreadyExists, FF_NOAUTODOWNLOAD, FF_NOSEARCH, \
 				  FF_NOAUTOEXPIRE, FF_NOTIFYUPDATES, FF_ADDNEWLINES, \
-				  FF_MARKASREAD, FF_NOKEEPDELETED, FF_DOWNLOADSINGLE 
+				  FF_MARKASREAD, FF_NOKEEPDELETED, FF_DOWNLOADSINGLE
+				  #FF_NOAUTOPOLL
 import gtk
 import time, datetime
 from math import floor

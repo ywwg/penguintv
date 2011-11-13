@@ -120,6 +120,7 @@ FF_ADDNEWLINES    = 16
 FF_MARKASREAD     = 32
 FF_NOKEEPDELETED  = 64
 FF_DOWNLOADSINGLE = 128
+#FF_NOAUTOPOLL     = 256
 
 DB_FILE="penguintv4.db"
 
@@ -1164,6 +1165,9 @@ class ptvDB:
 				
 			self._db_execute(self._c, """SELECT url,etag FROM feeds WHERE rowid=?""",(feed,))
 			data = self._c.fetchone()
+			#url, etag, flags = self._c.fetchone()
+			#if flags & FF_NOAUTOPOLL == 0:
+			#	data = (url, etag)
 			pool.queueTask(self._pool_poll_feed,(feed,arguments,len(feeds), data),self._poll_mult_cb)
 			
 		polled = 0
