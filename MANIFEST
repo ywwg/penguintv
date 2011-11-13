@@ -87,6 +87,7 @@ penguintv/trayicon/AppIndicator.py
 penguintv/trayicon/SonataNotification.py
 penguintv/BeautifulSoup/BeautifulSoup.py
 penguintv/BeautifulSoup/__init__.py
+penguintv/html/PTVWebkit.py
 penguintv/html/PTVMozilla.py
 penguintv/html/PTVGtkHtml.py
 penguintv/html/PTVhtml.py
