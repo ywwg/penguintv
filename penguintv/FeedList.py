@@ -1267,8 +1267,6 @@ class FeedList(gobject.GObject):
 
 		#if self._showing_search:
 		if self._state == S_SEARCH:
-			if feed[FEEDID] == self._last_selected:
-				return
 			self._last_selected = feed[FEEDID]
 			if not self._app.entrylist_selecting_right_now():
 				self.emit('search-feed-selected', feed[FEEDID])

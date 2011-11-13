@@ -1018,6 +1018,8 @@ class PenguinTVApp(gobject.GObject):
 			task_id = updater.queue(db.poll_multiple, (arguments,feeds))
 			if arguments & ptvDB.A_ALL_FEEDS==0:
 				self._gui_updater.queue(self.main_window.display_status_message,_("Feeds Updated"), task_id, False)
+				self._gui_updater.queue(self._update_search, None, task_id, False)
+				
 				#insane: queueing a timeout
 				self._gui_updater.queue(gobject.timeout_add, 
 										(2000, self.main_window.display_status_message, ""), 
@@ -1831,7 +1833,10 @@ class PenguinTVApp(gobject.GObject):
 			return
 		
 	def _update_search(self):
-		self._search(self._saved_search)
+		#only update it if we were actually searching
+		if self._state == MANUAL_SEARCH:
+			logging.debug("Updating search results")
+			self.manual_search(self.main_window.search_entry.get_text())
 		
 	def threaded_search(self, query):
 		if query != "":
@@ -2546,6 +2551,7 @@ class PenguinTVApp(gobject.GObject):
 				self._article_sync.get_readstates_for_entries(self._poll_new_entries)
 			self.main_window.update_progress_bar(-1,MainWindow.U_POLL)
 			self.main_window.display_status_message(_("Feeds Updated"),MainWindow.U_POLL)
+			self._update_search()
 			self._polled = 0
 			#logging.debug("reset polling taskinfo 2508")
 			self._polling_taskinfo = -1

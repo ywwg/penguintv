@@ -224,6 +224,9 @@ class PlanetView(gobject.GObject):
 			self.populate_entries(feed_id)
 			
 	def __feed_polled_cb(self, app, feed_id, update_data):
+		#don't do anything if polled, we will be told to redraw if necessary
+		if self._state == S_SEARCH:
+			return
 		f_list = self._db.get_associated_feeds(feed_id)
 		if self._current_feed_id in f_list:
 			self.populate_entries(feed_id)
