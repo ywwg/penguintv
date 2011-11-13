@@ -886,6 +886,7 @@ class PenguinTVApp(gobject.GObject):
 		#code.interact()
 		
 		logging.info('ptv quitting')
+		self.set_state(DEFAULT)
 		self._exiting=1
 		self._entry_view.finish()
 		self.feed_list_view.interrupt()
