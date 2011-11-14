@@ -1269,7 +1269,7 @@ class PenguinTVApp(gobject.GObject):
 			parameters=parsed_url[3]
 			http_arguments=parsed_url[4]
 			anchor = parsed_url[5]
-			if action not in ("http", "https", "file"): 
+			if action not in ("http", "https", "file", "reveal"):
 				try:
 					item=int(parsed_url[1])
 				except:
