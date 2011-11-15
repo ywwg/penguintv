@@ -115,7 +115,10 @@ class EntryFormatter:
 		ret.append('<div class="media">')
 		if medium['download_status']==D_NOT_DOWNLOADED:  
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
-			filename = medium['file'][medium['file'].rfind("/")+1:]
+			if medium['file'] is None:
+				filename = medium['url'][medium['url'].rfind("/")+1:]
+			else:
+				filename = medium['file'][medium['file'].rfind("/")+1:]
 			ret.append(self._html_command('download://',medium['media_id']) + "</td><td>")
 			ret.append(self._html_command('downloadqueue://',medium['media_id']) + "</td><td>")
 			ret.append('</tr><tr><td colspan="3"><font size="3">(%s: %s)</font></td></tr></table>' % (filename, utils.format_size(medium['size'])))
