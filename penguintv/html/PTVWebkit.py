@@ -81,15 +81,17 @@ class PTVWebkit(PTVhtml.PTVhtml):
 										   
 		header.append("""<script type="text/javascript"><!--""")
 		header.append("""
+				var current_element=0;
+				// with webkit, this overrides div-level rightclicks
 				document.oncontextmenu = function()
 					{
-						parent.location="rightclick:0"
+						parent.location="rightclick:"+current_element;
 						return false;
-					};""")
+					}; """)
 		
 		header.append("--> </script>")
 		header.append(html)
-		header.append("""</head><body>""")
+		header.append("""</head><body>\n""")
 		return "\n".join(header)
 		
 	def render(self, html, stream_url="file:///", display_id=None):
@@ -97,6 +99,7 @@ class PTVWebkit(PTVhtml.PTVhtml):
 			stream_url = "file:///"
 		self._stream_url = stream_url
 		if self._realized or utils.RUNNING_SUGAR:
+			#print html
 			self._webview.load_string(html, 'text/html', 'UTF-8', stream_url)
 		else:
 			logging.warning("HTML widget not realized")

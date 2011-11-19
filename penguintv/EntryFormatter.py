@@ -34,17 +34,24 @@ class EntryFormatter:
 		if self._indicate_new:
 			if item['new']:
 				javascript = ""
-				if self._renderer != GTKHTML:
+				if self._renderer == WEBKIT:
+					javascript = """onmouseover="javascript:current_element=%i;" onmouseout="javascript:current_element=0;" """ % item['entry_id'] 
+				elif self._renderer == MOZILLA:
 					javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
+					
 				ret.append("""<div class="entrynew" %s>""" % javascript)
 			else:
 				javascript = ""
-				if self._renderer != GTKHTML:
+				if self._renderer == WEBKIT:
+					javascript = """onmouseover="javascript:current_element=%i;" onmouseout="javascript:current_element=0;" """ % item['entry_id']
+				elif self._renderer == MOZILLA:
 					javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
 				ret.append("""<div class="entryold" %s>""" % javascript)
 		else:
 			javascript = ""
-			if self._renderer != GTKHTML:
+			if self._renderer == WEBKIT:
+				javascript = """onmouseover="javascript:current_element=%i;" onmouseout="javascript:current_element=0;" """ % item['entry_id']
+			elif self._renderer == MOZILLA:
 				javascript = """oncontextmenu="javascript:parent.location='rightclick:%i'" """ % item['entry_id']
 			ret.append("""<div class="entrynew" %s>""" % javascript)
 

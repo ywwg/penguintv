@@ -88,7 +88,16 @@ else:
 					HAS_MOZILLA = True
 				except:
 					HAS_MOZILLA = False
+					
+		if not HAS_WEBKIT and not HAS_MOZILLA:
+			try:
+				import gtkhtml2
+				HAS_GTKHTML = True
+			except:
+				logging.error("No valid html renderers found, aborting.  (Need python-webkit, or gtkmozembed, or gtkhtml2")
+				sys.exit(1)
 				
+			
 
 	HAS_SEARCH = False
 

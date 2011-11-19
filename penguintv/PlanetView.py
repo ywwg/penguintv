@@ -557,7 +557,8 @@ class PlanetView(gobject.GObject):
 		
 		html = []
 		html.append(self._build_header(media_exists))
-		html.append("<body>")
+		if self._USING_AJAX:
+			html.append("""<span id="errorMsg"><br></span>\n""")
 		
 		html.append(self._custom_message+"<br>")
 		
@@ -686,7 +687,6 @@ class PlanetView(gobject.GObject):
 			}
 			refresh_entries(1)""")
 			html.append("--> </script>")
-			html.append("""</head><body><span id="errorMsg"></span><br>""")
 	
 		html = "\n".join(html)
 		header = self._html_widget.build_header(html)

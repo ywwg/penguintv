@@ -683,8 +683,8 @@ class MainWindow(gobject.GObject):
 			fancy = True
 		
 		self.feed_list_view = FeedList.FeedList(components,self._app, fancy)
-		#renderer = EntryFormatter.MOZILLA
-		#renderer = EntryFormatter.GTKHTML
+		
+		#Mozilla is not loaded if we have webkit
 		if utils.RUNNING_HILDON:
 			renderer = EntryFormatter.GTKHTML
 		elif utils.HAS_WEBKIT:
