@@ -1966,9 +1966,21 @@ class ptvDB:
 				elif m.has_key('type'):
 					if "audio" in m['type'].lower() or "video" in m['type'].lower():
 						enclosure_list.append(m)
-		elif item.has_key('enclosures'):
-			enclosure_list = item['enclosures']
-		return enclosure_list
+		
+		if len(enclosure_list) == 0:
+			if item.has_key('enclosures'):
+				enclosure_list = item['enclosures']
+		
+		#some feeds list enclosed files twice with different urls (GTC Podcast specifically)
+		pruned_list = []
+		dupes = []
+		for e in enclosure_list:
+			filename = e['url'].split("/")[-1]
+			if filename not in dupes:
+				dupes.append(filename)
+				pruned_list.append(e)
+				
+		return pruned_list
 
 		
 	def _get_status(self, item, new_hash, existing_entries, guid_quality, media_entries):
