@@ -64,6 +64,7 @@ penguintv/FeedFilterDialog.py
 penguintv/FeedFilterPropertiesDialog.py
 penguintv/ptv_sync.py
 penguintv/ptvDbus.py
+penguintv/PTVNetworkManager.py
 penguintv/GStreamerPlayer.py
 penguintv/SynchronizeDialog.py
 penguintv/FilterSelectorDialog.py

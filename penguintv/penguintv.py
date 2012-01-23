@@ -74,6 +74,7 @@ import utils
 import ptvDB
 if HAS_DBUS:
 	import ptvDbus
+	import PTVNetworkManager
 import MediaManager
 import Player
 import UpdateTasksManager
@@ -200,6 +201,11 @@ class PenguinTVApp(gobject.GObject):
 			#initialize dbus object
 			name = dbus.service.BusName("com.ywwg.PenguinTV", bus=bus)
 			ptv_dbus = ptvDbus.ptvDbus(self, name)
+			self._nm_status = None
+			try:
+				self._nm_status = PTVNetworkManager.PTVNetworkManager()
+			except:
+				logging.warning("Couldn't connect to NetworkManager")
 			
 		self._net_connected = True
 		self.connect('online-status-changed', self.__online_status_changed)
@@ -339,27 +345,6 @@ class PenguinTVApp(gobject.GObject):
 
 		self._load_settings()
 		
-		#more DBUS
-		if HAS_DBUS:
-			sys_bus = dbus.SystemBus()
-			try:
-				sys_bus.add_signal_receiver(self._nm_properties_changed,
-											'PropertiesChanged',
-											'org.freedesktop.NetworkManager',
-											'org.freedesktop.NetworkManager',
-											'/org/freedesktop/NetworkManager')
-										
-				nm_ob = sys_bus.get_object("org.freedesktop.NetworkManager", 
-										   "/org/freedesktop/NetworkManager")
-										   
-				self._nm_interface = dbus.Interface(nm_ob, 
-											  "org.freedesktop.DBus.Properties")
-				logging.info("Listening to NetworkManager")
-				
-			except:
-				logging.warning("Couldn't connect to NetworkManager")
-				self._nm_interface = None
-		
 		self.feed_list_view = self.main_window.feed_list_view
 		self._entry_list_view = self.main_window.entry_list_view
 		self._entry_view = self.main_window.entry_view
@@ -371,8 +356,10 @@ class PenguinTVApp(gobject.GObject):
 		self.window_preferences.set_article_sync_plugin( \
 			self._article_sync.get_current_plugin())
 			
-		if self._nm_interface:
-			self._nm_properties_changed()
+		
+		if self._nm_status:
+		    self._nm_status.connect('connection-status', self._update_connection_status)
+		    self._update_connection_status(None, self._nm_status.get_connection_state())
 			
 		self._connect_signals()
 		
@@ -2423,8 +2410,10 @@ class PenguinTVApp(gobject.GObject):
 		if sensitize:
 			self.main_window._sensitize_search()
 		
+		#disable remote poller here (next two lines)
 		self._spawn_poller()
 		gobject.timeout_add(2 * 60 * 1000, self._check_poller)
+		
 		if not self._firstrun and self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
 			
@@ -2454,22 +2443,7 @@ class PenguinTVApp(gobject.GObject):
 	def toggle_net_connection(self):
 		self.emit('online-status-changed', not self._net_connected)
 		
-	def _nm_get_state(self):
-		try:
-			return int(self._nm_interface.Get("org.freedesktop.NetworkManager","State"))
-		except:
-			logging.warning("Error returning device state")
-			return 0
-
-	def _nm_properties_changed(self, *args):
-		#state = int(args[0]["State"])
-		state = self._nm_get_state()
-		if state == 3:
-			self.maybe_change_online_status(True)
-		else:
-			self.maybe_change_online_status(False)
-				
-	def maybe_change_online_status(self, new_status):
+	def _update_connection_status(self, o, new_status):
 		logging.debug("NetworkManager possible status change")
 		if new_status != self._net_connected:
 			if new_status:
