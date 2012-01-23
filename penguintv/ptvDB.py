@@ -274,10 +274,11 @@ class ptvDB:
 					self.reindex(threaded=False) #it's usually not much...
 				self.searcher.finish(True)
 				
-		self.cache_images()
+		if correctthread:
+			self.cache_images()
 				
-		if self._image_cache is not None:
-			self._image_cache.finish()
+			if self._image_cache is not None:
+				self._image_cache.finish()
 				
 		#FIXME: lame, but I'm being lazy
 		import random
@@ -1484,6 +1485,7 @@ class ptvDB:
 							#fixme: let's find a real way to test internet, hm?
 							u = urllib.urlretrieve("http://www.google.com")
 						except IOError, e2:
+							logging.warning("Error polling " + feed['title'] + " " + feed['url'])
 							raise IOError(e)
 			feed_updates = {}
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
