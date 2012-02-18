@@ -133,6 +133,10 @@ def correct_url(url, glade_prefix=None):
 			if len(available_versions)==0: #this might actually be a feed
 				data = feedparser.parse(url)
 				if len(data['channel']) == 0 or len(data['items']) == 0: #nope
+				    # last hope:  maybe this is a wordpress site
+				    if not url.endswith("feed=atom"):
+				        wordpress_test = "%s/?feed=atom" % (url,)
+				        return correct_url(wordpress_test, glade_prefix)
 					raise BadFeedURL, "warning: no alt mimetypes: %s" % str(p.alt_tags)
 				else:
 					pass #we're good
