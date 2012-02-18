@@ -2364,7 +2364,7 @@ def _resolveRelativeURIs(htmlSource, baseURI, encoding, type):
 
 class _HTMLSanitizer(_BaseHTMLProcessor):
     acceptable_elements = ['a', 'abbr', 'acronym', 'address', 'area', 'article',
-      'aside', 'audio', 'b', 'big', 'blockquote', 'br', 'button', 'canvas',
+      'aside', 'b', 'big', 'blockquote', 'br', 'button', 'canvas',
       'caption', 'center', 'cite', 'code', 'col', 'colgroup', 'command',
       'datagrid', 'datalist', 'dd', 'del', 'details', 'dfn', 'dialog', 'dir',
       'div', 'dl', 'dt', 'em', 'event-source', 'fieldset', 'figure', 'footer',
@@ -2374,7 +2374,7 @@ class _HTMLSanitizer(_BaseHTMLProcessor):
       'option', 'p', 'pre', 'progress', 'q', 's', 'samp', 'section', 'select',
       'small', 'sound', 'source', 'spacer', 'span', 'strike', 'strong', 'sub',
       'sup', 'table', 'tbody', 'td', 'textarea', 'time', 'tfoot', 'th', 'thead',
-      'tr', 'tt', 'u', 'ul', 'var', 'video', 'noscript']
+      'tr', 'tt', 'u', 'ul', 'var', 'noscript']
 
     acceptable_attributes = ['abbr', 'accept', 'accept-charset', 'accesskey',
       'action', 'align', 'alt', 'autocomplete', 'autofocus', 'axis',
