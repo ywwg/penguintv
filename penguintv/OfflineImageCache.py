@@ -205,10 +205,19 @@ class PageCacher:
 		self._threadpool.queueTask(self._get_soup, html, taskCallback=self.process)
 		
 	def _get_soup(self, html):
-		return BeautifulSoup(html)
+		try:
+			return BeautifulSoup(html)
+		except:
+			logging.warning("BeautifulSoup exception cleaning up html, can't cache images offline")
+			return None
 		
 	def process(self, soup):
 		# go through html and pull out images, feed them into cacher
+		
+		if soup is None:
+			# beautiful soup probably had an exception, so we just don't cache
+			# this page
+			return
 		
 		self._soup = soup
 
@@ -257,7 +266,7 @@ class UrlCacher:
 		self._store_location = store_location
 		self._threadpool = threadpool
 		self._finished_cb = finished_cb
-		self._cache_status = {}      #a dict of url: [localfile, status]
+		self._cache_status = {}	  #a dict of url: [localfile, status]
 		self._dir_checked = False
 		
 	def queue_download(self, url):
