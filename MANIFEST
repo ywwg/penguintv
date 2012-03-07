@@ -126,10 +126,7 @@ share/icons/stock-media-pause.svg
 share/icons/stock-media-play.svg
 share/icons/stock-preferences.svg
 share/icons/stock-stop.svg
-share/pixmaps/penguintvindicator.png
-share/pixmaps/26x26/penguintvicon.png
-share/pixmaps/40x40/penguintvicon.png
-share/pixmaps/64x64/penguintvicon.png
+share/penguintvindicator.png
 share/pixmaps/PenguinTV icon.png
 po/penguintv.pot
 po/pt.po

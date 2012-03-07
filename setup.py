@@ -5,45 +5,12 @@ import sys,os
 from penguintv import subProcess as my_subProcess
 import subprocess
 
-try:
-	from sugar.activity import bundlebuilder
-	HAS_SUGAR = True
-except:
-	HAS_SUGAR = False
-	
-try:
-	import hildon
-	HAS_HILDON = True
-except:
-	HAS_HILDON = False
-	
-if HAS_SUGAR:
-	try:
-		print "Building OLPC version"
+print "Building desktop version"
 
-		sp = my_subProcess.subProcess("cp -f share/penguintv.glade.olpc share/penguintv.glade")
-		if sp.read() != 0:
-			print "There was an error symlinking the glade file"
-			sys.exit(1)
-
-		bundlebuilder.start("NewsReader", manifest='MANIFEST-OLPC')
-	except Exception, e:
-		print "problem building for OLPC:", e
-		sys.exit(1)
-	sys.exit(0)
-elif HAS_HILDON:
-	print "Building hildon version"
-	sp = my_subProcess.subProcess("cp -f share/penguintv.glade.hildon share/penguintv.glade")
-	if sp.read() != 0:
-		print "There was an error copying the glade file"
-		sys.exit(1)
-else:
-	print "Building desktop version"
-
-	sp = my_subProcess.subProcess("cp -f share/penguintv.glade.desktop share/penguintv.glade")
-	if sp.read() != 0:
-		print "There was an error copying the glade file"
-		sys.exit(1)
+sp = my_subProcess.subProcess("cp -f share/penguintv.glade.desktop share/penguintv.glade")
+if sp.read() != 0:
+	print "There was an error copying the glade file"
+	sys.exit(1)
 
 from distutils.core import setup
 from distutils.extension import Extension
@@ -94,58 +61,6 @@ try:
 	import Image
 except:
 	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)")
-	
-#try:
-#	import gnome
-#except:
-#	missing_something.append("Need gnome python bindings")
-	
-#try:
-#	from xml.sax import saxutils
-#	test = saxutils.DefaultHandler
-#except:
-#	missing_something.append("Need python-xml")
-
-#moz_lib_dir = ""
-#if os.environ.has_key('MOZILLA_FIVE_HOME'):
-#	moz_lib_dir = os.environ['MOZILLA_FIVE_HOME']
-#else:
-#	for moz in ("xulrunner-gtkmozembed", "firefox-gtkmozembed", "mozilla-gtkmozembed"):
-#		sp = my_subProcess.subProcess("pkg-config --silence-errors --libs-only-L %s | sed 's/ //g'" % moz)
-#		lib_dir = sp.read()
-#		if lib_dir != 0:
-#			lib_dir = lib_dir.replace("-L", "")
-#			try:
-#				os.stat(lib_dir)
-#				moz_lib_dir = lib_dir
-#				break
-#			except:
-#				pass
-#				
-#if moz_lib_dir == "":
-#	if os.path.isfile("/usr/lib/libgtkembedmoz.so.0") and \
-#	   os.path.isdir("/usr/lib/microb-engine"):
-#		moz_lib_dir = "/usr/lib/microb-engine"
-#
-#if moz_lib_dir == "":
-#	cmd = "ldd " + gtkmozembed.__file__ + "|grep libgtkembedmoz"
-#	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-#	retval = p.wait()
-#	stderr = p.stderr.read()
-#	if retval == 0:
-#		line = p.stdout.read()
-#		lib_dir = line[line.find("/"):line.rfind("libgtkembedmoz.so")]
-#		try:
-#			os.stat(lib_dir)
-#			moz_lib_dir = lib_dir
-#		except:
-#			pass
-#				
-#if moz_lib_dir == "":
-#	print "Couldn't locate mozilla home.  Please set MOZILLA_FIVE_HOME and run setup again"
-#	sys.exit(1)
-#else:
-#	print "Setting default MOZILLA_FIVE_HOME to", moz_lib_dir
 	
 code = subprocess.call(["which","msgfmt"])
 if code != 0:
