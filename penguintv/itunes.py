@@ -14,133 +14,76 @@
 import sys
 import gzip
 import urllib
-import HTMLParser
 import logging
 
-from xml.sax import saxutils, make_parser
-from xml.sax.handler import feature_namespaces
-
-def is_itms_url(url):
-	if url.lower().startswith("itms://"):
-		return True
+class iTunesURLopener(urllib.FancyURLopener):
+    version = "iTunes/9.1.1"
+    
+def get_itunes_podcast_id(url):
+    p_id = ""
+    started_numbers = False
+    for c in url[url.find("id"):]:
+        if c in ("01234568790"):
+            started_numbers = True
+            p_id += c
+        elif started_numbers:
+            break
+            
+    return p_id
 
 def is_itunes_url(url):
-	""" Two simple checks to see if this is a valid itunes url:
-		(ie, http://phobos.apple.com/WebObjects/MZStore.woa/wa/viewPodcast?id=207870198)
-	    * does it contain "phobos.apple.com", and
-	    * does it contain "viewPodcast" 
-	    
-	    There's also another form, as in http://www.itunes.com/podcast?id=207870198"""
-	
-	if url.lower().startswith("itms://"):
-		return True    
-	if "apple.com/" in url.lower() and "viewPodcast" in url:
-		return True
-	if "itunes.com/podcast" in url.lower():
-		return True
-	return False
+    """ Two simple checks to see if this is a valid itunes url:
+        (ie, http://phobos.apple.com/WebObjects/MZStore.woa/wa/viewPodcast?id=207870198)
+        * does it contain "phobos.apple.com", and
+        * does it contain "viewPodcast" 
+        
+        There's also another form, as in http://www.itunes.com/podcast?id=207870198"""
+    
+    if url.lower().startswith("itms://"):
+        return True    
+    if "apple.com/" in url.lower() and "podcast" in url.lower():
+        return True
+    if "itunes.com/podcast" in url.lower():
+        return True
+    return False
 
 def get_rss_from_itunes(url):
-	if not is_itunes_url(url):
-		raise ItunesError, "not an itunes url"
-		
-	if not is_itms_url(url):
-		url2 = get_itms_url(url)
-		return get_podcast_url(url2)
-	else:
-		url2 = url.replace("itms://", "http://")
-		return get_podcast_url(url2)
-		
-def get_itms_url(url):
-	# Part 1, get the itunes "webpage" for this feed
-	# we have to save the file because urlopen doesn't support seeking		
-	filename, message = urllib.urlretrieve(url)
-	#uncompressed = gzip.GzipFile(filename=filename, mode='r')
-	uncompressed = open(filename, 'r')
+    url.replace("itms:","http:")
+    
+    if not is_itunes_url(url):
+        raise ItunesError, "not an itunes url"
+        
+    p_id = get_itunes_podcast_id(url)
+        
+    return get_podcast_url(p_id)
+        
+def get_podcast_url(p_id):
+    old_opener = urllib._urlopener
+    urllib._urlopener = iTunesURLopener()
+    
+    # Part 2, find the actual rss link in the itunes "webpage"
+    itunes_page = urllib.urlopen("http://itunes.apple.com/podcast/id"+p_id)
+    urllib._urlopener = old_opener #this probably isn't necessary
+    
+    rss_url = None
+    try:
+        for line in itunes_page.readlines():
+            if "feed-url" in line:
+                rss_url = line[line.find("feed-url"):].split("\"")[1]
+                break
+    except Exception, e:
+        raise ItunesError, "Problem parsing itunes page for podcast url"                
+            
+    if rss_url is None:
+        raise ItunesError, "error finding podcast url"
+        
+    return rss_url
 
-	parser = viewPodcastParser()
-	parser.feed(uncompressed.read())
-
-	if parser.url is None:
-		raise ItunesError, "error getting viewpodcast url from itunes"
-	return parser.url
-
-def get_podcast_url(url):
-	# Part 2, find the actual rss link in the itunes "webpage"
-	filename, message = urllib.urlretrieve(url)
-	#uncompressed = gzip.GzipFile(filename=filename, mode='r')
-	uncompressed = open(filename, 'r')
-
-	parser = make_parser()
-	parser.setFeature(feature_namespaces, 0)
-	handler = itunesHandler()
-	parser.setContentHandler(handler)
-	parser.parse(uncompressed)
-
-	if handler.url is None:
-		raise ItunesError, "error finding podcast url"
-		
-	return handler.url
-
-class viewPodcastParser(HTMLParser.HTMLParser):
-	def __init__(self):
-		HTMLParser.HTMLParser.__init__(self)
-		self.url = None
-		
-	def handle_starttag(self, tag, attrs):
-		new_attrs = []
-		if tag.upper() == "BODY":
-			for attr, val in attrs:
-				if attr == "onload":
-					url = val[val.find("itms://") + 4:]
-					url = url[:url.find("'")]
-					url = "http" + url
-					self.url = url
-
-try:
-	from xml.sax.handler import ContentHandler
-	def_handler = ContentHandler
-except:
-	try:
-		from xml.sax.saxutils import DefaultHandler
-		def_handler = DefaultHandler
-	except Exception, e:
-		logging.error("couldn't get xml parsing")
-		raise e
-		
-class itunesHandler(def_handler):
-	def __init__(self):
-		self.url = ""
-		self._in_key = None
-		self._in_value = None
-		self._last_key = None
-
-	def startElement(self, name, attrs):
-		if name == 'key':
-			self._in_key = ""
-		elif name == 'string':
-			self._in_value = ""
-
-	def endElement(self, name):
-		if name == 'key':
-			self._last_key = self._in_key
-			self._in_key = None
-		elif name == 'string':
-			if self._last_key == 'feedURL':
-				self.url = self._in_value
-			self._in_value = None
-				
-	def characters(self, ch):
-		if self._in_key is not None:
-			self._in_key += ch
-		elif self._in_value is not None:
-			self._in_value += ch
-			
 class ItunesError(Exception):
-	def __init__(self, m):
-		self.m = m
-	def __str__(self):
-		return m
+    def __init__(self, m):
+        self.m = m
+    def __str__(self):
+        return self.m
 
 
 
