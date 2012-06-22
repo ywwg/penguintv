@@ -2411,8 +2411,8 @@ class PenguinTVApp(gobject.GObject):
 			self.main_window._sensitize_search()
 		
 		#disable remote poller here (next two lines)
-		self._spawn_poller()
-		gobject.timeout_add(2 * 60 * 1000, self._check_poller)
+		#self._spawn_poller()
+		#gobject.timeout_add(2 * 60 * 1000, self._check_poller)
 		
 		if not self._firstrun and self.poll_on_startup: #don't poll on startup on firstrun, we take care of that
 			gobject.timeout_add(30*1000,self.do_poll_multiple, 0)
