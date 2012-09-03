@@ -93,7 +93,10 @@ class EntryFormatter:
 
 		if item.has_key('creator'):
 			if item['creator']!="" and item['creator'] is not None:
-				ret.append('By %s<br/>' % (item['creator'],))			
+				if not item['creator'].upper().startswith("BY "):
+					ret.append('By %s<br/>' % (item['creator'],))    
+				else:
+					ret.append('%s<br/>' % (item['creator'],))		
 		if item['date'] != (0,0,0,0,0,0,0,0,0):
 			ret.append('<div class="sdate">%s</div>' % time.strftime('%a %b %d, %Y %X',time.localtime(item['date'])))
 			#ret.append('</div>')
