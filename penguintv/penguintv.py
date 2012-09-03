@@ -2606,7 +2606,7 @@ class PenguinTVApp(gobject.GObject):
 				self._start_db()
 				self._db_lock.release()
 			
-			born_t = time.time()
+			last_active_t = time.time()
 			while self.__isDying == False:
 				if self._restart_db:
 					logging.debug("We were told to restart the database")
@@ -2617,6 +2617,7 @@ class PenguinTVApp(gobject.GObject):
 					self._start_db()
 					self._db_lock.release()
 				while self.updater.updater_gen().next():
+					last_active_t = time.time()
 					#do we also need to check for db restarting here?
 					if self.updater.exception is not None:
 						if isinstance(self.updater.exception, OperationalError):
@@ -2626,11 +2627,13 @@ class PenguinTVApp(gobject.GObject):
 							del self.db
 							self._start_db()
 							self._db_lock.release()
-				if time.time() - born_t > self.threadDieTime:
+				if time.time() - last_active_t > self.threadDieTime:
+					logging.debug("DB Threading closing down due to inactivity")
 					self.__isDying = True
 				time.sleep(self.threadSleepTime)
 			
 			if self.db is not None:
+			    
 				self.db.finish(False)
 				self.db = None
 				
