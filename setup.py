@@ -54,6 +54,17 @@ try:
 except:
 	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)")
 	
+try:
+	import gtk.glade
+except:
+	missing_something.append("Need python glade support (eg python-glade2)")
+	
+try:
+	import gnome
+	import gnome.ui
+except:
+	missing_something.append("Need python gnome support (eg python-gnome2)")
+	
 code = subprocess.call(["which","msgfmt"])
 if code != 0:
 	HAVE_GETTEXT = False
