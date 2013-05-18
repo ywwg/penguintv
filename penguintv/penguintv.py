@@ -2591,7 +2591,7 @@ class PenguinTVApp(gobject.GObject):
 			self.db = None
 			self.updater = UpdateTasksManager.UpdateTasksManager(UpdateTasksManager.MANUAL, "db updater")
 			self.threadSleepTime = 1.0
-			self.threadDieTime = 30.0
+			self.threadDieTime = 600.0
 			self.polling_callback = polling_callback
 			self._db_lock = threading.Lock()
 			self._restart_db = False
