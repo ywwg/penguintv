@@ -18,7 +18,7 @@ body {
 //}
 
 .feedtitle {
-        font-size: x-large;
+        font-size: large;
         font-weight: bold;
         text-align: center;
         padding: 12pt;
@@ -45,7 +45,7 @@ body {
 }
 
 .stitle {
-	font-size: large; 
+	font-size: 12pt; 
 	font-weight:bold; 
 //	font-family: Sans-Serif; 
 	padding-bottom:20pt;

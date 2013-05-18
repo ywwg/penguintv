@@ -71,7 +71,7 @@ class EntryFormatter:
 				else:
 					ret.append('<div class="stitle"><a href="#%s"></a>%s</div>' % (item['entry_id'],item['title']))
 
-		ret.append('</td><td style="text-align: right;">')
+		ret.append('</td><td style="text-align: right; font-size: 12pt">')
 
 		if not utils.RUNNING_SUGAR:
 			if self._renderer != GTKHTML:

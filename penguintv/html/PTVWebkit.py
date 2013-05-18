@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os.path
+import os, os.path
 import logging
 
 import gobject
@@ -63,6 +63,17 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		self._webview.connect("status-bar-text-changed", self._console_message)
 		#self._webview.connect("script-alert", lambda a,b,c: logging.debug("script-alert"))
 		#self._webview.connect("script-confirm", lambda a,b,c: logging.debug("script-confirm"))
+		
+		# This is a disgusting hack because I haven't made PenguinTV work with gio
+		try:
+			scaling_factor = os.popen("gsettings get org.gnome.desktop.interface text-scaling-factor")
+			scaling_factor = float(scaling_factor.readline().strip())
+			if scaling_factor != 1.0:
+				self._webview.set_full_content_zoom(True)
+				self._webview.set_zoom_level(scaling_factor)
+		except:
+			logging.warning("Couldn't get text scaling factor from gsettings")
+		
 		widget.add(self._webview)
 		self._webview.show()
 		
@@ -169,6 +180,6 @@ class PTVWebkit(PTVhtml.PTVhtml):
 		#take just the beginning for the font name.  prepare for dense, unreadable code
 		self._webview_font = " ".join(map(str, [x for x in webview_font.split() if not isNumber(x)]))
 		self._webview_font = "'"+self._webview_font+"','"+" ".join(map(str, [x for x in webview_font.split() if isValid(x)])) + "',Arial"
-		self._webview_size = int([x for x in webview_font.split() if isNumber(x)][-1])+4
+		self._webview_size = int([x for x in webview_font.split() if isNumber(x)][-1]) + 4
 
 gobject.type_register(PTVWebkit)
