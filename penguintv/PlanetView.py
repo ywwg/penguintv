@@ -568,14 +568,14 @@ class PlanetView(gobject.GObject):
 					_("Back to Feeds")))
 					
 		html.append("""<div id="nav_bar"><table
-					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
+					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto; font-size: 12pt;"
  					border="0" cellpadding="2" cellspacing="0">
 					<tbody>
 					<tr><td>""")
 		if self._first_entry > 0:
 			html.append(_('<a href="planet:up">Newer Entries</a>'))
 		
-		html.append('</td><td style="text-align: right;">')
+		html.append('</td><td style="text-align: right; font-size: 12pt;">')
 		if self._last_entry < len(entrylist):
 			html.append(_('<a href="planet:down">Older Entries</a>'))
 			
@@ -586,13 +586,13 @@ class PlanetView(gobject.GObject):
 		html += entries
 			
 		html.append("""<div id="nav_bar"><table
-					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto;"
+					style="width: 100%; text-align: left; margin-left: auto; margin-right: auto; font-size: 12pt;"
 					border="0" cellpadding="2" cellspacing="0">
 					<tbody>
 					<tr><td>""")
 		if self._first_entry > 0:
 			html.append(_('<a href="planet:up">Newer Entries</a>'))
-		html.append('</td><td style="text-align: right;">')
+		html.append('</td><td style="text-align: right; font-size: 12pt;">')
 		if self._last_entry < len(entrylist):
 			html.append(_('<a href="planet:down">Older Entries</a>'))
 		html.append("</td></tr></tbody></table></div>")

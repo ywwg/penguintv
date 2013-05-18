@@ -78,7 +78,7 @@ class EntryFormatter:
 				cb_status = item['keep'] and "CHECKED" or "UNCHECKED"
 				cb_function = item['keep'] and "unkeep" or "keep"
 		
-				ret.append('''<form id="keep"> <input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s://%i'" %s="yes"><a href="%s:%i">%s</a></form>''' % 
+				ret.append('''<form id="keep"><input type="checkbox" id="keep" name="keep" class="radio" onclick="parent.location='%s://%i'" %s="yes"><a href="%s:%i">%s</a></form>''' % 
 			           (cb_function, item['entry_id'], cb_status, cb_function, item['entry_id'], _('Keep New')))
 			elif self._renderer == GTKHTML:
 				cb_function = item['keep'] and "unkeep" or "keep"
@@ -131,7 +131,7 @@ class EntryFormatter:
 				filename = medium['file'][medium['file'].rfind("/")+1:]
 			ret.append(self._html_command('download://',medium['media_id']) + "</td><td>")
 			ret.append(self._html_command('downloadqueue://',medium['media_id']) + "</td><td>")
-			ret.append('</tr><tr><td colspan="3"><font size="3">(%s: %s)</font></td></tr></table>' % (filename, utils.format_size(medium['size'])))
+			ret.append('</tr><tr><td colspan="3">(%s: %s)</td></tr></table>' % (filename, utils.format_size(medium['size'])))
 		elif medium['download_status'] == D_DOWNLOADING: 
 			if self._basic_progress:
 				if self._ajax_url is None:
@@ -200,7 +200,7 @@ class EntryFormatter:
 				ret.append(self._html_command('play://',medium['media_id']) + "</td><td>")
 				ret.append(self._html_command('redownload',medium['media_id']) + "</td><td>")
 				ret.append(self._html_command('delete://',medium['media_id'])+"</td></tr>")
-				ret.append('<tr><td colspan="3"><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
+				ret.append('<tr><td colspan="3">(<a href="reveal://%s">%s</a>: %s)</td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
 			elif os.path.isdir(medium['file']): #it's a folder
 				ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
 				ret.append(self._html_command('file://',medium['file']) + "</td><td>")
@@ -211,7 +211,7 @@ class EntryFormatter:
 				ret.append(self._html_command('file://',medium['file']) + "</td><td>")
 				ret.append(self._html_command('redownload',medium['media_id']) + "</td><td>")
 				ret.append(self._html_command('delete://',medium['media_id'])+"</td></tr>")
-				ret.append('<tr><td colspan="3"><font size="3">(<a href="reveal://%s">%s</a>: %s)</font></td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
+				ret.append('<tr><td colspan="3">(<a href="reveal://%s">%s</a>: %s)</td></tr></table>' % (medium['file'], filename, utils.format_size(medium['size'])))
 		elif medium['download_status'] == D_RESUMABLE:
 			ret.append('''<table border="0" cellpadding="0" cellspacing="12pt"><tr><td>''')
 			ret.append(self._html_command('resume://',medium['media_id']) + "</td><td>")
