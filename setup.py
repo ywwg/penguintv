@@ -24,7 +24,7 @@ try:
 except:
 	print "WARNING: python-webkit not found.  PenguinTV will try using gtkmozembed, but that will be deprecated soon."
 	HAS_WEBKIT=False
-	
+
 if not HAS_WEBKIT:
 	try:
 		import gtkmozembed
@@ -43,28 +43,28 @@ except:
 		from pysqlite2 import dbapi2 as sqlite
 	except:
 		missing_something.append("Need pysqlite version 2 or higher (http://pysqlite.org/)")
-	
+
 try:
 	import pycurl
 except:
 	missing_something.append("Need pycurl (http://pycurl.sourceforge.net/)")
-	
+
 try:
 	import Image
 except:
 	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)")
-	
+
 try:
 	import gtk.glade
 except:
 	missing_something.append("Need python glade support (eg python-glade2)")
-	
+
 try:
 	import gnome
 	import gnome.ui
 except:
 	missing_something.append("Need python gnome support (eg python-gnome2)")
-	
+
 code = subprocess.call(["which","msgfmt"])
 if code != 0:
 	HAVE_GETTEXT = False
@@ -72,7 +72,7 @@ if code != 0:
 	#missing_something.append("Need gettext")
 else:
 	HAVE_GETTEXT = True
-	
+
 if len(missing_something) > 0:
 	sys.exit("\n".join(missing_something))
 
@@ -92,15 +92,15 @@ for line in f.readlines():
 f2.close()
 f.close()
 os.chmod("./bin/PenguinTV", 0775)
-	
+
 from penguintv import utils
 
 locales = []
 if HAVE_GETTEXT:
 	if "build" in sys.argv or "install" in sys.argv:
-	
-		for f in GlobDirectoryWalker("./po", "*.po"):	
-			this_locale = os.path.basename(f)	
+
+		for f in GlobDirectoryWalker("./po", "*.po"):
+			this_locale = os.path.basename(f)
 			this_locale = this_locale[0:this_locale.rfind('.')]
 			_mkdir("./mo/"+this_locale+"/LC_MESSAGES")
 			msgfmt_line = "msgfmt "+f+" -o ./mo/"+this_locale+"/LC_MESSAGES/penguintv.mo"
@@ -118,7 +118,7 @@ data_files       = [('share/penguintv',		['share/penguintv.glade','share/default
 					('share/penguintv/pixmaps', ['share/pixmaps/ev_online.png', 'share/pixmaps/ev_offline.png', 'share/pixmaps/throbber.gif']),
 					('share/dbus-1/services', ['share/penguintv.service'])]
 data_files += locales
-					
+
 data_files += [('share/applications',	['penguintv.desktop']),
 				('share/icons/hicolor/scalable/apps', ['share/penguintvicon.png']),
 				('share/icons/hicolor/scalable/apps', ['share/penguintvindicator.png']),
@@ -126,10 +126,10 @@ data_files += [('share/applications',	['penguintv.desktop']),
 				('share/icons/hicolor/40x40/apps', ['share/pixmaps/40x40/penguintvicon.png']),
 				('share/icons/hicolor/26x26/apps', ['share/pixmaps/26x26/penguintvicon.png']),
 				('share/penguintv/glade', ['share/glade/desktop.glade',
-										   'share/glade/standard.glade', 'share/glade/widescreen.glade', 'share/glade/dialog_add_feed.glade', 'share/glade/extra_dialogs.glade', 
+										   'share/glade/standard.glade', 'share/glade/widescreen.glade', 'share/glade/dialog_add_feed.glade', 'share/glade/extra_dialogs.glade',
 										   'share/glade/planet.glade', 'share/glade/vertical.glade']),]
 
-setup(name = "PenguinTV", 
+setup(name = "PenguinTV",
 version = utils.VERSION,
 description      = 'GNOME-compatible podcast and videoblog reader',
 author           = 'Owen Williams',
@@ -138,8 +138,8 @@ url              = 'http://penguintv.sourceforge.net',
 license          = 'GPL',
 scripts          = ['bin/PenguinTV'],
 data_files = data_files,
-packages = ["penguintv", 
-			"penguintv/ptvbittorrent", 
+packages = ["penguintv",
+			"penguintv/ptvbittorrent",
 			"penguintv/trayicon",
 			"penguintv/ajax",
 			"penguintv/amazon",
@@ -154,10 +154,10 @@ packages = ["penguintv",
 #		sys.exit(1)
 #	else:
 #		print sp.outdata
-		
+
 print ""
-something_disabled = False	
-	
+something_disabled = False
+
 try:
 	import gconf
 except:
@@ -166,15 +166,15 @@ except:
 	except:
 		print "WARNING: gconf not installed or not installed correctly: Gconf support will be disabled"
 		something_disabled = True
-	
+
 try:
 	import pygst
 	pygst.require("0.10")
-	import gst	
+	import gst
 except:
 	print "WARNING: gstreamer .10 or greater not installed or not installed correctly: Built-in player will be disabled"
 	something_disabled = True
-	
+
 if something_disabled:
 	print """If anything above was disabled and you install that library, PenguinTV will detect it automatically
 	and re-enable support.  You do not have to reinstall PenguinTV to enable support for these features"""

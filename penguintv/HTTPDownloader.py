@@ -142,14 +142,23 @@ class HTTPDownloader(Downloader):
 			dl_total += self._resume_from
 			dl_now   += self._resume_from
 		try:
-			self.progress = int((dl_now*100.0)/dl_total)
+		    if dl_total < 2:
+		        # Ignore spurious 0 byte and1 byte updates
+		        self.progress = 0
+		    else:
+			    self.progress = int((dl_now*100.0)/dl_total)
 		except:
 			self.progress = 0
 		if not self.media.has_key('size'):
 			self.media['size_adjustment']=True
 		elif self.media['size']!=round(dl_total) and not self._resume:
-			self.media['size']=round(dl_total)
-			self.media['size_adjustment']=True
+		    if round(dl_total) < 2:
+		        # Ignore spurious 0 and 1 byte updates
+		        logging.debug("Ignoring small size update")
+		        self.media['size_adjustment']=False
+		    else:
+			    self.media['size']=round(dl_total)
+			    self.media['size_adjustment']=True
 		else:
 			self.media['size_adjustment']=False
 		d = { 'progress': str(self.progress),

@@ -1303,13 +1303,7 @@ class PenguinTVApp(gobject.GObject):
 			if utils.is_known_media(media['file']):
 				self.player.play(media['file'], utils.my_quote(feed_title) + " " + utils.get_hyphen() + " " + entry['title'], media['media_id'], context=self._hildon_context)
 			else:
-				if HAS_GNOME:
-					try:
-						gnome.url_show(media['file'])
-					except:
-						webbrowser.open_new_tab(media['file'])
-				else:
-					webbrowser.open_new_tab(media['file'])
+				webbrowser.open_new_tab(media['file'])
 			if not entry['keep']:
 				self.db.set_entry_read(media['entry_id'],True)
 			self.emit('entry-updated', media['entry_id'], entry['feed_id'])
@@ -1346,13 +1340,7 @@ class PenguinTVApp(gobject.GObject):
 			else:
 				reveal_url = "file:"+os.path.split(parsed_url[1]+parsed_url[2])[0]
 				reveal_url = reveal_url.replace("%20"," ")
-				if HAS_GNOME:
-					try:
-						gnome.url_show(reveal_url)
-					except:
-						webbrowser.open_new_tab(reveal_url)
-				else:
-					webbrowser.open_new_tab(reveal_url)
+				webbrowser.open_new_tab(reveal_url)
 		elif action == "http" or action == "https":
 			try:
 				if len(parameters)>0:
@@ -1388,22 +1376,11 @@ class PenguinTVApp(gobject.GObject):
 				rpc_handler = osso.rpc.Rpc(self._hildon_context)
 				logging.debug("Trying to launch maemo browser")
 				rpc_handler.rpc_run_with_defaults('osso_browser', 'open_new_window', (uri,))
-			elif HAS_GNOME:
-				try:
-					gnome.url_show(uri)
-				except:
-					webbrowser.open_new_tab(uri)
 			else:
 				webbrowser.open_new_tab(uri)
 		elif action=="file":
 			logging.info(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
-			if HAS_GNOME:
-				try:
-					gnome.url_show(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
-				except:
-					webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
-			else:
-				webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
+			webbrowser.open_new_tab(parsed_url[0]+"://"+urllib.quote(parsed_url[1]+parsed_url[2]))
 		elif action=="pane":
 			if parsed_url[2] == "back":
 				self.main_window.pane_to_feeds()

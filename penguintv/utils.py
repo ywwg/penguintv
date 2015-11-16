@@ -34,7 +34,7 @@ try:
 		DO_GTK_CHECKS = True
 except:
 	DO_GTK_CHECKS = False
-	
+
 
 
 #locale.setlocale(locale.LC_ALL, '')
@@ -73,7 +73,7 @@ else:
 			HAS_WEBKIT = True
 		except:
 			HAS_WEBKIT = False
-		
+
 		#don't even bother if we have webkit, save the memory
 		HAS_MOZILLA = False
 		if not HAS_WEBKIT:
@@ -88,7 +88,7 @@ else:
 					HAS_MOZILLA = True
 				except:
 					HAS_MOZILLA = False
-					
+
 		if not HAS_WEBKIT and not HAS_MOZILLA:
 			try:
 				import gtkhtml2
@@ -96,8 +96,8 @@ else:
 			except:
 				logging.error("No valid html renderers found, aborting.  (Need python-webkit, or gtkmozembed, or gtkhtml2")
 				sys.exit(1)
-				
-			
+
+
 
 	HAS_SEARCH = False
 
@@ -113,7 +113,7 @@ else:
 		HAS_SEARCH = True
 	except:
 		HAS_LUCENE = False
-		
+
 	try:
 		import gconf
 		HAS_GCONF = True
@@ -123,7 +123,7 @@ else:
 			HAS_GCONF = True
 		except:
 			HAS_GCONF = False
-		
+
 	if DO_GTK_CHECKS:
 		try:
 			import gnomevfs
@@ -134,7 +134,7 @@ else:
 				HAS_GNOMEVFS = True
 			except:
 				HAS_GNOMEVFS = False
-		
+
 	try:
 		from xml.sax.handler import ContentHandler
 		HAS_PYXML = True
@@ -144,13 +144,13 @@ else:
 			HAS_PYXML = True
 		except:
 			HAS_PYXML = False
-		
+
 	if DO_GTK_CHECKS and not RUNNING_HILDON:
 		if gtk.pygtk_version >= (2, 10, 0):
 			HAS_STATUS_ICON = True
 		else:
 			HAS_STATUS_ICON = False
-		
+
 	try:
 		import pynotify
 		HAS_PYNOTIFY = True
@@ -164,7 +164,7 @@ else:
 		HAS_GSTREAMER = True
 	except:
 		HAS_GSTREAMER = False
-		
+
 	try:
 		import dbus
 		HAS_DBUS = True
@@ -176,7 +176,7 @@ if RUNNING_HILDON:
 	HAS_STATUS_ICON = False
 	HAS_MOZILLA = False
 	HAS_GNOMEVFS = False
-	
+
 #DEBUG
 #_USE_KDE_OVERRIDE=False
 # Lucene sucks, forget it
@@ -185,14 +185,14 @@ HAS_LUCENE = False
 #HAS_XAPIAN = False
 if not HAS_XAPIAN:
 	HAS_SEARCH = False
-	
+
 if HAS_XAPIAN:
 	logging.info("Using Xapian search engine")
 elif HAS_LUCENE:
 	logging.info("Using Lucene search engine")
 else:
 	logging.info("xapian or lucene not found, search disabled")
-	
+
 # Pynotify is still broken, forget it
 #HAS_PYNOTIFY = False
 #HAS_PYXML = False
@@ -219,26 +219,26 @@ def format_size(size):
 		return str(int(round(size/1024)))+" KB"
 	else:
 		return str(size)+" bytes"
-		
+
 def GetPrefix():
 	if os.environ.has_key('PTV_PREFIX'):
 		h, t = os.path.split(os.environ['PTV_PREFIX'])
 		return h
 	h, t = os.path.split(os.path.split(os.path.abspath(sys.argv[0]))[0])
 	return h
-	
+
 _glade_prefix = None
 _share_prefix = None
 
-def get_share_prefix():	
+def get_share_prefix():
 	global _share_prefix
 
 	if _share_prefix is not None:
 		return _share_prefix
-	
+
 	get_glade_prefix()
 	return _share_prefix
-	
+
 def get_glade_prefix():
 	global _glade_prefix
 	global _share_prefix
@@ -263,7 +263,7 @@ def get_glade_prefix():
 		except:
 			continue
 	return None
-	
+
 def get_image_path(filename):
 	for p in (get_share_prefix(),
 			  os.path.join(GetPrefix(), 'share', 'pixmaps'),
@@ -277,7 +277,7 @@ def get_image_path(filename):
 			continue
 		logging.error("icon not found:" + filename)
 		raise e
-	return icon_file		
+	return icon_file
 
 def hours(n):  #this func copyright Bram Cohen
     if n == -1:
@@ -303,18 +303,18 @@ def is_known_media(filename):
 				except:
 					pass
 		return False
-	
+
 	try:
 		return desktop_has_file_handler(filename)
 	except:
 		return False
-	
+
 def get_play_command_for(filename):
 	known_players={ 'totem':'--enqueue',
 					'xine':'--enqueue',
 					'mplayer': '-enqueue',
 					'banshee': '--enqueue'}
-					
+
 	if is_kde():
 		try:
 			mime_magic = kio.KMimeMagic()
@@ -343,17 +343,17 @@ def get_play_command_for(filename):
 		path, program = os.path.split(full_qual_prog)
 	except:
 		program = full_qual_prog
-	
+
 	if known_players.has_key(program):
 		return full_qual_prog+" "+known_players[program]
 	return full_qual_prog
-				
+
 def get_dated_dir(t=None):
 	if t is None:
 		t = time.localtime()
 	today = time.strftime("%Y-%m-%d", t)
-	return today 		
-			
+	return today
+
 #http://www.faqts.com/knowledge_base/view.phtml/aid/2682
 class GlobDirectoryWalker:
     # a forward iterator that traverses a directory tree
@@ -373,7 +373,7 @@ class GlobDirectoryWalker:
 			except IndexError:
 				# pop next directory from stack
 				try:
-					while True: 
+					while True:
 						self.directory = self.stack.pop()
 						self.index = 0
 						self.files = os.listdir(self.directory) #loops if we have a problem listing the directory
@@ -400,8 +400,8 @@ def deltree(path):
 		else:
 			os.remove(file_or_dir) #it's a file, delete it
 	os.rmdir(path) #delete the directory here
-	
-	
+
+
 #http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/82465
 def _mkdir(newdir):
 	"""works the way a good mkdir should :)
@@ -430,19 +430,19 @@ def my_quote(s):
 	s=string.replace(s,"&amp;","&")
 	s=string.replace(s,"&","&amp;")
 	return s
-	
+
 def make_pathsafe(s):
 	unsafe=('<','>',':','"','/','\\','|')
 	for c in unsafe:
 		s=string.replace(s,c,'_')
 	return s
-	
+
 def get_hyphen():
 	if RUNNING_HILDON:
 		return "--"
 	else:
 		return "&#8211;"
-	
+
 def uniquer(seq, idfun=None):
 	if not seq:
 		return []
@@ -459,7 +459,7 @@ def uniquer(seq, idfun=None):
 		seen[marker] = 1
 		result.append(item)
 	return result
-		
+
 def is_kde():
 	"""Returns true if the user is running a full KDE desktop, or if it has been overridden for debug
 		purposes"""
@@ -468,9 +468,9 @@ def is_kde():
 			return True
 	except:
 		return False
-		
-	return os.environ.has_key('KDE_FULL_SESSION')	
-	
+
+	return os.environ.has_key('KDE_FULL_SESSION')
+
 def desktop_has_file_handler(filename):
 	"""Returns true if the desktop has a file handler for this
 		filetype."""
@@ -488,7 +488,7 @@ def desktop_has_file_handler(filename):
 			return False
 		else: #FIXME: olpc doesn't know what the fuck... pretend yes and let error get caught later
 			return True
-		
+
 def is_file_media(filename):
 	"""Returns true if this is a media file (audio or video) and false if it is any other type of file"""
 	if is_kde():
@@ -503,7 +503,7 @@ def is_file_media(filename):
 		if mime in mimetype:
 			return True
 	return False
-		
+
 #http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/440481
 #class MLStripper(HTMLParser.HTMLParser):
 #	def __init__(self):
@@ -514,8 +514,8 @@ def is_file_media(filename):
 #	def get_fed_data(self):
 #		return ''.join(self.fed)
 
- 
-        
+
+
 #usage:
 #def strip(s):
 #    """ Strip illegal HTML tags from string s """
@@ -533,14 +533,14 @@ def is_file_media(filename):
 #
 #    def __getattr__(self, name):
 #        return __main__.__dict__.get(name, None)
-#        
+#
 #    def __setattr__(self, name, value):
 #        __main__.__dict__[name] = value
-#        
+#
 #    def __delattr__(self, name):
 #        if __main__.__dict__.has_key(name):
 #            del  __main__.__dict__[name]
-            
+
 #thanks http://www.peterbe.com/plog/html-entity-fixer
 #from htmlentitydefs import entitydefs
 #import re
@@ -559,38 +559,38 @@ def html_entity_unfixer(text):
 	for entity in _my_entities.keys():
 		text = text.replace("&"+entity+";", _my_entities[entity])
 	return text
-	
+
 #def lucene_escape(text):
 #	#+ - & | ! ( ) { } [ ] ^ " ~ * ? : \\
 #	escape_chars="""+-&|!(){}[]^"~*?:\\"""
 #	text = text.replace(
 
 def get_disk_free(f="/"):
-	
-	"""returns free disk space in bytes for 
-	   the disk that contains file f, defaulting to root.  
-	   Returns 0 on error"""
-	
-	stats = os.statvfs(f) #if this fails it will raise exactly the right error
-	
-	return stats.f_bsize * stats.f_bavail
-	
-		
-def get_disk_total(f="/"):
-	
-	"""returns total disk space in bytes for 
+
+	"""returns free disk space in bytes for
 	   the disk that contains file f, defaulting to root.
 	   Returns 0 on error"""
-	
+
 	stats = os.statvfs(f) #if this fails it will raise exactly the right error
-	
+
+	return stats.f_bsize * stats.f_bavail
+
+
+def get_disk_total(f="/"):
+
+	"""returns total disk space in bytes for
+	   the disk that contains file f, defaulting to root.
+	   Returns 0 on error"""
+
+	stats = os.statvfs(f) #if this fails it will raise exactly the right error
+
 	return stats.f_bsize * stats.f_blocks
-		
+
 def init_gtkmozembed():
-	"""We need to set up mozilla with set_comp_path in order for it not to 
+	"""We need to set up mozilla with set_comp_path in order for it not to
 	crash.  The fun part is not hardcoding that path since we have no way
 	of getting it from the module itself.  good luck with this"""
-	
+
 	logging.info("initializing mozilla")
 	assert HAS_MOZILLA
 
@@ -598,7 +598,7 @@ def init_gtkmozembed():
 	if os.path.exists('/usr/lib/xulrunner-1.9'):
 		gtkmozembed.set_comp_path('/usr/lib/xulrunner-1.9')
 		return
-	
+
 	#old, disgusting behavior
 	if not os.environ.has_key('MOZILLA_FIVE_HOME'):
 		return False
@@ -609,26 +609,26 @@ def init_gtkmozembed():
 	stderr = p.stderr.read()
 	stdout = p.stdout.read()
 	if len(stderr) > 1 or len(stdout) > 0:
-		print """***ERROR initializing mozilla.  PenguinTV may crash shortly.  
+		print """***ERROR initializing mozilla.  PenguinTV may crash shortly.
 You may need to export LD_LIBRARY_PATH=$MOZILLA_FIVE_HOME
 """
 		return False
 
 	_init_mozilla_proxy()
-	
+
 	logging.info("initializing mozilla in " + str(moz_path))
 	gtkmozembed.set_comp_path(moz_path)
-	
+
 	return True
-	
+
 def _init_mozilla_proxy():
 	if RUNNING_SUGAR:
 		# don't even try
 		return
-		
+
 	home = os.path.join(os.getenv('HOME'), ".penguintv")
 	_mkdir(os.path.join(home, "gecko"))
-	
+
 	sys_proxy = {}
 	sys_proxy['host'] = ""
 	sys_proxy['port'] = 0
@@ -649,7 +649,7 @@ def _init_mozilla_proxy():
 			sys_proxy['port'] = conf.get_int("/system/http_proxy/port")
 			sys_proxy['type'] = 1
 	else:
-		# get most-recently modified moz prefs. 
+		# get most-recently modified moz prefs.
 		prefs_files = []
 		for f in GlobDirectoryWalker(os.path.join(os.getenv('HOME'), ".mozilla"), "prefs.js"):
 			prefs_files.append((os.stat(f).st_mtime, f))
@@ -658,7 +658,7 @@ def _init_mozilla_proxy():
 			prefs_files.reverse()
 			source_prefs = prefs_files[0][1]
 			sys_proxy = _get_proxy_prefs(source_prefs)
-		
+
 	# check against current settings
 	try:
 		os.stat(os.path.join(home, "gecko", "prefs.js"))
@@ -691,7 +691,7 @@ def _init_mozilla_proxy():
 		f.close()
 	except:
 		logging.warning("couldn't create prefs.js, proxy server connections may not work")
-		
+
 def _get_proxy_prefs(filename):
 	def isNumber(x):
 		try:
@@ -699,19 +699,19 @@ def _get_proxy_prefs(filename):
 			return True
 		except:
 			return False
-	
+
 	proxy = {}
 	proxy['host'] = ""
 	proxy['port'] = 0
 	proxy['type'] = 0
 	proxy['autoconfig_url'] = ""
-	
+
 	try:
 		f = open(filename, "r")
 	except:
 		logging.warning("couldn't open gecko preferences file " + filename)
 		return proxy
-	
+
 	for line in f.readlines():
 		if 'network' in line:
 			if '"network.proxy.http"' in line:
@@ -722,17 +722,17 @@ def _get_proxy_prefs(filename):
 				proxy['port'] = int("".join([c for c in line.split('"')[2] if isNumber(c)]))
 			elif '"network.proxy.type"' in line:
 				proxy['type'] = int("".join([c for c in line.split('"')[2] if isNumber(c)]))
-				
+
 	f.close()
 	return proxy
-	
+
 def get_pynotify_ok():
 	if not HAS_PYNOTIFY:
 		#print "pynotify not found, using fallback notifications"
 		return False
 
 	# first get what package config reports
-	
+
 	cmd = "pkg-config notify-python --modversion"
 	p = subprocess.Popen(cmd, shell=True, close_fds=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	retval = p.wait()
@@ -741,7 +741,7 @@ def get_pynotify_ok():
 		logging.warning("trouble getting notify-python version from pkg-config, using fallback notifications")
 		return False
 	major,minor,rev = p.stdout.read().split('.')
-	
+
 	major = int(major)
 	minor = int(minor)
 	rev = int(rev)
@@ -763,28 +763,28 @@ def get_pynotify_ok():
 #		logging.info("trouble getting notify-python prefix from pkg-config, using fallback notifications")
 #		return False
 #	pkgconfig_prefix = p.stdout.read().strip()
-#	
+#
 #	try:
 #		dirname = os.path.split(pynotify.__file__)[0]
 #		f = open(os.path.join(dirname, "_pynotify.la"))
 #	except:
 #		logging.info("trouble opening _pynotify.la, using fallback notifications")
 #		return False
-#	
+#
 #	libdir_line = ""
-#	
+#
 #	for line in f.readlines():
 #		if line[0:6] == "libdir":
 #			libdir_line = line.split("=")[1][1:-1]
 #			break
 #	f.close()
-#	
+#
 #	libdir_line = libdir_line.strip()
-#	
+#
 #	if len(libdir_line) == 0:
 #		logging.info("trouble reading _pynotify.la, using fallback notifications")
 #		return False
-#	
+#
 #	if pkgconfig_prefix not in libdir_line:
 #		logging.info("pkgconfig does not agree with _pynotify.la, using fallback notifications")
 #		return False
@@ -802,8 +802,27 @@ def db_except(default_retval=None):
 				self._handle_db_exception()
 				return _exec_cb(self, *args, **kwargs)
 		return _exec_cb
-	return annotate	
-	
+	return annotate
+
 if is_kde():
 	import kio
 
+def _pickle_method(method):
+  func_name = method.im_func.__name__
+  obj = method.im_self
+  cls = method.im_class
+  return _unpickle_method, (func_name, obj, cls)
+
+def _unpickle_method(func_name, obj, cls):
+  for cls in cls.mro():
+    try:
+      func = cls.__dict__[func_name]
+    except KeyError:
+      pass
+    else:
+      break
+  return func.__get__(obj, cls)
+
+import copy_reg
+import types
+copy_reg.pickle(types.MethodType, _pickle_method, _unpickle_method)

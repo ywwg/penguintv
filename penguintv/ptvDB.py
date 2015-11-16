@@ -16,6 +16,8 @@ import urllib, urlparse
 from urllib2 import URLError
 from types import *
 import ThreadPool
+#import multiprocessing
+#multiprocessing.log_to_stderr()
 import sys, os, os.path, re
 import gc
 import locale
@@ -125,6 +127,41 @@ FF_DOWNLOADSINGLE = 128
 DB_FILE="penguintv4.db"
 
 STRIPPER_REGEX = re.compile('<.*?>')
+
+
+def static_pool_poll_feed(args):
+	feed_id, arguments, total, data = args
+	url,etag=data
+
+	#save ram by not piling up polled data
+	#if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
+	#	parse_list_limit = 10
+	#else:
+	#	parse_list_limit = 50
+
+	#while len(self._parse_list) > parse_list_limit and not self._exiting:
+	#	time.sleep(1)
+
+	#if self._exiting:
+	#	return (feed_id, arguments, total, -1)
+
+	try:
+		import feedparser
+		#feedparser.disableWellFormedCheck=1  #do we still need this?  it used to cause crashes
+		#speed up feedparser
+		#must sanitize because some feeds have POPUPS!
+		if utils.RUNNING_SUGAR:
+			#feedparser._sanitizeHTML = lambda a, b: a
+			feedparser._resolveRelativeURIs = lambda a, b, c: a
+		if arguments & A_IGNORE_ETAG == A_IGNORE_ETAG:
+			data = feedparser.parse(url)
+		else:
+			data = feedparser.parse(url,etag)
+		return (feed_id, arguments, total, data)
+	except Exception, e:
+		logging.error(str(e))
+		return (feed_id, arguments, total, -1)
+
 
 class ptvDB:
 	entry_flag_cache = {}
@@ -1154,6 +1191,7 @@ class ptvDB:
 		if utils.RUNNING_HILDON or utils.RUNNING_SUGAR:
 			threadcount = 2
 		pool = ThreadPool.ThreadPool(threadcount,"ptvDB", lucene_compat = utils.HAS_LUCENE)
+		#pool = multiprocessing.Pool(processes=threadcount)
 		self._parse_list = []
 		for feed in feeds:
 			if self._cancel_poll_multiple or self._exiting:
@@ -1170,6 +1208,7 @@ class ptvDB:
 			#if flags & FF_NOAUTOPOLL == 0:
 			#	data = (url, etag)
 			pool.queueTask(self._pool_poll_feed,(feed,arguments,len(feeds), data),self._poll_mult_cb)
+			#pool.apply_async(static_pool_poll_feed, args=((feed, arguments, len(feeds), data),), callback=self._poll_mult_cb)
 
 		polled = 0
 		total = 0
@@ -1189,11 +1228,16 @@ class ptvDB:
 		if self._cancel_poll_multiple:
 			self._parse_list = []
 			#pass dummy poll result, send cancel signal
+			#multiproc:
+			#pool.terminate()
 			self.polling_callback((-1, [], total), True)
 		else: # no need for manual join
 			while pool.getTaskCount()>0: #manual joinAll so we can check for exit
 				if self._exiting:
 					pool.joinAll(False, True)
+					#multiproc:
+					#pool.close()
+					#pool.join()
 					del pool
 					self._c.close()
 					self._db.close()
@@ -1202,6 +1246,9 @@ class ptvDB:
 					return total
 				time.sleep(.5)
 		pool.joinAll(False,True) #just to make sure I guess
+		#multiproc:
+		#pool.close()
+		#pool.join()
 		del pool
 		self.reindex()
 		if not self._exiting:
@@ -1224,14 +1271,6 @@ class ptvDB:
 		url,etag=data
 
 		#save ram by not piling up polled data
-		if utils.RUNNING_SUGAR or utils.RUNNING_HILDON:
-			parse_list_limit = 10
-		else:
-			parse_list_limit = 50
-
-		while len(self._parse_list) > parse_list_limit and not self._exiting:
-			time.sleep(1)
-
 		if self._exiting:
 			return (feed_id, arguments, total, -1)
 
@@ -1469,15 +1508,22 @@ class ptvDB:
 			#print data
 			if data.has_key('bozo_exception'):
 				if isinstance(data['bozo_exception'], URLError):
-					try:
-						e = data['bozo_exception'][0]
-						#logging.debug(str(e))
-						errno = e[0]
-						if errno in (#-2, # Name or service not known
-									-3, #failure in name resolution
-									101, #Network is unreachable
-									114, #Operation already in progress
-									11):  #Resource temporarily unavailable
+					e = data['bozo_exception'][0]
+					#logging.debug(str(e))
+					errno = e[0]
+					if errno in (#-2, # Name or service not known
+								-3, #failure in name resolution
+								101, #Network is unreachable
+								114, #Operation already in progress
+								11):  #Resource temporarily unavailable
+						raise IOError(e)
+					elif errno == -2: #could be no site, could be no internet
+						try:
+							#this really should work, right?
+							#fixme: let's find a real way to test internet, hm?
+							u = urllib.urlretrieve("http://www.google.com")
+						except IOError, e2:
+							logging.warning("Error polling " + feed['title'] + " " + feed['url'])
 							raise IOError(e)
 						elif errno == -2: #could be no site, could be no internet
 							try:
@@ -2780,7 +2826,11 @@ class ptvDB:
 
 		if read is None:
 			self._db_execute(self._c, u'SELECT read FROM entries WHERE rowid=?',(entry_id,))
-			read = self._c.fetchone()[0]
+			read = self._c.fetchone()
+			if read is None:
+			    read = 0
+			else:
+			    read = read[0]
 
 		if medialist is None:
 			if media_entries is not None:
