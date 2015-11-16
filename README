@@ -2,6 +2,8 @@ PenguinTV
 
 Thank you for downloading Penguin TV.  This application is an RSS feed reader with support for enclosed media.  You can watch video blogs and listen to podcasts with this application.  See the website for new features and fixes in this version.
 
+WARNING: This project is mostly abandonned.  I still use it, though, and occasionally fix bugs that I find, so it should still work.
+
 == Requirements ==
 
 PenguinTV is a python program, and requires python version 2.5 or higher.  It also requires several libraries and their python versions:
@@ -56,7 +58,7 @@ PenguinTV uses the same Mozilla technology as Firefox to display your RSS feeds.
 
 == Development ==
 
-Please email me at owen-penguintv@ywwg.com with questions, comments, or suggestions.  I would welcome help on packaging, translation, or making PenguinTV work better for you. 
+please don't get involved :P
 
 Thanks for watching,
 Owen Williams
