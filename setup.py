@@ -146,14 +146,14 @@ packages = ["penguintv",
 			"penguintv/html",
 			"penguintv/BeautifulSoup"])
 
-if "install" in sys.argv:
-	sp = subprocess.call('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''', shell=True)
-	if sp.read() != 0:
-		print sp.outdata
-		print "There was an error installing the gconf schema"
-		sys.exit(1)
-	else:
-		print sp.outdata
+#if "install" in sys.argv:
+#	sp = subprocess.call('''GCONF_CONFIG_SOURCE=$(gconftool-2 --get-default-source) gconftool-2 --makefile-install-rule share/penguintv.schema''', shell=True)
+#	if sp.read() != 0:
+#		print sp.outdata
+#		print "There was an error installing the gconf schema"
+#		sys.exit(1)
+#	else:
+#		print sp.outdata
 		
 print ""
 something_disabled = False	

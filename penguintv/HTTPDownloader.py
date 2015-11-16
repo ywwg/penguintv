@@ -31,7 +31,7 @@ class HTTPDownloader(Downloader):
 		#no params
 		self._resume_from = 0
 		self._last_progress = 0
-		
+
 	def download(self,args_unused):
 		if not Downloader.download(self,args_unused):
 			#stopped before we began, no callback
@@ -65,7 +65,7 @@ class HTTPDownloader(Downloader):
 			response = curl.getinfo(pycurl.RESPONSE_CODE)
 			curl.close()
 			fp.close()
-			if self.media['url'][:5] == "http:":
+			if self.media['url'].startswith("http:") or self.media['url'].startswith("https:"):
 				if response != 200 and response != 206:
 					logging.warning("HTTP download error: %s %s" % (self.media['url'],response))
 					if response == 404:
@@ -102,13 +102,13 @@ class HTTPDownloader(Downloader):
 					d = {"response":response,
 						 "url":self.media['url']}
 					self.media['errormsg']=_("Unexpected FTP response: %(response)s %(url)s") % d
-			else: 
+			else:
 				self.media['errormsg']=_("Unknown protocol for url %s" % self.media['url'])
 				self.status = FAILURE
 				self.message = self.media['errormsg']
 				self._finished_callback()
 				return
-			
+
 			if self._queue:
 				self.status = FINISHED_AND_PLAY
 				self.message = _("finished downloading %s") % self.media['file']
@@ -132,7 +132,7 @@ class HTTPDownloader(Downloader):
 				self.status = FAILURE
 				self.message = data
 				self._finished_callback()
-		
+
 	def _wrap_progress_callback(self, dl_total, dl_now, ul_total, ul_now):
 		now = time.time()
 		if now - self._last_progress < 2.0:
@@ -144,7 +144,7 @@ class HTTPDownloader(Downloader):
 		try:
 			self.progress = int((dl_now*100.0)/dl_total)
 		except:
-			self.progress = 0	
+			self.progress = 0
 		if not self.media.has_key('size'):
 			self.media['size_adjustment']=True
 		elif self.media['size']!=round(dl_total) and not self._resume:

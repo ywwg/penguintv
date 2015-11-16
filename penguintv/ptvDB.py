@@ -1421,8 +1421,7 @@ class ptvDB:
 				#self._db_execute(self._c, """UPDATE feeds SET pollfail=1 WHERE rowid=?""",(feed_id,))
 				#self._db.commit()
 				perform_feed_updates(feed_updates, feed_id)
-				logging.warning(str(e))
-				raise FeedPollError,(feed_id,"feedparser blew a gasket")
+				raise FeedPollError,(feed_id,"feedparser blew a gasket: %s" % str(e))
 		else:
 			if preparsed == -1:
 				feed_updates = {}
@@ -1470,23 +1469,26 @@ class ptvDB:
 			#print data
 			if data.has_key('bozo_exception'):
 				if isinstance(data['bozo_exception'], URLError):
-					e = data['bozo_exception'][0]
-					#logging.debug(str(e))
-					errno = e[0]
-					if errno in (#-2, # Name or service not known
-								-3, #failure in name resolution
-								101, #Network is unreachable
-								114, #Operation already in progress
-								11):  #Resource temporarily unavailable
-						raise IOError(e)
-					elif errno == -2: #could be no site, could be no internet
-						try:
-							#this really should work, right?
-							#fixme: let's find a real way to test internet, hm?
-							u = urllib.urlretrieve("http://www.google.com")
-						except IOError, e2:
-							logging.warning("Error polling " + feed['title'] + " " + feed['url'])
+					try:
+						e = data['bozo_exception'][0]
+						#logging.debug(str(e))
+						errno = e[0]
+						if errno in (#-2, # Name or service not known
+									-3, #failure in name resolution
+									101, #Network is unreachable
+									114, #Operation already in progress
+									11):  #Resource temporarily unavailable
 							raise IOError(e)
+						elif errno == -2: #could be no site, could be no internet
+							try:
+								#this really should work, right?
+								#fixme: let's find a real way to test internet, hm?
+								u = urllib.urlretrieve("http://www.google.com")
+							except IOError, e2:
+								logging.warning("Error polling " + feed['title'] + " " + feed['url'])
+								raise IOError(e)
+					except IndexError:
+						logging.warning('bozo not as expected: %s' % str(data['bozo_exception']))
 			feed_updates = {}
 			if arguments & A_AUTOTUNE == A_AUTOTUNE:
 				feed_updates = self._set_new_update_freq(feed, 0)
@@ -1532,7 +1534,7 @@ class ptvDB:
 
 		#normalize results
 		channel = data['feed']
-		if channel.has_key('description') == 0:
+		if channel.has_key('description') == 0 or not channel['description']:
 			channel['description']=""
 		if len(channel['description']) > 128:
 			channel['description'] = channel['description'][0:127]
@@ -1855,10 +1857,13 @@ class ptvDB:
 		elif MAX_ARTICLES > 0:
 			if all_entries > MAX_ARTICLES:
 				if len(no_delete) > 0:
-					qmarks = "?,"*(len(no_delete)-1)+"?"
-					self._db_execute(self._c, """SELECT rowid FROM entries WHERE rowid NOT IN (%s) AND keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""" % qmarks,
-						tuple(no_delete) + (feed_id, all_entries - MAX_ARTICLES))
-					ditchables = self._c.fetchall()
+				    ditchables = []
+				    while len(no_delete) > 0:
+					    qmarks = "?,"*(len(no_delete[:1000])-1)+"?"
+					    self._db_execute(self._c, """SELECT rowid FROM entries WHERE rowid NOT IN (%s) AND keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""" % qmarks,
+						    tuple(no_delete[:1000]) + (feed_id, all_entries - MAX_ARTICLES))
+					    ditchables += self._c.fetchall()
+					    no_delete = no_delete[1000:]
 				else:
 					self._db_execute(self._c, """SELECT rowid FROM entries WHERE keep=0 AND feed_id=? ORDER BY fakedate LIMIT ?""",
 						(feed_id, all_entries - MAX_ARTICLES))

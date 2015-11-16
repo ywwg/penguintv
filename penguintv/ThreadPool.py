@@ -22,11 +22,11 @@ class ThreadPool:
 	"""Flexible thread pool class.  Creates a pool of threads, then
 	accepts tasks that will be dispatched to the next available
 	thread."""
-	
-	def __init__(self, numThreads,name="ThreadPoolThread", lucene_compat=False):
+
+	def __init__(self, numThreads,name="ThreadPoolThread", lucene_compat=False, daemon=False):
 
 		"""Initialize the thread pool with numThreads workers."""
-		
+
 		self.__threads = []
 		self.__resizeLock = threading.Condition(threading.Lock())
 		self.__taskLock = threading.Condition(threading.Lock())
@@ -35,7 +35,8 @@ class ThreadPool:
 		self.__name = name
 		self.__maxThreads = numThreads
 		self.occupied_threads = 0
-		self.lucene_compat = lucene_compat        
+		self.lucene_compat = lucene_compat
+		self._daemon = daemon
 		#self.setThreadCount(numThreads)
 
 
@@ -44,24 +45,24 @@ class ThreadPool:
 #		""" External method to set the current pool size.  Acquires
 #		the resizing lock, then calls the internal version to do real
 #		work."""
-#		
+#
 #		# Can't change the thread count if we're shutting down the pool!
 #		if self.__isJoining:
 #			return False
-#		
+#
 #		self.__resizeLock.acquire()
-#		try:      	
+#		try:
 #			self.__setThreadCountNolock(newNumThreads)
 #		finally:
 #			self.__resizeLock.release()
 #		return True
 #
 #	def __setThreadCountNolock(self, newNumThreads):
-#		
+#
 #		"""Set the current pool size, spawning or terminating threads
 #		if necessary.  Internal use only; assumes the resizing lock is
 #		held."""
-#		
+#
 #		# If we need to grow the pool, do so
 #		while newNumThreads > len(self.__threads):
 #			if self.lucene_compat:
@@ -78,28 +79,28 @@ class ThreadPool:
 	def getThreadCount(self):
 
 		"""Return the number of threads in the pool."""
-		
+
 		self.__resizeLock.acquire()
 		try:
 			return len(self.__threads)
 		finally:
 			self.__resizeLock.release()
-			
+
 	def getTaskCount(self):
-	
+
 		"""Return the number of queued items"""
 		return len(self.__tasks)+self.occupied_threads
-		
+
 	def queueTask(self, task, args=None, taskCallback=None):
 
 		"""Insert a task into the queue.  task must be callable;
 		args and taskCallback can be None."""
-		
+
 		if self.__isJoining == True:
 			return False
 		if not callable(task):
 			return False
-			
+
 		self.__resizeLock.acquire()
 		i = 0
 		deadlist = []
@@ -112,7 +113,7 @@ class ThreadPool:
 			#logging.debug("deleting dead thread %i" % i)
 			del self.__threads[i]
 		self.__resizeLock.release()
-		
+
 		self.__taskLock.acquire()
 		try:
 			self.__tasks.append((task, args, taskCallback))
@@ -123,6 +124,8 @@ class ThreadPool:
 					newThread = LuceneThreadPoolThread(self,self.__name)
 				else:
 					newThread = ThreadPoolThread(self,self.__name)
+				if self._daemon:
+				  newThread.setDaemon(True)
 				self.__threads.append(newThread)
 				newThread.start()
 			#else:
@@ -135,7 +138,7 @@ class ThreadPool:
 
 		""" Retrieve the next task from the task queue.  For use
 		only by ThreadPoolThread objects contained in the pool."""
-		
+
 		self.__taskLock.acquire()
 		try:
 			if self.__tasks == []:
@@ -148,7 +151,7 @@ class ThreadPool:
 				return (task, args, taskCallback)
 		finally:
 			self.__taskLock.release()
-	
+
 	def joinAll(self, waitForTasks = True, waitForThreads = True):
 
 		""" Clear the task queue and terminate all pooled threads,
@@ -183,11 +186,11 @@ class ThreadPool:
 			self.__isJoining = False
 		finally:
 			self.__resizeLock.release()
-		
+
 class ThreadPoolThread(threading.Thread):
 
 	""" Pooled thread class. """
-	
+
 	threadSleepTime = 1.0
 
 	def __init__(self, pool, n="ThreadPoolThread"):
@@ -197,7 +200,7 @@ class ThreadPoolThread(threading.Thread):
 		threading.Thread.__init__(self,name=n)
 		self.__pool = pool
 		self.__isDying = False
-		
+
 	def run(self):
 
 		""" Until told to quit, retrieve the next task and execute
@@ -228,20 +231,20 @@ class ThreadPoolThread(threading.Thread):
 	def goAway(self):
 
 		""" Exit the run loop next time through."""
-		
+
 		self.__isDying = True
-		
+
 #if HAS_LUCENE:
 #	l_threadclass = PyLucene.PythonThread
 #else:
 #	l_threadclass = threading.Thread
-	
+
 #this class will never get called if we don't have lucene, but we need to declare it
 #even if we don't have the library (no preprocessors in python)
 #class LuceneThreadPoolThread(l_threadclass):
 #
 #	""" Pooled thread class. """
-#	
+#
 #	threadSleepTime = 0.5
 #
 #	def __init__(self, pool, n="LuceneThreadPoolThread"):
@@ -251,12 +254,12 @@ class ThreadPoolThread(threading.Thread):
 #		l_threadclass.__init__(self,name=n)
 #		self.__pool = pool
 #		self.__isDying = False
-#		
+#
 #	def run(self):
 #
 #		""" Until told to quit, retrieve the next task and execute
 #		it, calling the callback if any.  """
-#		
+#
 #		while self.__isDying == False:
 #			cmd, args, callback = self.__pool.getNextTask()
 #			# If there's nothing to do, just sleep a bit
@@ -270,9 +273,9 @@ class ThreadPoolThread(threading.Thread):
 #				self.__pool.occupied_threads+=1
 #				callback(cmd(args))
 #				self.__pool.occupied_threads-=1
-#	
+#
 #	def goAway(self):
 #
 #		""" Exit the run loop next time through."""
-#		
+#
 #		self.__isDying = True
