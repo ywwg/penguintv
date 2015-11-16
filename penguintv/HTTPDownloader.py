@@ -143,7 +143,7 @@ class HTTPDownloader(Downloader):
 			dl_now   += self._resume_from
 		try:
 		    if dl_total < 2:
-		        # Ignore spurious 0 byte and1 byte updates
+		        # Ignore spurious 0 byte and byte updates
 		        self.progress = 0
 		    else:
 			    self.progress = int((dl_now*100.0)/dl_total)

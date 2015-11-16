@@ -66,10 +66,10 @@ def correct_url(url, glade_prefix=None):
 			
 	if utils.HAS_PYXML:
 		if itunes.is_itunes_url(url):
-			#try:
-			url = itunes.get_rss_from_itunes(url)
-			#except:
-			#	raise BadFeedURL,"Error trying to get itunes podcast"
+			try:
+				url = itunes.get_rss_from_itunes(url)
+			except:
+				raise BadFeedURL,"Error trying to get itunes podcast"
 			
 	if glade_prefix is not None:
 		#TODO: abstract this out so we can have a command-line testing version as well as gtk
