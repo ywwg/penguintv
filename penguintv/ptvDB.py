@@ -1380,7 +1380,7 @@ class ptvDB:
 		feed['netatlast'] = result[8]
 		feed['old_poll_freq'] = result[9]
 
-
+		url = feed['url']
 		if preparsed is None:
 			#feed_id = self._resolve_pointed_feed(feed_id)
 			#self._db_execute(self._c, u'SELECT feed_pointer FROM feeds WHERE rowid=?',(feed_id,))
