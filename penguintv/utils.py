@@ -310,7 +310,9 @@ def is_known_media(filename):
 		return False
 
 def get_play_command_for(filename):
-	known_players={ 'totem':'--enqueue',
+	known_players={ 
+	        'audacious':'--enqueue',
+	        'totem':'--enqueue',
 					'xine':'--enqueue',
 					'mplayer': '-enqueue',
 					'banshee': '--enqueue'}
