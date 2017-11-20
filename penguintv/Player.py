@@ -144,9 +144,9 @@ class Player:
 				for player in players.keys():
 					cmdline=player+" "
 					for filename in players[player]:
-						cmdline+=filename+" "
+						cmdline += '"%s" ' % filename
 					cmdline+="&"
-					#print "running: "+str(cmdline)
+					# logging.debug("running: "+str(cmdline))
 					subProcess.subProcess(cmdline)
 			
 class NoDir(Exception):

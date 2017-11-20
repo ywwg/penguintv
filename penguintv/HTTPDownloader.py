@@ -67,7 +67,7 @@ class HTTPDownloader(Downloader):
 			fp.close()
 			if self.media['url'].startswith("http:") or self.media['url'].startswith("https:"):
 				if response != 200 and response != 206:
-					logging.warning("HTTP download error: %s %s" % (self.media['url'],response))
+					logging.warning("HTTP download error: %s %s %s" % (self.media['feedname'], self.media['url'],response))
 					if response == 404:
 						self.media['errormsg']=_("404: File Not Found: %s" % self.media['url'])
 					elif response == 400:
