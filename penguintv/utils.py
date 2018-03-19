@@ -310,7 +310,7 @@ def is_known_media(filename):
 		return False
 
 def get_play_command_for(filename):
-	known_players={ 
+	known_players={
 	        'audacious':'--enqueue',
 	        'totem':'--enqueue',
 					'xine':'--enqueue',
@@ -330,17 +330,8 @@ def get_play_command_for(filename):
 		except:
 			logging.info("error getting type, using kfmclient")
 			return "kfmclient exec "
-	else: #GNOME -- notice how short and sweet this is in comparison :P
-		if HAS_GNOMEVFS:
-			try:
-				mimetype = gnomevfs.get_mime_type(urllib.quote(filename)) #fix for penny arcade filenames
-				full_qual_prog = gnomevfs.mime_get_default_application(mimetype)[2]
-			except:
-				logging.info("unknown type, using gnome-open")
-				return "gnome-open "
-		else:
-			# :(
-			return "echo "
+	else:
+		return "xdg-open "
 	try:
 		path, program = os.path.split(full_qual_prog)
 	except:
