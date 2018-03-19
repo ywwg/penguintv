@@ -1401,8 +1401,11 @@ class PenguinTVApp(gobject.GObject):
 
 		if len(download_list) > 0:
 			for d in download_list:
-				title = self.db.get_feed_title(d[3])
-				logging.info("%s, %i: %i" % (title, d[2], d[1]))
+				try:
+					title = self.db.get_feed_title(d[3])
+					logging.info("%s, %i: %i" % (title, d[2], d[1]))
+				except:
+					pass
 
 		total_size=0
 

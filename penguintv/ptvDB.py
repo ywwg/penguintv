@@ -2326,6 +2326,7 @@ class ptvDB:
 		try:
 			result = self._c.fetchone()[0]
 		except TypeError:
+			logging.warning("Couldn't find feed with id %d" % feed_index)
 			raise NoFeed, feed_index
 
 		#don't return a tuple
