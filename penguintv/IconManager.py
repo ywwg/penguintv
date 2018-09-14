@@ -9,7 +9,11 @@ try:
 	import Image
 	HAS_PIL = True
 except:
-	HAS_PIL = False
+	try:
+		from PIL import Image
+		HAS_PIL = True
+	except:
+		HAS_PIL = False
 
 class IconManager:
 
@@ -26,15 +30,15 @@ class IconManager:
 		filename = os.path.join(self._home, 'icons', str(feed_id) + '.*')
 		result = glob.glob(filename)
 		result = [r for r in result if r[-4:].upper() != "NONE"]
-		return result > 0	
-		
+		return result > 0
+
 	def get_icon(self, feed_id):
 		filename = os.path.join(self._home, 'icons', str(feed_id) + '.*')
 		result = glob.glob(filename)
 		if len(result) == 0:
 			return None
 		return result[0]
-	
+
 	def get_icon_pixbuf(self, feed_id, max_width=None, max_height=None, min_width=None, min_height=None):
 		import gtk
 		if min_width is None:
@@ -46,7 +50,7 @@ class IconManager:
 			p = gtk.gdk.Pixbuf(gtk.gdk.COLORSPACE_RGB,True,8, min_width, min_height)
 			p.fill(0xffffff00)
 			return p
-	
+
 		try:
 			p = gtk.gdk.pixbuf_new_from_file(filename)
 		except:
@@ -67,25 +71,25 @@ class IconManager:
 			if height < min_height:
 				height = min_height
 				width = p.get_width() * height / p.get_height()
-		
+
 		if min_width is not None:
 			if width < min_width:
 				width = min_width
 				height = p.get_height() * width / p.get_width()
-		
+
 		if height != p.get_height() or width != p.get_width():
 			del p
 			p = gtk.gdk.pixbuf_new_from_file_at_size(filename, width, height)
 		return p
-		
+
 	def download_icon(self, feed_id, feedparser_data):
 		url_list = []
 		try: url_list.append(feedparser_data['feed']['image']['href'])
 		except: pass
-		
+
 		try: url_list.append(feedparser_data['feed']['link'] + '/favicon.ico')
 		except: pass
-		
+
 		found=False
 		for url in url_list:
 			try:
@@ -95,7 +99,7 @@ class IconManager:
 				break
 			except:
 				pass
-	
+
 		if found:
 			if HAS_PIL:
 				try:
@@ -112,27 +116,27 @@ class IconManager:
 			else:
 				logging.warning("Don't have Python Imaging, can't resize icons")
 			return url
-			
+
 		f = open(os.path.join(self._home, 'icons', str(feed_id)+'.none'), 'w')
 		f.write("")
 		f.close()
 		return None
-			
+
 	def remove_icon(self, feed_id):
 		filename = os.path.join(self._home, 'icons', str(feed_id) + '.*')
 		result = glob.glob(filename)
 		for r in result:
 			print "deleting icon:",r
 			os.remove(r)
-			
+
 	def is_icon_up_to_date(self, feed_id, old_href, feedparser_data):
 		url_list = []
 		try: url_list.append(feedparser_data['feed']['image']['href'])
 		except: pass
-		
+
 		try: url_list.append(feedparser_data['feed']['link'] + '/favicon.ico')
 		except: pass
-		
+
 		if len(url_list) > 0:
 			if old_href in url_list:
 				filename = os.path.join(self._home, 'icons', str(feed_id) + '.*')
@@ -141,4 +145,3 @@ class IconManager:
 					return False
 				return True
 		return False
-				
