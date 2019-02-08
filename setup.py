@@ -52,7 +52,10 @@ except:
 try:
 	import Image
 except:
-	missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)")
+	try:
+		from PIL import Image
+	except:
+		missing_something.append("Need python imaging (http://www.pythonware.com/products/pil/)")
 
 try:
 	import gtk.glade
