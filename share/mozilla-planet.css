@@ -4,12 +4,12 @@ body {
        // background-color: #fffe92;
 }
 
-.heading { 
-	background-color: #f0f0ff; 
-	border-width:1px; 
-	border-style: solid; 
-	padding:12pt; 
-	margin:12pt; 
+.heading {
+	background-color: #f0f0ff;
+	border-width:1px;
+	border-style: solid;
+	padding:12pt;
+	margin:12pt;
 }
 
 //#nav_bar {
@@ -45,14 +45,14 @@ body {
 }
 
 .stitle {
-	font-size: 12pt; 
-	font-weight:bold; 
-//	font-family: Sans-Serif; 
+	font-size: 12pt;
+	font-weight:bold;
+//	font-family: Sans-Serif;
 	padding-bottom:20pt;
 }
 
 .sdate {
-	font-size:8pt; 
+	font-size:8pt;
 	color: #444;
 	font-style: italic;
 }
@@ -64,12 +64,12 @@ body {
 
 .media {
 	font-size:12pt;
-	background-color:#ddd; 
-	border-color:#000000; 
-	border-width:2px; 
-	border-style: solid; 
-	//padding:8pt; 
-	margin:8pt; 
+	background-color:#ddd;
+	border-color:#000000;
+	border-width:2px;
+	border-style: solid;
+	//padding:8pt;
+	margin:8pt;
 	overflow: auto;
 }
 
@@ -79,30 +79,34 @@ body {
 
 .media a img { border: none ; }
 
-dd { 
-	padding-left: 20pt; 
-}  
+img {
+  width: 90%;
+}
+
+dd {
+	padding-left: 20pt;
+}
 
 q { font-style: italic;}
 
-blockquote { 
-	display: block; 
-	color: #444444; 
-	background-color:#EEEEFF; 
-	border-color:#DDDDDD; 
-	border-width:2px; 
-	border-style: solid; 
-	padding:12pt; 
+blockquote {
+	display: block;
+	color: #444444;
+	background-color:#EEEEFF;
+	border-color:#DDDDDD;
+	border-width:2px;
+	border-style: solid;
+	padding:12pt;
 	margin:12pt;
 }
 
-.blockquote { 
-	display: block; 
-	color: #444444; 
-	background-color:#EEEEFF; 
-	border-color:#DDDDDD; 
-	border-width:2px; 
-	border-style: solid; 
-	padding:12pt; 
+.blockquote {
+	display: block;
+	color: #444444;
+	background-color:#EEEEFF;
+	border-color:#DDDDDD;
+	border-width:2px;
+	border-style: solid;
+	padding:12pt;
 	margin:12pt;
 }
