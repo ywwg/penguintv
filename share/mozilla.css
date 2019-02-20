@@ -63,7 +63,7 @@
 .media a img { border: none ; }
 
 img {
-  width: 90%;
+  max-width: 90%;
 }
 
 
