@@ -81,6 +81,8 @@ body {
 
 img {
   max-width: 90%;
+  width: auto;
+  height: auto;
 }
 
 dd {
